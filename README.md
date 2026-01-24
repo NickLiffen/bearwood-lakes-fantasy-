@@ -16,7 +16,7 @@ A fantasy golf league web application for Bearwood Lakes Golf Club members.
 
 - 🔐 User authentication (register/login)
 - 👥 View all league members
-- ⛳ Pick your team (6 players, £50m budget)
+- ⛳ Pick your team (6 players, $50M budget)
 - 📊 Weekly and all-time scoreboards
 - 🔧 Admin panel for managing players and scores
 - 🔒 Transfer window lock/unlock

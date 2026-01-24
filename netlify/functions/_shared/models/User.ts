@@ -1,7 +1,7 @@
 // User model (MongoDB)
 
 import { ObjectId } from 'mongodb';
-import type { User, UserRole } from '@shared/types';
+import type { User, UserRole } from '../../../../shared/types';
 
 export interface UserDocument {
   _id: ObjectId;

@@ -1,15 +1,14 @@
 // GET /.netlify/functions/leaderboard
 
-import type { Handler } from '@netlify/functions';
 import { withAuth } from './_shared/middleware';
-import { getLeaderboard, getWeeklyLeaderboard } from './_shared/services/leaderboard.service';
+import { getLeaderboard, getTournamentLeaderboard } from './_shared/services/leaderboard.service';
 
-export const handler: Handler = withAuth(async (event) => {
+export const handler = withAuth(async (event) => {
   try {
-    const week = event.queryStringParameters?.week;
+    const tournamentId = event.queryStringParameters?.tournamentId;
 
-    const leaderboard = week
-      ? await getWeeklyLeaderboard(parseInt(week, 10))
+    const leaderboard = tournamentId
+      ? await getTournamentLeaderboard(tournamentId)
       : await getLeaderboard();
 
     return {

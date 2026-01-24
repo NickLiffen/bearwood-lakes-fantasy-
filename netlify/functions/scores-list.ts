@@ -2,13 +2,25 @@
 
 import type { Handler } from '@netlify/functions';
 import { withAuth } from './_shared/middleware';
-import { getScoresForWeek, getAllScores } from './_shared/services/scores.service';
+import {
+  getScoresForTournament,
+  getAllScores,
+  getPublishedScores,
+} from './_shared/services/scores.service';
 
 export const handler: Handler = withAuth(async (event) => {
   try {
-    const week = event.queryStringParameters?.week;
+    const tournamentId = event.queryStringParameters?.tournamentId;
+    const publishedOnly = event.queryStringParameters?.publishedOnly === 'true';
 
-    const scores = week ? await getScoresForWeek(parseInt(week, 10)) : await getAllScores();
+    let scores;
+    if (tournamentId) {
+      scores = await getScoresForTournament(tournamentId);
+    } else if (publishedOnly) {
+      scores = await getPublishedScores();
+    } else {
+      scores = await getAllScores();
+    }
 
     return {
       statusCode: 200,

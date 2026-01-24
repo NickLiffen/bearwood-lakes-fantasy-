@@ -2,7 +2,7 @@
 
 import { ObjectId } from 'mongodb';
 import { connectToDatabase } from '../db';
-import { PlayerDocument, toPlayer, PLAYERS_COLLECTION } from '../models/Player';
+import { PlayerDocument, toPlayer, PLAYERS_COLLECTION, defaultStats2025 } from '../models/Player';
 import type { Player, CreatePlayerDTO, UpdatePlayerDTO } from '../../../../shared/types';
 
 export async function getAllPlayers(): Promise<Player[]> {
@@ -10,6 +10,14 @@ export async function getAllPlayers(): Promise<Player[]> {
   const collection = db.collection<PlayerDocument>(PLAYERS_COLLECTION);
 
   const players = await collection.find({}).toArray();
+  return players.map(toPlayer);
+}
+
+export async function getActivePlayers(): Promise<Player[]> {
+  const { db } = await connectToDatabase();
+  const collection = db.collection<PlayerDocument>(PLAYERS_COLLECTION);
+
+  const players = await collection.find({ isActive: true }).toArray();
   return players.map(toPlayer);
 }
 
@@ -26,17 +34,23 @@ export async function createPlayer(data: CreatePlayerDTO): Promise<Player> {
   const collection = db.collection<PlayerDocument>(PLAYERS_COLLECTION);
 
   const now = new Date();
-  const result = await collection.insertOne({
-    ...data,
+  const playerData: Omit<PlayerDocument, '_id'> = {
+    firstName: data.firstName,
+    lastName: data.lastName,
+    picture: data.picture,
+    price: data.price,
+    membershipType: data.membershipType,
+    isActive: data.isActive ?? true,
+    stats2025: data.stats2025 || defaultStats2025,
     createdAt: now,
     updatedAt: now,
-  } as PlayerDocument);
+  };
+
+  const result = await collection.insertOne(playerData as PlayerDocument);
 
   return {
     id: result.insertedId.toString(),
-    ...data,
-    createdAt: now,
-    updatedAt: now,
+    ...playerData,
   };
 }
 

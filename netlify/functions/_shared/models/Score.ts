@@ -1,23 +1,35 @@
 // Score model (MongoDB)
 
 import { ObjectId } from 'mongodb';
-import type { WeeklyScore } from '@shared/types';
+import type { Score } from '../../../../shared/types';
 
 export interface ScoreDocument {
   _id: ObjectId;
+  tournamentId: ObjectId;
   playerId: ObjectId;
-  week: number;
-  points: number;
+  participated: boolean;
+  position: number | null;
+  scored36Plus: boolean;
+  basePoints: number;
+  bonusPoints: number;
+  multipliedPoints: number;
   createdAt: Date;
+  updatedAt: Date;
 }
 
-export function toScore(doc: ScoreDocument): WeeklyScore {
+export function toScore(doc: ScoreDocument): Score {
   return {
     id: doc._id.toString(),
+    tournamentId: doc.tournamentId.toString(),
     playerId: doc.playerId.toString(),
-    week: doc.week,
-    points: doc.points,
+    participated: doc.participated ?? true,
+    position: doc.position,
+    scored36Plus: doc.scored36Plus ?? false,
+    basePoints: doc.basePoints ?? 0,
+    bonusPoints: doc.bonusPoints ?? 0,
+    multipliedPoints: doc.multipliedPoints,
     createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
   };
 }
 

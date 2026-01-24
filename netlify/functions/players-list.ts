@@ -1,10 +1,9 @@
 // GET /.netlify/functions/players-list
 
-import type { Handler } from '@netlify/functions';
 import { withAuth } from './_shared/middleware';
 import { getAllPlayers } from './_shared/services/players.service';
 
-export const handler: Handler = withAuth(async () => {
+export const handler = withAuth(async () => {
   try {
     const players = await getAllPlayers();
 

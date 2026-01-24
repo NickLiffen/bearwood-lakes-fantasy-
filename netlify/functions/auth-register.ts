@@ -1,15 +1,28 @@
 // POST /.netlify/functions/auth-register
 
-import type { Handler } from '@netlify/functions';
 import { registerUser } from './_shared/services/auth.service';
 import { validateBody, registerSchema } from './_shared/validators/auth.validator';
+import { getAppSettings } from './_shared/services/settings.service';
+import { withRateLimit } from './_shared/middleware';
 
-export const handler: Handler = async (event) => {
+export const handler = withRateLimit(async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
   try {
+    // Check if registration is open
+    const settings = await getAppSettings();
+    if (!settings.registrationOpen) {
+      return {
+        statusCode: 403,
+        body: JSON.stringify({ 
+          success: false, 
+          error: 'Registration is currently closed. Please contact an administrator.' 
+        }),
+      };
+    }
+
     const data = validateBody(registerSchema, event.body);
     const result = await registerUser(data);
 
@@ -25,4 +38,4 @@ export const handler: Handler = async (event) => {
       body: JSON.stringify({ success: false, error: message }),
     };
   }
-};
+}, 'auth');

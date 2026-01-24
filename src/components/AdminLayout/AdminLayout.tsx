@@ -1,0 +1,139 @@
+// Admin Layout component - shared header/nav for admin pages
+
+import React, { useEffect, useState } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import './AdminLayout.css';
+
+interface User {
+  id: string;
+  firstName: string;
+  lastName: string;
+  username: string;
+  role: string;
+}
+
+interface AdminLayoutProps {
+  children: React.ReactNode;
+  title: string;
+}
+
+const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (!storedUser) {
+      navigate('/login');
+      return;
+    }
+    const parsedUser = JSON.parse(storedUser);
+    if (parsedUser.role !== 'admin') {
+      navigate('/dashboard');
+      return;
+    }
+    setUser(parsedUser);
+  }, [navigate]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/login');
+  };
+
+  const isActive = (path: string) => location.pathname === path;
+
+  if (!user) {
+    return null;
+  }
+
+  return (
+    <div className="admin-layout">
+      {/* Admin Header */}
+      <header className="admin-header">
+        <div className="admin-header-container">
+          <Link to="/admin" className="admin-brand">
+            <img src="/bearwood_lakes_logo.png" alt="Bearwood Lakes" className="brand-logo" />
+            <span className="brand-text">Admin Panel</span>
+          </Link>
+
+          <div className="admin-header-actions">
+            <Link to="/dashboard" className="back-to-app">
+              ← Back to App
+            </Link>
+            <span className="admin-user">
+              {user.firstName} <span className="admin-badge">Admin</span>
+            </span>
+            <button onClick={handleLogout} className="btn-logout">
+              Logout
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div className="admin-body">
+        {/* Sidebar */}
+        <aside className="admin-sidebar">
+          <nav className="admin-nav">
+            <Link
+              to="/admin"
+              className={`admin-nav-link ${isActive('/admin') ? 'active' : ''}`}
+            >
+              <span className="nav-icon">📊</span>
+              Overview
+            </Link>
+            <Link
+              to="/admin/players"
+              className={`admin-nav-link ${isActive('/admin/players') ? 'active' : ''}`}
+            >
+              <span className="nav-icon">🏌️</span>
+              Players
+            </Link>
+            <Link
+              to="/admin/tournaments"
+              className={`admin-nav-link ${isActive('/admin/tournaments') ? 'active' : ''}`}
+            >
+              <span className="nav-icon">🏆</span>
+              Tournaments
+            </Link>
+            <Link
+              to="/admin/scores"
+              className={`admin-nav-link ${isActive('/admin/scores') ? 'active' : ''}`}
+            >
+              <span className="nav-icon">📝</span>
+              Scores
+            </Link>
+            <Link
+              to="/admin/users"
+              className={`admin-nav-link ${isActive('/admin/users') ? 'active' : ''}`}
+            >
+              <span className="nav-icon">👥</span>
+              Users
+            </Link>
+
+            <div className="nav-divider" />
+
+            <Link
+              to="/admin/settings"
+              className={`admin-nav-link ${isActive('/admin/settings') ? 'active' : ''}`}
+            >
+              <span className="nav-icon">⚙️</span>
+              Settings
+            </Link>
+          </nav>
+        </aside>
+
+        {/* Main Content */}
+        <main className="admin-main">
+          <div className="admin-page-header">
+            <h1>{title}</h1>
+          </div>
+          <div className="admin-content">{children}</div>
+        </main>
+      </div>
+    </div>
+  );
+};
+
+export default AdminLayout;

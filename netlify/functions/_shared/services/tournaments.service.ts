@@ -1,0 +1,137 @@
+// Tournaments service - CRUD operations
+
+import { ObjectId } from 'mongodb';
+import { connectToDatabase } from '../db';
+import { TournamentDocument, toTournament, TOURNAMENTS_COLLECTION } from '../models/Tournament';
+import { SettingDocument, SETTINGS_COLLECTION } from '../models/Settings';
+import type {
+  Tournament,
+  TournamentStatus,
+  CreateTournamentDTO,
+  UpdateTournamentDTO,
+} from '../../../../shared/types';
+import { getMultiplierForType } from '../../../../shared/types/tournament.types';
+
+async function getCurrentSeason(): Promise<number> {
+  const { db } = await connectToDatabase();
+  const setting = await db
+    .collection<SettingDocument>(SETTINGS_COLLECTION)
+    .findOne({ key: 'currentSeason' });
+  return (setting?.value as number) || 2026;
+}
+
+export async function getAllTournaments(): Promise<Tournament[]> {
+  const { db } = await connectToDatabase();
+  const collection = db.collection<TournamentDocument>(TOURNAMENTS_COLLECTION);
+
+  const tournaments = await collection.find({}).sort({ startDate: -1 }).toArray();
+  return tournaments.map(toTournament);
+}
+
+export async function getTournamentsBySeason(season?: number): Promise<Tournament[]> {
+  const { db } = await connectToDatabase();
+  const collection = db.collection<TournamentDocument>(TOURNAMENTS_COLLECTION);
+
+  const currentSeason = season ?? (await getCurrentSeason());
+  const tournaments = await collection
+    .find({ season: currentSeason })
+    .sort({ startDate: -1 })
+    .toArray();
+  return tournaments.map(toTournament);
+}
+
+export async function getTournamentsByStatus(status: TournamentStatus): Promise<Tournament[]> {
+  const { db } = await connectToDatabase();
+  const collection = db.collection<TournamentDocument>(TOURNAMENTS_COLLECTION);
+
+  const tournaments = await collection.find({ status }).sort({ startDate: -1 }).toArray();
+  return tournaments.map(toTournament);
+}
+
+export async function getTournamentById(id: string): Promise<Tournament | null> {
+  const { db } = await connectToDatabase();
+  const collection = db.collection<TournamentDocument>(TOURNAMENTS_COLLECTION);
+
+  const tournament = await collection.findOne({ _id: new ObjectId(id) });
+  return tournament ? toTournament(tournament) : null;
+}
+
+export async function createTournament(data: CreateTournamentDTO): Promise<Tournament> {
+  const { db } = await connectToDatabase();
+  const collection = db.collection<TournamentDocument>(TOURNAMENTS_COLLECTION);
+
+  const currentSeason = await getCurrentSeason();
+  const now = new Date();
+  
+  const tournamentType = data.tournamentType ?? 'regular';
+  const multiplier = getMultiplierForType(tournamentType);
+
+  const tournamentData: Omit<TournamentDocument, '_id'> = {
+    name: data.name,
+    startDate: new Date(data.startDate),
+    endDate: new Date(data.endDate),
+    tournamentType,
+    multiplier,
+    playerCountTier: data.playerCountTier ?? '20+',
+    season: data.season ?? currentSeason,
+    status: 'draft',
+    participatingPlayerIds: [],
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  const result = await collection.insertOne(tournamentData as TournamentDocument);
+
+  return {
+    id: result.insertedId.toString(),
+    ...tournamentData,
+    participatingPlayerIds: [],
+  };
+}
+
+export async function updateTournament(
+  id: string,
+  data: UpdateTournamentDTO
+): Promise<Tournament | null> {
+  const { db } = await connectToDatabase();
+  const collection = db.collection<TournamentDocument>(TOURNAMENTS_COLLECTION);
+
+  const updateData: Record<string, unknown> = { updatedAt: new Date() };
+
+  if (data.name !== undefined) updateData.name = data.name;
+  if (data.startDate !== undefined) updateData.startDate = new Date(data.startDate);
+  if (data.endDate !== undefined) updateData.endDate = new Date(data.endDate);
+  if (data.tournamentType !== undefined) {
+    updateData.tournamentType = data.tournamentType;
+    updateData.multiplier = getMultiplierForType(data.tournamentType);
+  }
+  if (data.playerCountTier !== undefined) updateData.playerCountTier = data.playerCountTier;
+  if (data.status !== undefined) updateData.status = data.status;
+  if (data.participatingPlayerIds !== undefined) {
+    updateData.participatingPlayerIds = data.participatingPlayerIds.map((id) => new ObjectId(id));
+  }
+
+  const result = await collection.findOneAndUpdate(
+    { _id: new ObjectId(id) },
+    { $set: updateData },
+    { returnDocument: 'after' }
+  );
+
+  return result ? toTournament(result) : null;
+}
+
+export async function deleteTournament(id: string): Promise<boolean> {
+  const { db } = await connectToDatabase();
+  const collection = db.collection<TournamentDocument>(TOURNAMENTS_COLLECTION);
+
+  const result = await collection.deleteOne({ _id: new ObjectId(id) });
+  return result.deletedCount === 1;
+}
+
+export async function publishTournament(id: string): Promise<Tournament | null> {
+  return updateTournament(id, { status: 'published' });
+}
+
+export async function completeTournament(id: string): Promise<Tournament | null> {
+  return updateTournament(id, { status: 'complete' });
+}

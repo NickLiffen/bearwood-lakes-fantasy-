@@ -1,10 +1,10 @@
 // POST /.netlify/functions/auth-login
 
-import type { Handler } from '@netlify/functions';
 import { loginUser } from './_shared/services/auth.service';
 import { validateBody, loginSchema } from './_shared/validators/auth.validator';
+import { withRateLimit } from './_shared/middleware';
 
-export const handler: Handler = async (event) => {
+export const handler = withRateLimit(async (event) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
@@ -24,4 +24,4 @@ export const handler: Handler = async (event) => {
       body: JSON.stringify({ success: false, error: message }),
     };
   }
-};
+}, 'auth');

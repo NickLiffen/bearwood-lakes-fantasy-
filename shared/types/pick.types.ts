@@ -7,6 +7,7 @@ export interface Pick {
   userId: string;
   playerIds: string[];
   totalSpent: number;
+  season: number;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -25,4 +26,15 @@ export interface UserPicksSummary {
   playerCount: number;
   totalSpent: number;
   picks: PickWithPlayers | null;
+}
+
+// Pick History for audit trail
+export interface PickHistory {
+  id: string;
+  userId: string;
+  playerIds: string[];
+  totalSpent: number;
+  season: number;
+  changedAt: Date;
+  reason: string;
 }
