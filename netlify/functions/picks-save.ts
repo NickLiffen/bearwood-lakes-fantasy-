@@ -1,0 +1,28 @@
+// POST /.netlify/functions/picks-save
+
+import type { Handler } from '@netlify/functions';
+import { withAuth, AuthenticatedEvent } from './_shared/middleware';
+import { savePicks } from './_shared/services/picks.service';
+import { validateBody, savePicksSchema } from './_shared/validators/picks.validator';
+
+export const handler: Handler = withAuth(async (event: AuthenticatedEvent) => {
+  if (event.httpMethod !== 'POST') {
+    return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
+  }
+
+  try {
+    const { playerIds } = validateBody(savePicksSchema, event.body);
+    const picks = await savePicks(event.user.userId, playerIds);
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ success: true, data: picks }),
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Failed to save picks';
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ success: false, error: message }),
+    };
+  }
+});
