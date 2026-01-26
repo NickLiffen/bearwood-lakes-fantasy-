@@ -6,10 +6,17 @@
   box-sizing: border-box;
 }
 
+html, body {
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
+}
+
 :root {
   /* Bearwood Lakes inspired palette - elegant greens and golds */
   --primary-green: #1a472a;
   --secondary-green: #2d5a3d;
+  --dark-green: #143d22;
   --accent-gold: #c9a227;
   --light-gold: #f4e4ba;
   --cream: #faf8f5;

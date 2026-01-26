@@ -1,5 +1,9 @@
 /* HomePage Styles - Bearwood Lakes Fantasy Golf */
 
+html, body {
+  overflow-x: hidden;
+}
+
 /* Top Navigation */
 .top-nav {
   position: fixed;

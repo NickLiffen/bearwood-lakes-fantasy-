@@ -47,7 +47,13 @@ const DashboardPage: React.FC = () => {
   };
 
   if (!user) {
-    return null;
+    return (
+      <div className="dashboard-page">
+        <div className="dashboard-loading">
+          <div className="loading-spinner"></div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -66,6 +72,9 @@ const DashboardPage: React.FC = () => {
             </Link>
             <Link to="/my-team" className="nav-link">
               My Team
+            </Link>
+            <Link to="/players" className="nav-link">
+              Players
             </Link>
             <Link to="/leaderboard" className="nav-link">
               Leaderboard

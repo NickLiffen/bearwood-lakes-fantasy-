@@ -1,6 +1,6 @@
 // Team Builder Page - Pick your fantasy golf team
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import './TeamBuilderPage.css';
 
@@ -33,6 +33,7 @@ interface Settings {
   transfersOpen: boolean;
   registrationOpen: boolean;
   currentSeason: number;
+  allowNewTeamCreation: boolean;
 }
 
 const TOTAL_BUDGET = 50000000; // $50M
@@ -66,6 +67,7 @@ const TeamBuilderPage: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
   const [selectedPlayers, setSelectedPlayers] = useState<Player[]>([]);
+  const [hasExistingTeam, setHasExistingTeam] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,6 +81,7 @@ const TeamBuilderPage: React.FC = () => {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [showCelebration, setShowCelebration] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const previousPlayerCount = useRef<number | null>(null);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -95,12 +98,19 @@ const TeamBuilderPage: React.FC = () => {
     }
   }, [user]);
 
-  // Show celebration when team is complete
+  // Show celebration only when team becomes complete (going from <6 to 6 players)
   useEffect(() => {
-    if (selectedPlayers.length === TEAM_SIZE && !showCelebration) {
+    const currentCount = selectedPlayers.length;
+    const prevCount = previousPlayerCount.current;
+    
+    // Only celebrate if we're going from less than 6 to exactly 6
+    if (prevCount !== null && prevCount < TEAM_SIZE && currentCount === TEAM_SIZE) {
       setShowCelebration(true);
       setTimeout(() => setShowCelebration(false), 4000);
     }
+    
+    // Update the ref with current count
+    previousPlayerCount.current = currentCount;
   }, [selectedPlayers.length]);
 
   const fetchData = async () => {
@@ -132,6 +142,7 @@ const TeamBuilderPage: React.FC = () => {
         const picksData = await picksRes.json();
         if (picksData.success && picksData.data?.players) {
           setSelectedPlayers(picksData.data.players);
+          setHasExistingTeam(true); // User has an existing team
         }
       }
 
@@ -170,10 +181,15 @@ const TeamBuilderPage: React.FC = () => {
     return selectedPlayers.some((p) => p.id === player.id);
   };
 
-  const transfersOpen = settings?.transfersOpen ?? true;
+  // Determine if the user can edit their team
+  // - If they have an existing team, check transfersOpen
+  // - If they don't have a team, check allowNewTeamCreation
+  const canEditTeam = hasExistingTeam 
+    ? (settings?.transfersOpen ?? true)
+    : (settings?.allowNewTeamCreation ?? true);
 
   const handleTogglePlayer = (player: Player) => {
-    if (!transfersOpen) return;
+    if (!canEditTeam) return;
     
     // If already selected, remove them
     if (isSelected(player)) {
@@ -191,12 +207,12 @@ const TeamBuilderPage: React.FC = () => {
   };
 
   const handleRemovePlayer = (player: Player) => {
-    if (!transfersOpen) return;
+    if (!canEditTeam) return;
     setSelectedPlayers(selectedPlayers.filter((p) => p.id !== player.id));
   };
 
   const handleSaveTeam = async () => {
-    if (!transfersOpen) return;
+    if (!canEditTeam) return;
 
     // Validate team is complete
     if (selectedPlayers.length < TEAM_SIZE) {
@@ -225,8 +241,8 @@ const TeamBuilderPage: React.FC = () => {
         throw new Error(data.error || 'Failed to save team');
       }
 
-      setSuccessMessage('Team saved successfully! 🎉');
-      setTimeout(() => setSuccessMessage(null), 3000);
+      // Redirect to My Team page after successful save
+      navigate('/my-team');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save team');
     } finally {
@@ -422,6 +438,9 @@ const TeamBuilderPage: React.FC = () => {
             <Link to="/my-team" className="nav-link active">
               My Team
             </Link>
+            <Link to="/players" className="nav-link">
+              Players
+            </Link>
             <Link to="/leaderboard" className="nav-link">
               Leaderboard
             </Link>
@@ -455,13 +474,13 @@ const TeamBuilderPage: React.FC = () => {
           {/* Page Header */}
           <section className="page-header">
             <div className="page-title">
-              <h1>Build Your Team</h1>
+              <h1>{hasExistingTeam ? 'Edit Your Team' : 'Build Your Team'}</h1>
               <p>Select 6 golfers within your $50M budget</p>
             </div>
-            {!transfersOpen && (
+            {!canEditTeam && (
               <div className="transfer-locked-banner">
                 <span className="lock-icon">🔒</span>
-                <span>Transfer window is closed</span>
+                <span>{hasExistingTeam ? 'Transfer window is closed' : 'New team creation is disabled'}</span>
               </div>
             )}
           </section>
@@ -517,7 +536,7 @@ const TeamBuilderPage: React.FC = () => {
                             <span className="slot-name">{player.lastName}</span>
                             <span className="slot-price">{formatPrice(player.price)}</span>
                           </div>
-                          {transfersOpen && (
+                          {canEditTeam && (
                             <button 
                               className="slot-remove"
                               onClick={() => handleRemovePlayer(player)}
@@ -534,7 +553,7 @@ const TeamBuilderPage: React.FC = () => {
                   );
                 })}
               </div>
-              {transfersOpen && (
+              {canEditTeam && (
                 <button 
                   className={`btn btn-save-team ${selectedPlayers.length === TEAM_SIZE ? '' : 'btn-incomplete'}`}
                   onClick={handleSaveTeam}
@@ -708,9 +727,9 @@ const TeamBuilderPage: React.FC = () => {
               {filteredPlayers.map((player) => {
                 const selected = isSelected(player);
                 const affordable = canAfford(player);
-                // Card is only truly disabled if unaffordable AND not selected, or transfers closed
+                // Card is only truly disabled if unaffordable AND not selected, or team editing not allowed
                 const cannotSelect = !selected && (!affordable || selectedPlayers.length >= TEAM_SIZE);
-                const isClickable = transfersOpen && (selected || (!cannotSelect));
+                const isClickable = canEditTeam && (selected || (!cannotSelect));
                 const podiums = getPodiums(player);
                 const winRate = getWinRate(player);
                 const podiumRate = getPodiumRate(player);

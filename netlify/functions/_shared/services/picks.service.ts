@@ -30,6 +30,15 @@ async function areTransfersOpen(): Promise<boolean> {
   return (setting?.value as boolean) || false;
 }
 
+async function isNewTeamCreationAllowed(): Promise<boolean> {
+  const { db } = await connectToDatabase();
+  const setting = await db
+    .collection<SettingDocument>(SETTINGS_COLLECTION)
+    .findOne({ key: 'allowNewTeamCreation' });
+  // Default to true if not set
+  return setting?.value !== undefined ? (setting.value as boolean) : true;
+}
+
 export async function getUserPicks(userId: string, season?: number): Promise<Pick | null> {
   const { db } = await connectToDatabase();
   const collection = db.collection<PickDocument>(PICKS_COLLECTION);
@@ -85,12 +94,19 @@ export async function savePicks(
   const historyCollection = db.collection<PickHistoryDocument>(PICK_HISTORY_COLLECTION);
   const playersCollection = db.collection<PlayerDocument>(PLAYERS_COLLECTION);
 
-  // Check if transfers are open (unless this is initial pick)
+  // Check if transfers are open (for existing teams) or new team creation is allowed (for new teams)
   const existingPick = await getUserPicks(userId);
   if (existingPick) {
+    // User has an existing team - this is a transfer
     const transfersOpen = await areTransfersOpen();
     if (!transfersOpen) {
       throw new Error('Transfers are currently locked');
+    }
+  } else {
+    // User doesn't have a team - this is initial creation
+    const newTeamAllowed = await isNewTeamCreationAllowed();
+    if (!newTeamAllowed) {
+      throw new Error('New team creation is currently disabled');
     }
   }
 

@@ -45,7 +45,13 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
   const isActive = (path: string) => location.pathname === path;
 
   if (!user) {
-    return null;
+    return (
+      <div className="admin-layout">
+        <div className="admin-loading">
+          <div className="loading-spinner"></div>
+        </div>
+      </div>
+    );
   }
 
   return (

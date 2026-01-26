@@ -4,6 +4,8 @@
   min-height: 100vh;
   background: #f5f7fa;
   padding: 2rem;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 .profile-container {

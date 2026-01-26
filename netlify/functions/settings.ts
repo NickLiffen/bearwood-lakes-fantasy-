@@ -37,7 +37,7 @@ export const handler: Handler = withAdmin(async (event) => {
       }
 
       // Validate allowed keys
-      const allowedKeys = ['transfersOpen', 'currentSeason', 'registrationOpen'];
+      const allowedKeys = ['transfersOpen', 'currentSeason', 'registrationOpen', 'allowNewTeamCreation', 'seasonStartDate', 'seasonEndDate'];
       if (!allowedKeys.includes(key)) {
         return {
           statusCode: 400,

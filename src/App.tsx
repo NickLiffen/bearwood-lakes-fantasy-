@@ -8,6 +8,10 @@ import RegisterPage from './pages/Auth/RegisterPage';
 import DashboardPage from './pages/Dashboard/DashboardPage';
 import ProfilePage from './pages/Profile/ProfilePage';
 import TeamBuilderPage from './pages/TeamBuilder/TeamBuilderPage';
+import MyTeamPage from './pages/MyTeam/MyTeamPage';
+import PlayersPage from './pages/Players/PlayersPage';
+import PlayerProfilePage from './pages/PlayerProfile/PlayerProfilePage';
+import LeaderboardPage from './pages/Leaderboard/LeaderboardPage';
 
 // Admin pages
 import AdminOverviewPage from './pages/Admin/AdminOverviewPage';
@@ -81,7 +85,39 @@ const App: React.FC = () => {
           path="/my-team"
           element={
             <ProtectedRoute>
+              <MyTeamPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/team-builder"
+          element={
+            <ProtectedRoute>
               <TeamBuilderPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/players"
+          element={
+            <ProtectedRoute>
+              <PlayersPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/players/:id"
+          element={
+            <ProtectedRoute>
+              <PlayerProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/leaderboard"
+          element={
+            <ProtectedRoute>
+              <LeaderboardPage />
             </ProtectedRoute>
           }
         />
