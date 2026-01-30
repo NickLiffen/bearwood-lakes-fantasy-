@@ -1,15 +1,26 @@
-// Rate limiting for Netlify Functions using MongoDB
+// Rate limiting for Netlify Functions using Upstash Redis
 
-import { connectToDatabase } from './db';
+import { Redis } from '@upstash/redis';
 
-interface RateLimitRecord {
-  key: string;
-  count: number;
-  windowStart: Date;
-  expiresAt: Date;
+// Lazy-initialized Redis client
+let redisClient: Redis | null = null;
+
+function getRedisClient(): Redis {
+  if (!redisClient) {
+    const url = process.env.UPSTASH_REDIS_REST_URL;
+    const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+    if (!url || !token) {
+      throw new Error(
+        'Missing Upstash Redis configuration. ' +
+        'Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN environment variables.'
+      );
+    }
+
+    redisClient = new Redis({ url, token });
+  }
+  return redisClient;
 }
-
-const RATE_LIMIT_COLLECTION = 'rateLimits';
 
 // Rate limit configurations for different endpoint types
 export const RateLimitConfig = {
@@ -56,68 +67,57 @@ function getClientIp(headers: Record<string, string | undefined>): string {
 }
 
 /**
- * Check rate limit for a given key
- * Returns { allowed: boolean, remaining: number, resetAt: Date }
+ * Check rate limit for a given key using Upstash Redis
+ * Uses sliding window with Redis INCR and TTL
  */
 export async function checkRateLimit(
   key: string,
   config: { windowMs: number; maxRequests: number }
 ): Promise<{ allowed: boolean; remaining: number; resetAt: Date; retryAfter?: number }> {
-  const { db } = await connectToDatabase();
-  const collection = db.collection<RateLimitRecord>(RATE_LIMIT_COLLECTION);
+  const redis = getRedisClient();
+  const windowSeconds = Math.ceil(config.windowMs / 1000);
+  const now = Date.now();
 
-  const now = new Date();
-  const windowStart = new Date(now.getTime() - config.windowMs);
+  try {
+    // Use Redis INCR with TTL for atomic rate limiting
+    // Key format: ratelimit:{identifier}:{endpoint}:{window}
+    const windowKey = `${key}:${Math.floor(now / config.windowMs)}`;
 
-  // Find existing rate limit record
-  const record = await collection.findOne({ key });
+    // Increment counter and get current value
+    const count = await redis.incr(windowKey);
 
-  if (!record || record.windowStart < windowStart) {
-    // No record or window expired - create/reset
-    const expiresAt = new Date(now.getTime() + config.windowMs);
-    
-    await collection.updateOne(
-      { key },
-      {
-        $set: {
-          key,
-          count: 1,
-          windowStart: now,
-          expiresAt,
-        },
-      },
-      { upsert: true }
-    );
+    // Set TTL on first request in this window
+    if (count === 1) {
+      await redis.expire(windowKey, windowSeconds);
+    }
+
+    const resetAt = new Date(Math.ceil(now / config.windowMs) * config.windowMs + config.windowMs);
+    const remaining = Math.max(0, config.maxRequests - count);
+
+    if (count > config.maxRequests) {
+      const retryAfter = Math.ceil((resetAt.getTime() - now) / 1000);
+      return {
+        allowed: false,
+        remaining: 0,
+        resetAt,
+        retryAfter: Math.max(1, retryAfter),
+      };
+    }
 
     return {
       allowed: true,
-      remaining: config.maxRequests - 1,
-      resetAt: expiresAt,
+      remaining,
+      resetAt,
     };
-  }
-
-  // Check if limit exceeded
-  if (record.count >= config.maxRequests) {
-    const retryAfter = Math.ceil((record.windowStart.getTime() + config.windowMs - now.getTime()) / 1000);
+  } catch (error) {
+    // Log error but fail open (allow request if Redis is unavailable)
+    console.error('Rate limit check failed:', error);
     return {
-      allowed: false,
-      remaining: 0,
-      resetAt: new Date(record.windowStart.getTime() + config.windowMs),
-      retryAfter: Math.max(1, retryAfter),
+      allowed: true,
+      remaining: config.maxRequests,
+      resetAt: new Date(now + config.windowMs),
     };
   }
-
-  // Increment counter
-  await collection.updateOne(
-    { key },
-    { $inc: { count: 1 } }
-  );
-
-  return {
-    allowed: true,
-    remaining: config.maxRequests - record.count - 1,
-    resetAt: new Date(record.windowStart.getTime() + config.windowMs),
-  };
 }
 
 /**
@@ -173,37 +173,4 @@ export function getRateLimitKeyFromEvent(
 ): string {
   const identifier = userId || getClientIp(headers);
   return createRateLimitKey(identifier, endpoint);
-}
-
-/**
- * Clean up expired rate limit records (call periodically)
- */
-export async function cleanupExpiredRateLimits(): Promise<number> {
-  const { db } = await connectToDatabase();
-  const collection = db.collection<RateLimitRecord>(RATE_LIMIT_COLLECTION);
-  
-  const result = await collection.deleteMany({
-    expiresAt: { $lt: new Date() },
-  });
-  
-  return result.deletedCount;
-}
-
-// Ensure TTL index exists for automatic cleanup
-export async function ensureRateLimitIndexes(): Promise<void> {
-  const { db } = await connectToDatabase();
-  const collection = db.collection<RateLimitRecord>(RATE_LIMIT_COLLECTION);
-  
-  // Create TTL index to automatically remove expired documents
-  await collection.createIndex(
-    { expiresAt: 1 },
-    { expireAfterSeconds: 0 }
-  ).catch(() => {
-    // Index might already exist
-  });
-  
-  // Create index on key for fast lookups
-  await collection.createIndex({ key: 1 }, { unique: true }).catch(() => {
-    // Index might already exist
-  });
 }

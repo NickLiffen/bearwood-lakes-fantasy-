@@ -3,11 +3,12 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AdminLayout from '../../components/AdminLayout/AdminLayout';
+import { useApiClient } from '../../hooks/useApiClient';
 
 interface Stats {
   users: number;
-  players: number;
-  activePlayers: number;
+  golfers: number;
+  activeGolfers: number;
   tournaments: number;
   publishedTournaments: number;
   completeTournaments: number;
@@ -15,10 +16,11 @@ interface Stats {
 }
 
 const AdminOverviewPage: React.FC = () => {
+  const { get, isAuthReady } = useApiClient();
   const [stats, setStats] = useState<Stats>({
     users: 0,
-    players: 0,
-    activePlayers: 0,
+    golfers: 0,
+    activeGolfers: 0,
     tournaments: 0,
     publishedTournaments: 0,
     completeTournaments: 0,
@@ -28,34 +30,31 @@ const AdminOverviewPage: React.FC = () => {
 
   useEffect(() => {
     const fetchStats = async () => {
-      const token = localStorage.getItem('token');
       try {
-        const [usersRes, playersRes, tournamentsRes, scoresRes] = await Promise.all([
-          fetch('/.netlify/functions/users-list', { headers: { Authorization: `Bearer ${token}` } }),
-          fetch('/.netlify/functions/players-list', { headers: { Authorization: `Bearer ${token}` } }),
-          fetch('/.netlify/functions/tournaments-list', { headers: { Authorization: `Bearer ${token}` } }),
-          fetch('/.netlify/functions/scores-list', { headers: { Authorization: `Bearer ${token}` } }),
+        const [usersData, golfersData, tournamentsData, scoresData] = await Promise.all([
+          get<{ id: string }[]>('users-list'),
+          get<{ id: string; isActive: boolean }[]>('golfers-list'),
+          get<{ id: string; status: string }[]>('tournaments-list'),
+          get<{ id: string; participated: boolean }[]>('scores-list'),
         ]);
 
-        const [usersData, playersData, tournamentsData, scoresData] = await Promise.all([
-          usersRes.json(),
-          playersRes.json(),
-          tournamentsRes.json(),
-          scoresRes.json(),
-        ]);
+        // Ignore cancelled requests
+        if (usersData.cancelled || golfersData.cancelled || tournamentsData.cancelled || scoresData.cancelled) {
+          return;
+        }
 
-        const players = playersData.success ? playersData.data : [];
-        const tournaments = tournamentsData.success ? tournamentsData.data : [];
-        const scores = scoresData.success ? scoresData.data : [];
+        const golfers = golfersData.success && golfersData.data ? golfersData.data : [];
+        const tournaments = tournamentsData.success && tournamentsData.data ? tournamentsData.data : [];
+        const scores = scoresData.success && scoresData.data ? scoresData.data : [];
 
         setStats({
-          users: usersData.success ? usersData.data.length : 0,
-          players: players.length,
-          activePlayers: players.filter((p: { isActive: boolean }) => p.isActive).length,
+          users: usersData.success && usersData.data ? usersData.data.length : 0,
+          golfers: golfers.length,
+          activeGolfers: golfers.filter((g) => g.isActive).length,
           tournaments: tournaments.length,
-          publishedTournaments: tournaments.filter((t: { status: string }) => t.status === 'published').length,
-          completeTournaments: tournaments.filter((t: { status: string }) => t.status === 'complete').length,
-          totalScoresEntered: scores.filter((s: { participated: boolean }) => s.participated).length,
+          publishedTournaments: tournaments.filter((t) => t.status === 'published').length,
+          completeTournaments: tournaments.filter((t) => t.status === 'complete').length,
+          totalScoresEntered: scores.filter((s) => s.participated).length,
         });
       } catch (err) {
         console.error('Failed to fetch stats:', err);
@@ -64,8 +63,10 @@ const AdminOverviewPage: React.FC = () => {
       }
     };
 
-    fetchStats();
-  }, []);
+    if (isAuthReady) {
+      fetchStats();
+    }
+  }, [get, isAuthReady]);
 
   return (
     <AdminLayout title="Admin Overview">
@@ -82,8 +83,8 @@ const AdminOverviewPage: React.FC = () => {
             </div>
             <div className="stat-box">
               <div className="stat-box-icon">🏌️</div>
-              <div className="stat-box-value">{stats.activePlayers}/{stats.players}</div>
-              <div className="stat-box-label">Active Players</div>
+              <div className="stat-box-value">{stats.activeGolfers}/{stats.golfers}</div>
+              <div className="stat-box-label">Active Golfers</div>
             </div>
             <div className="stat-box">
               <div className="stat-box-icon">🏆</div>
@@ -104,8 +105,8 @@ const AdminOverviewPage: React.FC = () => {
             </div>
             <div className="admin-card-body">
               <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-                <Link to="/admin/players" className="btn btn-primary">
-                  🏌️ Add Player
+                <Link to="/admin/golfers" className="btn btn-primary">
+                  🏌️ Add Golfer
                 </Link>
                 <Link to="/admin/tournaments" className="btn btn-primary">
                   🏆 Create Tournament
@@ -139,7 +140,7 @@ const AdminOverviewPage: React.FC = () => {
                 >
                   <span
                     style={{
-                      background: stats.players > 0 ? '#16a34a' : '#d1d5db',
+                      background: stats.golfers > 0 ? '#16a34a' : '#d1d5db',
                       color: 'white',
                       width: '28px',
                       height: '28px',
@@ -152,7 +153,7 @@ const AdminOverviewPage: React.FC = () => {
                       flexShrink: 0,
                     }}
                   >
-                    {stats.players > 0 ? '✓' : '1'}
+                    {stats.golfers > 0 ? '✓' : '1'}
                   </span>
                   <div>
                     <strong>Add Professional Golfers</strong>
@@ -229,7 +230,7 @@ const AdminOverviewPage: React.FC = () => {
                   <div>
                     <strong>Enter Scores After Each Tournament</strong>
                     <p style={{ color: '#6b7280', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-                      Once a tournament completes, enter each player's score and position.
+                      Once a tournament completes, enter each golfer's score and position.
                       Publish to update the leaderboard.
                     </p>
                   </div>

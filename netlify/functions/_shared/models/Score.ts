@@ -6,7 +6,7 @@ import type { Score } from '../../../../shared/types';
 export interface ScoreDocument {
   _id: ObjectId;
   tournamentId: ObjectId;
-  playerId: ObjectId;
+  golferId: ObjectId;
   participated: boolean;
   position: number | null;
   scored36Plus: boolean;
@@ -20,14 +20,14 @@ export interface ScoreDocument {
 export function toScore(doc: ScoreDocument): Score {
   return {
     id: doc._id.toString(),
-    tournamentId: doc.tournamentId.toString(),
-    playerId: doc.playerId.toString(),
+    tournamentId: doc.tournamentId?.toString() || '',
+    golferId: doc.golferId?.toString() || '',
     participated: doc.participated ?? true,
     position: doc.position,
     scored36Plus: doc.scored36Plus ?? false,
     basePoints: doc.basePoints ?? 0,
     bonusPoints: doc.bonusPoints ?? 0,
-    multipliedPoints: doc.multipliedPoints,
+    multipliedPoints: doc.multipliedPoints ?? 0,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   };

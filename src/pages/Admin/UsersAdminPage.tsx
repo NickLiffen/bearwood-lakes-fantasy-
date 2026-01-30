@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import AdminLayout from '../../components/AdminLayout/AdminLayout';
+import { useAuth } from '../../hooks/useAuth';
+import { useApiClient } from '../../hooks/useApiClient';
 
 interface User {
   id: string;
@@ -14,11 +16,13 @@ interface User {
 }
 
 const UsersAdminPage: React.FC = () => {
+  const { user } = useAuth();
+  const { get, put, post, request, isAuthReady } = useApiClient();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [currentUserId, setCurrentUserId] = useState<string>('');
+  const currentUserId = user?.id || '';
 
   // View modal state
   const [showViewModal, setShowViewModal] = useState(false);
@@ -37,22 +41,21 @@ const UsersAdminPage: React.FC = () => {
   const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setCurrentUserId(JSON.parse(storedUser).id);
+    if (isAuthReady) {
+      fetchUsers();
     }
-    fetchUsers();
-  }, []);
+  }, [isAuthReady]);
 
   const fetchUsers = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/.netlify/functions/users-list', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setUsers(data.data);
+      setError(''); // Clear previous errors
+      const response = await get<User[]>('users-list');
+      
+      // Ignore cancelled requests
+      if (response.cancelled) return;
+      
+      if (response.success && response.data) {
+        setUsers(response.data);
       }
     } catch (err) {
       console.error('Failed to fetch users:', err);
@@ -68,23 +71,13 @@ const UsersAdminPage: React.FC = () => {
       return;
     }
 
-    const token = localStorage.getItem('token');
-
     try {
-      const response = await fetch('/.netlify/functions/users-update-role', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          userId: user.id,
-          role: newRole,
-        }),
+      const response = await put<User>('users-update-role', {
+        userId: user.id,
+        role: newRole,
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to update role');
+      if (!response.success) throw new Error(response.error || 'Failed to update role');
 
       setSuccess(`${user.username} is now ${newRole === 'admin' ? 'an Admin' : 'a User'}`);
       fetchUsers();
@@ -117,22 +110,13 @@ const UsersAdminPage: React.FC = () => {
     if (!userToReset) return;
 
     setIsResetting(true);
-    const token = localStorage.getItem('token');
 
     try {
-      const response = await fetch('/.netlify/functions/users-reset-password', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ userId: userToReset.id }),
-      });
+      const response = await post<{ tempPassword: string }>('users-reset-password', { userId: userToReset.id });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to reset password');
+      if (!response.success) throw new Error(response.error || 'Failed to reset password');
 
-      setTempPassword(data.data.tempPassword);
+      setTempPassword(response.data?.tempPassword || null);
       setSuccess(`Password reset for ${userToReset.firstName} ${userToReset.lastName}`);
       setTimeout(() => setSuccess(''), 5000);
     } catch (err) {
@@ -165,20 +149,14 @@ const UsersAdminPage: React.FC = () => {
     if (!userToDelete || deleteConfirmText !== 'DELETE') return;
 
     setIsDeleting(true);
-    const token = localStorage.getItem('token');
 
     try {
-      const response = await fetch('/.netlify/functions/users-delete', {
+      const response = await request<void>('users-delete', {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({ userId: userToDelete.id }),
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to delete user');
+      if (!response.success) throw new Error(response.error || 'Failed to delete user');
 
       setSuccess(`${userToDelete.username} has been deleted`);
       setShowDeleteModal(false);
@@ -368,7 +346,7 @@ const UsersAdminPage: React.FC = () => {
             ⚠️ Admin Privileges
           </h3>
           <p style={{ color: '#92400e', fontSize: '0.9rem', margin: 0 }}>
-            Admins can manage players, tournaments, scores, and other users. Only grant admin
+            Admins can manage golfers, tournaments, scores, and other users. Only grant admin
             access to trusted members.
           </p>
         </div>

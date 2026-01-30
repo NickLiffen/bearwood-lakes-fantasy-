@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from './hooks/useAuth';
 import HomePage from './pages/Home/HomePage';
 import LoginPage from './pages/Auth/LoginPage';
 import RegisterPage from './pages/Auth/RegisterPage';
@@ -9,13 +10,15 @@ import DashboardPage from './pages/Dashboard/DashboardPage';
 import ProfilePage from './pages/Profile/ProfilePage';
 import TeamBuilderPage from './pages/TeamBuilder/TeamBuilderPage';
 import MyTeamPage from './pages/MyTeam/MyTeamPage';
-import PlayersPage from './pages/Players/PlayersPage';
-import PlayerProfilePage from './pages/PlayerProfile/PlayerProfilePage';
+import GolfersPage from './pages/Golfers/GolfersPage';
+import GolferProfilePage from './pages/GolferProfile/GolferProfilePage';
 import LeaderboardPage from './pages/Leaderboard/LeaderboardPage';
+import UsersPage from './pages/Users/UsersPage';
+import UserProfilePage from './pages/Users/UserProfilePage';
 
 // Admin pages
 import AdminOverviewPage from './pages/Admin/AdminOverviewPage';
-import PlayersAdminPage from './pages/Admin/PlayersAdminPage';
+import GolfersAdminPage from './pages/Admin/GolfersAdminPage';
 import TournamentsAdminPage from './pages/Admin/TournamentsAdminPage';
 import ScoresAdminPage from './pages/Admin/ScoresAdminPage';
 import UsersAdminPage from './pages/Admin/UsersAdminPage';
@@ -23,14 +26,17 @@ import SettingsAdminPage from './pages/Admin/SettingsAdminPage';
 
 // Protected route wrapper for admin pages
 const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const user = localStorage.getItem('user');
-  const parsedUser = user ? JSON.parse(user) : null;
+  const { isAuthenticated, isAdmin, loading } = useAuth();
 
-  if (!parsedUser) {
+  if (loading) {
+    return <div className="loading-screen">Loading...</div>;
+  }
+
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  if (parsedUser.role !== 'admin') {
+  if (!isAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -39,19 +45,31 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 // Protected route wrapper for authenticated pages
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const token = localStorage.getItem('token');
-  if (!token) {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return <div className="loading-screen">Loading...</div>;
+  }
+
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
+
   return <>{children}</>;
 };
 
 // Home route that redirects logged-in users to dashboard
 const HomeRoute: React.FC = () => {
-  const token = localStorage.getItem('token');
-  if (token) {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return <div className="loading-screen">Loading...</div>;
+  }
+
+  if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }
+
   return <HomePage />;
 };
 
@@ -98,18 +116,18 @@ const App: React.FC = () => {
           }
         />
         <Route
-          path="/players"
+          path="/golfers"
           element={
             <ProtectedRoute>
-              <PlayersPage />
+              <GolfersPage />
             </ProtectedRoute>
           }
         />
         <Route
-          path="/players/:id"
+          path="/golfers/:id"
           element={
             <ProtectedRoute>
-              <PlayerProfilePage />
+              <GolferProfilePage />
             </ProtectedRoute>
           }
         />
@@ -118,6 +136,22 @@ const App: React.FC = () => {
           element={
             <ProtectedRoute>
               <LeaderboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/users"
+          element={
+            <ProtectedRoute>
+              <UsersPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/users/:userId"
+          element={
+            <ProtectedRoute>
+              <UserProfilePage />
             </ProtectedRoute>
           }
         />
@@ -132,10 +166,10 @@ const App: React.FC = () => {
           }
         />
         <Route
-          path="/admin/players"
+          path="/admin/golfers"
           element={
             <AdminRoute>
-              <PlayersAdminPage />
+              <GolfersAdminPage />
             </AdminRoute>
           }
         />

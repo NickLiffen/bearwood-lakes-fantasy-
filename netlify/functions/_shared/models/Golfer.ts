@@ -1,9 +1,9 @@
-// Player model (MongoDB)
+// Golfer model (MongoDB)
 
 import { ObjectId } from 'mongodb';
-import type { Player, Player2025Stats, Player2026Stats, MembershipType } from '../../../../shared/types';
+import type { Golfer, Golfer2025Stats, Golfer2026Stats, MembershipType } from '../../../../shared/types';
 
-export interface PlayerDocument {
+export interface GolferDocument {
   _id: ObjectId;
   firstName: string;
   lastName: string;
@@ -11,13 +11,13 @@ export interface PlayerDocument {
   price: number;
   membershipType: MembershipType;
   isActive: boolean;
-  stats2025: Player2025Stats;
-  stats2026: Player2026Stats;
+  stats2025: Golfer2025Stats;
+  stats2026: Golfer2026Stats;
   createdAt: Date;
   updatedAt: Date;
 }
 
-const defaultStats2025: Player2025Stats = {
+const defaultStats2025: Golfer2025Stats = {
   timesScored36Plus: 0,
   timesFinished1st: 0,
   timesFinished2nd: 0,
@@ -25,7 +25,7 @@ const defaultStats2025: Player2025Stats = {
   timesPlayed: 0,
 };
 
-const defaultStats2026: Player2026Stats = {
+const defaultStats2026: Golfer2026Stats = {
   timesScored36Plus: 0,
   timesFinished1st: 0,
   timesFinished2nd: 0,
@@ -33,7 +33,7 @@ const defaultStats2026: Player2026Stats = {
   timesPlayed: 0,
 };
 
-export function toPlayer(doc: PlayerDocument): Player {
+export function toGolfer(doc: GolferDocument): Golfer {
   return {
     id: doc._id.toString(),
     firstName: doc.firstName,
@@ -50,4 +50,4 @@ export function toPlayer(doc: PlayerDocument): Player {
 }
 
 export { defaultStats2025, defaultStats2026 };
-export const PLAYERS_COLLECTION = 'players';
+export const GOLFERS_COLLECTION = 'golfers';

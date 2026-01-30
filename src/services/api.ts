@@ -4,7 +4,7 @@ import type {
   ApiResponse,
   User,
   AuthResponse,
-  Player,
+  Golfer,
   Pick,
   LeaderboardEntry,
   TransferWindowStatus,
@@ -44,20 +44,20 @@ export const api = {
   // Users
   getUsers: () => request<User[]>('users-list'),
 
-  // Players
-  getPlayers: () => request<Player[]>('players-list'),
-  createPlayer: (data: Omit<Player, 'id' | 'createdAt' | 'updatedAt'>) =>
-    request<Player>('players-create', {
+  // Golfers
+  getGolfers: () => request<Golfer[]>('golfers-list'),
+  createGolfer: (data: Omit<Golfer, 'id' | 'createdAt' | 'updatedAt'>) =>
+    request<Golfer>('golfers-create', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
 
   // Picks
   getMyPicks: () => request<Pick>('picks-get'),
-  savePicks: (playerIds: string[]) =>
+  savePicks: (golferIds: string[]) =>
     request<Pick>('picks-save', {
       method: 'POST',
-      body: JSON.stringify({ playerIds }),
+      body: JSON.stringify({ golferIds }),
     }),
 
   // Scores & Leaderboard
@@ -65,10 +65,10 @@ export const api = {
     request<LeaderboardEntry[]>(`leaderboard${week ? `?week=${week}` : ''}`),
 
   // Admin
-  enterScores: (playerId: string, week: number, points: number) =>
+  enterScores: (golferId: string, week: number, points: number) =>
     request<void>('scores-enter', {
       method: 'POST',
-      body: JSON.stringify({ playerId, week, points }),
+      body: JSON.stringify({ golferId, week, points }),
     }),
   lockTransfers: () => request<TransferWindowStatus>('admin-lock-transfers', { method: 'POST' }),
 };

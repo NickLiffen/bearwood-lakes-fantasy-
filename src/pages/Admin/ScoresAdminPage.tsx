@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import AdminLayout from '../../components/AdminLayout/AdminLayout';
+import { useApiClient } from '../../hooks/useApiClient';
 
 interface Tournament {
   id: string;
@@ -11,10 +12,10 @@ interface Tournament {
   tournamentType: 'regular' | 'elevated' | 'signature';
   multiplier: number;
   status: 'draft' | 'published' | 'complete';
-  participatingPlayerIds: string[];
+  participatingGolferIds: string[];
 }
 
-interface Player {
+interface Golfer {
   id: string;
   firstName: string;
   lastName: string;
@@ -26,7 +27,7 @@ interface Player {
 interface Score {
   id: string;
   tournamentId: string;
-  playerId: string;
+  golferId: string;
   participated: boolean;
   position: number | null;
   scored36Plus: boolean;
@@ -36,7 +37,7 @@ interface Score {
 }
 
 interface ScoreEntry {
-  playerId: string;
+  golferId: string;
   participated: boolean;
   position: number | null;
   scored36Plus: boolean;
@@ -49,7 +50,8 @@ interface TournamentWithScores {
 }
 
 const ScoresAdminPage: React.FC = () => {
-  const [players, setPlayers] = useState<Player[]>([]);
+  const { get, post, put, request, isAuthReady } = useApiClient();
+  const [golfers, setGolfers] = useState<Golfer[]>([]);
   const [tournamentsWithScores, setTournamentsWithScores] = useState<TournamentWithScores[]>([]);
   const [tournamentsWithoutScores, setTournamentsWithoutScores] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
@@ -61,46 +63,42 @@ const ScoresAdminPage: React.FC = () => {
   const [editingTournament, setEditingTournament] = useState<Tournament | null>(null);
   const [scores, setScores] = useState<Record<string, ScoreEntry>>({});
   const [saving, setSaving] = useState(false);
+  const [saveProgress, setSaveProgress] = useState<string>('');
 
   // Details modal state
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [viewingTournament, setViewingTournament] = useState<TournamentWithScores | null>(null);
 
   const fetchData = async () => {
-    const token = localStorage.getItem('token');
     try {
-      const [tournamentsRes, playersRes, scoresRes] = await Promise.all([
-        fetch('/.netlify/functions/tournaments-list', {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch('/.netlify/functions/players-list', {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch('/.netlify/functions/scores-list', {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
+      setError(''); // Clear previous errors
+      const [tournamentsRes, golfersRes, scoresRes] = await Promise.all([
+        get<Tournament[]>('tournaments-list'),
+        get<Golfer[]>('golfers-list'),
+        get<Score[]>('scores-list'),
       ]);
 
-      const tournamentsData = await tournamentsRes.json();
-      const playersData = await playersRes.json();
-      const scoresData = await scoresRes.json();
+      // Ignore cancelled requests
+      if (tournamentsRes.cancelled || golfersRes.cancelled || scoresRes.cancelled) {
+        return;
+      }
 
       let fetchedTournaments: Tournament[] = [];
-      let fetchedPlayers: Player[] = [];
+      let fetchedGolfers: Golfer[] = [];
       let fetchedScores: Score[] = [];
 
-      if (tournamentsData.success) {
+      if (tournamentsRes.success && tournamentsRes.data) {
         // Filter to published/complete tournaments
-        fetchedTournaments = tournamentsData.data.filter(
+        fetchedTournaments = tournamentsRes.data.filter(
           (t: Tournament) => t.status === 'published' || t.status === 'complete'
         );
       }
-      if (playersData.success) {
-        fetchedPlayers = playersData.data;
-        setPlayers(fetchedPlayers);
+      if (golfersRes.success && golfersRes.data) {
+        fetchedGolfers = golfersRes.data;
+        setGolfers(fetchedGolfers);
       }
-      if (scoresData.success) {
-        fetchedScores = scoresData.data;
+      if (scoresRes.success && scoresRes.data) {
+        fetchedScores = scoresRes.data;
       }
 
       // Group scores by tournament
@@ -144,12 +142,14 @@ const ScoresAdminPage: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (isAuthReady) {
+      fetchData();
+    }
+  }, [isAuthReady]);
 
-  const getPlayerName = (playerId: string) => {
-    const player = players.find(p => p.id === playerId);
-    return player ? `${player.firstName} ${player.lastName}` : 'Unknown Player';
+  const getGolferName = (golferId: string) => {
+    const golfer = golfers.find(g => g.id === golferId);
+    return golfer ? `${golfer.firstName} ${golfer.lastName}` : 'Unknown Golfer';
   };
 
   const formatDate = (dateString: string) => {
@@ -165,11 +165,11 @@ const ScoresAdminPage: React.FC = () => {
     setError('');
     setSuccess('');
 
-    // Initialize scores for all active players
+    // Initialize scores for all active golfers
     const initialScores: Record<string, ScoreEntry> = {};
-    players.filter(p => p.isActive).forEach(player => {
-      initialScores[player.id] = {
-        playerId: player.id,
+    golfers.filter(g => g.isActive).forEach(golfer => {
+      initialScores[golfer.id] = {
+        golferId: golfer.id,
         participated: false,
         position: null,
         scored36Plus: false,
@@ -177,10 +177,10 @@ const ScoresAdminPage: React.FC = () => {
     });
 
     // Load existing participation from tournament if any
-    if (tournament.participatingPlayerIds?.length) {
-      tournament.participatingPlayerIds.forEach(playerId => {
-        if (initialScores[playerId]) {
-          initialScores[playerId].participated = true;
+    if (tournament.participatingGolferIds?.length) {
+      tournament.participatingGolferIds.forEach(golferId => {
+        if (initialScores[golferId]) {
+          initialScores[golferId].participated = true;
         }
       });
     }
@@ -194,11 +194,11 @@ const ScoresAdminPage: React.FC = () => {
     setError('');
     setSuccess('');
 
-    // Initialize scores for all active players
+    // Initialize scores for all active golfers
     const initialScores: Record<string, ScoreEntry> = {};
-    players.filter(p => p.isActive).forEach(player => {
-      initialScores[player.id] = {
-        playerId: player.id,
+    golfers.filter(g => g.isActive).forEach(golfer => {
+      initialScores[golfer.id] = {
+        golferId: golfer.id,
         participated: false,
         position: null,
         scored36Plus: false,
@@ -207,9 +207,9 @@ const ScoresAdminPage: React.FC = () => {
 
     // Load existing scores
     tournamentWithScores.scores.forEach(score => {
-      if (initialScores[score.playerId]) {
-        initialScores[score.playerId] = {
-          playerId: score.playerId,
+      if (initialScores[score.golferId]) {
+        initialScores[score.golferId] = {
+          golferId: score.golferId,
           participated: score.participated,
           position: score.position,
           scored36Plus: score.scored36Plus,
@@ -238,11 +238,11 @@ const ScoresAdminPage: React.FC = () => {
     setViewingTournament(null);
   };
 
-  const handleScoreChange = (playerId: string, field: 'participated' | 'position' | 'scored36Plus', value: string | boolean) => {
+  const handleScoreChange = (golferId: string, field: 'participated' | 'position' | 'scored36Plus', value: string | boolean) => {
     setScores((prev) => {
       const newScore = {
-        ...prev[playerId],
-        playerId,
+        ...prev[golferId],
+        golferId,
         [field]: field === 'position' ? (value ? parseInt(value as string) : null) : value,
       };
 
@@ -254,7 +254,7 @@ const ScoresAdminPage: React.FC = () => {
 
       return {
         ...prev,
-        [playerId]: newScore,
+        [golferId]: newScore,
       };
     });
   };
@@ -272,9 +272,9 @@ const ScoresAdminPage: React.FC = () => {
   const validateScores = (): { valid: boolean; error: string } => {
     const participatingPlayers = Object.values(scores).filter(s => s.participated);
     
-    // Rule 1: At least 1 player must have participated
+    // Rule 1: At least 1 golfer must have participated
     if (participatingPlayers.length === 0) {
-      return { valid: false, error: 'At least one player must have participated' };
+      return { valid: false, error: 'At least one golfer must have participated' };
     }
 
     const tier = getTier(participatingPlayers.length);
@@ -284,24 +284,24 @@ const ScoresAdminPage: React.FC = () => {
     const hasSecond = participatingPlayers.some(s => s.position === 2);
     const hasThird = participatingPlayers.some(s => s.position === 3);
 
-    // Rule 2: 0-10 players → must have 1st place
+    // Rule 2: 0-10 golfers → must have 1st place
     if (tier === '0-10') {
       if (!hasFirst) {
-        return { valid: false, error: 'With 1-10 players, you must assign a 1st place finish' };
+        return { valid: false, error: 'With 1-10 golfers, you must assign a 1st place finish' };
       }
     }
 
-    // Rule 3: 10-20 players → must have 1st and 2nd place
+    // Rule 3: 10-20 golfers → must have 1st and 2nd place
     if (tier === '10-20') {
       if (!hasFirst || !hasSecond) {
-        return { valid: false, error: 'With 10-20 players, you must assign both 1st and 2nd place finishes' };
+        return { valid: false, error: 'With 10-20 golfers, you must assign both 1st and 2nd place finishes' };
       }
     }
 
-    // Rule 4: 20+ players → must have 1st, 2nd, and 3rd place
+    // Rule 4: 20+ golfers → must have 1st, 2nd, and 3rd place
     if (tier === '20+') {
       if (!hasFirst || !hasSecond || !hasThird) {
-        return { valid: false, error: 'With 20+ players, you must assign 1st, 2nd, and 3rd place finishes' };
+        return { valid: false, error: 'With 20+ golfers, you must assign 1st, 2nd, and 3rd place finishes' };
       }
     }
 
@@ -336,48 +336,33 @@ const ScoresAdminPage: React.FC = () => {
     const participatingPlayers = Object.values(scores).filter(s => s.participated);
 
     setSaving(true);
+    setSaveProgress('Updating tournament...');
     setError('');
 
-    const token = localStorage.getItem('token');
-
     try {
-      // First, update tournament with participating players
-      await fetch('/.netlify/functions/tournaments-update', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          id: editingTournament.id,
-          participatingPlayerIds: participatingPlayers.map(s => s.playerId),
-        }),
+      // First, update tournament with participating golfers
+      await put<Tournament>('tournaments-update', {
+        id: editingTournament.id,
+        participatingGolferIds: participatingPlayers.map(s => s.golferId),
       });
 
-      // Save scores for ALL players (both participating and non-participating)
-      // This ensures players who were unchecked get their scores reset to 0
+      // Save scores for ALL golfers (both participating and non-participating)
+      // This ensures golfers who were unchecked get their scores reset to 0
       const scoresToSave = Object.values(scores).map((s) => ({
-        playerId: s.playerId,
+        golferId: s.golferId,
         participated: s.participated,
         position: s.participated ? s.position : null,
         scored36Plus: s.participated ? s.scored36Plus : false,
       }));
 
       if (scoresToSave.length > 0) {
-        const response = await fetch('/.netlify/functions/scores-enter', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            tournamentId: editingTournament.id,
-            scores: scoresToSave,
-          }),
+        setSaveProgress(`Saving ${scoresToSave.length} scores...`);
+        const response = await post<Score[]>('scores-enter', {
+          tournamentId: editingTournament.id,
+          scores: scoresToSave,
         });
 
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Failed to save scores');
+        if (!response.success) throw new Error(response.error || 'Failed to save scores');
       }
 
       setSuccess('Scores saved successfully!');
@@ -388,6 +373,7 @@ const ScoresAdminPage: React.FC = () => {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setSaving(false);
+      setSaveProgress('');
     }
   };
 
@@ -396,18 +382,12 @@ const ScoresAdminPage: React.FC = () => {
       return;
     }
 
-    const token = localStorage.getItem('token');
     try {
-      const response = await fetch('/.netlify/functions/scores-delete', {
+      const response = await request<void>('scores-delete', {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({ tournamentId: tournament.id }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to delete scores');
+      if (!response.success) throw new Error(response.error || 'Failed to delete scores');
       setSuccess('Scores deleted successfully!');
       fetchData();
       setTimeout(() => setSuccess(''), 3000);
@@ -519,7 +499,7 @@ const ScoresAdminPage: React.FC = () => {
                     <th>Tournament</th>
                     <th>Date</th>
                     <th>Type</th>
-                    <th>Players</th>
+                    <th>golfers</th>
                     <th>Total Points</th>
                     <th>Actions</th>
                   </tr>
@@ -546,7 +526,7 @@ const ScoresAdminPage: React.FC = () => {
                       </td>
                       <td>{formatDate(item.tournament.startDate)}</td>
                       <td>{getTypeBadge(item.tournament)}</td>
-                      <td>{item.scores.filter(s => s.participated).length} players</td>
+                      <td>{item.scores.filter(s => s.participated).length} golfers</td>
                       <td>
                         <strong style={{ color: 'var(--primary-green)' }}>
                           {item.totalPoints} pts
@@ -667,7 +647,7 @@ const ScoresAdminPage: React.FC = () => {
                   </span>
                 </div>
                 <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>
-                  <strong>Participants:</strong> {participantCount} players |{' '}
+                  <strong>Participants:</strong> {participantCount} golfers |{' '}
                   <strong>Tier:</strong> {currentTier} |{' '}
                   <strong>Points:</strong>{' '}
                   {currentTier === '0-10' && '1st = 5pts'}
@@ -693,16 +673,16 @@ const ScoresAdminPage: React.FC = () => {
               </div>
 
               <p style={{ marginBottom: '1rem', color: '#6b7280' }}>
-                Mark the players who played in this tournament, then set their position and 36+ bonus.
+                Mark the golfers who played in this tournament, then set their position and 36+ bonus.
               </p>
 
-              {players.length === 0 ? (
-                <p>No players available. Add players first.</p>
+              {golfers.length === 0 ? (
+                <p>No golfers available. Add golfers first.</p>
               ) : (
                 <table className="admin-table">
                   <thead>
                     <tr>
-                      <th>Player</th>
+                      <th>golfer</th>
                       <th style={{ width: '80px' }}>Played?</th>
                       <th style={{ width: '120px' }}>Position</th>
                       <th style={{ width: '100px' }}>36+ Points?</th>
@@ -710,10 +690,10 @@ const ScoresAdminPage: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {players
-                      .filter((p) => p.isActive)
-                      .map((player) => {
-                        const score = scores[player.id];
+                    {golfers
+                      .filter((g) => g.isActive)
+                      .map((golfer) => {
+                        const score = scores[golfer.id];
                         const isParticipant = score?.participated || false;
 
                         // Calculate points based on dynamic tier
@@ -738,12 +718,12 @@ const ScoresAdminPage: React.FC = () => {
                         const finalPoints = (basePoints + bonusPoints) * editingTournament.multiplier;
 
                         return (
-                          <tr key={player.id}>
+                          <tr key={golfer.id}>
                             <td>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                                {player.picture ? (
+                                {golfer.picture ? (
                                   <img
-                                    src={player.picture}
+                                    src={golfer.picture}
                                     alt=""
                                     style={{
                                       width: '32px',
@@ -769,7 +749,7 @@ const ScoresAdminPage: React.FC = () => {
                                   </div>
                                 )}
                                 <span style={{ fontWeight: 500 }}>
-                                  {player.firstName} {player.lastName}
+                                  {golfer.firstName} {golfer.lastName}
                                 </span>
                               </div>
                             </td>
@@ -777,7 +757,7 @@ const ScoresAdminPage: React.FC = () => {
                               <input
                                 type="checkbox"
                                 checked={isParticipant}
-                                onChange={(e) => handleScoreChange(player.id, 'participated', e.target.checked)}
+                                onChange={(e) => handleScoreChange(golfer.id, 'participated', e.target.checked)}
                                 style={{ width: '18px', height: '18px' }}
                               />
                             </td>
@@ -786,7 +766,7 @@ const ScoresAdminPage: React.FC = () => {
                                 <select
                                   value={score?.position || ''}
                                   onChange={(e) =>
-                                    handleScoreChange(player.id, 'position', e.target.value)
+                                    handleScoreChange(golfer.id, 'position', e.target.value)
                                   }
                                   style={{ width: '100%' }}
                                 >
@@ -810,7 +790,7 @@ const ScoresAdminPage: React.FC = () => {
                                     type="checkbox"
                                     checked={score?.scored36Plus || false}
                                     onChange={(e) =>
-                                      handleScoreChange(player.id, 'scored36Plus', e.target.checked)
+                                      handleScoreChange(golfer.id, 'scored36Plus', e.target.checked)
                                     }
                                     style={{ width: '18px', height: '18px' }}
                                   />
@@ -868,7 +848,7 @@ const ScoresAdminPage: React.FC = () => {
                 disabled={saving || !validationResult.valid}
                 title={!validationResult.valid ? validationResult.error : ''}
               >
-                {saving ? 'Saving...' : 'Save Scores'}
+                {saving ? (saveProgress || 'Saving...') : 'Save Scores'}
               </button>
             </div>
           </div>
@@ -916,7 +896,7 @@ const ScoresAdminPage: React.FC = () => {
                       {viewingTournament.totalPoints} pts
                     </div>
                     <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>
-                      {viewingTournament.scores.filter(s => s.participated).length} players
+                      {viewingTournament.scores.filter(s => s.participated).length} golfers
                     </div>
                   </div>
                 </div>
@@ -926,7 +906,7 @@ const ScoresAdminPage: React.FC = () => {
                 <thead>
                   <tr>
                     <th>Position</th>
-                    <th>Player</th>
+                    <th>golfer</th>
                     <th>36+ Bonus</th>
                     <th>Points</th>
                   </tr>
@@ -948,7 +928,7 @@ const ScoresAdminPage: React.FC = () => {
                           {score.position === 3 && '🥉 3rd'}
                           {!score.position && '-'}
                         </td>
-                        <td style={{ fontWeight: 500 }}>{getPlayerName(score.playerId)}</td>
+                        <td style={{ fontWeight: 500 }}>{getGolferName(score.golferId)}</td>
                         <td>
                           {score.scored36Plus ? (
                             <span style={{ color: 'var(--primary-green)', fontWeight: 600 }}>+1</span>

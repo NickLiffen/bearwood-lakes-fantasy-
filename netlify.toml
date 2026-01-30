@@ -20,9 +20,26 @@
   to = "/index.html"
   status = 200
 
-# Environment variables (set in Netlify UI for production)
-[context.dev.environment]
-  MONGODB_URI = "mongodb://localhost:27017/bearwood-fantasy"
-  MONGODB_DB_NAME = "bearwood-fantasy"
-  JWT_SECRET = "dev-secret-change-in-production"
-  JWT_EXPIRES_IN = "7d"
+# Security headers for all pages
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Prevent clickjacking
+    X-Frame-Options = "DENY"
+    # Prevent MIME type sniffing
+    X-Content-Type-Options = "nosniff"
+    # XSS protection (legacy browsers)
+    X-XSS-Protection = "1; mode=block"
+    # Control referrer information
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    # Permissions policy (disable unnecessary features)
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    # Content Security Policy
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.netlify.app https://*.upstash.io; frame-ancestors 'none';"
+    # Strict Transport Security (HTTPS only)
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+
+# Note: Environment variables should be set in:
+# - Local development: .env.local file (not committed to git)
+# - Production: Netlify UI → Site settings → Environment variables
+# Required variables: MONGODB_URI, JWT_SECRET, UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN

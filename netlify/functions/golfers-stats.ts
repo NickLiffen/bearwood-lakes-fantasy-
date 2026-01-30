@@ -1,10 +1,10 @@
-// Get player stats from tournament scores
+// Get golfer stats from tournament scores
 
 import type { Handler } from '@netlify/functions';
-import { getScoresForPlayer } from './_shared/services/scores.service';
+import { getScoresForGolfer } from './_shared/services/scores.service';
 import { getAllTournaments } from './_shared/services/tournaments.service';
 
-export interface PlayerStats {
+export interface GolferStats {
   tournamentsPlayed: number;
   totalPoints: number;
   firstPlaceFinishes: number;
@@ -22,18 +22,18 @@ export const handler: Handler = async (event) => {
     };
   }
 
-  const playerId = event.queryStringParameters?.playerId;
+  const golferId = event.queryStringParameters?.golferId;
 
-  if (!playerId) {
+  if (!golferId) {
     return {
       statusCode: 400,
-      body: JSON.stringify({ error: 'playerId is required' }),
+      body: JSON.stringify({ error: 'golferId is required' }),
     };
   }
 
   try {
-    // Get all scores for this player
-    const scores = await getScoresForPlayer(playerId);
+    // Get all scores for this golfer
+    const scores = await getScoresForGolfer(golferId);
     
     // Get all tournaments to filter for published only (or completed)
     const tournaments = await getAllTournaments();
@@ -49,7 +49,7 @@ export const handler: Handler = async (event) => {
     );
 
     // Calculate stats
-    const stats: PlayerStats = {
+    const stats: GolferStats = {
       tournamentsPlayed: relevantScores.length,
       totalPoints: relevantScores.reduce((sum, s) => sum + s.multipliedPoints, 0),
       firstPlaceFinishes: relevantScores.filter(s => s.position === 1).length,
@@ -66,10 +66,10 @@ export const handler: Handler = async (event) => {
       }),
     };
   } catch (error) {
-    console.error('Error fetching player stats:', error);
+    console.error('Error fetching golfer stats:', error);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Failed to fetch player stats' }),
+      body: JSON.stringify({ error: 'Failed to fetch golfer stats' }),
     };
   }
 };

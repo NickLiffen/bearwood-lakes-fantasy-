@@ -9,10 +9,10 @@ import {
   PickHistoryDocument,
   PICK_HISTORY_COLLECTION,
 } from '../models/Pick';
-import { PlayerDocument, PLAYERS_COLLECTION } from '../models/Player';
+import { GolferDocument, GOLFERS_COLLECTION } from '../models/Golfer';
 import { SettingDocument, SETTINGS_COLLECTION } from '../models/Settings';
-import { BUDGET_CAP, MAX_PLAYERS } from '../../../../shared/constants/rules';
-import type { Pick, PickWithPlayers, PickHistory } from '../../../../shared/types';
+import { BUDGET_CAP, MAX_GOLFERS } from '../../../../shared/constants/rules';
+import type { Pick, PickWithGolfers, PickHistory } from '../../../../shared/types';
 
 async function getCurrentSeason(): Promise<number> {
   const { db } = await connectToDatabase();
@@ -51,48 +51,48 @@ export async function getUserPicks(userId: string, season?: number): Promise<Pic
   return pick ? toPick(pick) : null;
 }
 
-export async function getUserPicksWithPlayers(userId: string): Promise<PickWithPlayers | null> {
+export async function getUserPicksWithGolfers(userId: string): Promise<PickWithGolfers | null> {
   const { db } = await connectToDatabase();
 
   const pick = await getUserPicks(userId);
   if (!pick) return null;
 
-  // Get players for this pick
-  const playersCollection = db.collection<PlayerDocument>(PLAYERS_COLLECTION);
-  const playerIds = pick.playerIds.map((id) => new ObjectId(id));
-  const players = await playersCollection.find({ _id: { $in: playerIds } }).toArray();
+  // Get golfers for this pick
+  const golfersCollection = db.collection<GolferDocument>(GOLFERS_COLLECTION);
+  const golferIds = pick.golferIds.map((id) => new ObjectId(id));
+  const golfers = await golfersCollection.find({ _id: { $in: golferIds } }).toArray();
 
-  const playerMap = players.map((p) => ({
-    id: p._id.toString(),
-    firstName: p.firstName,
-    lastName: p.lastName,
-    picture: p.picture,
-    price: p.price,
-    membershipType: p.membershipType || 'men',
-    isActive: p.isActive,
-    stats2025: p.stats2025 || {
+  const golferMap = golfers.map((g) => ({
+    id: g._id.toString(),
+    firstName: g.firstName,
+    lastName: g.lastName,
+    picture: g.picture,
+    price: g.price,
+    membershipType: g.membershipType || 'men',
+    isActive: g.isActive,
+    stats2025: g.stats2025 || {
       timesScored36Plus: 0,
       timesFinished1st: 0,
       timesFinished2nd: 0,
       timesFinished3rd: 0,
       timesPlayed: 0,
     },
-    createdAt: p.createdAt,
-    updatedAt: p.updatedAt,
+    createdAt: g.createdAt,
+    updatedAt: g.updatedAt,
   }));
 
-  return { ...pick, players: playerMap };
+  return { ...pick, golfers: golferMap };
 }
 
 export async function savePicks(
   userId: string,
-  playerIds: string[],
+  golferIds: string[],
   reason: string = 'Team selection'
 ): Promise<Pick> {
   const { db } = await connectToDatabase();
   const picksCollection = db.collection<PickDocument>(PICKS_COLLECTION);
   const historyCollection = db.collection<PickHistoryDocument>(PICK_HISTORY_COLLECTION);
-  const playersCollection = db.collection<PlayerDocument>(PLAYERS_COLLECTION);
+  const golfersCollection = db.collection<GolferDocument>(GOLFERS_COLLECTION);
 
   // Check if transfers are open (for existing teams) or new team creation is allowed (for new teams)
   const existingPick = await getUserPicks(userId);
@@ -110,25 +110,25 @@ export async function savePicks(
     }
   }
 
-  // Validate player count
-  if (playerIds.length !== MAX_PLAYERS) {
-    throw new Error(`You must select exactly ${MAX_PLAYERS} players`);
+  // Validate golfer count
+  if (golferIds.length !== MAX_GOLFERS) {
+    throw new Error(`You must select exactly ${MAX_GOLFERS} golfers`);
   }
 
   // Check for duplicates
-  if (new Set(playerIds).size !== playerIds.length) {
-    throw new Error('Duplicate players are not allowed');
+  if (new Set(golferIds).size !== golferIds.length) {
+    throw new Error('Duplicate golfers are not allowed');
   }
 
-  // Get players and calculate total
-  const objectIds = playerIds.map((id) => new ObjectId(id));
-  const players = await playersCollection.find({ _id: { $in: objectIds } }).toArray();
+  // Get golfers and calculate total
+  const objectIds = golferIds.map((id) => new ObjectId(id));
+  const golfers = await golfersCollection.find({ _id: { $in: objectIds } }).toArray();
 
-  if (players.length !== playerIds.length) {
-    throw new Error('One or more players not found');
+  if (golfers.length !== golferIds.length) {
+    throw new Error('One or more golfers not found');
   }
 
-  const totalSpent = players.reduce((sum, p) => sum + p.price, 0);
+  const totalSpent = golfers.reduce((sum, g) => sum + g.price, 0);
 
   if (totalSpent > BUDGET_CAP) {
     throw new Error(`Budget exceeded. Maximum is $${BUDGET_CAP / 1_000_000}M`);
@@ -141,7 +141,7 @@ export async function savePicks(
   // Save to pick history for audit trail
   await historyCollection.insertOne({
     userId: userObjectId,
-    playerIds: objectIds,
+    golferIds: objectIds,
     totalSpent,
     season: currentSeason,
     changedAt: now,
@@ -153,7 +153,7 @@ export async function savePicks(
     { userId: userObjectId, season: currentSeason },
     {
       $set: {
-        playerIds: objectIds,
+        golferIds: objectIds,
         totalSpent,
         updatedAt: now,
       },
@@ -182,10 +182,13 @@ export async function getPickHistory(userId: string): Promise<PickHistory[]> {
   return history.map((doc) => ({
     id: doc._id.toString(),
     userId: doc.userId.toString(),
-    playerIds: doc.playerIds.map((id) => id.toString()),
+    golferIds: doc.golferIds.map((id) => id.toString()),
     totalSpent: doc.totalSpent,
     season: doc.season,
     changedAt: doc.changedAt,
     reason: doc.reason,
   }));
 }
+
+// Backwards compatibility alias
+export const getUserPicksWithPlayers = getUserPicksWithGolfers;

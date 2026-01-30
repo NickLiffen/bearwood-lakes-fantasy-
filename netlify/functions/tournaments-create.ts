@@ -30,7 +30,7 @@ const handler = withAdmin(async (event: AuthenticatedEvent) => {
       startDate,
       endDate,
       tournamentType: tournamentType || 'regular',
-      playerCountTier: playerCountTier || '20+',
+      golferCountTier: playerCountTier || '20+',
       season,
     });
 

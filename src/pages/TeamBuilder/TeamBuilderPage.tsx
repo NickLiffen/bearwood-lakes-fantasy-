@@ -1,18 +1,20 @@
 // Team Builder Page - Pick your fantasy golf team
 
-import React, { useEffect, useState, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import PageLayout from '../../components/layout/PageLayout';
+import { useApiClient } from '../../hooks/useApiClient';
 import './TeamBuilderPage.css';
 
-interface User {
-  id: string;
-  firstName: string;
-  lastName: string;
-  username: string;
-  role: string;
+interface GolferStats {
+  timesScored36Plus: number;
+  timesFinished1st: number;
+  timesFinished2nd: number;
+  timesFinished3rd: number;
+  timesPlayed: number;
 }
 
-interface Player {
+interface Golfer {
   id: string;
   firstName: string;
   lastName: string;
@@ -20,13 +22,8 @@ interface Player {
   price: number;
   membershipType: 'men' | 'junior' | 'female' | 'senior';
   isActive: boolean;
-  stats2025: {
-    timesScored36Plus: number;
-    timesFinished1st: number;
-    timesFinished2nd: number;
-    timesFinished3rd: number;
-    timesPlayed: number;
-  };
+  stats2025: GolferStats;
+  stats2026?: GolferStats;
 }
 
 interface Settings {
@@ -38,6 +35,7 @@ interface Settings {
 
 const TOTAL_BUDGET = 50000000; // $50M
 const TEAM_SIZE = 6;
+const GOLFERS_PER_PAGE = 24; // 4 columns × 6 rows
 
 // Sort options type
 type SortOption = 
@@ -64,9 +62,8 @@ type QuickFilter =
 
 const TeamBuilderPage: React.FC = () => {
   const navigate = useNavigate();
-  const [user, setUser] = useState<User | null>(null);
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [selectedPlayers, setSelectedPlayers] = useState<Player[]>([]);
+  const [golfers, setGolfers] = useState<Golfer[]>([]);
+  const [selectedGolfers, setSelectedGolfers] = useState<Golfer[]>([]);
   const [hasExistingTeam, setHasExistingTeam] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -81,26 +78,20 @@ const TeamBuilderPage: React.FC = () => {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [showCelebration, setShowCelebration] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [selectedGolferDetail, setSelectedGolferDetail] = useState<Golfer | null>(null);
   const previousPlayerCount = useRef<number | null>(null);
+  const { get, post, isAuthReady } = useApiClient();
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (!storedUser) {
-      navigate('/login');
-      return;
-    }
-    setUser(JSON.parse(storedUser));
-  }, [navigate]);
-
-  useEffect(() => {
-    if (user) {
+    if (isAuthReady) {
       fetchData();
     }
-  }, [user]);
+  }, [isAuthReady]);
 
-  // Show celebration only when team becomes complete (going from <6 to 6 players)
+  // Show celebration only when team becomes complete (going from <6 to 6 golfers)
   useEffect(() => {
-    const currentCount = selectedPlayers.length;
+    const currentCount = selectedGolfers.length;
     const prevCount = previousPlayerCount.current;
     
     // Only celebrate if we're going from less than 6 to exactly 6
@@ -111,46 +102,36 @@ const TeamBuilderPage: React.FC = () => {
     
     // Update the ref with current count
     previousPlayerCount.current = currentCount;
-  }, [selectedPlayers.length]);
+  }, [selectedGolfers.length]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      setError(null); // Clear previous errors
 
-      // Fetch players, user's picks, and settings in parallel
+      // Fetch golfers, user's picks, and settings in parallel
       const [playersRes, picksRes, settingsRes] = await Promise.all([
-        fetch('/.netlify/functions/players-list', {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch('/.netlify/functions/picks-get', {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch('/.netlify/functions/settings', {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
+        get<Golfer[]>('golfers-list'),
+        get<{ golfers: Golfer[] }>('picks-get'),
+        get<Settings>('settings'),
       ]);
 
-      if (playersRes.ok) {
-        const playersData = await playersRes.json();
-        if (playersData.success) {
-          setPlayers(playersData.data.filter((p: Player) => p.isActive));
-        }
+      // Ignore cancelled requests
+      if (playersRes.cancelled || picksRes.cancelled || settingsRes.cancelled) {
+        return;
       }
 
-      if (picksRes.ok) {
-        const picksData = await picksRes.json();
-        if (picksData.success && picksData.data?.players) {
-          setSelectedPlayers(picksData.data.players);
-          setHasExistingTeam(true); // User has an existing team
-        }
+      if (playersRes.success && playersRes.data) {
+        setGolfers(playersRes.data.filter((g: Golfer) => g.isActive));
       }
 
-      if (settingsRes.ok) {
-        const settingsData = await settingsRes.json();
-        if (settingsData.success) {
-          setSettings(settingsData.data);
-        }
+      if (picksRes.success && picksRes.data?.golfers) {
+        setSelectedGolfers(picksRes.data.golfers);
+        setHasExistingTeam(true); // User has an existing team
+      }
+
+      if (settingsRes.success && settingsRes.data) {
+        setSettings(settingsRes.data);
       }
     } catch {
       setError('Failed to load data. Please refresh the page.');
@@ -159,13 +140,7 @@ const TeamBuilderPage: React.FC = () => {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    navigate('/login');
-  };
-
-  const budgetUsed = selectedPlayers.reduce((sum, p) => sum + p.price, 0);
+  const budgetUsed = selectedGolfers.reduce((sum, p) => sum + p.price, 0);
   const budgetRemaining = TOTAL_BUDGET - budgetUsed;
   const budgetPercentage = (budgetUsed / TOTAL_BUDGET) * 100;
 
@@ -173,12 +148,12 @@ const TeamBuilderPage: React.FC = () => {
     return `$${(price / 1000000).toFixed(1)}M`;
   };
 
-  const canAfford = (player: Player) => {
-    return player.price <= budgetRemaining;
+  const canAfford = (golfer: Golfer) => {
+    return golfer.price <= budgetRemaining;
   };
 
-  const isSelected = (player: Player) => {
-    return selectedPlayers.some((p) => p.id === player.id);
+  const isSelected = (golfer: Golfer) => {
+    return selectedGolfers.some((g) => g.id === golfer.id);
   };
 
   // Determine if the user can edit their team
@@ -188,57 +163,48 @@ const TeamBuilderPage: React.FC = () => {
     ? (settings?.transfersOpen ?? true)
     : (settings?.allowNewTeamCreation ?? true);
 
-  const handleTogglePlayer = (player: Player) => {
+  const handleToggleGolfer = (golfer: Golfer) => {
     if (!canEditTeam) return;
     
     // If already selected, remove them
-    if (isSelected(player)) {
-      setSelectedPlayers(selectedPlayers.filter((p) => p.id !== player.id));
+    if (isSelected(golfer)) {
+      setSelectedGolfers(selectedGolfers.filter((g) => g.id !== golfer.id));
       return;
     }
     
     // Otherwise, try to add them
-    if (!canAfford(player)) return;
-    if (selectedPlayers.length >= TEAM_SIZE) return;
+    if (!canAfford(golfer)) return;
+    if (selectedGolfers.length >= TEAM_SIZE) return;
 
-    setSelectedPlayers([...selectedPlayers, player]);
-    setSuccessMessage(`${player.firstName} ${player.lastName} added to your team!`);
+    setSelectedGolfers([...selectedGolfers, golfer]);
+    setSuccessMessage(`${golfer.firstName} ${golfer.lastName} added to your team!`);
     setTimeout(() => setSuccessMessage(null), 2000);
   };
 
-  const handleRemovePlayer = (player: Player) => {
+  const handleRemoveGolfer = (golfer: Golfer) => {
     if (!canEditTeam) return;
-    setSelectedPlayers(selectedPlayers.filter((p) => p.id !== player.id));
+    setSelectedGolfers(selectedGolfers.filter((g) => g.id !== golfer.id));
   };
 
   const handleSaveTeam = async () => {
     if (!canEditTeam) return;
 
     // Validate team is complete
-    if (selectedPlayers.length < TEAM_SIZE) {
-      setError(`You must select ${TEAM_SIZE} players to save your team. Currently selected: ${selectedPlayers.length}`);
+    if (selectedGolfers.length < TEAM_SIZE) {
+      setError(`You must select ${TEAM_SIZE} golfers to save your team. Currently selected: ${selectedGolfers.length}`);
       return;
     }
 
     try {
       setSaving(true);
       setError(null);
-      const token = localStorage.getItem('token');
 
-      const response = await fetch('/.netlify/functions/picks-save', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          playerIds: selectedPlayers.map((p) => p.id),
-        }),
+      const response = await post('picks-save', {
+        golferIds: selectedGolfers.map((p) => p.id),
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to save team');
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to save team');
       }
 
       // Redirect to My Team page after successful save
@@ -251,54 +217,54 @@ const TeamBuilderPage: React.FC = () => {
   };
 
   // Helper functions for calculated stats
-  const getPodiums = (player: Player) => {
-    const stats = player.stats2025;
+  const getPodiums = (golfer: Golfer) => {
+    const stats = golfer.stats2025;
     if (!stats) return 0;
     return stats.timesFinished1st + stats.timesFinished2nd + stats.timesFinished3rd;
   };
 
-  const getWinRate = (player: Player) => {
-    const stats = player.stats2025;
+  const getWinRate = (golfer: Golfer) => {
+    const stats = golfer.stats2025;
     if (!stats || stats.timesPlayed === 0) return 0;
     return (stats.timesFinished1st / stats.timesPlayed) * 100;
   };
 
-  const getPodiumRate = (player: Player) => {
-    const stats = player.stats2025;
+  const getPodiumRate = (golfer: Golfer) => {
+    const stats = golfer.stats2025;
     if (!stats || stats.timesPlayed === 0) return 0;
-    return (getPodiums(player) / stats.timesPlayed) * 100;
+    return (getPodiums(golfer) / stats.timesPlayed) * 100;
   };
 
-  const getConsistencyRate = (player: Player) => {
-    const stats = player.stats2025;
+  const getConsistencyRate = (golfer: Golfer) => {
+    const stats = golfer.stats2025;
     if (!stats || stats.timesPlayed === 0) return 0;
     return (stats.timesScored36Plus / stats.timesPlayed) * 100;
   };
 
-  const getValueScore = (player: Player) => {
+  const getValueScore = (golfer: Golfer) => {
     // Podiums per million dollars spent
-    const podiums = getPodiums(player);
-    const priceInMillions = player.price / 1000000;
+    const podiums = getPodiums(golfer);
+    const priceInMillions = golfer.price / 1000000;
     if (priceInMillions === 0) return 0;
     return podiums / priceInMillions;
   };
 
   // Quick filter logic
-  const applyQuickFilter = (player: Player): boolean => {
-    const stats = player.stats2025;
+  const applyQuickFilter = (golfer: Golfer): boolean => {
+    const stats = golfer.stats2025;
     switch (quickFilter) {
       case 'winners':
         return stats?.timesFinished1st > 0;
       case 'podium-finishers':
-        return getPodiums(player) > 0;
+        return getPodiums(golfer) > 0;
       case 'consistent':
         return stats?.timesScored36Plus >= 3;
       case 'experienced':
         return stats?.timesPlayed >= 5;
       case 'value-picks':
-        return player.price <= 8000000; // $8M or less
+        return golfer.price <= 8000000; // $8M or less
       case 'premium':
-        return player.price >= 10000000; // $10M or more
+        return golfer.price >= 10000000; // $10M or more
       default:
         return true;
     }
@@ -321,15 +287,15 @@ const TeamBuilderPage: React.FC = () => {
     minRoundsPlayed > 0 || 
     showAffordableOnly;
 
-  // Filter and sort players
-  const filteredPlayers = players
-    .filter((player) => {
-      const fullName = `${player.firstName} ${player.lastName}`.toLowerCase();
+  // Filter and sort golfers
+  const filteredGolfers = golfers
+    .filter((golfer) => {
+      const fullName = `${golfer.firstName} ${golfer.lastName}`.toLowerCase();
       const matchesSearch = fullName.includes(searchTerm.toLowerCase());
-      const matchesMembership = membershipFilter === 'all' || player.membershipType === membershipFilter;
-      const matchesQuickFilter = applyQuickFilter(player);
-      const matchesMinRounds = !player.stats2025 || player.stats2025.timesPlayed >= minRoundsPlayed;
-      const matchesAffordable = !showAffordableOnly || canAfford(player);
+      const matchesMembership = membershipFilter === 'all' || golfer.membershipType === membershipFilter;
+      const matchesQuickFilter = applyQuickFilter(golfer);
+      const matchesMinRounds = !golfer.stats2025 || golfer.stats2025.timesPlayed >= minRoundsPlayed;
+      const matchesAffordable = !showAffordableOnly || canAfford(golfer);
       return matchesSearch && matchesMembership && matchesQuickFilter && matchesMinRounds && matchesAffordable;
     })
     .sort((a, b) => {
@@ -359,6 +325,35 @@ const TeamBuilderPage: React.FC = () => {
       }
     });
 
+  // Pagination logic
+  const totalPages = Math.ceil(filteredGolfers.length / GOLFERS_PER_PAGE);
+  const paginatedGolfers = useMemo(() => {
+    const startIndex = (currentPage - 1) * GOLFERS_PER_PAGE;
+    return filteredGolfers.slice(startIndex, startIndex + GOLFERS_PER_PAGE);
+  }, [filteredGolfers, currentPage]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, membershipFilter, quickFilter, minRoundsPlayed, showAffordableOnly, sortBy]);
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pages: (number | string)[] = [];
+    if (totalPages <= 7) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      if (currentPage <= 3) {
+        pages.push(1, 2, 3, 4, '...', totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1, '...', totalPages - 3, totalPages - 2, totalPages - 1, totalPages);
+      } else {
+        pages.push(1, '...', currentPage - 1, currentPage, currentPage + 1, '...', totalPages);
+      }
+    }
+    return pages;
+  };
+
   const getMembershipLabel = (type: string) => {
     switch (type) {
       case 'men':
@@ -374,116 +369,56 @@ const TeamBuilderPage: React.FC = () => {
     }
   };
 
-  if (!user) {
-    return null;
-  }
-
   if (loading) {
     return (
-      <div className="team-builder-page">
-        <header className="dashboard-header">
-          <div className="header-container">
-            <Link to="/dashboard" className="header-brand">
-              <img src="/bearwood_lakes_logo.png" alt="Bearwood Lakes" className="brand-logo" />
-              <span className="brand-text">Bearwood Lakes Fantasy</span>
-            </Link>
-          </div>
-        </header>
-        <main className="team-builder-main">
+      <PageLayout activeNav="my-team">
+        <div className="team-builder-content">
           <div className="team-builder-container">
             <div className="loading-state">
               <div className="loading-spinner"></div>
-              <p>Loading players...</p>
+              <p>Loading golfers...</p>
             </div>
           </div>
-        </main>
-      </div>
+        </div>
+      </PageLayout>
     );
   }
 
   return (
-    <div className="team-builder-page">
-      {/* Celebration Overlay */}
-      {showCelebration && (
-        <div className="celebration-overlay">
-          <div className="celebration-content">
-            <div className="celebration-icon">🎉</div>
-            <h2>Team Complete!</h2>
-            <p>You've selected all 6 players. Don't forget to save your team!</p>
+    <PageLayout activeNav="my-team">
+      <div className="team-builder-content">
+        {/* Celebration Overlay */}
+        {showCelebration && (
+          <div className="celebration-overlay">
+            <div className="celebration-content">
+              <div className="celebration-icon">🎉</div>
+              <h2>Team Complete!</h2>
+              <p>You've selected all 6 golfers. Don't forget to save your team!</p>
+            </div>
+            <div className="confetti">
+              {[...Array(50)].map((_, i) => (
+                <div key={i} className="confetti-piece" style={{
+                  left: `${Math.random() * 100}%`,
+                  animationDelay: `${Math.random() * 2}s`,
+                  backgroundColor: ['#1a472a', '#c9a227', '#2d5a3d', '#f4e4ba', '#4a7c59'][Math.floor(Math.random() * 5)]
+                }} />
+              ))}
+            </div>
           </div>
-          <div className="confetti">
-            {[...Array(50)].map((_, i) => (
-              <div key={i} className="confetti-piece" style={{
-                left: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 2}s`,
-                backgroundColor: ['#1a472a', '#c9a227', '#2d5a3d', '#f4e4ba', '#4a7c59'][Math.floor(Math.random() * 5)]
-              }} />
-            ))}
-          </div>
-        </div>
-      )}
+        )}
 
-      {/* Header */}
-      <header className="dashboard-header">
-        <div className="header-container">
-          <Link to="/dashboard" className="header-brand">
-            <img src="/bearwood_lakes_logo.png" alt="Bearwood Lakes" className="brand-logo" />
-            <span className="brand-text">Bearwood Lakes Fantasy</span>
-          </Link>
-
-          <nav className="header-nav">
-            <Link to="/dashboard" className="nav-link">
-              Dashboard
-            </Link>
-            <Link to="/my-team" className="nav-link active">
-              My Team
-            </Link>
-            <Link to="/players" className="nav-link">
-              Players
-            </Link>
-            <Link to="/leaderboard" className="nav-link">
-              Leaderboard
-            </Link>
-            <Link to="/tournaments" className="nav-link">
-              Tournaments
-            </Link>
-            <Link to="/profile" className="nav-link">
-              Profile
-            </Link>
-            {user.role === 'admin' && (
-              <Link to="/admin" className="nav-link nav-admin">
-                Admin
-              </Link>
-            )}
-          </nav>
-
-          <div className="header-user">
-            <span className="user-greeting">
-              Hi, <strong>{user.firstName}</strong>
-            </span>
-            <button onClick={handleLogout} className="btn-logout">
-              Logout
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="team-builder-main">
         <div className="team-builder-container">
           {/* Page Header */}
-          <section className="page-header">
-            <div className="page-title">
-              <h1>{hasExistingTeam ? 'Edit Your Team' : 'Build Your Team'}</h1>
-              <p>Select 6 golfers within your $50M budget</p>
-            </div>
+          <div className="users-page-header">
+              <h1> 👥 {hasExistingTeam ? 'Edit Your Team' : 'Build Your Team'}</h1>
+            <p className="users-page-subtitle">Select 6 golfers within your $50M budget</p>
+          </div>
             {!canEditTeam && (
               <div className="transfer-locked-banner">
                 <span className="lock-icon">🔒</span>
                 <span>{hasExistingTeam ? 'Transfer window is closed' : 'New team creation is disabled'}</span>
               </div>
             )}
-          </section>
 
           {/* Alerts */}
           {error && (
@@ -520,27 +455,27 @@ const TeamBuilderPage: React.FC = () => {
             <div className="summary-card team-card">
               <div className="summary-header">
                 <h3>👥 Your Team</h3>
-                <span className="team-count">{selectedPlayers.length} / {TEAM_SIZE} players</span>
+                <span className="team-count">{selectedGolfers.length} / {TEAM_SIZE} golfers</span>
               </div>
               <div className="team-slots">
                 {[...Array(TEAM_SIZE)].map((_, index) => {
-                  const player = selectedPlayers[index];
+                  const golfer = selectedGolfers[index];
                   return (
                     <div 
                       key={index} 
-                      className={`team-slot ${player ? 'filled' : 'empty'}`}
+                      className={`team-slot ${golfer ? 'filled' : 'empty'}`}
                     >
-                      {player ? (
+                      {golfer ? (
                         <>
-                          <div className="slot-player">
-                            <span className="slot-name">{player.lastName}</span>
-                            <span className="slot-price">{formatPrice(player.price)}</span>
+                          <div className="slot-golfer">
+                            <span className="slot-name">{golfer.lastName}</span>
+                            <span className="slot-price">{formatPrice(golfer.price)}</span>
                           </div>
                           {canEditTeam && (
                             <button 
                               className="slot-remove"
-                              onClick={() => handleRemovePlayer(player)}
-                              title="Remove player"
+                              onClick={() => handleRemoveGolfer(golfer)}
+                              title="Remove golfer"
                             >
                               ×
                             </button>
@@ -555,15 +490,15 @@ const TeamBuilderPage: React.FC = () => {
               </div>
               {canEditTeam && (
                 <button 
-                  className={`btn btn-save-team ${selectedPlayers.length === TEAM_SIZE ? '' : 'btn-incomplete'}`}
+                  className={`btn btn-save-team ${selectedGolfers.length === TEAM_SIZE ? '' : 'btn-incomplete'}`}
                   onClick={handleSaveTeam}
-                  disabled={saving || selectedPlayers.length !== TEAM_SIZE}
+                  disabled={saving || selectedGolfers.length !== TEAM_SIZE}
                 >
                   {saving 
                     ? 'Saving...' 
-                    : selectedPlayers.length === TEAM_SIZE 
+                    : selectedGolfers.length === TEAM_SIZE 
                       ? 'Save Team' 
-                      : `Select ${TEAM_SIZE - selectedPlayers.length} more player${TEAM_SIZE - selectedPlayers.length !== 1 ? 's' : ''}`
+                      : `Select ${TEAM_SIZE - selectedGolfers.length} more golfer${TEAM_SIZE - selectedGolfers.length !== 1 ? 's' : ''}`
                   }
                 </button>
               )}
@@ -577,7 +512,7 @@ const TeamBuilderPage: React.FC = () => {
               <span className="search-icon">🔍</span>
               <input
                 type="text"
-                placeholder="Search players..."
+                placeholder="Search golfers..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -591,7 +526,7 @@ const TeamBuilderPage: React.FC = () => {
               <span className="quick-filters-label">Quick Filters:</span>
               <div className="quick-filter-chips">
                 {[
-                  { value: 'all', label: 'All Players', icon: '👥' },
+                  { value: 'all', label: 'All golfers', icon: '👥' },
                   { value: 'winners', label: 'Winners', icon: '🏆' },
                   { value: 'podium-finishers', label: 'Podium Finishers', icon: '🥇' },
                   { value: 'consistent', label: 'Consistent', icon: '📈' },
@@ -694,7 +629,7 @@ const TeamBuilderPage: React.FC = () => {
                       checked={showAffordableOnly}
                       onChange={(e) => setShowAffordableOnly(e.target.checked)}
                     />
-                    <span>Show only players I can afford</span>
+                    <span>Show only golfers I can afford</span>
                   </label>
                 </div>
               </div>
@@ -713,135 +648,265 @@ const TeamBuilderPage: React.FC = () => {
             )}
           </section>
 
-          {/* Players Grid */}
-          <section className="players-section">
-            <div className="players-section-header">
-              <h2>Available Players ({filteredPlayers.length})</h2>
-              {filteredPlayers.length > 0 && (
-                <span className="results-hint">
-                  Sorted by: {sortBy.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                </span>
-              )}
+          {/* golfers Grid */}
+          <section className="golfers-section">
+            <div className="golfers-section-header">
+              <h2>Available golfers ({filteredGolfers.length})</h2>
+              <div className="section-header-right">
+                {filteredGolfers.length > 0 && (
+                  <span className="results-hint">
+                    Showing {((currentPage - 1) * GOLFERS_PER_PAGE) + 1}-{Math.min(currentPage * GOLFERS_PER_PAGE, filteredGolfers.length)} of {filteredGolfers.length}
+                  </span>
+                )}
+              </div>
             </div>
-            <div className="players-grid">
-              {filteredPlayers.map((player) => {
-                const selected = isSelected(player);
-                const affordable = canAfford(player);
-                // Card is only truly disabled if unaffordable AND not selected, or team editing not allowed
-                const cannotSelect = !selected && (!affordable || selectedPlayers.length >= TEAM_SIZE);
-                const isClickable = canEditTeam && (selected || (!cannotSelect));
-                const podiums = getPodiums(player);
-                const winRate = getWinRate(player);
-                const podiumRate = getPodiumRate(player);
-                const consistencyRate = getConsistencyRate(player);
+            
+            {/* Compact Golfer Grid */}
+            <div className="golfers-grid-compact">
+              {paginatedGolfers.map((golfer) => {
+                const selected = isSelected(golfer);
+                const affordable = canAfford(golfer);
+                const podiums = getPodiums(golfer);
 
                 return (
                   <div 
-                    key={player.id}
-                    className={`player-card ${selected ? 'selected' : ''} ${!affordable && !selected ? 'unaffordable' : ''} ${!isClickable ? 'disabled' : 'clickable'}`}
-                    onClick={() => isClickable && handleTogglePlayer(player)}
+                    key={golfer.id}
+                    className={`golfer-card-compact ${selected ? 'selected' : ''} ${!affordable && !selected ? 'unaffordable' : ''}`}
+                    onClick={() => setSelectedGolferDetail(golfer)}
                     role="button"
-                    tabIndex={isClickable ? 0 : -1}
-                    onKeyDown={(e) => e.key === 'Enter' && isClickable && handleTogglePlayer(player)}
+                    tabIndex={0}
+                    onKeyDown={(e) => e.key === 'Enter' && setSelectedGolferDetail(golfer)}
                   >
-                    <div className="player-photo">
-                      {player.picture ? (
-                        <img src={player.picture} alt={`${player.firstName} ${player.lastName}`} />
+                    <div className="compact-photo">
+                      {golfer.picture ? (
+                        <img src={golfer.picture} alt={`${golfer.firstName} ${golfer.lastName}`} />
                       ) : (
-                        <div className="player-initials">
-                          {player.firstName[0]}{player.lastName[0]}
+                        <div className="compact-initials">
+                          {golfer.firstName[0]}{golfer.lastName[0]}
                         </div>
                       )}
-                      {selected && <div className="selected-badge">✓</div>}
-                      {/* Badges for achievements */}
-                      {player.stats2025?.timesFinished1st > 0 && !selected && (
-                        <div className="achievement-badge winner">🏆</div>
+                      {selected && <div className="compact-selected-badge">✓</div>}
+                      {golfer.stats2025?.timesFinished1st > 0 && !selected && (
+                        <div className="compact-winner-badge">🏆</div>
                       )}
                     </div>
-                    <div className="player-info">
-                      <h4 className="player-name">{player.firstName} {player.lastName}</h4>
-                      <span className={`membership-badge ${player.membershipType}`}>
-                        {getMembershipLabel(player.membershipType)}
-                      </span>
-                      <div className="player-price">{formatPrice(player.price)}</div>
-                      
-                      {/* 2025 Stats */}
-                      {player.stats2025 && (
-                        <div className="player-stats-2025">
-                          <div className="stats-row primary">
-                            <span className="stat-item" title="1st Place Finishes">
-                              <span className="stat-icon">🥇</span>
-                              <span className="stat-value">{player.stats2025.timesFinished1st}</span>
-                            </span>
-                            <span className="stat-item" title="2nd Place Finishes">
-                              <span className="stat-icon">🥈</span>
-                              <span className="stat-value">{player.stats2025.timesFinished2nd}</span>
-                            </span>
-                            <span className="stat-item" title="3rd Place Finishes">
-                              <span className="stat-icon">🥉</span>
-                              <span className="stat-value">{player.stats2025.timesFinished3rd}</span>
-                            </span>
-                          </div>
-                          <div className="stats-row secondary">
-                            <span className="stat-item" title="Rounds Played">
-                              <span className="stat-label">Played</span>
-                              <span className="stat-value">{player.stats2025.timesPlayed}</span>
-                            </span>
-                            <span className="stat-item" title="36+ Point Rounds">
-                              <span className="stat-label">36+</span>
-                              <span className="stat-value">{player.stats2025.timesScored36Plus}</span>
-                            </span>
-                            <span className="stat-item" title="Total Podium Finishes">
-                              <span className="stat-label">Podiums</span>
-                              <span className="stat-value">{podiums}</span>
-                            </span>
-                          </div>
-                          {player.stats2025.timesPlayed > 0 && (
-                            <div className="stats-row rates">
-                              {winRate > 0 && (
-                                <span className="rate-badge win" title="Win Rate">
-                                  {winRate.toFixed(0)}% WR
-                                </span>
-                              )}
-                              {podiumRate > 0 && (
-                                <span className="rate-badge podium" title="Podium Rate">
-                                  {podiumRate.toFixed(0)}% PR
-                                </span>
-                              )}
-                              {consistencyRate > 0 && (
-                                <span className="rate-badge consistency" title="Consistency Rate (36+ rounds)">
-                                  {consistencyRate.toFixed(0)}% CR
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    <div className={`player-action-label ${selected ? 'selected' : ''}`}>
-                      {selected ? 'Tap to Remove' : !affordable ? 'Can\'t Afford' : selectedPlayers.length >= TEAM_SIZE ? 'Team Full' : 'Tap to Select'}
+                    <div className="compact-info">
+                      <h4 className="compact-name">{golfer.firstName} {golfer.lastName}</h4>
+                      <div className="compact-meta">
+                        <span className={`compact-membership ${golfer.membershipType}`}>
+                          {getMembershipLabel(golfer.membershipType)}
+                        </span>
+                        <span className="compact-price">{formatPrice(golfer.price)}</span>
+                      </div>
+                      <div className="compact-stat">
+                        <span className="compact-stat-icon">🏅</span>
+                        <span>{podiums} podium{podiums !== 1 ? 's' : ''}</span>
+                      </div>
                     </div>
                   </div>
                 );
               })}
             </div>
-            {filteredPlayers.length === 0 && (
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="pagination">
+                <button 
+                  className="pagination-btn pagination-nav"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  ← Prev
+                </button>
+                
+                <div className="pagination-pages">
+                  {getPageNumbers().map((page, idx) => (
+                    typeof page === 'number' ? (
+                      <button
+                        key={idx}
+                        className={`pagination-btn ${currentPage === page ? 'active' : ''}`}
+                        onClick={() => setCurrentPage(page)}
+                      >
+                        {page}
+                      </button>
+                    ) : (
+                      <span key={idx} className="pagination-ellipsis">{page}</span>
+                    )
+                  ))}
+                </div>
+
+                <button 
+                  className="pagination-btn pagination-nav"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next →
+                </button>
+              </div>
+            )}
+
+            {filteredGolfers.length === 0 && (
               <div className="no-results">
                 <div className="no-results-icon">🔍</div>
-                <h3>No players found</h3>
+                <h3>No golfers found</h3>
                 <p>Try adjusting your filters or search term.</p>
                 <button className="btn-reset" onClick={resetFilters}>Reset All Filters</button>
               </div>
             )}
           </section>
         </div>
-      </main>
+      </div>
 
-      {/* Footer */}
-      <footer className="team-builder-footer">
-        <p>© 2026 Bearwood Lakes Fantasy Golf. All rights reserved.</p>
-      </footer>
-    </div>
+      {/* Golfer Detail Modal */}
+      {selectedGolferDetail && (
+        <div className="golfer-detail-overlay" onClick={() => setSelectedGolferDetail(null)}>
+          <div className="golfer-detail-modal" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setSelectedGolferDetail(null)}>×</button>
+            
+            <div className="modal-header">
+              <div className="modal-photo">
+                {selectedGolferDetail.picture ? (
+                  <img src={selectedGolferDetail.picture} alt={`${selectedGolferDetail.firstName} ${selectedGolferDetail.lastName}`} />
+                ) : (
+                  <div className="modal-initials">
+                    {selectedGolferDetail.firstName[0]}{selectedGolferDetail.lastName[0]}
+                  </div>
+                )}
+              </div>
+              <div className="modal-title">
+                <h2>{selectedGolferDetail.firstName} {selectedGolferDetail.lastName}</h2>
+                <div className="modal-meta">
+                  <span className={`membership-badge ${selectedGolferDetail.membershipType}`}>
+                    {getMembershipLabel(selectedGolferDetail.membershipType)}
+                  </span>
+                  <span className="modal-price">{formatPrice(selectedGolferDetail.price)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-stats">
+              <h3>2025 Season Stats</h3>
+              <div className="modal-stats-grid">
+                <div className="modal-stat-item">
+                  <span className="modal-stat-value">{selectedGolferDetail.stats2025?.timesPlayed || 0}</span>
+                  <span className="modal-stat-label">Rounds Played</span>
+                </div>
+                <div className="modal-stat-item gold">
+                  <span className="modal-stat-value">{selectedGolferDetail.stats2025?.timesFinished1st || 0}</span>
+                  <span className="modal-stat-label">🥇 1st Place</span>
+                </div>
+                <div className="modal-stat-item silver">
+                  <span className="modal-stat-value">{selectedGolferDetail.stats2025?.timesFinished2nd || 0}</span>
+                  <span className="modal-stat-label">🥈 2nd Place</span>
+                </div>
+                <div className="modal-stat-item bronze">
+                  <span className="modal-stat-value">{selectedGolferDetail.stats2025?.timesFinished3rd || 0}</span>
+                  <span className="modal-stat-label">🥉 3rd Place</span>
+                </div>
+                <div className="modal-stat-item">
+                  <span className="modal-stat-value">{getPodiums(selectedGolferDetail)}</span>
+                  <span className="modal-stat-label">Total Podiums</span>
+                </div>
+                <div className="modal-stat-item">
+                  <span className="modal-stat-value">{selectedGolferDetail.stats2025?.timesScored36Plus || 0}</span>
+                  <span className="modal-stat-label">36+ Rounds</span>
+                </div>
+              </div>
+
+              {selectedGolferDetail.stats2025 && selectedGolferDetail.stats2025.timesPlayed > 0 && (
+                <div className="modal-rates">
+                  <span className="rate-badge win">{getWinRate(selectedGolferDetail).toFixed(1)}% Win Rate</span>
+                  <span className="rate-badge podium">{getPodiumRate(selectedGolferDetail).toFixed(1)}% Podium Rate</span>
+                  <span className="rate-badge consistency">{getConsistencyRate(selectedGolferDetail).toFixed(1)}% Consistency</span>
+                </div>
+              )}
+
+              {selectedGolferDetail.stats2026 && (
+                <>
+                  <h3>2026 Season Stats</h3>
+                  <div className="modal-stats-grid">
+                    <div className="modal-stat-item">
+                      <span className="modal-stat-value">{selectedGolferDetail.stats2026.timesPlayed}</span>
+                      <span className="modal-stat-label">Rounds Played</span>
+                    </div>
+                    <div className="modal-stat-item gold">
+                      <span className="modal-stat-value">{selectedGolferDetail.stats2026.timesFinished1st}</span>
+                      <span className="modal-stat-label">🥇 1st Place</span>
+                    </div>
+                    <div className="modal-stat-item silver">
+                      <span className="modal-stat-value">{selectedGolferDetail.stats2026.timesFinished2nd}</span>
+                      <span className="modal-stat-label">🥈 2nd Place</span>
+                    </div>
+                    <div className="modal-stat-item bronze">
+                      <span className="modal-stat-value">{selectedGolferDetail.stats2026.timesFinished3rd}</span>
+                      <span className="modal-stat-label">🥉 3rd Place</span>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="modal-action">
+              {(() => {
+                const selected = isSelected(selectedGolferDetail);
+                const affordable = canAfford(selectedGolferDetail);
+                const teamFull = selectedGolfers.length >= TEAM_SIZE;
+
+                if (!canEditTeam) {
+                  return (
+                    <button className="modal-btn disabled" disabled>
+                      🔒 {hasExistingTeam ? 'Transfers Locked' : 'Team Creation Disabled'}
+                    </button>
+                  );
+                }
+
+                if (selected) {
+                  return (
+                    <button 
+                      className="modal-btn remove"
+                      onClick={() => {
+                        handleToggleGolfer(selectedGolferDetail);
+                        setSelectedGolferDetail(null);
+                      }}
+                    >
+                      ✕ Remove from Team
+                    </button>
+                  );
+                }
+
+                if (!affordable) {
+                  return (
+                    <button className="modal-btn disabled" disabled>
+                      💰 Can't Afford ({formatPrice(selectedGolferDetail.price - budgetRemaining)} over budget)
+                    </button>
+                  );
+                }
+
+                if (teamFull) {
+                  return (
+                    <button className="modal-btn disabled" disabled>
+                      👥 Team Full (6/6 golfers)
+                    </button>
+                  );
+                }
+
+                return (
+                  <button 
+                    className="modal-btn add"
+                    onClick={() => {
+                      handleToggleGolfer(selectedGolferDetail);
+                      setSelectedGolferDetail(null);
+                    }}
+                  >
+                    ✓ Add to Team
+                  </button>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
+    </PageLayout>
   );
 };
 

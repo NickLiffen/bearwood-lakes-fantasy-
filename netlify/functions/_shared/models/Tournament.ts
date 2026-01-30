@@ -1,7 +1,7 @@
 // Tournament model (MongoDB)
 
 import { ObjectId } from 'mongodb';
-import type { Tournament, TournamentStatus, TournamentType, PlayerCountTier } from '../../../../shared/types';
+import type { Tournament, TournamentStatus, TournamentType, GolferCountTier } from '../../../../shared/types';
 
 export interface TournamentDocument {
   _id: ObjectId;
@@ -10,10 +10,10 @@ export interface TournamentDocument {
   endDate: Date;
   tournamentType: TournamentType;
   multiplier: number;
-  playerCountTier: PlayerCountTier;
+  golferCountTier: GolferCountTier;
   season: number;
   status: TournamentStatus;
-  participatingPlayerIds: ObjectId[];
+  participatingGolferIds: ObjectId[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -26,10 +26,10 @@ export function toTournament(doc: TournamentDocument): Tournament {
     endDate: doc.endDate,
     tournamentType: doc.tournamentType || 'regular',
     multiplier: doc.multiplier,
-    playerCountTier: doc.playerCountTier || '20+',
+    golferCountTier: doc.golferCountTier || '20+',
     season: doc.season,
     status: doc.status,
-    participatingPlayerIds: doc.participatingPlayerIds.map((id) => id.toString()),
+    participatingGolferIds: (doc.participatingGolferIds || []).map((id) => id.toString()),
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   };

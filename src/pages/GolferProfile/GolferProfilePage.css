@@ -1,6 +1,6 @@
-/* Player Profile Page - Detailed player view */
+/* Golfer Profile Page - Detailed golfer view */
 
-.player-profile-page {
+.golfer-profile-page {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -9,79 +9,16 @@
   width: 100%;
 }
 
-/* Loading State */
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 60vh;
-  gap: 1rem;
-}
-
-.loading-spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid #e5e7eb;
-  border-top-color: var(--primary-green);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.loading-state p {
-  color: var(--muted-text);
-  font-size: 1rem;
-}
-
-/* Error State */
-.error-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 60vh;
-  gap: 1rem;
-  text-align: center;
-}
-
-.error-state h2 {
-  font-family: var(--font-serif);
-  color: var(--primary-green);
-  margin: 0;
-}
-
-.error-state p {
-  color: var(--muted-text);
-}
-
-.btn-back {
-  display: inline-block;
-  padding: 0.75rem 1.5rem;
-  background: var(--primary-green);
-  color: white;
-  border-radius: 8px;
-  text-decoration: none;
-  font-weight: 500;
-  transition: background 0.2s;
-}
-
-.btn-back:hover {
-  background: var(--dark-green);
-}
-
 /* Main Content */
 .profile-main {
   flex: 1;
-  padding: 2rem 1rem;
+  padding: 2rem 0;
 }
 
 .profile-container {
-  max-width: 1000px;
+  max-width: 1400px;
   margin: 0 auto;
+  padding: 0 1.5rem;
 }
 
 /* Back Link */
@@ -100,7 +37,7 @@
 }
 
 /* Hero Section */
-.player-hero {
+.golfer-hero {
   background: white;
   border-radius: 16px;
   padding: 2rem;
@@ -109,18 +46,18 @@
   border: 1px solid rgba(26, 71, 42, 0.1);
 }
 
-.hero-content {
+.golfer-hero .hero-content {
   display: flex;
   align-items: center;
   gap: 2rem;
 }
 
-.player-avatar {
+.golfer-avatar {
   position: relative;
   flex-shrink: 0;
 }
 
-.player-avatar img {
+.golfer-avatar img {
   width: 120px;
   height: 120px;
   border-radius: 50%;
@@ -165,14 +102,14 @@
   flex: 1;
 }
 
-.player-name {
+.golfer-name {
   font-family: var(--font-serif);
   font-size: 2.5rem;
   color: var(--primary-green);
   margin: 0 0 0.75rem 0;
 }
 
-.player-meta {
+.golfer-meta {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -223,7 +160,7 @@
   color: #6b7280;
 }
 
-.player-value {
+.golfer-value {
   display: flex;
   flex-direction: column;
 }
@@ -559,16 +496,17 @@
   color: var(--muted-text);
 }
 
-/* Player Info Card */
-.player-info-card {
+/* Golfer Info Card */
+.golfer-info-card {
   background: white;
   border-radius: 16px;
   padding: 1.5rem;
+  margin-bottom: 1.5rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   border: 1px solid rgba(26, 71, 42, 0.1);
 }
 
-.player-info-card h2 {
+.golfer-info-card h2 {
   font-family: var(--font-serif);
   font-size: 1.5rem;
   color: var(--primary-green);
@@ -600,120 +538,34 @@
   font-weight: 500;
 }
 
-/* Footer */
-.profile-footer {
-  background: var(--primary-green);
-  color: rgba(255, 255, 255, 0.8);
-  padding: 1.5rem;
+/* Error state */
+.error-state {
   text-align: center;
-  margin-top: auto;
+  padding: 3rem;
 }
 
-.footer-container {
-  max-width: 1200px;
-  margin: 0 auto;
+.error-state h2 {
+  color: var(--primary-green);
+  margin-bottom: 0.5rem;
 }
 
-.profile-footer p {
-  margin: 0;
-  font-size: 0.9rem;
+.error-state p {
+  color: var(--muted-text);
+  margin-bottom: 1.5rem;
 }
 
-/* Header styles (shared with dashboard) */
-.dashboard-header {
-  background: var(--primary-green);
+.btn-back {
+  display: inline-block;
   padding: 0.75rem 1.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.header-container {
-  max-width: 1400px;
-  margin: 0 auto;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 2rem;
-}
-
-.header-brand {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
+  background: var(--primary-green);
+  color: white;
   text-decoration: none;
-}
-
-.brand-logo {
-  width: 40px;
-  height: 40px;
   border-radius: 8px;
+  transition: background 0.2s;
 }
 
-.brand-text {
-  font-family: var(--font-serif);
-  font-size: 1.25rem;
-  color: white;
-  font-weight: 600;
-}
-
-.header-nav {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.nav-link {
-  padding: 0.5rem 1rem;
-  color: rgba(255, 255, 255, 0.85);
-  text-decoration: none;
-  font-size: 0.9rem;
-  border-radius: 6px;
-  transition: all 0.2s;
-}
-
-.nav-link:hover {
-  color: white;
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.nav-link.active {
-  color: white;
-  background: rgba(255, 255, 255, 0.15);
-  font-weight: 500;
-}
-
-.nav-admin {
-  color: var(--accent-gold);
-}
-
-.nav-admin:hover {
-  color: var(--accent-gold);
-}
-
-.header-user {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-.user-greeting {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.9rem;
-}
-
-.btn-logout {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  color: white;
-  padding: 0.4rem 0.875rem;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.btn-logout:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.5);
+.btn-back:hover {
+  background: var(--dark-green);
 }
 
 /* Responsive */
@@ -728,16 +580,16 @@
     padding: 1rem;
   }
 
-  .hero-content {
+  .golfer-hero .hero-content {
     flex-direction: column;
     text-align: center;
   }
 
-  .player-name {
+  .golfer-name {
     font-size: 2rem;
   }
 
-  .player-meta {
+  .golfer-meta {
     justify-content: center;
     flex-wrap: wrap;
   }
@@ -765,37 +617,21 @@
   .info-grid {
     grid-template-columns: 1fr;
   }
-
-  .dashboard-header {
-    padding: 0.5rem 1rem;
-  }
-
-  .header-nav {
-    display: none;
-  }
-
-  .brand-text {
-    font-size: 1rem;
-  }
-
-  .user-greeting {
-    display: none;
-  }
 }
 
 @media (max-width: 480px) {
-  .player-hero {
+  .golfer-hero {
     padding: 1.25rem;
   }
 
-  .player-avatar img,
+  .golfer-avatar img,
   .avatar-placeholder {
     width: 100px;
     height: 100px;
     font-size: 2rem;
   }
 
-  .player-name {
+  .golfer-name {
     font-size: 1.5rem;
   }
 

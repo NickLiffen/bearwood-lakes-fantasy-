@@ -1,16 +1,13 @@
 // Leaderboard Page - Three separate tables: Weekly, Monthly, Season with navigation
 
 import React, { useEffect, useState, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import PageLayout from '../../components/layout/PageLayout';
+import TeamCompareModal from '../../components/ui/TeamCompareModal';
+import { useAuth } from '../../hooks/useAuth';
+import { useApiClient } from '../../hooks/useApiClient';
+import { formatPrice } from '../../utils/formatters';
 import './LeaderboardPage.css';
-
-interface User {
-  id: string;
-  firstName: string;
-  lastName: string;
-  username: string;
-  role: string;
-}
 
 interface LeaderboardEntry {
   rank: number;
@@ -73,10 +70,14 @@ const getMondayOfWeek = (dateStr: string): string => {
 };
 
 const LeaderboardPage: React.FC = () => {
-  const navigate = useNavigate();
-  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [compareUserId, setCompareUserId] = useState<string | null>(null);
+
+  // Get user from useAuth hook for current user check
+  const { user } = useAuth();
+  const userId = user?.id; // Use primitive value for dependency
+  const { get, isAuthReady } = useApiClient();
 
   // Leaders state
   const [leaders, setLeaders] = useState<LeadersResponse | null>(null);
@@ -93,15 +94,6 @@ const LeaderboardPage: React.FC = () => {
   // Dropdown options
   const [weekOptions, setWeekOptions] = useState<WeekOption[]>([]);
   const [monthOptions, setMonthOptions] = useState<MonthOption[]>([]);
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (!storedUser) {
-      navigate('/login');
-      return;
-    }
-    setUser(JSON.parse(storedUser));
-  }, [navigate]);
 
   // Generate week options from season start to now
   const generateWeekOptions = useCallback((seasonStart: string) => {
@@ -169,67 +161,61 @@ const LeaderboardPage: React.FC = () => {
 
   const fetchLeaders = useCallback(async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/.netlify/functions/leaderboard-periods?action=leaders', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await get<LeadersResponse>('leaderboard-periods?action=leaders');
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setLeaders(data.data);
-          
-          // Set initial dates - use getMondayOfWeek to ensure we match option values
-          if (data.data.currentWeek) {
-            setWeeklyDate(getMondayOfWeek(data.data.currentWeek.startDate));
-          }
-          if (data.data.currentMonth) {
-            const d = new Date(data.data.currentMonth.startDate);
-            const year = d.getFullYear();
-            const month = String(d.getMonth() + 1).padStart(2, '0');
-            setMonthlyDate(`${year}-${month}-01`);
-          }
-          
-          // Generate dropdown options
-          if (data.data.seasonInfo) {
-            setWeekOptions(generateWeekOptions(data.data.seasonInfo.startDate));
-            setMonthOptions(generateMonthOptions(data.data.seasonInfo.startDate));
-          }
+      // Ignore cancelled requests
+      if (response.cancelled) return;
+
+      if (response.success && response.data) {
+        setLeaders(response.data);
+        
+        // Set initial dates - use getMondayOfWeek to ensure we match option values
+        if (response.data.currentWeek) {
+          setWeeklyDate(getMondayOfWeek(response.data.currentWeek.startDate));
+        }
+        if (response.data.currentMonth) {
+          const d = new Date(response.data.currentMonth.startDate);
+          const year = d.getFullYear();
+          const month = String(d.getMonth() + 1).padStart(2, '0');
+          setMonthlyDate(`${year}-${month}-01`);
+        }
+        
+        // Generate dropdown options
+        if (response.data.seasonInfo) {
+          setWeekOptions(generateWeekOptions(response.data.seasonInfo.startDate));
+          setMonthOptions(generateMonthOptions(response.data.seasonInfo.startDate));
         }
       }
     } catch (err) {
       console.error('Failed to fetch leaders:', err);
     }
-  }, [generateWeekOptions, generateMonthOptions]);
+  }, [get, generateWeekOptions, generateMonthOptions]);
 
   const fetchPeriodData = useCallback(async (period: 'week' | 'month' | 'season', date?: string) => {
     try {
-      const token = localStorage.getItem('token');
-      let url = `/.netlify/functions/leaderboard-periods?period=${period}`;
+      let url = `leaderboard-periods?period=${period}`;
       if (date) {
         url += `&date=${date}`;
       }
       
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await get<LeaderboardResponse>(url);
 
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          return data.data as LeaderboardResponse;
-        }
+      // Ignore cancelled requests
+      if (response.cancelled) return null;
+
+      if (response.success && response.data) {
+        return response.data;
       }
       return null;
     } catch (err) {
       console.error(`Failed to fetch ${period} data:`, err);
       return null;
     }
-  }, []);
+  }, [get]);
 
   // Initial data fetch
   useEffect(() => {
-    if (!user) return;
+    if (!isAuthReady || !userId) return;
 
     const loadInitialData = async () => {
       setLoading(true);
@@ -254,7 +240,7 @@ const LeaderboardPage: React.FC = () => {
     };
 
     loadInitialData();
-  }, [user, fetchLeaders, fetchPeriodData]);
+  }, [userId, fetchLeaders, fetchPeriodData]);
 
   // Navigation handlers
   const handleWeekNavigation = async (direction: 'prev' | 'next') => {
@@ -300,14 +286,6 @@ const LeaderboardPage: React.FC = () => {
     if (data) setMonthlyData(data);
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    navigate('/login');
-  };
-
-  const formatPrice = (price: number) => `$${(price / 1000000).toFixed(1)}M`;
-
   const getRankDisplay = (rank: number): { emoji: string; className: string } => {
     switch (rank) {
       case 1: return { emoji: '🥇', className: 'rank-gold' };
@@ -334,30 +312,18 @@ const LeaderboardPage: React.FC = () => {
     return user?.id === userId;
   };
 
-  if (!user) {
-    return null;
-  }
-
   if (loading) {
     return (
-      <div className="leaderboard-page">
-        <header className="dashboard-header">
-          <div className="header-container">
-            <Link to="/dashboard" className="header-brand">
-              <img src="/bearwood_lakes_logo.png" alt="Bearwood Lakes" className="brand-logo" />
-              <span className="brand-text">Bearwood Lakes Fantasy</span>
-            </Link>
-          </div>
-        </header>
-        <main className="leaderboard-main">
+      <PageLayout activeNav="leaderboard">
+        <div className="leaderboard-content">
           <div className="leaderboard-container">
             <div className="loading-state">
               <div className="loading-spinner"></div>
               <p>Loading leaderboard...</p>
             </div>
           </div>
-        </main>
-      </div>
+        </div>
+      </PageLayout>
     );
   }
 
@@ -430,10 +396,11 @@ const LeaderboardPage: React.FC = () => {
                 <tr>
                   <th className="th-rank">Rank</th>
                   <th className="th-movement">Move</th>
-                  <th className="th-player">Player</th>
+                  <th className="th-golfer">golfer</th>
                   <th className="th-points">Points</th>
                   <th className="th-value">Team Value</th>
                   <th className="th-events">Events</th>
+                  <th className="th-action">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -451,25 +418,38 @@ const LeaderboardPage: React.FC = () => {
                       <td className="td-movement">
                         {getMovementDisplay(entry)}
                       </td>
-                      <td className="td-player">
-                        <div className="player-info">
-                          <div className="player-avatar">
-                            {entry.firstName[0]}{entry.lastName[0]}
+                      <td className="td-golfer">
+                        <Link to={`/users/${entry.userId}`} className="golfer-link">
+                          <div className="golfer-info">
+                            <div className="golfer-avatar">
+                              {entry.firstName[0]}{entry.lastName[0]}
+                            </div>
+                            <div className="golfer-details">
+                              <span className="golfer-name">
+                                {entry.firstName} {entry.lastName}
+                                {isCurrentUser(entry.userId) && <span className="you-badge-small">You</span>}
+                              </span>
+                              <span className="golfer-username">@{entry.username}</span>
+                            </div>
                           </div>
-                          <div className="player-details">
-                            <span className="player-name">
-                              {entry.firstName} {entry.lastName}
-                              {isCurrentUser(entry.userId) && <span className="you-badge-small">You</span>}
-                            </span>
-                            <span className="player-username">@{entry.username}</span>
-                          </div>
-                        </div>
+                        </Link>
                       </td>
                       <td className="td-points">
                         <span className="points-value">{entry.points}</span>
                       </td>
                       <td className="td-value">{formatPrice(entry.teamValue)}</td>
                       <td className="td-events">{entry.eventsPlayed}</td>
+                      <td className="td-action">
+                        {!isCurrentUser(entry.userId) && (
+                          <button 
+                            className="btn-compare-small"
+                            onClick={() => setCompareUserId(entry.userId)}
+                            title="Compare teams"
+                          >
+                            ⚖️
+                          </button>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}
@@ -512,42 +492,13 @@ const LeaderboardPage: React.FC = () => {
   };
 
   return (
-    <div className="leaderboard-page">
-      {/* Header */}
-      <header className="dashboard-header">
-        <div className="header-container">
-          <Link to="/dashboard" className="header-brand">
-            <img src="/bearwood_lakes_logo.png" alt="Bearwood Lakes" className="brand-logo" />
-            <span className="brand-text">Bearwood Lakes Fantasy</span>
-          </Link>
-
-          <nav className="header-nav">
-            <Link to="/dashboard" className="nav-link">Dashboard</Link>
-            <Link to="/my-team" className="nav-link">My Team</Link>
-            <Link to="/players" className="nav-link">Players</Link>
-            <Link to="/leaderboard" className="nav-link active">Leaderboard</Link>
-            <Link to="/profile" className="nav-link">Profile</Link>
-            {user.role === 'admin' && (
-              <Link to="/admin" className="nav-link nav-admin">Admin</Link>
-            )}
-          </nav>
-
-          <div className="header-user">
-            <span className="user-greeting">
-              Hi, <strong>{user.firstName}</strong>
-            </span>
-            <button onClick={handleLogout} className="btn-logout">Logout</button>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="leaderboard-main">
+    <PageLayout activeNav="leaderboard">
+      <div className="leaderboard-content">
         <div className="leaderboard-container">
           {/* Page Header */}
-          <div className="page-header">
-            <h1>🏆 Leaderboard</h1>
-            <p className="page-subtitle">See how you rank against other players</p>
+          <div className="users-page-header">
+            <h1>👥 Fantasy Leaderboard</h1>
+            <p className="users-page-subtitle">View the weekly/monthly and season standings</p>
           </div>
 
           {/* Error State */}
@@ -571,15 +522,16 @@ const LeaderboardPage: React.FC = () => {
           {/* Season Table */}
           {renderTable(seasonData, 'Season Standings', 'season', false)}
         </div>
-      </main>
+      </div>
 
-      {/* Footer */}
-      <footer className="leaderboard-footer">
-        <div className="footer-container">
-          <p>&copy; 2026 Bearwood Lakes Fantasy Golf League</p>
-        </div>
-      </footer>
-    </div>
+      {/* Team Compare Modal */}
+      {compareUserId && (
+        <TeamCompareModal
+          targetUserId={compareUserId}
+          onClose={() => setCompareUserId(null)}
+        />
+      )}
+    </PageLayout>
   );
 };
 

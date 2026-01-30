@@ -1,0 +1,213 @@
+/* Golfers Page - Layout and Page-Specific Styles */
+/* Table styles are in DataTable.css (dt-* classes) */
+
+.golfers-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--cream);
+  overflow-x: hidden;
+  width: 100%;
+}
+
+/* Main Content */
+.golfers-main {
+  flex: 1;
+  padding: 2rem 0;
+}
+
+.golfers-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.golfers-content {
+  padding: 2rem 0;
+}
+
+/* Page Header */
+.page-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.page-header h1 {
+  font-family: var(--font-serif);
+  font-size: 2.25rem;
+  color: var(--primary-green);
+  margin-bottom: 0.5rem;
+}
+
+.page-subtitle {
+  color: var(--muted-text);
+  font-size: 1rem;
+}
+
+/* Summary Stats */
+.summary-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.25rem;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(26, 71, 42, 0.1);
+}
+
+.stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--primary-green);
+  margin-bottom: 0.25rem;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: var(--muted-text);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Filters Row */
+.filters-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.filter-select {
+  padding: 0.6rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  background: white;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: var(--primary-green);
+}
+
+.reset-btn {
+  padding: 0.6rem 1rem;
+  background: var(--primary-green);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  white-space: nowrap;
+  min-height: 44px;
+  transition: background 0.2s;
+}
+
+.reset-btn:hover {
+  background: var(--dark-green);
+}
+
+.results-count {
+  margin-left: auto;
+  font-size: 0.85rem;
+  color: var(--muted-text);
+}
+
+/* Error Message */
+.error-message {
+  background: #fef2f2;
+  color: #dc2626;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  border: 1px solid #fecaca;
+}
+
+/* Footer */
+.golfers-footer {
+  background: var(--primary-green);
+  color: rgba(255, 255, 255, 0.7);
+  padding: 1.5rem;
+  text-align: center;
+  margin-top: auto;
+}
+
+.golfers-footer p {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .summary-stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .golfers-main {
+    padding: 1rem;
+  }
+
+  .page-header h1 {
+    font-size: 1.75rem;
+  }
+
+  .summary-stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .stat-card {
+    padding: 0.875rem;
+  }
+
+  .stat-value {
+    font-size: 1.25rem;
+  }
+
+  .stat-label {
+    font-size: 0.7rem;
+  }
+
+  .filters-row {
+    gap: 0.5rem;
+  }
+
+  .filter-select {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .results-count {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .summary-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+
+  .stat-card {
+    padding: 0.75rem;
+  }
+
+  .stat-value {
+    font-size: 1.1rem;
+  }
+
+  .filter-select {
+    font-size: 0.85rem;
+    padding: 0.5rem 0.75rem;
+  }
+}

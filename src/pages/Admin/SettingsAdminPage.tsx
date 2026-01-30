@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import AdminLayout from '../../components/AdminLayout/AdminLayout';
+import { useApiClient } from '../../hooks/useApiClient';
 
 interface AppSettings {
   transfersOpen: boolean;
@@ -13,6 +14,7 @@ interface AppSettings {
 }
 
 const SettingsAdminPage: React.FC = () => {
+  const { get, put, request, isAuthReady } = useApiClient();
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -32,13 +34,13 @@ const SettingsAdminPage: React.FC = () => {
 
   const fetchSettings = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/.netlify/functions/settings', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setSettings(data.data);
+      const response = await get<AppSettings>('settings');
+      
+      // Ignore cancelled requests
+      if (response.cancelled) return;
+      
+      if (response.success && response.data) {
+        setSettings(response.data);
       }
     } catch (err) {
       console.error('Failed to fetch settings:', err);
@@ -49,28 +51,21 @@ const SettingsAdminPage: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchSettings();
-  }, []);
+    if (isAuthReady) {
+      fetchSettings();
+    }
+  }, [isAuthReady]);
 
   const updateSetting = async (key: string, value: boolean | number | string) => {
     setUpdating(key);
     setError('');
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/.netlify/functions/settings', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ key, value }),
-      });
+      const response = await put<AppSettings>('settings', { key, value });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to update setting');
+      if (!response.success) throw new Error(response.error || 'Failed to update setting');
 
-      setSettings(data.data);
+      setSettings(response.data || null);
       setSuccess(`Setting updated successfully!`);
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
@@ -114,37 +109,19 @@ const SettingsAdminPage: React.FC = () => {
     setError('');
 
     try {
-      const token = localStorage.getItem('token');
-      
       // Update start date
-      let response = await fetch('/.netlify/functions/settings', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ key: 'seasonStartDate', value: tempStartDate }),
-      });
+      let response = await put<AppSettings>('settings', { key: 'seasonStartDate', value: tempStartDate });
       
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || 'Failed to update start date');
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to update start date');
       }
       
       // Update end date
-      response = await fetch('/.netlify/functions/settings', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ key: 'seasonEndDate', value: tempEndDate }),
-      });
+      response = await put<AppSettings>('settings', { key: 'seasonEndDate', value: tempEndDate });
       
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to update end date');
+      if (!response.success) throw new Error(response.error || 'Failed to update end date');
 
-      setSettings(data.data);
+      setSettings(response.data || null);
       setEditingSeasonDates(false);
       setSuccess('Season dates updated successfully!');
       setTimeout(() => setSuccess(''), 3000);
@@ -169,20 +146,14 @@ const SettingsAdminPage: React.FC = () => {
     setError('');
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/.netlify/functions/settings-reset', {
+      const response = await request<{ message: string }>('settings-reset', {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({ action: dangerAction, confirm: 'CONFIRM' }),
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to perform reset');
+      if (!response.success) throw new Error(response.error || 'Failed to perform reset');
 
-      setSuccess(data.data.message);
+      setSuccess(response.data?.message || 'Reset successful');
       setShowDangerModal(false);
       setDangerAction(null);
       setConfirmText('');
@@ -199,8 +170,8 @@ const SettingsAdminPage: React.FC = () => {
       case 'reset-scores':
         return {
           title: '🗑️ Reset All Scores',
-          description: 'This will delete ALL tournament scores from the database. Player stats will reset to zero. This action cannot be undone.',
-          warning: 'All player points, positions, and tournament results will be permanently deleted.',
+          description: 'This will delete ALL tournament scores from the database. golfer stats will reset to zero. This action cannot be undone.',
+          warning: 'All golfer points, positions, and tournament results will be permanently deleted.',
         };
       case 'reset-picks':
         return {
@@ -211,7 +182,7 @@ const SettingsAdminPage: React.FC = () => {
       case 'reset-all':
         return {
           title: '⚠️ Full Season Reset',
-          description: 'This will delete ALL scores AND ALL user picks. Use this to start a fresh season while keeping players and tournaments.',
+          description: 'This will delete ALL scores AND ALL user picks. Use this to start a fresh season while keeping golfers and tournaments.',
           warning: 'This is a complete reset. Both scores and picks will be permanently deleted.',
         };
       default:
@@ -381,7 +352,7 @@ const SettingsAdminPage: React.FC = () => {
             <div style={{ background: '#f9fafb', padding: '1rem', borderRadius: '8px' }}>
               <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.25rem' }}>Team Size</div>
               <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#374151' }}>
-                6 Players
+                6 golfers
               </div>
             </div>
           </div>
@@ -518,7 +489,7 @@ const SettingsAdminPage: React.FC = () => {
                   Reset All Scores
                 </h4>
                 <p style={{ color: '#6b7280', fontSize: '0.85rem', margin: 0 }}>
-                  Delete all tournament scores. Player stats will reset to zero.
+                  Delete all tournament scores. golfer stats will reset to zero.
                 </p>
               </div>
               <button
@@ -556,7 +527,7 @@ const SettingsAdminPage: React.FC = () => {
                   Full Season Reset
                 </h4>
                 <p style={{ color: '#6b7280', fontSize: '0.85rem', margin: 0 }}>
-                  Delete ALL scores AND picks. Start fresh while keeping players and tournaments.
+                  Delete ALL scores AND picks. Start fresh while keeping golfers and tournaments.
                 </p>
               </div>
               <button

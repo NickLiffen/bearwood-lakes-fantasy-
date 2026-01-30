@@ -9,34 +9,6 @@
   width: 100%;
 }
 
-/* Loading State */
-.loading-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 60vh;
-  gap: 1rem;
-}
-
-.loading-spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid #e5e7eb;
-  border-top-color: var(--primary-green);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.loading-state p {
-  color: var(--muted-text);
-  font-size: 1rem;
-}
-
 /* Celebration Overlay */
 .celebration-overlay {
   position: fixed;
@@ -308,7 +280,7 @@
   background: #f9fafb;
 }
 
-.slot-player {
+.slot-golfer {
   text-align: center;
 }
 
@@ -641,15 +613,15 @@
   color: var(--dark-text);
 }
 
-/* Players Section */
-.players-section-header {
+/* golfers Section */
+.golfers-section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1rem;
 }
 
-.players-section-header h2 {
+.golfers-section-header h2 {
   font-size: 1.25rem;
   color: var(--dark-text);
   font-weight: 600;
@@ -661,13 +633,13 @@
   color: var(--muted-text);
 }
 
-.players-grid {
+.golfers-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 1.25rem;
 }
 
-.player-card {
+.golfer-card {
   background: white;
   border-radius: 12px;
   overflow: hidden;
@@ -678,39 +650,39 @@
   user-select: none;
 }
 
-.player-card.clickable {
+.golfer-card.clickable {
   cursor: pointer;
 }
 
-.player-card.clickable:hover {
+.golfer-card.clickable:hover {
   transform: translateY(-4px);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
 }
 
-.player-card.clickable:active {
+.golfer-card.clickable:active {
   transform: translateY(-2px);
 }
 
-.player-card.selected {
+.golfer-card.selected {
   border: 3px solid var(--primary-green);
   box-shadow: 0 4px 12px rgba(26, 71, 42, 0.25);
 }
 
-.player-card.selected.clickable:hover {
+.golfer-card.selected.clickable:hover {
   border-color: #dc2626;
   box-shadow: 0 8px 20px rgba(220, 38, 38, 0.15);
 }
 
-.player-card.unaffordable {
+.golfer-card.unaffordable {
   opacity: 0.6;
 }
 
-.player-card.disabled {
+.golfer-card.disabled {
   cursor: not-allowed;
   opacity: 0.5;
 }
 
-.player-photo {
+.golfer-photo {
   height: 160px;
   background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
   display: flex;
@@ -720,13 +692,13 @@
   overflow: hidden;
 }
 
-.player-photo img {
+.golfer-photo img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.player-initials {
+.golfer-initials {
   width: 80px;
   height: 80px;
   background: linear-gradient(135deg, var(--primary-green) 0%, var(--secondary-green) 100%);
@@ -774,7 +746,7 @@
   background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
 }
 
-.player-info {
+.golfer-info {
   padding: 1.25rem;
   flex: 1;
   display: flex;
@@ -782,7 +754,7 @@
   gap: 0.5rem;
 }
 
-.player-info .player-name {
+.golfer-info .golfer-name {
   font-size: 1.1rem;
   font-weight: 600;
   color: var(--dark-text);
@@ -820,7 +792,7 @@
   color: #92400e;
 }
 
-.player-price {
+.golfer-price {
   font-size: 1.5rem;
   font-weight: 700;
   color: var(--primary-green);
@@ -828,7 +800,7 @@
 }
 
 /* 2025 Stats */
-.player-stats-2025 {
+.golfer-stats-2025 {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -903,7 +875,7 @@
 }
 
 /* Legacy stats (keeping for compatibility) */
-.player-stats {
+.golfer-stats {
   display: flex;
   gap: 1rem;
   margin-top: 0.5rem;
@@ -911,14 +883,14 @@
   color: var(--muted-text);
 }
 
-.player-stats span {
+.golfer-stats span {
   display: flex;
   align-items: center;
   gap: 0.25rem;
 }
 
-/* Player Action Label (replaces button) */
-.player-action-label {
+/* golfer Action Label (replaces button) */
+.golfer-action-label {
   width: 100%;
   padding: 0.875rem;
   background: var(--primary-green);
@@ -928,24 +900,24 @@
   transition: all 0.2s ease;
 }
 
-.player-card.clickable:hover .player-action-label {
+.golfer-card.clickable:hover .golfer-action-label {
   background: var(--secondary-green);
 }
 
-.player-action-label.selected {
+.golfer-action-label.selected {
   background: var(--primary-green);
 }
 
-.player-card.clickable:hover .player-action-label.selected {
+.golfer-card.clickable:hover .golfer-action-label.selected {
   background: #dc2626;
 }
 
-.player-card.unaffordable .player-action-label {
+.golfer-card.unaffordable .golfer-action-label {
   background: #fecaca;
   color: #991b1b;
 }
 
-.player-card.disabled .player-action-label {
+.golfer-card.disabled .golfer-action-label {
   background: #e5e7eb;
   color: var(--muted-text);
 }
@@ -1078,11 +1050,11 @@
     display: none;
   }
   
-  .players-grid {
+  .golfers-grid {
     grid-template-columns: 1fr;
   }
   
-  .players-section-header {
+  .golfers-section-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.25rem;
@@ -1109,5 +1081,533 @@
   .active-filters-summary {
     flex-direction: column;
     align-items: flex-start;
+  }
+}
+
+/* =============================================
+   COMPACT GOLFER GRID (New Design)
+   ============================================= */
+
+.section-header-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.golfers-grid-compact {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.golfer-card-compact {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: 2px solid transparent;
+}
+
+.golfer-card-compact:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+  border-color: var(--primary-green);
+}
+
+.golfer-card-compact.selected {
+  border-color: var(--primary-green);
+  background: linear-gradient(to bottom, rgba(26, 71, 42, 0.05) 0%, white 100%);
+}
+
+.golfer-card-compact.unaffordable {
+  opacity: 0.6;
+}
+
+.compact-photo {
+  height: 100px;
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.compact-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.compact-initials {
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, var(--primary-green) 0%, var(--secondary-green) 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: white;
+}
+
+.compact-selected-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  background: var(--primary-green);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: bold;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.compact-winner-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  width: 22px;
+  height: 22px;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.compact-info {
+  padding: 0.75rem;
+}
+
+.compact-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--dark-text);
+  margin: 0 0 0.5rem 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compact-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.compact-membership {
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.compact-membership.men {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.compact-membership.junior {
+  background: #fce7f3;
+  color: #be185d;
+}
+
+.compact-membership.female {
+  background: #f3e8ff;
+  color: #7c3aed;
+}
+
+.compact-membership.senior {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.compact-price {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--primary-green);
+}
+
+.compact-stat {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  color: var(--muted-text);
+}
+
+.compact-stat-icon {
+  font-size: 0.9rem;
+}
+
+/* =============================================
+   PAGINATION
+   ============================================= */
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.5rem 0;
+  border-top: 1px solid #e5e7eb;
+  margin-top: 1rem;
+}
+
+.pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.pagination-btn {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 0.75rem;
+  border: 1px solid #e5e7eb;
+  background: white;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--dark-text);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  border-color: var(--primary-green);
+  background: rgba(26, 71, 42, 0.05);
+}
+
+.pagination-btn.active {
+  background: var(--primary-green);
+  border-color: var(--primary-green);
+  color: white;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pagination-nav {
+  padding: 0 1rem;
+}
+
+.pagination-ellipsis {
+  padding: 0 0.5rem;
+  color: var(--muted-text);
+}
+
+/* =============================================
+   GOLFER DETAIL MODAL
+   ============================================= */
+
+.golfer-detail-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+  animation: fadeIn 0.2s ease;
+}
+
+.golfer-detail-modal {
+  background: white;
+  border-radius: 16px;
+  max-width: 480px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.modal-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 50%;
+  font-size: 1.25rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+  transition: background 0.2s;
+}
+
+.modal-close:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+  display: flex;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, var(--primary-green) 0%, var(--secondary-green) 100%);
+  color: white;
+}
+
+.modal-photo {
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.modal-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.modal-initials {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+}
+
+.modal-title {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.modal-title h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem 0;
+}
+
+.modal-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.modal-meta .membership-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.modal-price {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.modal-stats {
+  padding: 1.5rem;
+}
+
+.modal-stats h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--dark-text);
+  margin: 0 0 1rem 0;
+}
+
+.modal-stats h3:not(:first-child) {
+  margin-top: 1.5rem;
+}
+
+.modal-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+}
+
+.modal-stat-item {
+  background: var(--cream);
+  border-radius: 10px;
+  padding: 0.75rem;
+  text-align: center;
+}
+
+.modal-stat-item.gold {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+}
+
+.modal-stat-item.silver {
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+}
+
+.modal-stat-item.bronze {
+  background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);
+}
+
+.modal-stat-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-green);
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.modal-stat-item.gold .modal-stat-value {
+  color: #92400e;
+}
+
+.modal-stat-item.silver .modal-stat-value {
+  color: #374151;
+}
+
+.modal-stat-item.bronze .modal-stat-value {
+  color: #9a3412;
+}
+
+.modal-stat-label {
+  font-size: 0.7rem;
+  color: var(--muted-text);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.modal-rates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.modal-action {
+  padding: 1rem 1.5rem 1.5rem;
+}
+
+.modal-btn {
+  width: 100%;
+  padding: 1rem;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modal-btn.add {
+  background: var(--primary-green);
+  color: white;
+}
+
+.modal-btn.add:hover {
+  background: var(--dark-green);
+}
+
+.modal-btn.remove {
+  background: #dc2626;
+  color: white;
+}
+
+.modal-btn.remove:hover {
+  background: #b91c1c;
+}
+
+.modal-btn.disabled {
+  background: #e5e7eb;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* =============================================
+   RESPONSIVE - COMPACT GRID
+   ============================================= */
+
+@media (max-width: 768px) {
+  .golfers-grid-compact {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+  
+  .pagination-nav {
+    padding: 0 0.5rem;
+    font-size: 0.85rem;
+  }
+  
+  .golfer-detail-modal {
+    max-width: none;
+    margin: 0;
+    border-radius: 16px 16px 0 0;
+    max-height: 85vh;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
+  
+  .golfer-detail-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .golfers-grid-compact {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+  
+  .compact-name {
+    font-size: 0.85rem;
+  }
+  
+  .compact-price {
+    font-size: 0.85rem;
+  }
+  
+  .pagination-pages {
+    display: none;
+  }
+  
+  .pagination {
+    justify-content: space-between;
+  }
+  
+  .modal-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 }

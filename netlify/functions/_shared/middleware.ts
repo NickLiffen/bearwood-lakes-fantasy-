@@ -10,6 +10,7 @@ import {
   rateLimitHeaders,
   rateLimitExceededResponse,
 } from './rateLimit';
+import { createLogger, getRequestId } from './utils/logger';
 
 export interface AuthenticatedEvent extends HandlerEvent {
   user: JwtPayload;
@@ -25,21 +26,48 @@ type PublicHandler = (
   context: HandlerContext
 ) => Promise<HandlerResponse>;
 
-// Standard CORS headers for all authenticated routes
-export const corsHeaders = {
+/**
+ * Get allowed origin for CORS
+ * In production, this should be restricted to your domain
+ */
+function getAllowedOrigin(requestOrigin: string | undefined): string {
+  const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
+  
+  // In development or if no origins configured, allow all
+  if (allowedOrigins.length === 0) {
+    return requestOrigin || '*';
+  }
+  
+  // Check if request origin is in allowed list
+  if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
+    return requestOrigin;
+  }
+  
+  // Default to first allowed origin
+  return allowedOrigins[0];
+}
+
+// Standard CORS headers for all routes
+export const corsHeaders: Record<string, string> = {
   'Content-Type': 'application/json',
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Credentials': 'true',
 };
 
 /**
- * Helper to add CORS headers to a response
+ * Helper to add CORS headers to a response with proper origin handling
  */
-export function withCors(response: HandlerResponse): HandlerResponse {
+export function withCors(response: HandlerResponse, requestOrigin?: string): HandlerResponse {
+  const origin = getAllowedOrigin(requestOrigin);
   return {
     ...response,
-    headers: { ...corsHeaders, ...response.headers },
+    headers: {
+      ...corsHeaders,
+      'Access-Control-Allow-Origin': origin,
+      ...response.headers,
+    },
   };
 }
 
@@ -141,7 +169,7 @@ export function withAuth(
           ...response.headers,
           ...rateLimitHeaders(config.maxRequests, rateLimitResult.remaining, rateLimitResult.resetAt),
         },
-      });
+      }, event.headers.origin);
     } catch (error) {
       // Check if it's a rate limit error or auth error
       if (error instanceof Error && error.message.includes('rate')) {
@@ -152,19 +180,19 @@ export function withAuth(
           const user = verifyToken(token);
           const authenticatedEvent = { ...event, user } as AuthenticatedEvent;
           const response = await handler(authenticatedEvent, context);
-          return withCors(response);
+          return withCors(response, event.headers.origin);
         } catch {
           return withCors({
             statusCode: 401,
             body: JSON.stringify({ success: false, error: 'Invalid token' }),
-          });
+          }, event.headers.origin);
         }
       }
       
       return withCors({
         statusCode: 401,
         body: JSON.stringify({ success: false, error: 'Invalid token' }),
-      });
+      }, event.headers.origin);
     }
   };
 }
@@ -185,4 +213,169 @@ export function withAdmin(
     }
     return handler(event, context);
   }, rateLimitType);
+}
+
+/**
+ * Standard API response helper
+ */
+export function apiResponse<T>(
+  statusCode: number,
+  data: T | null,
+  error?: string
+): HandlerResponse {
+  if (error) {
+    return {
+      statusCode,
+      body: JSON.stringify({ success: false, error }),
+    };
+  }
+  return {
+    statusCode,
+    body: JSON.stringify({ success: true, data }),
+  };
+}
+
+/**
+ * Standard error codes and messages
+ */
+export const ErrorCodes = {
+  BAD_REQUEST: { status: 400, message: 'Bad request' },
+  UNAUTHORIZED: { status: 401, message: 'Unauthorized' },
+  FORBIDDEN: { status: 403, message: 'Forbidden' },
+  NOT_FOUND: { status: 404, message: 'Not found' },
+  METHOD_NOT_ALLOWED: { status: 405, message: 'Method not allowed' },
+  CONFLICT: { status: 409, message: 'Conflict' },
+  VALIDATION_ERROR: { status: 422, message: 'Validation error' },
+  RATE_LIMITED: { status: 429, message: 'Too many requests' },
+  INTERNAL_ERROR: { status: 500, message: 'Internal server error' },
+} as const;
+
+/**
+ * Create a standardized handler with error handling and logging
+ * This wrapper handles common concerns:
+ * - HTTP method validation
+ * - Error catching and formatting
+ * - Request logging (with request ID)
+ */
+export function createHandler(config: {
+  allowedMethods: string[];
+  handler: PublicHandler;
+  rateLimitType?: RateLimitType;
+}): Handler {
+  const wrappedHandler = withRateLimit(async (event, context) => {
+    const requestId = getRequestId(event.headers);
+    const endpoint = getEndpointName(event.path);
+    const logger = createLogger({ requestId, endpoint });
+
+    // Validate HTTP method
+    if (!config.allowedMethods.includes(event.httpMethod)) {
+      logger.warn('Method not allowed', { method: event.httpMethod });
+      return apiResponse(405, null, 'Method not allowed');
+    }
+
+    logger.info('Request started', { method: event.httpMethod });
+    const startTime = Date.now();
+
+    try {
+      const response = await config.handler(event, context);
+      logger.info('Request completed', { 
+        duration: Date.now() - startTime,
+        status: response.statusCode,
+      });
+      return response;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+
+      // Handle known error types
+      if (error instanceof Error) {
+        logger.error('Handler error', error, { duration });
+
+        // Validation errors (from Zod or custom)
+        if (error.name === 'ZodError' || error.message.includes('validation')) {
+          return apiResponse(422, null, error.message);
+        }
+        // Not found errors
+        if (error.message.includes('not found')) {
+          return apiResponse(404, null, error.message);
+        }
+        // Conflict errors
+        if (error.message.includes('already exists')) {
+          return apiResponse(409, null, error.message);
+        }
+        // Return generic error in production, detailed in development
+        const message = process.env.NODE_ENV === 'development' 
+          ? error.message 
+          : 'An unexpected error occurred';
+        return apiResponse(500, null, message);
+      }
+
+      logger.error('Unknown error', undefined, { duration, error: String(error) });
+      return apiResponse(500, null, 'An unexpected error occurred');
+    }
+  }, config.rateLimitType || 'default');
+
+  return wrappedHandler;
+}
+
+/**
+ * Create an authenticated handler with error handling
+ */
+export function createAuthHandler(config: {
+  allowedMethods: string[];
+  handler: AuthenticatedHandler;
+  rateLimitType?: RateLimitType;
+  requireAdmin?: boolean;
+}): Handler {
+  const wrapper = config.requireAdmin ? withAdmin : withAuth;
+  
+  return wrapper(async (event, context) => {
+    const requestId = getRequestId(event.headers);
+    const endpoint = getEndpointName(event.path);
+    const logger = createLogger({ 
+      requestId, 
+      endpoint,
+      userId: event.user.userId,
+    });
+
+    // Validate HTTP method
+    if (!config.allowedMethods.includes(event.httpMethod)) {
+      logger.warn('Method not allowed', { method: event.httpMethod });
+      return apiResponse(405, null, 'Method not allowed');
+    }
+
+    logger.info('Authenticated request started', { method: event.httpMethod });
+    const startTime = Date.now();
+
+    try {
+      const response = await config.handler(event, context);
+      logger.info('Request completed', { 
+        duration: Date.now() - startTime,
+        status: response.statusCode,
+      });
+      return response;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+
+      if (error instanceof Error) {
+        logger.error('Handler error', error, { duration });
+
+        if (error.name === 'ZodError' || error.message.includes('validation')) {
+          return apiResponse(422, null, error.message);
+        }
+        if (error.message.includes('not found')) {
+          return apiResponse(404, null, error.message);
+        }
+        if (error.message.includes('already exists')) {
+          return apiResponse(409, null, error.message);
+        }
+        const message = process.env.NODE_ENV === 'development' 
+          ? error.message 
+          : 'An unexpected error occurred';
+        return apiResponse(500, null, message);
+      }
+
+      logger.error('Unknown error', undefined, { duration, error: String(error) });
+      return apiResponse(500, null, 'An unexpected error occurred');
+    }
+  }, config.rateLimitType || 'default');
 }

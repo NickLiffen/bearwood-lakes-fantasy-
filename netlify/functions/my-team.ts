@@ -6,13 +6,14 @@ import { ObjectId } from 'mongodb';
 import { withAuth, AuthenticatedEvent } from './_shared/middleware';
 import { connectToDatabase } from './_shared/db';
 import { PickDocument, PICKS_COLLECTION } from './_shared/models/Pick';
-import { PlayerDocument, PLAYERS_COLLECTION, toPlayer } from './_shared/models/Player';
+import { GolferDocument, GOLFERS_COLLECTION, toGolfer } from './_shared/models/Golfer';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
 import { SettingDocument, SETTINGS_COLLECTION } from './_shared/models/Settings';
+import { getWeekStart, getMonthStart, getSeasonStart } from './_shared/utils/dates';
 
-interface PlayerWithScores {
-  player: ReturnType<typeof toPlayer>;
+interface GolferWithScores {
+  golfer: ReturnType<typeof toGolfer>;
   weekPoints: number;
   monthPoints: number;
   seasonPoints: number;
@@ -51,47 +52,20 @@ interface PlayerWithScores {
   }>;
 }
 
-// Get the start of the current week (Monday 00:00)
-function getWeekStart(): Date {
-  const now = new Date();
-  const dayOfWeek = now.getDay(); // 0 = Sunday, 6 = Saturday
-  
-  // Calculate days since last Monday
-  const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  
-  const weekStart = new Date(now);
-  weekStart.setDate(now.getDate() - daysSinceMonday);
-  weekStart.setHours(0, 0, 0, 0); // Midnight
-  
-  return weekStart;
-}
-
-// Get the start of the current month
-function getMonthStart(): Date {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-}
-
-// Get the start of 2026 season
-function getSeasonStart(): Date {
-  return new Date(2026, 0, 1, 0, 0, 0, 0); // January 1, 2026
-}
-
 export const handler: Handler = withAuth(async (event: AuthenticatedEvent) => {
   try {
     const { db } = await connectToDatabase();
     
-    // Get current season setting
-    const seasonSetting = await db
-      .collection<SettingDocument>(SETTINGS_COLLECTION)
-      .findOne({ key: 'currentSeason' });
-    const currentSeason = (seasonSetting?.value as number) || 2026;
+    // Parallelize all settings queries for faster response
+    const [seasonSetting, transfersSetting, newTeamSetting] = await Promise.all([
+      db.collection<SettingDocument>(SETTINGS_COLLECTION).findOne({ key: 'currentSeason' }),
+      db.collection<SettingDocument>(SETTINGS_COLLECTION).findOne({ key: 'transfersOpen' }),
+      db.collection<SettingDocument>(SETTINGS_COLLECTION).findOne({ key: 'allowNewTeamCreation' }),
+    ]);
     
-    // Get transfers open setting
-    const transfersSetting = await db
-      .collection<SettingDocument>(SETTINGS_COLLECTION)
-      .findOne({ key: 'transfersOpen' });
+    const currentSeason = (seasonSetting?.value as number) || 2026;
     const transfersOpen = (transfersSetting?.value as boolean) || false;
+    const allowNewTeamCreation = (newTeamSetting?.value as boolean) ?? true;
     
     // Get user's picks for current season
     const pick = await db
@@ -109,17 +83,18 @@ export const handler: Handler = withAuth(async (event: AuthenticatedEvent) => {
           data: {
             hasTeam: false,
             transfersOpen,
+            allowNewTeamCreation,
             team: null,
           },
         }),
       };
     }
     
-    // Get players for this pick
-    const playerIds = pick.playerIds.map((id) => new ObjectId(id));
-    const players = await db
-      .collection<PlayerDocument>(PLAYERS_COLLECTION)
-      .find({ _id: { $in: playerIds } })
+    // Get golfers for this pick
+    const golferIds = pick.golferIds.map((id) => new ObjectId(id));
+    const golfers = await db
+      .collection<GolferDocument>(GOLFERS_COLLECTION)
+      .find({ _id: { $in: golferIds } })
       .toArray();
     
     // Get published or complete tournaments for current season
@@ -136,23 +111,23 @@ export const handler: Handler = withAuth(async (event: AuthenticatedEvent) => {
     );
     const publishedTournamentIds = publishedTournaments.map((t) => t._id);
     
-    // Get all scores for these players from published 2026 tournaments
+    // Get all scores for these golfers from published 2026 tournaments
     const scores = await db
       .collection<ScoreDocument>(SCORES_COLLECTION)
       .find({
-        playerId: { $in: playerIds },
+        golferId: { $in: golferIds },
         tournamentId: { $in: publishedTournamentIds },
       })
       .toArray();
     
-    // Build player scores map
-    const playerScoresMap = new Map<string, ScoreDocument[]>();
+    // Build golfer scores map
+    const golferScoresMap = new Map<string, ScoreDocument[]>();
     for (const score of scores) {
-      const playerId = score.playerId.toString();
-      if (!playerScoresMap.has(playerId)) {
-        playerScoresMap.set(playerId, []);
+      const golferId = score.golferId.toString();
+      if (!golferScoresMap.has(golferId)) {
+        golferScoresMap.set(golferId, []);
       }
-      playerScoresMap.get(playerId)!.push(score);
+      golferScoresMap.get(golferId)!.push(score);
     }
     
     // Time boundaries
@@ -160,12 +135,12 @@ export const handler: Handler = withAuth(async (event: AuthenticatedEvent) => {
     const monthStart = getMonthStart();
     const seasonStart = getSeasonStart();
     
-    // Build player data with scores
-    const playersWithScores: PlayerWithScores[] = players.map((player) => {
-      const playerScores = playerScoresMap.get(player._id.toString()) || [];
+    // Build golfer data with scores
+    const golfersWithScores: GolferWithScores[] = golfers.map((golfer) => {
+      const golferScores = golferScoresMap.get(golfer._id.toString()) || [];
       
       // Format scores with tournament info
-      const formattedScores = playerScores.map((score) => {
+      const formattedScores = golferScores.map((score) => {
         const tournament = tournamentMap.get(score.tournamentId.toString());
         return {
           tournamentId: score.tournamentId.toString(),
@@ -191,7 +166,7 @@ export const handler: Handler = withAuth(async (event: AuthenticatedEvent) => {
       const seasonPoints = seasonScores.reduce((sum, s) => sum + s.multipliedPoints, 0);
       
       return {
-        player: toPlayer(player),
+        golfer: toGolfer(golfer),
         weekPoints,
         monthPoints,
         seasonPoints,
@@ -202,13 +177,13 @@ export const handler: Handler = withAuth(async (event: AuthenticatedEvent) => {
     });
     
     // Sort by season points descending
-    playersWithScores.sort((a, b) => b.seasonPoints - a.seasonPoints);
+    golfersWithScores.sort((a, b) => b.seasonPoints - a.seasonPoints);
     
     // Calculate team totals
     const teamTotals = {
-      weekPoints: playersWithScores.reduce((sum, p) => sum + p.weekPoints, 0),
-      monthPoints: playersWithScores.reduce((sum, p) => sum + p.monthPoints, 0),
-      seasonPoints: playersWithScores.reduce((sum, p) => sum + p.seasonPoints, 0),
+      weekPoints: golfersWithScores.reduce((sum, g) => sum + g.weekPoints, 0),
+      monthPoints: golfersWithScores.reduce((sum, g) => sum + g.monthPoints, 0),
+      seasonPoints: golfersWithScores.reduce((sum, g) => sum + g.seasonPoints, 0),
       totalSpent: pick.totalSpent,
     };
     
@@ -219,8 +194,9 @@ export const handler: Handler = withAuth(async (event: AuthenticatedEvent) => {
         data: {
           hasTeam: true,
           transfersOpen,
+          allowNewTeamCreation,
           team: {
-            players: playersWithScores,
+            golfers: golfersWithScores,
             totals: teamTotals,
             weekStart: weekStart.toISOString(),
             monthStart: monthStart.toISOString(),

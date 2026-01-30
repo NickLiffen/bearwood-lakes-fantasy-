@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import AdminLayout from '../../components/AdminLayout/AdminLayout';
 import { validators, sanitizers, getInputClassName } from '../../utils/validation';
+import { useApiClient } from '../../hooks/useApiClient';
 
 interface Tournament {
   id: string;
@@ -13,13 +14,13 @@ interface Tournament {
   multiplier: number;
   season: number;
   status: 'draft' | 'published' | 'complete';
-  participatingPlayerIds: string[];
+  participatingGolferIds: string[];
 }
 
 interface Score {
   id: string;
   tournamentId: string;
-  playerId: string;
+  golferId: string;
   participated: boolean;
   position: number | null;
   scored36Plus: boolean;
@@ -28,14 +29,14 @@ interface Score {
   multipliedPoints: number;
 }
 
-interface Player {
+interface Golfer {
   id: string;
   firstName: string;
   lastName: string;
 }
 
-interface ScoreWithPlayer extends Score {
-  playerName: string;
+interface ScoreWithGolfer extends Score {
+  golferName: string;
 }
 
 interface TournamentFormData {
@@ -53,6 +54,7 @@ const initialFormData: TournamentFormData = {
 };
 
 const TournamentsAdminPage: React.FC = () => {
+  const { get, post, put, request, isAuthReady } = useApiClient();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -64,9 +66,9 @@ const TournamentsAdminPage: React.FC = () => {
   // Tournament details modal state
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [viewingTournament, setViewingTournament] = useState<Tournament | null>(null);
-  const [tournamentScores, setTournamentScores] = useState<ScoreWithPlayer[]>([]);
+  const [tournamentScores, setTournamentScores] = useState<ScoreWithGolfer[]>([]);
   const [loadingScores, setLoadingScores] = useState(false);
-  const [players, setPlayers] = useState<Player[]>([]);
+  const [golfers, setGolfers] = useState<Golfer[]>([]);
 
   // Form validation state
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -80,13 +82,14 @@ const TournamentsAdminPage: React.FC = () => {
         if (value.length < 3) return 'Name must be at least 3 characters';
         if (value.length > 100) return 'Name cannot exceed 100 characters';
         return '';
-      case 'startDate':
+      case 'startDate': {
         if (!value) return 'Start date is required';
         const startDateValidator = validators.date();
         const startDateError = startDateValidator(value);
         if (startDateError) return startDateError;
         return '';
-      case 'endDate':
+      }
+      case 'endDate': {
         if (!value) return 'End date is required';
         const endDateValidator = validators.date();
         const endDateError = endDateValidator(value);
@@ -95,6 +98,7 @@ const TournamentsAdminPage: React.FC = () => {
           return 'End date must be after start date';
         }
         return '';
+      }
       default:
         return '';
     }
@@ -147,13 +151,13 @@ const TournamentsAdminPage: React.FC = () => {
 
   const fetchTournaments = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/.netlify/functions/tournaments-list', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setTournaments(data.data);
+      const response = await get<Tournament[]>('tournaments-list');
+      
+      // Ignore cancelled requests
+      if (response.cancelled) return;
+      
+      if (response.success && response.data) {
+        setTournaments(response.data);
       }
     } catch (err) {
       console.error('Failed to fetch tournaments:', err);
@@ -162,25 +166,27 @@ const TournamentsAdminPage: React.FC = () => {
     }
   };
 
-  const fetchPlayers = async () => {
+  const fetchGolfers = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/.netlify/functions/players-list', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setPlayers(data.data);
+      const response = await get<Golfer[]>('golfers-list');
+      
+      // Ignore cancelled requests
+      if (response.cancelled) return;
+      
+      if (response.success && response.data) {
+        setGolfers(response.data);
       }
     } catch (err) {
-      console.error('Failed to fetch players:', err);
+      console.error('Failed to fetch golfers:', err);
     }
   };
 
   useEffect(() => {
-    fetchTournaments();
-    fetchPlayers();
-  }, []);
+    if (isAuthReady) {
+      fetchTournaments();
+      fetchGolfers();
+    }
+  }, [isAuthReady]);
 
   const handleOpenModal = (tournament?: Tournament) => {
     if (tournament) {
@@ -218,18 +224,14 @@ const TournamentsAdminPage: React.FC = () => {
 
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/.netlify/functions/scores-list?tournamentId=${tournament.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (data.success && data.data) {
-        // Map scores to include player names
-        const scoresWithNames: ScoreWithPlayer[] = data.data.map((score: Score) => {
-          const player = players.find(p => p.id === score.playerId);
+      const response = await get<Score[]>(`scores-list?tournamentId=${tournament.id}`);
+      if (response.success && response.data) {
+        // Map scores to include golfer names
+        const scoresWithNames: ScoreWithGolfer[] = response.data.map((score: Score) => {
+          const golfer = golfers.find(g => g.id === score.golferId);
           return {
             ...score,
-            playerName: player ? `${player.firstName} ${player.lastName}` : 'Unknown Player',
+            golferName: golfer ? `${golfer.firstName} ${golfer.lastName}` : 'Unknown Golfer',
           };
         });
         // Sort by position (nulls last) then by points
@@ -264,45 +266,27 @@ const TournamentsAdminPage: React.FC = () => {
       return;
     }
 
-    const token = localStorage.getItem('token');
-
     try {
       if (editingTournament) {
         // Update existing tournament
-        const response = await fetch('/.netlify/functions/tournaments-update', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            id: editingTournament.id,
-            name: formData.name,
-            startDate: formData.startDate,
-            endDate: formData.endDate,
-            tournamentType: formData.tournamentType,
-          }),
+        const response = await put<Tournament>('tournaments-update', {
+          id: editingTournament.id,
+          name: formData.name,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          tournamentType: formData.tournamentType,
         });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Failed to update tournament');
+        if (!response.success) throw new Error(response.error || 'Failed to update tournament');
         setSuccess('Tournament updated successfully!');
       } else {
         // Create new tournament
-        const response = await fetch('/.netlify/functions/tournaments-create', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            name: formData.name,
-            startDate: formData.startDate,
-            endDate: formData.endDate,
-            tournamentType: formData.tournamentType,
-          }),
+        const response = await post<Tournament>('tournaments-create', {
+          name: formData.name,
+          startDate: formData.startDate,
+          endDate: formData.endDate,
+          tournamentType: formData.tournamentType,
         });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Failed to create tournament');
+        if (!response.success) throw new Error(response.error || 'Failed to create tournament');
         setSuccess('Tournament created successfully!');
       }
 
@@ -315,21 +299,12 @@ const TournamentsAdminPage: React.FC = () => {
   };
 
   const handleStatusChange = async (tournament: Tournament, newStatus: string) => {
-    const token = localStorage.getItem('token');
     try {
-      const response = await fetch('/.netlify/functions/tournaments-update', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          id: tournament.id,
-          status: newStatus,
-        }),
+      const response = await put<Tournament>('tournaments-update', {
+        id: tournament.id,
+        status: newStatus,
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to update status');
+      if (!response.success) throw new Error(response.error || 'Failed to update status');
       setSuccess(`Tournament ${newStatus === 'published' ? 'published' : 'marked as complete'}!`);
       fetchTournaments();
       setTimeout(() => setSuccess(''), 3000);
@@ -343,18 +318,12 @@ const TournamentsAdminPage: React.FC = () => {
       return;
     }
 
-    const token = localStorage.getItem('token');
     try {
-      const response = await fetch('/.netlify/functions/tournaments-delete', {
+      const response = await request<void>('tournaments-delete', {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
         body: JSON.stringify({ id: tournament.id }),
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to delete tournament');
+      if (!response.success) throw new Error(response.error || 'Failed to delete tournament');
       setSuccess('Tournament deleted successfully!');
       fetchTournaments();
       setTimeout(() => setSuccess(''), 3000);
@@ -683,7 +652,7 @@ const TournamentsAdminPage: React.FC = () => {
                 return (
                   <div style={{ background: '#fffbeb', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', border: '1px solid #fde68a' }}>
                     <div style={{ fontSize: '0.85rem', color: '#92400e' }}>
-                      <strong>Players:</strong> {participantCount} ({tier} tier){' | '}
+                      <strong>golfers:</strong> {participantCount} ({tier} tier){' | '}
                       <strong>Points:</strong>{' '}
                       {tier === '0-10' && '1st = 5pts'}
                       {tier === '10-20' && '1st = 5pts, 2nd = 2pts'}
@@ -716,7 +685,7 @@ const TournamentsAdminPage: React.FC = () => {
                       <thead>
                         <tr>
                           <th>Pos</th>
-                          <th>Player</th>
+                          <th>golfer</th>
                           <th>36+</th>
                           <th>Base</th>
                           <th>Final</th>
@@ -734,7 +703,7 @@ const TournamentsAdminPage: React.FC = () => {
                               )}
                               {score.position === null && <span style={{ color: '#9ca3af' }}>—</span>}
                             </td>
-                            <td style={{ fontWeight: 500 }}>{score.playerName}</td>
+                            <td style={{ fontWeight: 500 }}>{score.golferName}</td>
                             <td>
                               {score.scored36Plus ? (
                                 <span style={{ color: 'var(--primary-green)' }}>✓</span>

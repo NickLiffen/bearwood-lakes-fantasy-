@@ -1,10 +1,11 @@
-// Admin: Players management page
+// Admin: Golfers management page
 
 import React, { useEffect, useState } from 'react';
 import AdminLayout from '../../components/AdminLayout/AdminLayout';
 import { validators, sanitizers, getInputClassName } from '../../utils/validation';
+import { useApiClient } from '../../hooks/useApiClient';
 
-interface Player2025Stats {
+interface Golfer2025Stats {
   timesScored36Plus: number;
   timesFinished1st: number;
   timesFinished2nd: number;
@@ -14,7 +15,7 @@ interface Player2025Stats {
 
 type MembershipType = 'men' | 'junior' | 'female' | 'senior';
 
-interface Player {
+interface Golfer {
   id: string;
   firstName: string;
   lastName: string;
@@ -22,11 +23,11 @@ interface Player {
   price: number;
   membershipType: MembershipType;
   isActive: boolean;
-  stats2025: Player2025Stats;
+  stats2025: Golfer2025Stats;
 }
 
 // Stats loaded from tournament scores
-interface PlayerSeasonStats {
+interface GolferSeasonStats {
   tournamentsPlayed: number;
   totalPoints: number;
   firstPlaceFinishes: number;
@@ -35,7 +36,7 @@ interface PlayerSeasonStats {
   times36Plus: number;
 }
 
-interface PlayerFormData {
+interface GolferFormData {
   firstName: string;
   lastName: string;
   picture: string;
@@ -49,7 +50,7 @@ interface PlayerFormData {
   timesPlayed: string;
 }
 
-const initialFormData: PlayerFormData = {
+const initialFormData: GolferFormData = {
   firstName: '',
   lastName: '',
   picture: '',
@@ -63,30 +64,31 @@ const initialFormData: PlayerFormData = {
   timesPlayed: '0',
 };
 
-const PlayersAdminPage: React.FC = () => {
-  const [players, setPlayers] = useState<Player[]>([]);
+const GolfersAdminPage: React.FC = () => {
+  const { get, post, put, request, isAuthReady } = useApiClient();
+  const [Golfers, setGolfers] = useState<Golfer[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
-  const [formData, setFormData] = useState<PlayerFormData>(initialFormData);
+  const [editingGolfer, setEditingGolfer] = useState<Golfer | null>(null);
+  const [formData, setFormData] = useState<GolferFormData>(initialFormData);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
   // View mode state
-  const [viewingPlayer, setViewingPlayer] = useState<Player | null>(null);
+  const [viewingGolfer, setViewingGolfer] = useState<Golfer | null>(null);
   const [showViewModal, setShowViewModal] = useState(false);
-  const [playerSeasonStats, setPlayerSeasonStats] = useState<PlayerSeasonStats | null>(null);
+  const [GolferSeasonStats, setGolferSeasonStats] = useState<GolferSeasonStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(false);
 
   // Delete confirmation state
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [playerToDelete, setPlayerToDelete] = useState<Player | null>(null);
+  const [GolferToDelete, setGolferToDelete] = useState<Golfer | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   // Batch upload state
   const [showBatchModal, setShowBatchModal] = useState(false);
   const [batchStep, setBatchStep] = useState<'upload' | 'preview' | 'uploading'>('upload');
-  const [batchData, setBatchData] = useState<PlayerFormData[]>([]);
+  const [batchData, setBatchData] = useState<GolferFormData[]>([]);
   const [batchErrors, setBatchErrors] = useState<string[]>([]);
   const [batchProgress, setBatchProgress] = useState(0);
   const [batchFile, setBatchFile] = useState<File | null>(null);
@@ -98,33 +100,37 @@ const PlayersAdminPage: React.FC = () => {
   // Form field validation rules
   const validateField = (field: string, value: string): string => {
     switch (field) {
-      case 'firstName':
+      case 'firstName': {
         if (!value.trim()) return 'First name is required';
         const firstNameValidator = validators.lettersOnly();
         const firstNameError = firstNameValidator(value);
         if (firstNameError) return 'First name can only contain letters';
         if (value.length < 2) return 'First name must be at least 2 characters';
         return '';
-      case 'lastName':
+      }
+      case 'lastName': {
         if (!value.trim()) return 'Last name is required';
         const lastNameValidator = validators.lettersOnly();
         const lastNameError = lastNameValidator(value);
         if (lastNameError) return 'Last name can only contain letters';
         if (value.length < 2) return 'Last name must be at least 2 characters';
         return '';
-      case 'price':
+      }
+      case 'price': {
         if (!value.trim()) return 'Price is required';
         const priceNum = parseFloat(value);
         if (isNaN(priceNum) || priceNum <= 0) return 'Price must be a positive number';
         if (priceNum > 50) return 'Price cannot exceed $50M';
         return '';
-      case 'picture':
+      }
+      case 'picture': {
         if (value) {
           const urlValidator = validators.url();
           const urlError = urlValidator(value);
           if (urlError) return 'Please enter a valid URL';
         }
         return '';
+      }
       default:
         return '';
     }
@@ -149,7 +155,7 @@ const PlayersAdminPage: React.FC = () => {
 
   const handleFieldBlur = (field: string) => {
     setTouched({ ...touched, [field]: true });
-    setFieldErrors({ ...fieldErrors, [field]: validateField(field, formData[field as keyof PlayerFormData] as string) });
+    setFieldErrors({ ...fieldErrors, [field]: validateField(field, formData[field as keyof GolferFormData] as string) });
   };
 
   const getFieldClass = (field: string): string => {
@@ -162,7 +168,7 @@ const PlayersAdminPage: React.FC = () => {
     const fieldsToValidate = ['firstName', 'lastName', 'price'];
     
     fieldsToValidate.forEach(field => {
-      const error = validateField(field, formData[field as keyof PlayerFormData] as string);
+      const error = validateField(field, formData[field as keyof GolferFormData] as string);
       if (error) newErrors[field] = error;
     });
     
@@ -175,45 +181,43 @@ const PlayersAdminPage: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const fetchPlayers = async () => {
+  const fetchGolfers = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/.netlify/functions/players-list', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setPlayers(data.data);
+      const response = await get<Golfer[]>('golfers-list');
+      
+      // Ignore cancelled requests
+      if (response.cancelled) return;
+      
+      if (response.success && response.data) {
+        setGolfers(response.data);
       }
     } catch (err) {
-      console.error('Failed to fetch players:', err);
+      console.error('Failed to fetch Golfers:', err);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchPlayers();
-  }, []);
+    if (isAuthReady) {
+      fetchGolfers();
+    }
+  }, [isAuthReady]);
 
-  // View player handlers
-  const handleViewPlayer = async (player: Player) => {
-    setViewingPlayer(player);
+  // View Golfer handlers
+  const handleViewGolfer = async (Golfer: Golfer) => {
+    setViewingGolfer(Golfer);
     setShowViewModal(true);
     setLoadingStats(true);
-    setPlayerSeasonStats(null);
+    setGolferSeasonStats(null);
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/.netlify/functions/players-stats?playerId=${player.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      if (data.success) {
-        setPlayerSeasonStats(data.data);
+      const response = await get<GolferSeasonStats>(`golfers-stats?golferId=${Golfer.id}`);
+      if (response.success && response.data) {
+        setGolferSeasonStats(response.data);
       }
     } catch (err) {
-      console.error('Failed to fetch player stats:', err);
+      console.error('Failed to fetch Golfer stats:', err);
     } finally {
       setLoadingStats(false);
     }
@@ -221,35 +225,35 @@ const PlayersAdminPage: React.FC = () => {
 
   const handleCloseViewModal = () => {
     setShowViewModal(false);
-    setViewingPlayer(null);
-    setPlayerSeasonStats(null);
+    setViewingGolfer(null);
+    setGolferSeasonStats(null);
   };
 
   const handleEditFromView = () => {
-    if (viewingPlayer) {
+    if (viewingGolfer) {
       handleCloseViewModal();
-      handleOpenModal(viewingPlayer);
+      handleOpenModal(viewingGolfer);
     }
   };
 
-  const handleOpenModal = (player?: Player) => {
-    if (player) {
-      setEditingPlayer(player);
+  const handleOpenModal = (Golfer?: Golfer) => {
+    if (Golfer) {
+      setEditingGolfer(Golfer);
       setFormData({
-        firstName: player.firstName,
-        lastName: player.lastName,
-        picture: player.picture,
-        price: (player.price / 1_000_000).toString(),
-        membershipType: player.membershipType || 'men',
-        isActive: player.isActive,
-        timesScored36Plus: (player.stats2025?.timesScored36Plus || 0).toString(),
-        timesFinished1st: (player.stats2025?.timesFinished1st || 0).toString(),
-        timesFinished2nd: (player.stats2025?.timesFinished2nd || 0).toString(),
-        timesFinished3rd: (player.stats2025?.timesFinished3rd || 0).toString(),
-        timesPlayed: (player.stats2025?.timesPlayed || 0).toString(),
+        firstName: Golfer.firstName,
+        lastName: Golfer.lastName,
+        picture: Golfer.picture,
+        price: (Golfer.price / 1_000_000).toString(),
+        membershipType: Golfer.membershipType || 'men',
+        isActive: Golfer.isActive,
+        timesScored36Plus: (Golfer.stats2025?.timesScored36Plus || 0).toString(),
+        timesFinished1st: (Golfer.stats2025?.timesFinished1st || 0).toString(),
+        timesFinished2nd: (Golfer.stats2025?.timesFinished2nd || 0).toString(),
+        timesFinished3rd: (Golfer.stats2025?.timesFinished3rd || 0).toString(),
+        timesPlayed: (Golfer.stats2025?.timesPlayed || 0).toString(),
       });
     } else {
-      setEditingPlayer(null);
+      setEditingGolfer(null);
       setFormData(initialFormData);
     }
     setError('');
@@ -260,7 +264,7 @@ const PlayersAdminPage: React.FC = () => {
 
   const handleCloseModal = () => {
     setShowModal(false);
-    setEditingPlayer(null);
+    setEditingGolfer(null);
     setFormData(initialFormData);
     setError('');
     setTouched({});
@@ -277,7 +281,6 @@ const PlayersAdminPage: React.FC = () => {
       return;
     }
 
-    const token = localStorage.getItem('token');
     const priceInPounds = parseFloat(formData.price) * 1_000_000;
 
     const stats2025 = {
@@ -289,53 +292,37 @@ const PlayersAdminPage: React.FC = () => {
     };
 
     try {
-      if (editingPlayer) {
-        // Update existing player
-        const response = await fetch('/.netlify/functions/players-update', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            id: editingPlayer.id,
-            firstName: formData.firstName,
-            lastName: formData.lastName,
-            picture: formData.picture,
-            price: priceInPounds,
-            membershipType: formData.membershipType,
-            isActive: formData.isActive,
-            stats2025,
-          }),
+      if (editingGolfer) {
+        // Update existing Golfer
+        const response = await put<Golfer>('golfers-update', {
+          id: editingGolfer.id,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          picture: formData.picture,
+          price: priceInPounds,
+          membershipType: formData.membershipType,
+          isActive: formData.isActive,
+          stats2025,
         });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Failed to update player');
-        setSuccess('Player updated successfully!');
+        if (!response.success) throw new Error(response.error || 'Failed to update Golfer');
+        setSuccess('Golfer updated successfully!');
       } else {
-        // Create new player
-        const response = await fetch('/.netlify/functions/players-create', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            firstName: formData.firstName,
-            lastName: formData.lastName,
-            picture: formData.picture,
-            price: priceInPounds,
-            membershipType: formData.membershipType,
-            isActive: formData.isActive,
-            stats2025,
-          }),
+        // Create new Golfer
+        const response = await post<Golfer>('golfers-create', {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          picture: formData.picture,
+          price: priceInPounds,
+          membershipType: formData.membershipType,
+          isActive: formData.isActive,
+          stats2025,
         });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Failed to create player');
-        setSuccess('Player created successfully!');
+        if (!response.success) throw new Error(response.error || 'Failed to create Golfer');
+        setSuccess('Golfer created successfully!');
       }
 
       handleCloseModal();
-      fetchPlayers();
+      fetchGolfers();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
@@ -347,40 +334,34 @@ const PlayersAdminPage: React.FC = () => {
   };
 
   // Delete handlers
-  const handleOpenDeleteModal = (player: Player) => {
-    setPlayerToDelete(player);
+  const handleOpenDeleteModal = (Golfer: Golfer) => {
+    setGolferToDelete(Golfer);
     setShowDeleteModal(true);
   };
 
   const handleCloseDeleteModal = () => {
     setShowDeleteModal(false);
-    setPlayerToDelete(null);
+    setGolferToDelete(null);
   };
 
-  const handleDeletePlayer = async () => {
-    if (!playerToDelete) return;
+  const handleDeleteGolfer = async () => {
+    if (!GolferToDelete) return;
 
     setDeleting(true);
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/.netlify/functions/players-delete', {
+      const response = await request<void>('golfers-delete', {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ id: playerToDelete.id }),
+        body: JSON.stringify({ id: GolferToDelete.id }),
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to delete player');
+      if (!response.success) throw new Error(response.error || 'Failed to delete Golfer');
 
-      setSuccess(`${playerToDelete.firstName} ${playerToDelete.lastName} deleted successfully!`);
+      setSuccess(`${GolferToDelete.firstName} ${GolferToDelete.lastName} deleted successfully!`);
       handleCloseDeleteModal();
-      fetchPlayers();
+      fetchGolfers();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete player');
+      setError(err instanceof Error ? err.message : 'Failed to delete Golfer');
     } finally {
       setDeleting(false);
     }
@@ -452,7 +433,7 @@ const PlayersAdminPage: React.FC = () => {
 
       // Limit to 10 rows
       if (dataRows.length > 10) {
-        setBatchErrors([`Maximum 10 players per batch upload. Found ${dataRows.length} rows.`]);
+        setBatchErrors([`Maximum 10 Golfers per batch upload. Found ${dataRows.length} rows.`]);
         return;
       }
 
@@ -472,7 +453,7 @@ const PlayersAdminPage: React.FC = () => {
       };
 
       const errors: string[] = [];
-      const parsedPlayers: PlayerFormData[] = [];
+      const parsedGolfers: GolferFormData[] = [];
 
       dataRows.forEach((row, index) => {
         const rowNum = index + 2; // Account for header and 0-indexing
@@ -529,7 +510,7 @@ const PlayersAdminPage: React.FC = () => {
           return '0';
         };
 
-        parsedPlayers.push({
+        parsedGolfers.push({
           firstName,
           lastName,
           picture,
@@ -549,7 +530,7 @@ const PlayersAdminPage: React.FC = () => {
         setBatchData([]);
       } else {
         setBatchErrors([]);
-        setBatchData(parsedPlayers);
+        setBatchData(parsedGolfers);
         setBatchStep('preview');
       }
     };
@@ -577,46 +558,37 @@ const PlayersAdminPage: React.FC = () => {
   const handleBatchUpload = async () => {
     setBatchStep('uploading');
     setBatchProgress(0);
-    const token = localStorage.getItem('token');
     const errors: string[] = [];
     let successCount = 0;
 
     for (let i = 0; i < batchData.length; i++) {
-      const player = batchData[i];
-      const priceInPounds = parseFloat(player.price) * 1_000_000;
+      const Golfer = batchData[i];
+      const priceInPounds = parseFloat(Golfer.price) * 1_000_000;
       
       try {
-        const response = await fetch('/.netlify/functions/players-create', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
+        const response = await post<Golfer>('golfers-create', {
+          firstName: Golfer.firstName,
+          lastName: Golfer.lastName,
+          picture: Golfer.picture,
+          price: priceInPounds,
+          membershipType: Golfer.membershipType,
+          isActive: Golfer.isActive,
+          stats2025: {
+            timesScored36Plus: parseInt(Golfer.timesScored36Plus) || 0,
+            timesFinished1st: parseInt(Golfer.timesFinished1st) || 0,
+            timesFinished2nd: parseInt(Golfer.timesFinished2nd) || 0,
+            timesFinished3rd: parseInt(Golfer.timesFinished3rd) || 0,
+            timesPlayed: parseInt(Golfer.timesPlayed) || 0,
           },
-          body: JSON.stringify({
-            firstName: player.firstName,
-            lastName: player.lastName,
-            picture: player.picture,
-            price: priceInPounds,
-            membershipType: player.membershipType,
-            isActive: player.isActive,
-            stats2025: {
-              timesScored36Plus: parseInt(player.timesScored36Plus) || 0,
-              timesFinished1st: parseInt(player.timesFinished1st) || 0,
-              timesFinished2nd: parseInt(player.timesFinished2nd) || 0,
-              timesFinished3rd: parseInt(player.timesFinished3rd) || 0,
-              timesPlayed: parseInt(player.timesPlayed) || 0,
-            },
-          }),
         });
 
-        if (!response.ok) {
-          const data = await response.json();
-          errors.push(`${player.firstName} ${player.lastName}: ${data.error || 'Failed to create'}`);
+        if (!response.success) {
+          errors.push(`${Golfer.firstName} ${Golfer.lastName}: ${response.error || 'Failed to create'}`);
         } else {
           successCount++;
         }
-      } catch (err) {
-        errors.push(`${player.firstName} ${player.lastName}: Network error`);
+      } catch {
+        errors.push(`${Golfer.firstName} ${Golfer.lastName}: Network error`);
       }
 
       setBatchProgress(Math.round(((i + 1) / batchData.length) * 100));
@@ -627,11 +599,11 @@ const PlayersAdminPage: React.FC = () => {
     }
     
     if (successCount > 0) {
-      setSuccess(`Successfully uploaded ${successCount} player${successCount > 1 ? 's' : ''}!`);
+      setSuccess(`Successfully uploaded ${successCount} Golfer${successCount > 1 ? 's' : ''}!`);
       setTimeout(() => setSuccess(''), 5000);
     }
 
-    fetchPlayers();
+    fetchGolfers();
     
     if (errors.length === 0) {
       handleCloseBatchModal();
@@ -639,31 +611,31 @@ const PlayersAdminPage: React.FC = () => {
   };
 
   // Calculate stats
-  const activePlayers = players.filter(p => p.isActive).length;
-  const inactivePlayers = players.filter(p => !p.isActive).length;
-  const avgPrice = players.length > 0 
-    ? (players.reduce((sum, p) => sum + p.price, 0) / players.length / 1_000_000).toFixed(1)
+  const activeGolfers = Golfers.filter(p => p.isActive).length;
+  const inactiveGolfers = Golfers.filter(p => !p.isActive).length;
+  const avgPrice = Golfers.length > 0 
+    ? (Golfers.reduce((sum, p) => sum + p.price, 0) / Golfers.length / 1_000_000).toFixed(1)
     : '0';
 
   return (
-    <AdminLayout title="Manage Players">
+    <AdminLayout title="Manage Golfers">
       {success && <div className="alert alert-success">{success}</div>}
 
       {/* Stats Row */}
       <div className="stats-row" style={{ marginBottom: '1.5rem' }}>
         <div className="stat-box">
           <div className="stat-box-icon">🏌️</div>
-          <div className="stat-box-value">{players.length}</div>
-          <div className="stat-box-label">Total Players</div>
+          <div className="stat-box-value">{Golfers.length}</div>
+          <div className="stat-box-label">Total Golfers</div>
         </div>
         <div className="stat-box">
           <div className="stat-box-icon">✅</div>
-          <div className="stat-box-value">{activePlayers}</div>
+          <div className="stat-box-value">{activeGolfers}</div>
           <div className="stat-box-label">Active</div>
         </div>
         <div className="stat-box">
           <div className="stat-box-icon">⏸️</div>
-          <div className="stat-box-value">{inactivePlayers}</div>
+          <div className="stat-box-value">{inactiveGolfers}</div>
           <div className="stat-box-label">Inactive</div>
         </div>
         <div className="stat-box">
@@ -675,35 +647,35 @@ const PlayersAdminPage: React.FC = () => {
 
       <div className="admin-card">
         <div className="admin-card-header">
-          <h2>All Players ({players.length})</h2>
+          <h2>All Golfers ({Golfers.length})</h2>
           <div style={{ display: 'flex', gap: '0.75rem' }}>
             <button className="btn btn-secondary" onClick={handleOpenBatchModal}>
               📤 Batch Upload
             </button>
             <button className="btn btn-primary" onClick={() => handleOpenModal()}>
-              + Add Player
+              + Add Golfer
             </button>
           </div>
         </div>
 
         {loading ? (
           <div className="admin-card-body">
-            <p>Loading players...</p>
+            <p>Loading Golfers...</p>
           </div>
-        ) : players.length === 0 ? (
+        ) : Golfers.length === 0 ? (
           <div className="empty-state">
             <div className="empty-state-icon">🏌️</div>
-            <h3>No Players Yet</h3>
+            <h3>No Golfers Yet</h3>
             <p>Add professional golfers that users can select for their fantasy teams.</p>
             <button className="btn btn-primary" onClick={() => handleOpenModal()}>
-              Add Your First Player
+              Add Your First Golfer
             </button>
           </div>
         ) : (
           <table className="admin-table">
             <thead>
               <tr>
-                <th>Player</th>
+                <th>Golfer</th>
                 <th>Price</th>
                 <th>Type</th>
                 <th>Status</th>
@@ -711,17 +683,17 @@ const PlayersAdminPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {players.map((player) => (
-                <tr key={player.id}>
+              {Golfers.map((Golfer) => (
+                <tr key={Golfer.id}>
                   <td>
                     <div 
                       style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}
-                      onClick={() => handleViewPlayer(player)}
+                      onClick={() => handleViewGolfer(Golfer)}
                     >
-                      {player.picture ? (
+                      {Golfer.picture ? (
                         <img
-                          src={player.picture}
-                          alt={`${player.firstName} ${player.lastName}`}
+                          src={Golfer.picture}
+                          alt={`${Golfer.firstName} ${Golfer.lastName}`}
                           style={{
                             width: '40px',
                             height: '40px',
@@ -745,34 +717,34 @@ const PlayersAdminPage: React.FC = () => {
                         </div>
                       )}
                       <span style={{ fontWeight: 500, color: 'var(--primary-green)', textDecoration: 'underline' }}>
-                        {player.firstName} {player.lastName}
+                        {Golfer.firstName} {Golfer.lastName}
                       </span>
                     </div>
                   </td>
                   <td style={{ fontWeight: 600, color: 'var(--primary-green)' }}>
-                    {formatPrice(player.price)}
+                    {formatPrice(Golfer.price)}
                   </td>
                   <td>
                     <span className="badge badge-secondary" style={{ textTransform: 'capitalize' }}>
-                      {player.membershipType || 'men'}
+                      {Golfer.membershipType || 'men'}
                     </span>
                   </td>
                   <td>
-                    <span className={`badge ${player.isActive ? 'badge-success' : 'badge-gray'}`}>
-                      {player.isActive ? 'Active' : 'Inactive'}
+                    <span className={`badge ${Golfer.isActive ? 'badge-success' : 'badge-gray'}`}>
+                      {Golfer.isActive ? 'Active' : 'Inactive'}
                     </span>
                   </td>
                   <td>
                     <div className="table-actions">
                       <button
                         className="btn btn-secondary btn-sm"
-                        onClick={() => handleOpenModal(player)}
+                        onClick={() => handleOpenModal(Golfer)}
                       >
                         Edit
                       </button>
                       <button
                         className="btn btn-danger btn-sm"
-                        onClick={() => handleOpenDeleteModal(player)}
+                        onClick={() => handleOpenDeleteModal(Golfer)}
                       >
                         Delete
                       </button>
@@ -790,7 +762,7 @@ const PlayersAdminPage: React.FC = () => {
         <div className="modal-overlay" onClick={handleCloseModal}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>{editingPlayer ? 'Edit Player' : 'Add New Player'}</h2>
+              <h2>{editingGolfer ? 'Edit Golfer' : 'Add New Golfer'}</h2>
               <button className="modal-close" onClick={handleCloseModal}>
                 ×
               </button>
@@ -980,7 +952,7 @@ const PlayersAdminPage: React.FC = () => {
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  {editingPlayer ? 'Save Changes' : 'Add Player'}
+                  {editingGolfer ? 'Save Changes' : 'Add Golfer'}
                 </button>
               </div>
             </form>
@@ -993,7 +965,7 @@ const PlayersAdminPage: React.FC = () => {
         <div className="modal-overlay" onClick={handleCloseBatchModal}>
           <div className="modal" style={{ maxWidth: '700px' }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>📤 Batch Upload Players</h2>
+              <h2>📤 Batch Upload Golfers</h2>
               <button className="modal-close" onClick={handleCloseBatchModal}>
                 ×
               </button>
@@ -1003,7 +975,7 @@ const PlayersAdminPage: React.FC = () => {
                 <>
                   <div style={{ marginBottom: '1.5rem' }}>
                     <p style={{ color: '#374151', marginBottom: '1rem' }}>
-                      Upload a CSV file with player data. Maximum <strong>10 players</strong> per batch.
+                      Upload a CSV file with Golfer data. Maximum <strong>10 Golfers</strong> per batch.
                     </p>
                     <div style={{ background: '#f3f4f6', borderRadius: '8px', padding: '1rem', fontSize: '0.85rem' }}>
                       <strong>Required columns:</strong> firstName, lastName, price (in millions)<br />
@@ -1082,7 +1054,7 @@ Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
               {batchStep === 'preview' && (
                 <>
                   <div className="alert alert-success" style={{ marginBottom: '1rem' }}>
-                    ✅ CSV validated successfully! Review {batchData.length} player{batchData.length > 1 ? 's' : ''} below.
+                    ✅ CSV validated successfully! Review {batchData.length} Golfer{batchData.length > 1 ? 's' : ''} below.
                   </div>
 
                   <div style={{ maxHeight: '350px', overflow: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
@@ -1101,28 +1073,28 @@ Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
                         </tr>
                       </thead>
                       <tbody>
-                        {batchData.map((player, index) => (
+                        {batchData.map((Golfer, index) => (
                           <tr key={index}>
                             <td style={{ color: '#6b7280' }}>{index + 1}</td>
                             <td style={{ fontWeight: 500 }}>
-                              {player.firstName} {player.lastName}
-                              {!player.isActive && (
+                              {Golfer.firstName} {Golfer.lastName}
+                              {!Golfer.isActive && (
                                 <span className="badge badge-gray" style={{ marginLeft: '0.5rem' }}>Inactive</span>
                               )}
                             </td>
                             <td style={{ color: 'var(--primary-green)', fontWeight: 600 }}>
-                              ${parseFloat(player.price).toFixed(1)}M
+                              ${parseFloat(Golfer.price).toFixed(1)}M
                             </td>
                             <td>
                               <span className="badge badge-secondary" style={{ textTransform: 'capitalize' }}>
-                                {player.membershipType}
+                                {Golfer.membershipType}
                               </span>
                             </td>
-                            <td>{player.timesPlayed}</td>
-                            <td>{player.timesScored36Plus}</td>
-                            <td>{player.timesFinished1st}</td>
-                            <td>{player.timesFinished2nd}</td>
-                            <td>{player.timesFinished3rd}</td>
+                            <td>{Golfer.timesPlayed}</td>
+                            <td>{Golfer.timesScored36Plus}</td>
+                            <td>{Golfer.timesFinished1st}</td>
+                            <td>{Golfer.timesFinished2nd}</td>
+                            <td>{Golfer.timesFinished3rd}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -1134,7 +1106,7 @@ Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
               {batchStep === 'uploading' && (
                 <div style={{ textAlign: 'center', padding: '2rem' }}>
                   <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⏳</div>
-                  <h3 style={{ marginBottom: '1rem' }}>Uploading Players...</h3>
+                  <h3 style={{ marginBottom: '1rem' }}>Uploading Golfers...</h3>
                   <div style={{ 
                     background: '#e5e7eb', 
                     borderRadius: '9999px', 
@@ -1178,7 +1150,7 @@ Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
                     ← Back
                   </button>
                   <button className="btn btn-primary" onClick={handleBatchUpload}>
-                    Upload {batchData.length} Player{batchData.length > 1 ? 's' : ''}
+                    Upload {batchData.length} Golfer{batchData.length > 1 ? 's' : ''}
                   </button>
                 </>
               )}
@@ -1192,12 +1164,12 @@ Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
         </div>
       )}
 
-      {/* View Player Modal */}
-      {showViewModal && viewingPlayer && (
+      {/* View Golfer Modal */}
+      {showViewModal && viewingGolfer && (
         <div className="modal-overlay" onClick={handleCloseViewModal}>
           <div className="modal" style={{ maxWidth: '700px' }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>🏌️ {viewingPlayer.firstName} {viewingPlayer.lastName}</h2>
+              <h2>🏌️ {viewingGolfer.firstName} {viewingGolfer.lastName}</h2>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <button className="btn btn-primary btn-sm" onClick={handleEditFromView}>
                   ✏️ Edit
@@ -1208,12 +1180,12 @@ Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
               </div>
             </div>
             <div className="modal-body">
-              {/* Player Photo and Basic Info */}
+              {/* Golfer Photo and Basic Info */}
               <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                {viewingPlayer.picture ? (
+                {viewingGolfer.picture ? (
                   <img
-                    src={viewingPlayer.picture}
-                    alt={`${viewingPlayer.firstName} ${viewingPlayer.lastName}`}
+                    src={viewingGolfer.picture}
+                    alt={`${viewingGolfer.firstName} ${viewingGolfer.lastName}`}
                     style={{
                       width: '100px',
                       height: '100px',
@@ -1239,54 +1211,54 @@ Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
                 )}
                 <div style={{ flex: 1 }}>
                   <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '0.5rem' }}>
-                    {viewingPlayer.firstName} {viewingPlayer.lastName}
+                    {viewingGolfer.firstName} {viewingGolfer.lastName}
                   </h3>
                   <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                    <span className={`badge ${viewingPlayer.isActive ? 'badge-success' : 'badge-gray'}`}>
-                      {viewingPlayer.isActive ? 'Active' : 'Inactive'}
+                    <span className={`badge ${viewingGolfer.isActive ? 'badge-success' : 'badge-gray'}`}>
+                      {viewingGolfer.isActive ? 'Active' : 'Inactive'}
                     </span>
                     <span className="badge badge-secondary" style={{ textTransform: 'capitalize' }}>
-                      {viewingPlayer.membershipType || 'Men'}
+                      {viewingGolfer.membershipType || 'Men'}
                     </span>
                     <span style={{ fontWeight: 600, color: 'var(--primary-green)' }}>
-                      ${(viewingPlayer.price / 1_000_000).toFixed(1)}M
+                      ${(viewingGolfer.price / 1_000_000).toFixed(1)}M
                     </span>
                   </div>
                 </div>
               </div>
 
-              {/* Player Info Section */}
+              {/* Golfer Info Section */}
               <div style={{ marginBottom: '1.5rem' }}>
                 <h4 style={{ fontSize: '0.9rem', fontWeight: 600, color: '#374151', marginBottom: '0.75rem' }}>
-                  📋 Player Information (Editable)
+                  📋 Golfer Information (Editable)
                 </h4>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
                   <div style={{ background: '#f9fafb', padding: '1rem', borderRadius: '8px' }}>
                     <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.25rem' }}>First Name</div>
-                    <div style={{ fontWeight: 500 }}>{viewingPlayer.firstName}</div>
+                    <div style={{ fontWeight: 500 }}>{viewingGolfer.firstName}</div>
                   </div>
                   <div style={{ background: '#f9fafb', padding: '1rem', borderRadius: '8px' }}>
                     <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.25rem' }}>Last Name</div>
-                    <div style={{ fontWeight: 500 }}>{viewingPlayer.lastName}</div>
+                    <div style={{ fontWeight: 500 }}>{viewingGolfer.lastName}</div>
                   </div>
                   <div style={{ background: '#f9fafb', padding: '1rem', borderRadius: '8px' }}>
                     <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.25rem' }}>Price</div>
                     <div style={{ fontWeight: 500, color: 'var(--primary-green)' }}>
-                      ${(viewingPlayer.price / 1_000_000).toFixed(1)}M
+                      ${(viewingGolfer.price / 1_000_000).toFixed(1)}M
                     </div>
                   </div>
                   <div style={{ background: '#f9fafb', padding: '1rem', borderRadius: '8px' }}>
                     <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.25rem' }}>Membership Type</div>
-                    <div style={{ fontWeight: 500, textTransform: 'capitalize' }}>{viewingPlayer.membershipType || 'Men'}</div>
+                    <div style={{ fontWeight: 500, textTransform: 'capitalize' }}>{viewingGolfer.membershipType || 'Men'}</div>
                   </div>
                   <div style={{ background: '#f9fafb', padding: '1rem', borderRadius: '8px' }}>
                     <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.25rem' }}>Status</div>
-                    <div style={{ fontWeight: 500 }}>{viewingPlayer.isActive ? 'Active' : 'Inactive'}</div>
+                    <div style={{ fontWeight: 500 }}>{viewingGolfer.isActive ? 'Active' : 'Inactive'}</div>
                   </div>
                   <div style={{ background: '#f9fafb', padding: '1rem', borderRadius: '8px' }}>
                     <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.25rem' }}>Photo URL</div>
                     <div style={{ fontWeight: 500, fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {viewingPlayer.picture || '—'}
+                      {viewingGolfer.picture || '—'}
                     </div>
                   </div>
                 </div>
@@ -1302,41 +1274,41 @@ Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
                   <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
                     Loading stats...
                   </div>
-                ) : playerSeasonStats ? (
+                ) : GolferSeasonStats ? (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
                     <div style={{ background: '#ecfdf5', padding: '1rem', borderRadius: '8px', textAlign: 'center' }}>
                       <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--primary-green)' }}>
-                        {playerSeasonStats.totalPoints}
+                        {GolferSeasonStats.totalPoints}
                       </div>
                       <div style={{ fontSize: '0.75rem', color: '#065f46' }}>Total Points</div>
                     </div>
                     <div style={{ background: '#f9fafb', padding: '1rem', borderRadius: '8px', textAlign: 'center' }}>
                       <div style={{ fontSize: '2rem', fontWeight: 700, color: '#374151' }}>
-                        {playerSeasonStats.tournamentsPlayed}
+                        {GolferSeasonStats.tournamentsPlayed}
                       </div>
                       <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>Tournaments Played</div>
                     </div>
                     <div style={{ background: '#fef3c7', padding: '1rem', borderRadius: '8px', textAlign: 'center' }}>
                       <div style={{ fontSize: '2rem', fontWeight: 700, color: '#92400e' }}>
-                        {playerSeasonStats.times36Plus}
+                        {GolferSeasonStats.times36Plus}
                       </div>
                       <div style={{ fontSize: '0.75rem', color: '#92400e' }}>Times 36+ Points</div>
                     </div>
                     <div style={{ background: '#fef9c3', padding: '1rem', borderRadius: '8px', textAlign: 'center' }}>
                       <div style={{ fontSize: '1.75rem', fontWeight: 700, color: '#713f12' }}>
-                        🥇 {playerSeasonStats.firstPlaceFinishes}
+                        🥇 {GolferSeasonStats.firstPlaceFinishes}
                       </div>
                       <div style={{ fontSize: '0.75rem', color: '#713f12' }}>1st Place Finishes</div>
                     </div>
                     <div style={{ background: '#f3f4f6', padding: '1rem', borderRadius: '8px', textAlign: 'center' }}>
                       <div style={{ fontSize: '1.75rem', fontWeight: 700, color: '#374151' }}>
-                        🥈 {playerSeasonStats.secondPlaceFinishes}
+                        🥈 {GolferSeasonStats.secondPlaceFinishes}
                       </div>
                       <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>2nd Place Finishes</div>
                     </div>
                     <div style={{ background: '#fed7aa', padding: '1rem', borderRadius: '8px', textAlign: 'center' }}>
                       <div style={{ fontSize: '1.75rem', fontWeight: 700, color: '#9a3412' }}>
-                        🥉 {playerSeasonStats.thirdPlaceFinishes}
+                        🥉 {GolferSeasonStats.thirdPlaceFinishes}
                       </div>
                       <div style={{ fontSize: '0.75rem', color: '#9a3412' }}>3rd Place Finishes</div>
                     </div>
@@ -1344,7 +1316,7 @@ Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
                 ) : (
                   <div style={{ textAlign: 'center', padding: '2rem', background: '#f9fafb', borderRadius: '8px' }}>
                     <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📭</div>
-                    <p style={{ color: '#6b7280' }}>No tournament scores recorded yet for this player.</p>
+                    <p style={{ color: '#6b7280' }}>No tournament scores recorded yet for this Golfer.</p>
                   </div>
                 )}
                 
@@ -1360,28 +1332,28 @@ Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
                 </h4>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.75rem' }}>
                   <div style={{ background: '#f9fafb', padding: '0.75rem', borderRadius: '8px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>{viewingPlayer.stats2025?.timesPlayed || 0}</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>{viewingGolfer.stats2025?.timesPlayed || 0}</div>
                     <div style={{ fontSize: '0.7rem', color: '#6b7280' }}>Played</div>
                   </div>
                   <div style={{ background: '#f9fafb', padding: '0.75rem', borderRadius: '8px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>{viewingPlayer.stats2025?.timesScored36Plus || 0}</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>{viewingGolfer.stats2025?.timesScored36Plus || 0}</div>
                     <div style={{ fontSize: '0.7rem', color: '#6b7280' }}>36+ Pts</div>
                   </div>
                   <div style={{ background: '#f9fafb', padding: '0.75rem', borderRadius: '8px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>🥇 {viewingPlayer.stats2025?.timesFinished1st || 0}</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>🥇 {viewingGolfer.stats2025?.timesFinished1st || 0}</div>
                     <div style={{ fontSize: '0.7rem', color: '#6b7280' }}>1st</div>
                   </div>
                   <div style={{ background: '#f9fafb', padding: '0.75rem', borderRadius: '8px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>🥈 {viewingPlayer.stats2025?.timesFinished2nd || 0}</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>🥈 {viewingGolfer.stats2025?.timesFinished2nd || 0}</div>
                     <div style={{ fontSize: '0.7rem', color: '#6b7280' }}>2nd</div>
                   </div>
                   <div style={{ background: '#f9fafb', padding: '0.75rem', borderRadius: '8px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>🥉 {viewingPlayer.stats2025?.timesFinished3rd || 0}</div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>🥉 {viewingGolfer.stats2025?.timesFinished3rd || 0}</div>
                     <div style={{ fontSize: '0.7rem', color: '#6b7280' }}>3rd</div>
                   </div>
                 </div>
                 <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: '#fffbeb', borderRadius: '8px', fontSize: '0.85rem', color: '#92400e' }}>
-                  ⚠️ These are historical stats you entered when creating the player. They are separate from the live season stats above.
+                  ⚠️ These are historical stats you entered when creating the Golfer. They are separate from the live season stats above.
                 </div>
               </div>
             </div>
@@ -1390,7 +1362,7 @@ Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
                 Close
               </button>
               <button className="btn btn-primary" onClick={handleEditFromView}>
-                ✏️ Edit Player
+                ✏️ Edit Golfer
               </button>
             </div>
           </div>
@@ -1398,11 +1370,11 @@ Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
       )}
 
       {/* Delete Confirmation Modal */}
-      {showDeleteModal && playerToDelete && (
+      {showDeleteModal && GolferToDelete && (
         <div className="modal-overlay" onClick={handleCloseDeleteModal}>
           <div className="modal" style={{ maxWidth: '450px' }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>🗑️ Delete Player</h2>
+              <h2>🗑️ Delete Golfer</h2>
               <button className="modal-close" onClick={handleCloseDeleteModal}>
                 ×
               </button>
@@ -1410,10 +1382,10 @@ Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
             <div className="modal-body">
               {error && <div className="alert alert-error">{error}</div>}
               <p style={{ marginBottom: '1rem' }}>
-                Are you sure you want to delete <strong>{playerToDelete.firstName} {playerToDelete.lastName}</strong>?
+                Are you sure you want to delete <strong>{GolferToDelete.firstName} {GolferToDelete.lastName}</strong>?
               </p>
               <p style={{ color: '#dc2626', fontSize: '0.9rem' }}>
-                ⚠️ This action cannot be undone. The player will be permanently removed.
+                ⚠️ This action cannot be undone. The Golfer will be permanently removed.
               </p>
             </div>
             <div className="modal-footer">
@@ -1428,10 +1400,10 @@ Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
               <button 
                 type="button" 
                 className="btn btn-danger" 
-                onClick={handleDeletePlayer}
+                onClick={handleDeleteGolfer}
                 disabled={deleting}
               >
-                {deleting ? 'Deleting...' : 'Delete Player'}
+                {deleting ? 'Deleting...' : 'Delete Golfer'}
               </button>
             </div>
           </div>
@@ -1441,4 +1413,4 @@ Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
   );
 };
 
-export default PlayersAdminPage;
+export default GolfersAdminPage;

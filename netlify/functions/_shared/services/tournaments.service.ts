@@ -72,10 +72,10 @@ export async function createTournament(data: CreateTournamentDTO): Promise<Tourn
     endDate: new Date(data.endDate),
     tournamentType,
     multiplier,
-    playerCountTier: data.playerCountTier ?? '20+',
+    golferCountTier: data.golferCountTier ?? '20+',
     season: data.season ?? currentSeason,
     status: 'draft',
-    participatingPlayerIds: [],
+    participatingGolferIds: [],
     createdAt: now,
     updatedAt: now,
   };
@@ -85,7 +85,7 @@ export async function createTournament(data: CreateTournamentDTO): Promise<Tourn
   return {
     id: result.insertedId.toString(),
     ...tournamentData,
-    participatingPlayerIds: [],
+    participatingGolferIds: [],
   };
 }
 
@@ -105,10 +105,10 @@ export async function updateTournament(
     updateData.tournamentType = data.tournamentType;
     updateData.multiplier = getMultiplierForType(data.tournamentType);
   }
-  if (data.playerCountTier !== undefined) updateData.playerCountTier = data.playerCountTier;
+  if (data.golferCountTier !== undefined) updateData.golferCountTier = data.golferCountTier;
   if (data.status !== undefined) updateData.status = data.status;
-  if (data.participatingPlayerIds !== undefined) {
-    updateData.participatingPlayerIds = data.participatingPlayerIds.map((id) => new ObjectId(id));
+  if (data.participatingGolferIds !== undefined) {
+    updateData.participatingGolferIds = data.participatingGolferIds.map((id) => new ObjectId(id));
   }
 
   const result = await collection.findOneAndUpdate(

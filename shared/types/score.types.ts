@@ -3,8 +3,8 @@
 export interface Score {
   id: string;
   tournamentId: string;
-  playerId: string;
-  participated: boolean; // Did the player participate in this tournament?
+  golferId: string;
+  participated: boolean; // Did the golfer participate in this tournament?
   position: number | null; // 1, 2, 3 for podium, null for others
   scored36Plus: boolean; // +1 bonus point if true
   basePoints: number; // Points from position (5, 3, 2, 1, or 0)
@@ -14,9 +14,9 @@ export interface Score {
   updatedAt: Date;
 }
 
-export interface PlayerTournamentScore {
-  playerId: string;
-  playerName: string;
+export interface GolferTournamentScore {
+  golferId: string;
+  golferName: string;
   participated: boolean;
   position: number | null;
   scored36Plus: boolean;
@@ -34,7 +34,7 @@ export interface LeaderboardEntry {
 
 export interface EnterScoreRequest {
   tournamentId: string;
-  playerId: string;
+  golferId: string;
   participated: boolean;
   position: number | null;
   scored36Plus: boolean;
@@ -43,7 +43,7 @@ export interface EnterScoreRequest {
 export interface BulkEnterScoresRequest {
   tournamentId: string;
   scores: Array<{
-    playerId: string;
+    golferId: string;
     participated: boolean;
     position: number | null;
     scored36Plus: boolean;

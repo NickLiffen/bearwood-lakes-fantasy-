@@ -16,9 +16,9 @@ A fantasy golf league web application for Bearwood Lakes Golf Club members.
 
 - 🔐 User authentication (register/login)
 - 👥 View all league members
-- ⛳ Pick your team (6 players, $50M budget)
+- ⛳ Pick your team (6 golfers, $50M budget)
 - 📊 Weekly and all-time scoreboards
-- 🔧 Admin panel for managing players and scores
+- 🔧 Admin panel for managing golfers and scores
 - 🔒 Transfer window lock/unlock
 
 ## Getting Started
@@ -93,9 +93,12 @@ netlify dev
 | `/auth-register` | POST | - | Register new user |
 | `/auth-login` | POST | - | Login |
 | `/users-list` | GET | ✓ | List all users |
-| `/players-list` | GET | ✓ | List all players |
-| `/players-create` | POST | Admin | Create player |
-| `/players-update` | PUT | Admin | Update player |
+| `/golfers-list` | GET | ✓ | List all golfers |
+| `/golfers-get` | GET | ✓ | Get single golfer |
+| `/golfers-create` | POST | Admin | Create golfer |
+| `/golfers-update` | PUT | Admin | Update golfer |
+| `/golfers-delete` | DELETE | Admin | Delete golfer |
+| `/golfers-stats` | GET | ✓ | Get golfer statistics |
 | `/picks-get` | GET | ✓ | Get user's picks |
 | `/picks-save` | POST | ✓ | Save picks |
 | `/scores-list` | GET | ✓ | Get scores |

@@ -10,21 +10,21 @@ jest.mock('../../../netlify/functions/_shared/db', () => ({
 
 describe('Picks Service', () => {
   describe('savePicks', () => {
-    it('should reject if player count is not exactly 6', async () => {
+    it('should reject if golfer count is not exactly 6', async () => {
       const userId = 'test-user-id';
-      const playerIds = ['1', '2', '3']; // Only 3 players
+      const playerIds = ['1', '2', '3']; // Only 3 golfers
 
       await expect(savePicks(userId, playerIds)).rejects.toThrow(
-        `You must select exactly ${MAX_PLAYERS} players`
+        `You must select exactly ${MAX_PLAYERS} golfers`
       );
     });
 
-    it('should reject duplicate players', async () => {
+    it('should reject duplicate golfers', async () => {
       const userId = 'test-user-id';
       const playerIds = ['1', '1', '2', '3', '4', '5']; // Duplicate '1'
 
       await expect(savePicks(userId, playerIds)).rejects.toThrow(
-        'Duplicate players are not allowed'
+        'Duplicate golfers are not allowed'
       );
     });
 

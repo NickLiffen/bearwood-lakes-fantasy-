@@ -9,6 +9,7 @@ import { UserDocument, USERS_COLLECTION } from './_shared/models/User';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
 import { SettingDocument, SETTINGS_COLLECTION } from './_shared/models/Settings';
+import { getWeekStart, getMonthStart } from './_shared/utils/dates';
 
 interface LeaderboardEntry {
   rank: number;
@@ -48,16 +49,6 @@ interface LeadersResponse {
   seasonInfo: PeriodInfo;
 }
 
-// Get Monday of the week containing the given date
-function getWeekStart(date: Date): Date {
-  const d = new Date(date);
-  const dayOfWeek = d.getDay();
-  const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  d.setDate(d.getDate() - daysSinceMonday);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
 // Get Sunday of the week containing the given date
 function getWeekEnd(date: Date): Date {
   const weekStart = getWeekStart(date);
@@ -65,11 +56,6 @@ function getWeekEnd(date: Date): Date {
   weekEnd.setDate(weekStart.getDate() + 6);
   weekEnd.setHours(23, 59, 59, 999);
   return weekEnd;
-}
-
-// Get first day of the month
-function getMonthStart(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth(), 1, 0, 0, 0, 0);
 }
 
 // Get last day of the month
@@ -110,11 +96,11 @@ async function calculateLeaderboard(
   for (const score of allScores) {
     if (!periodTournamentIds.has(score.tournamentId.toString())) continue;
     
-    const playerId = score.playerId.toString();
-    if (!scoresByPlayerAndTournament.has(playerId)) {
-      scoresByPlayerAndTournament.set(playerId, new Map());
+    const golferId = score.golferId.toString();
+    if (!scoresByPlayerAndTournament.has(golferId)) {
+      scoresByPlayerAndTournament.set(golferId, new Map());
     }
-    scoresByPlayerAndTournament.get(playerId)!.set(score.tournamentId.toString(), score);
+    scoresByPlayerAndTournament.get(golferId)!.set(score.tournamentId.toString(), score);
   }
   
   // Calculate points for each user
@@ -127,8 +113,8 @@ async function calculateLeaderboard(
     let points = 0;
     const eventsSet = new Set<string>();
     
-    for (const playerId of pick.playerIds) {
-      const playerScores = scoresByPlayerAndTournament.get(playerId.toString());
+    for (const golferId of pick.golferIds) {
+      const playerScores = scoresByPlayerAndTournament.get(golferId.toString());
       if (!playerScores) continue;
       
       for (const [tournamentId, score] of playerScores) {

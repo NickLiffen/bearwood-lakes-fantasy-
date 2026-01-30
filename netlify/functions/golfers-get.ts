@@ -1,31 +1,10 @@
-// GET /.netlify/functions/players-get?id=xxx
+// GET /.netlify/functions/golfers-get?id=xxx
 
 import { withAuth } from './_shared/middleware';
-import { getPlayerById } from './_shared/services/players.service';
+import { getGolferById } from './_shared/services/golfers.service';
 import { getAllTournaments } from './_shared/services/tournaments.service';
-import { getScoresForPlayer } from './_shared/services/scores.service';
-
-// Get the start of the current week (Monday 00:00)
-function getWeekStart(): Date {
-  const now = new Date();
-  const dayOfWeek = now.getDay();
-  const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  const weekStart = new Date(now);
-  weekStart.setDate(now.getDate() - daysSinceMonday);
-  weekStart.setHours(0, 0, 0, 0);
-  return weekStart;
-}
-
-// Get the start of the current month
-function getMonthStart(): Date {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
-}
-
-// Get the start of 2026 season
-function getSeasonStart(): Date {
-  return new Date(2026, 0, 1, 0, 0, 0, 0);
-}
+import { getScoresForGolfer } from './_shared/services/scores.service';
+import { getWeekStart, getMonthStart, getSeasonStart } from './_shared/utils/dates';
 
 export const handler = withAuth(async (event) => {
   try {
@@ -34,20 +13,20 @@ export const handler = withAuth(async (event) => {
     if (!id) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ success: false, error: 'Player ID is required' }),
+        body: JSON.stringify({ success: false, error: 'Golfer ID is required' }),
       };
     }
 
-    const [player, tournaments, playerScores] = await Promise.all([
-      getPlayerById(id),
+    const [golfer, tournaments, golferScores] = await Promise.all([
+      getGolferById(id),
       getAllTournaments(),
-      getScoresForPlayer(id),
+      getScoresForGolfer(id),
     ]);
 
-    if (!player) {
+    if (!golfer) {
       return {
         statusCode: 404,
-        body: JSON.stringify({ success: false, error: 'Player not found' }),
+        body: JSON.stringify({ success: false, error: 'Golfer not found' }),
       };
     }
 
@@ -59,7 +38,7 @@ export const handler = withAuth(async (event) => {
     const tournamentMap = new Map(publishedTournaments.map(t => [t.id, t]));
 
     // Filter to only relevant scores and add tournament date
-    const relevantScores = playerScores
+    const relevantScores = golferScores
       .filter(s => s.participated && publishedTournamentIds.has(s.tournamentId))
       .map(s => {
         const tournament = tournamentMap.get(s.tournamentId);
@@ -98,14 +77,14 @@ export const handler = withAuth(async (event) => {
       body: JSON.stringify({ 
         success: true, 
         data: {
-          ...player,
+          ...golfer,
           stats2026,
           points,
         },
       }),
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'Failed to fetch player';
+    const message = error instanceof Error ? error.message : 'Failed to fetch golfer';
     return {
       statusCode: 500,
       body: JSON.stringify({ success: false, error: message }),

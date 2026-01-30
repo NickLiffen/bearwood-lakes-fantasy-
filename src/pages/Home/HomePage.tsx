@@ -1,34 +1,13 @@
 // Public Home page - Bearwood Lakes Fantasy Golf
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 import './HomePage.css';
 
 const HomePage: React.FC = () => {
   const currentYear = new Date().getFullYear();
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userName, setUserName] = useState('');
-
-  useEffect(() => {
-    // Check login state on mount and when returning to page
-    const checkAuth = () => {
-      const user = localStorage.getItem('user');
-      if (user) {
-        const parsed = JSON.parse(user);
-        setIsLoggedIn(true);
-        setUserName(parsed.firstName);
-      } else {
-        setIsLoggedIn(false);
-        setUserName('');
-      }
-    };
-
-    checkAuth();
-
-    // Listen for storage changes (in case of logout in another tab)
-    window.addEventListener('storage', checkAuth);
-    return () => window.removeEventListener('storage', checkAuth);
-  }, []);
+  const { user, isAuthenticated } = useAuth();
 
   return (
     <div className="home-page">
@@ -39,7 +18,7 @@ const HomePage: React.FC = () => {
           <span className="nav-title">Bearwood Lakes Fantasy</span>
         </div>
         <div className="nav-links">
-          {isLoggedIn ? (
+          {isAuthenticated ? (
             <>
               <Link to="/dashboard" className="nav-link">
                 Dashboard
@@ -48,7 +27,7 @@ const HomePage: React.FC = () => {
                 Profile
               </Link>
               <span className="nav-user">
-                Hi, {userName}
+                Hi, {user?.firstName}
               </span>
             </>
           ) : (
@@ -158,7 +137,7 @@ const HomePage: React.FC = () => {
                 <li>
                   <span className="rule-icon">👥</span>
                   <div>
-                    <strong>Exactly 6 Players</strong>
+                    <strong>Exactly 6 golfers</strong>
                     <p>
                       No more, no less. Every roster spot matters.
                     </p>
@@ -203,7 +182,7 @@ const HomePage: React.FC = () => {
             <h2 className="fun-title">⚠️ Fair Warning ⚠️</h2>
             <p className="fun-text">
               This game has been known to cause heated debates at the 19th hole,
-              questionable predictions, and sudden expertise in players you've
+              questionable predictions, and sudden expertise in golfers you've
               never heard of.
             </p>
             <div className="fun-quotes">
@@ -241,7 +220,7 @@ const HomePage: React.FC = () => {
               <span>Bearwood Lakes Fantasy Golf</span>
             </div>
             <div className="footer-links">
-              {isLoggedIn ? (
+              {isAuthenticated ? (
                 <>
                   <Link to="/dashboard">Dashboard</Link>
                   <Link to="/profile">Profile</Link>

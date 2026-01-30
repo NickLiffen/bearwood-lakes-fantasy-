@@ -2,15 +2,39 @@
 
 import jwt, { SignOptions } from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import type { User } from '../../../shared/types';
 
-const JWT_SECRET = process.env.JWT_SECRET!;
-const JWT_EXPIRES_IN = (process.env.JWT_EXPIRES_IN || '7d') as jwt.SignOptions['expiresIn'];
+/**
+ * Get a required environment variable or throw a descriptive error
+ */
+function getRequiredEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(
+      `Missing required environment variable: ${name}. ` +
+      `Please ensure it is set in your Netlify environment variables or .env.local file.`
+    );
+  }
+  return value;
+}
+
+// Access token: short-lived (15 minutes)
+const ACCESS_TOKEN_EXPIRES = '15m';
+// Refresh token: long-lived (7 days)
+const REFRESH_TOKEN_EXPIRES_DAYS = 7;
 
 export interface JwtPayload {
   userId: string;
   username: string;
   role: string;
+}
+
+export interface RefreshTokenData {
+  token: string;
+  userId: string;
+  expiresAt: Date;
+  createdAt: Date;
 }
 
 /**
@@ -29,21 +53,49 @@ export async function comparePassword(password: string, hash: string): Promise<b
 }
 
 /**
- * Generate JWT token
+ * Generate short-lived access token (JWT)
  */
-export function generateToken(user: User): string {
+export function generateAccessToken(user: User): string {
+  const jwtSecret = getRequiredEnv('JWT_SECRET');
   const payload: JwtPayload = {
     userId: user.id,
     username: user.username,
     role: user.role,
   };
-  const options: SignOptions = { expiresIn: JWT_EXPIRES_IN };
-  return jwt.sign(payload, JWT_SECRET, options);
+  const options: SignOptions = { expiresIn: ACCESS_TOKEN_EXPIRES };
+  return jwt.sign(payload, jwtSecret, options);
 }
 
 /**
- * Verify JWT token
+ * Generate long-lived refresh token (opaque token stored in DB)
+ */
+export function generateRefreshToken(): string {
+  return crypto.randomBytes(64).toString('hex');
+}
+
+/**
+ * Get refresh token expiry date
+ */
+export function getRefreshTokenExpiry(): Date {
+  const expiry = new Date();
+  expiry.setDate(expiry.getDate() + REFRESH_TOKEN_EXPIRES_DAYS);
+  return expiry;
+}
+
+/**
+ * Verify access token
  */
 export function verifyToken(token: string): JwtPayload {
-  return jwt.verify(token, JWT_SECRET) as JwtPayload;
+  const jwtSecret = getRequiredEnv('JWT_SECRET');
+  return jwt.verify(token, jwtSecret) as JwtPayload;
 }
+
+/**
+ * Hash refresh token for secure storage
+ */
+export function hashRefreshToken(token: string): string {
+  return crypto.createHash('sha256').update(token).digest('hex');
+}
+
+// Legacy export for backward compatibility
+export const generateToken = generateAccessToken;

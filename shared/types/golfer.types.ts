@@ -1,10 +1,10 @@
-// Player domain types
+// Golfer domain types
 
 // Membership type options
 export type MembershipType = 'men' | 'junior' | 'female' | 'senior';
 
 // Performance stats structure (used for both 2025 and 2026)
-export interface PlayerSeasonStats {
+export interface GolferSeasonStats {
   timesScored36Plus: number;      // Times shot 36 points or above
   timesFinished1st: number;        // Times finished 1st place
   timesFinished2nd: number;        // Times finished 2nd place
@@ -13,10 +13,10 @@ export interface PlayerSeasonStats {
 }
 
 // Alias for backwards compatibility
-export type Player2025Stats = PlayerSeasonStats;
-export type Player2026Stats = PlayerSeasonStats;
+export type Golfer2025Stats = GolferSeasonStats;
+export type Golfer2026Stats = GolferSeasonStats;
 
-export interface Player {
+export interface Golfer {
   id: string;
   firstName: string;
   lastName: string;
@@ -24,30 +24,38 @@ export interface Player {
   price: number;
   membershipType: MembershipType;
   isActive: boolean;
-  stats2025: Player2025Stats;
-  stats2026: Player2026Stats;
+  stats2025: Golfer2025Stats;
+  stats2026: Golfer2026Stats;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface CreatePlayerDTO {
+export interface CreateGolferDTO {
   firstName: string;
   lastName: string;
   picture: string;
   price: number;
   membershipType: MembershipType;
   isActive?: boolean;
-  stats2025?: Player2025Stats;
-  stats2026?: Player2026Stats;
+  stats2025?: Golfer2025Stats;
+  stats2026?: Golfer2026Stats;
 }
 
-export interface UpdatePlayerDTO {
+export interface UpdateGolferDTO {
   firstName?: string;
   lastName?: string;
   picture?: string;
   price?: number;
   membershipType?: MembershipType;
   isActive?: boolean;
-  stats2025?: Player2025Stats;
-  stats2026?: Player2026Stats;
+  stats2025?: Golfer2025Stats;
+  stats2026?: Golfer2026Stats;
 }
+
+// Backwards compatibility aliases (map old names to new)
+export type golfer = Golfer;
+export type PlayerSeasonStats = GolferSeasonStats;
+export type Player2025Stats = Golfer2025Stats;
+export type Player2026Stats = Golfer2026Stats;
+export type CreatePlayerDTO = CreateGolferDTO;
+export type UpdatePlayerDTO = UpdateGolferDTO;

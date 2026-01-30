@@ -2,7 +2,10 @@
 
 export type TournamentStatus = 'draft' | 'published' | 'complete';
 export type TournamentType = 'regular' | 'elevated' | 'signature';
-export type PlayerCountTier = '0-10' | '10-20' | '20+';
+export type GolferCountTier = '0-10' | '10-20' | '20+';
+
+// Backwards compatibility alias
+export type PlayerCountTier = GolferCountTier;
 
 export interface Tournament {
   id: string;
@@ -11,10 +14,10 @@ export interface Tournament {
   endDate: Date;
   tournamentType: TournamentType;
   multiplier: number; // 1 for regular, 2 for elevated, 3 for signature
-  playerCountTier: PlayerCountTier;
+  golferCountTier: GolferCountTier;
   season: number;
   status: TournamentStatus;
-  participatingPlayerIds: string[];
+  participatingGolferIds: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -24,7 +27,7 @@ export interface CreateTournamentDTO {
   startDate: Date;
   endDate: Date;
   tournamentType?: TournamentType;
-  playerCountTier?: PlayerCountTier;
+  golferCountTier?: GolferCountTier;
   season?: number;
 }
 
@@ -33,15 +36,15 @@ export interface UpdateTournamentDTO {
   startDate?: Date;
   endDate?: Date;
   tournamentType?: TournamentType;
-  playerCountTier?: PlayerCountTier;
+  golferCountTier?: GolferCountTier;
   status?: TournamentStatus;
-  participatingPlayerIds?: string[];
+  participatingGolferIds?: string[];
 }
 
 export interface TournamentWithScores extends Tournament {
   scores: Array<{
-    playerId: string;
-    playerName: string;
+    golferId: string;
+    golferName: string;
     position: number | null;
     basePoints: number;
     bonusPoints: number;
@@ -59,8 +62,8 @@ export function getMultiplierForType(type: TournamentType): number {
   }
 }
 
-// Helper to calculate base points from position and player count tier
-export function getBasePointsForPosition(position: number | null, tier: PlayerCountTier): number {
+// Helper to calculate base points from position and golfer count tier
+export function getBasePointsForPosition(position: number | null, tier: GolferCountTier): number {
   if (position === null) return 0;
   
   switch (tier) {

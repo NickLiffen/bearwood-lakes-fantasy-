@@ -7,17 +7,14 @@
   overflow-x: hidden;
 }
 
-.leaderboard-main {
-  padding: 2rem;
-  max-width: 1200px;
-  margin: 0 auto;
-  width: 100%;
-  box-sizing: border-box;
+.leaderboard-content {
+  padding: 2rem 0;
 }
 
 .leaderboard-container {
-  width: 100%;
-  overflow-x: hidden;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
 }
 
 /* Page Header */
@@ -333,7 +330,7 @@
 
 /* Table Cells */
 .th-rank { width: 80px; text-align: center; }
-.th-player { }
+.th-golfer { min-width: 200px; }
 .th-points { width: 100px; text-align: center; }
 .th-value { width: 120px; text-align: center; }
 .th-events { width: 80px; text-align: center; }
@@ -356,17 +353,17 @@
 .rank-text.rank-silver { color: #6b7280; }
 .rank-text.rank-bronze { color: #d97706; }
 
-.td-player {
-  /* Player cell styles */
+.td-golfer {
+  min-width: 200px;
 }
 
-.player-info {
+.golfer-info {
   display: flex;
   align-items: center;
   gap: 0.75rem;
 }
 
-.player-avatar {
+.golfer-avatar {
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -380,19 +377,19 @@
   flex-shrink: 0;
 }
 
-.player-details {
+.golfer-details {
   display: flex;
   flex-direction: column;
 }
 
-.player-name {
+.golfer-name {
   font-weight: 600;
   color: var(--dark-text);
   display: flex;
   align-items: center;
 }
 
-.player-username {
+.golfer-username {
   font-size: 0.8rem;
   color: var(--muted-text);
 }
@@ -415,6 +412,54 @@
 .td-events {
   text-align: center;
   color: var(--muted-text);
+}
+
+/* Action Column */
+.th-action { 
+  width: 80px; 
+  text-align: center; 
+}
+
+.th-movement {
+  width: 60px;
+  text-align: center;
+}
+
+.td-action {
+  text-align: center;
+}
+
+/* golfer Link */
+.golfer-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.golfer-link:hover .golfer-info {
+  opacity: 0.85;
+}
+
+.golfer-link:hover .golfer-name {
+  color: var(--primary-green);
+}
+
+/* Compare Button */
+.btn-compare-small {
+  background: none;
+  border: 1px solid var(--light-border);
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: all 0.2s;
+  opacity: 0.6;
+}
+
+.btn-compare-small:hover {
+  background: rgba(26, 71, 42, 0.08);
+  border-color: var(--primary-green);
+  opacity: 1;
 }
 
 /* Empty State */
@@ -680,17 +725,17 @@
     display: none;
   }
   
-  .player-avatar {
+  .golfer-avatar {
     width: 32px;
     height: 32px;
     font-size: 0.75rem;
   }
   
-  .player-name {
+  .golfer-name {
     font-size: 0.9rem;
   }
   
-  .player-username {
+  .golfer-username {
     font-size: 0.7rem;
   }
 }

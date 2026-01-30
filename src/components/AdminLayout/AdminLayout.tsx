@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 import './AdminLayout.css';
 
 interface User {
@@ -21,24 +22,22 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [user, setUser] = useState<User | null>(null);
+  const { user: authUser, logout: authLogout } = useAuth();
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (!storedUser) {
+    if (!authUser) {
       navigate('/login');
       return;
     }
-    const parsedUser = JSON.parse(storedUser);
-    if (parsedUser.role !== 'admin') {
+    if (authUser.role !== 'admin') {
       navigate('/dashboard');
       return;
     }
-    setUser(parsedUser);
-  }, [navigate]);
+    setUser(authUser as User);
+  }, [authUser, navigate]);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    authLogout();
     navigate('/login');
   };
 
@@ -90,11 +89,11 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
               Overview
             </Link>
             <Link
-              to="/admin/players"
-              className={`admin-nav-link ${isActive('/admin/players') ? 'active' : ''}`}
+              to="/admin/golfers"
+              className={`admin-nav-link ${isActive('/admin/golfers') ? 'active' : ''}`}
             >
               <span className="nav-icon">🏌️</span>
-              Players
+              Golfers
             </Link>
             <Link
               to="/admin/tournaments"

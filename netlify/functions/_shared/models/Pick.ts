@@ -6,7 +6,7 @@ import type { Pick, PickHistory } from '../../../../shared/types';
 export interface PickDocument {
   _id: ObjectId;
   userId: ObjectId;
-  playerIds: ObjectId[];
+  golferIds: ObjectId[];
   totalSpent: number;
   season: number;
   createdAt: Date;
@@ -17,7 +17,7 @@ export function toPick(doc: PickDocument): Pick {
   return {
     id: doc._id.toString(),
     userId: doc.userId.toString(),
-    playerIds: doc.playerIds.map((id) => id.toString()),
+    golferIds: doc.golferIds.map((id) => id.toString()),
     totalSpent: doc.totalSpent,
     season: doc.season,
     createdAt: doc.createdAt,
@@ -31,7 +31,7 @@ export const PICKS_COLLECTION = 'picks';
 export interface PickHistoryDocument {
   _id: ObjectId;
   userId: ObjectId;
-  playerIds: ObjectId[];
+  golferIds: ObjectId[];
   totalSpent: number;
   season: number;
   changedAt: Date;
@@ -42,7 +42,7 @@ export function toPickHistory(doc: PickHistoryDocument): PickHistory {
   return {
     id: doc._id.toString(),
     userId: doc.userId.toString(),
-    playerIds: doc.playerIds.map((id) => id.toString()),
+    golferIds: doc.golferIds.map((id) => id.toString()),
     totalSpent: doc.totalSpent,
     season: doc.season,
     changedAt: doc.changedAt,

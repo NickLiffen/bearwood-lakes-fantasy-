@@ -5,11 +5,11 @@ import { connectToDatabase } from '../db';
 import { ScoreDocument, toScore, SCORES_COLLECTION } from '../models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from '../models/Tournament';
 import type { Score, EnterScoreRequest, BulkEnterScoresRequest } from '../../../../shared/types';
-import type { PlayerCountTier } from '../../../../shared/types/tournament.types';
+import type { GolferCountTier } from '../../../../shared/types/tournament.types';
 import { getBasePointsForPosition } from '../../../../shared/types/tournament.types';
 
 // Helper to determine tier from participant count
-function getTierFromCount(count: number): PlayerCountTier {
+function getTierFromCount(count: number): GolferCountTier {
   if (count <= 10) return '0-10';
   if (count < 20) return '10-20';
   return '20+';
@@ -25,23 +25,23 @@ export async function getScoresForTournament(tournamentId: string): Promise<Scor
   return scores.map(toScore);
 }
 
-export async function getScoresForPlayer(playerId: string): Promise<Score[]> {
+export async function getScoresForGolfer(golferId: string): Promise<Score[]> {
   const { db } = await connectToDatabase();
   const collection = db.collection<ScoreDocument>(SCORES_COLLECTION);
 
   const scores = await collection
-    .find({ playerId: new ObjectId(playerId) })
+    .find({ golferId: new ObjectId(golferId) })
     .toArray();
   return scores.map(toScore);
 }
 
-export async function enterScore(data: EnterScoreRequest, playerCountTier?: PlayerCountTier): Promise<Score> {
+export async function enterScore(data: EnterScoreRequest, golferCountTier?: GolferCountTier): Promise<Score> {
   const { db } = await connectToDatabase();
   const scoresCollection = db.collection<ScoreDocument>(SCORES_COLLECTION);
   const tournamentsCollection = db.collection<TournamentDocument>(TOURNAMENTS_COLLECTION);
 
   const tournamentObjectId = new ObjectId(data.tournamentId);
-  const playerObjectId = new ObjectId(data.playerId);
+  const golferObjectId = new ObjectId(data.golferId);
 
   // Get tournament to calculate points
   const tournament = await tournamentsCollection.findOne({ _id: tournamentObjectId });
@@ -50,7 +50,7 @@ export async function enterScore(data: EnterScoreRequest, playerCountTier?: Play
   }
 
   // Use provided tier or default to 20+
-  const tier = playerCountTier || '20+';
+  const tier = golferCountTier || '20+';
   
   // Calculate points - only if participated
   let basePoints = 0;
@@ -65,9 +65,9 @@ export async function enterScore(data: EnterScoreRequest, playerCountTier?: Play
   
   const now = new Date();
 
-  // Upsert score for player/tournament combination
+  // Upsert score for golfer/tournament combination
   const result = await scoresCollection.findOneAndUpdate(
-    { tournamentId: tournamentObjectId, playerId: playerObjectId },
+    { tournamentId: tournamentObjectId, golferId: golferObjectId },
     {
       $set: {
         participated: data.participated,
@@ -80,7 +80,7 @@ export async function enterScore(data: EnterScoreRequest, playerCountTier?: Play
       },
       $setOnInsert: {
         tournamentId: tournamentObjectId,
-        playerId: playerObjectId,
+        golferId: golferObjectId,
         createdAt: now,
       },
     },
@@ -91,24 +91,72 @@ export async function enterScore(data: EnterScoreRequest, playerCountTier?: Play
 }
 
 export async function bulkEnterScores(data: BulkEnterScoresRequest): Promise<Score[]> {
-  // First, count how many players participated to determine the tier
+  const { db } = await connectToDatabase();
+  const scoresCollection = db.collection<ScoreDocument>(SCORES_COLLECTION);
+  const tournamentsCollection = db.collection<TournamentDocument>(TOURNAMENTS_COLLECTION);
+
+  // Get tournament once (not N times in a loop!)
+  const tournamentObjectId = new ObjectId(data.tournamentId);
+  const tournament = await tournamentsCollection.findOne({ _id: tournamentObjectId });
+  if (!tournament) {
+    throw new Error('Tournament not found');
+  }
+
+  // Determine tier from participant count
   const participantCount = data.scores.filter(s => s.participated).length;
   const tier = getTierFromCount(participantCount);
   
-  const results: Score[] = [];
+  const now = new Date();
 
-  for (const scoreData of data.scores) {
-    const score = await enterScore({
-      tournamentId: data.tournamentId,
-      playerId: scoreData.playerId,
-      participated: scoreData.participated,
-      position: scoreData.position,
-      scored36Plus: scoreData.scored36Plus,
-    }, tier);
-    results.push(score);
-  }
+  // Build bulk operations for MongoDB bulkWrite
+  const operations = data.scores.map(scoreData => {
+    const golferObjectId = new ObjectId(scoreData.golferId);
+    
+    // Calculate points - only if participated
+    let basePoints = 0;
+    let bonusPoints = 0;
+    let multipliedPoints = 0;
+    
+    if (scoreData.participated) {
+      basePoints = getBasePointsForPosition(scoreData.position, tier);
+      bonusPoints = scoreData.scored36Plus ? 1 : 0;
+      multipliedPoints = (basePoints + bonusPoints) * tournament.multiplier;
+    }
 
-  return results;
+    return {
+      updateOne: {
+        filter: { tournamentId: tournamentObjectId, golferId: golferObjectId },
+        update: {
+          $set: {
+            participated: scoreData.participated,
+            position: scoreData.participated ? scoreData.position : null,
+            scored36Plus: scoreData.participated ? scoreData.scored36Plus : false,
+            basePoints,
+            bonusPoints,
+            multipliedPoints,
+            updatedAt: now,
+          },
+          $setOnInsert: {
+            tournamentId: tournamentObjectId,
+            golferId: golferObjectId,
+            createdAt: now,
+          },
+        },
+        upsert: true,
+      },
+    };
+  });
+
+  // Execute all upserts in a single bulk operation (50 scores = 1 DB call instead of 150+)
+  await scoresCollection.bulkWrite(operations);
+
+  // Fetch the updated scores to return
+  const golferIds = data.scores.map(s => new ObjectId(s.golferId));
+  const updatedScores = await scoresCollection
+    .find({ tournamentId: tournamentObjectId, golferId: { $in: golferIds } })
+    .toArray();
+
+  return updatedScores.map(toScore);
 }
 
 export async function getAllScores(): Promise<Score[]> {
@@ -154,11 +202,11 @@ export async function deleteScoresForTournament(tournamentId: string): Promise<n
   return result.deletedCount;
 }
 
-export async function deleteScoresForPlayer(playerId: string): Promise<number> {
+export async function deleteScoresForGolfer(golferId: string): Promise<number> {
   const { db } = await connectToDatabase();
   const collection = db.collection<ScoreDocument>(SCORES_COLLECTION);
 
-  const result = await collection.deleteMany({ playerId: new ObjectId(playerId) });
+  const result = await collection.deleteMany({ golferId: new ObjectId(golferId) });
   return result.deletedCount;
 }
 

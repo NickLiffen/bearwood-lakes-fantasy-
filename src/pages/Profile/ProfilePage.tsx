@@ -1,8 +1,11 @@
 // Profile page for logged in users
 
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { validators, sanitizers, getInputClassName } from '../../utils/validation';
+import PageLayout from '../../components/layout/PageLayout';
+import { useAuth } from '../../hooks/useAuth';
+import { useApiClient } from '../../hooks/useApiClient';
 import './ProfilePage.css';
 
 interface User {
@@ -51,26 +54,29 @@ const ProfilePage: React.FC = () => {
   // Profile field validation
   const validateProfileField = (field: string, value: string): string => {
     switch (field) {
-      case 'firstName':
+      case 'firstName': {
         if (!value.trim()) return 'First name is required';
         const firstNameValidator = validators.lettersOnly();
         const firstNameError = firstNameValidator(value);
         if (firstNameError) return 'First name can only contain letters';
         if (value.length < 2) return 'First name must be at least 2 characters';
         return '';
-      case 'lastName':
+      }
+      case 'lastName': {
         if (!value.trim()) return 'Last name is required';
         const lastNameValidator = validators.lettersOnly();
         const lastNameError = lastNameValidator(value);
         if (lastNameError) return 'Last name can only contain letters';
         if (value.length < 2) return 'Last name must be at least 2 characters';
         return '';
-      case 'email':
+      }
+      case 'email': {
         if (!value.trim()) return 'Email is required';
         const emailValidator = validators.email();
         const emailError = emailValidator(value);
         if (emailError) return 'Please enter a valid email address';
         return '';
+      }
       default:
         return '';
     }
@@ -169,18 +175,19 @@ const ProfilePage: React.FC = () => {
     return !errors.currentPassword && !errors.newPassword && !errors.confirmNewPassword;
   };
 
+  const { user: authUser, logout: authLogout } = useAuth();
+  const { put, del } = useApiClient();
+
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      const parsed = JSON.parse(storedUser);
-      setUser(parsed);
-      setFirstName(parsed.firstName);
-      setLastName(parsed.lastName);
-      setEmail(parsed.email);
+    if (authUser) {
+      setUser(authUser as User);
+      setFirstName(authUser.firstName);
+      setLastName(authUser.lastName);
+      setEmail(authUser.email);
     } else {
       navigate('/login');
     }
-  }, [navigate]);
+  }, [authUser, navigate]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -196,22 +203,13 @@ const ProfilePage: React.FC = () => {
     setIsUpdatingProfile(true);
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/.netlify/functions/users-update-profile', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ 
-          firstName: sanitizers.trim(firstName), 
-          lastName: sanitizers.trim(lastName), 
-          email: sanitizers.lowercase(sanitizers.trim(email)) 
-        }),
+      const response = await put<User>('users-update-profile', { 
+        firstName: sanitizers.trim(firstName), 
+        lastName: sanitizers.trim(lastName), 
+        email: sanitizers.lowercase(sanitizers.trim(email)) 
       });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to update profile');
+      if (!response.success) throw new Error(response.error || 'Failed to update profile');
 
       // Update local storage
       const updatedUser = { ...user, firstName, lastName, email };
@@ -241,18 +239,9 @@ const ProfilePage: React.FC = () => {
     setIsUpdatingPassword(true);
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/.netlify/functions/users-update-password', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ currentPassword, newPassword }),
-      });
+      const response = await put('users-update-password', { currentPassword, newPassword });
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to update password');
+      if (!response.success) throw new Error(response.error || 'Failed to update password');
 
       setPasswordSuccess('Password updated successfully!');
       setCurrentPassword('');
@@ -278,20 +267,12 @@ const ProfilePage: React.FC = () => {
     setDeleteError('');
 
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/.netlify/functions/users-delete-account', {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await del('users-delete-account');
 
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to delete account');
+      if (!response.success) throw new Error(response.error || 'Failed to delete account');
 
-      // Clear storage and redirect
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      // Clear storage and redirect using auth logout
+      authLogout();
       navigate('/');
     } catch (err) {
       setDeleteError(err instanceof Error ? err.message : 'An error occurred');
@@ -304,39 +285,36 @@ const ProfilePage: React.FC = () => {
   }
 
   return (
-    <div className="profile-page">
-      <div className="profile-container">
-        <Link to="/dashboard" className="back-link">
-          ← Back to Dashboard
-        </Link>
-
-        <div className="profile-header">
-          <div className="profile-avatar">
-            {user.firstName[0]}
-            {user.lastName[0]}
+    <PageLayout activeNav="profile">
+      <div className="profile-content">
+        <div className="profile-container">
+          <div className="profile-header">
+            <div className="profile-avatar">
+              {user.firstName[0]}
+              {user.lastName[0]}
+            </div>
+            <div className="profile-info">
+              <h1>
+                {user.firstName} {user.lastName}
+              </h1>
+              <p>@{user.username}</p>
+              {user.role === 'admin' && <span className="admin-badge">🛡️ Admin</span>}
+            </div>
           </div>
-          <div className="profile-info">
-            <h1>
-              {user.firstName} {user.lastName}
-            </h1>
-            <p>@{user.username}</p>
-            {user.role === 'admin' && <span className="admin-badge">🛡️ Admin</span>}
-          </div>
-        </div>
 
-        {/* Update Profile Section */}
-        <div className="profile-card">
-          <div className="profile-card-header">
-            <h2>Profile Information</h2>
-          </div>
-          <form onSubmit={handleUpdateProfile} className="profile-form">
-            {profileSuccess && <div className="alert alert-success">{profileSuccess}</div>}
-            {profileError && <div className="alert alert-error">{profileError}</div>}
+          {/* Update Profile Section */}
+          <div className="profile-card">
+            <div className="profile-card-header">
+              <h2>Profile Information</h2>
+            </div>
+            <form onSubmit={handleUpdateProfile} className="profile-form">
+              {profileSuccess && <div className="alert alert-success">{profileSuccess}</div>}
+              {profileError && <div className="alert alert-error">{profileError}</div>}
 
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="firstName">First Name<span className="required-indicator">*</span></label>
-                <input
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="firstName">First Name<span className="required-indicator">*</span></label>
+                  <input
                   type="text"
                   id="firstName"
                   className={getProfileFieldClass('firstName')}
@@ -469,52 +447,53 @@ const ProfilePage: React.FC = () => {
               Delete Account
             </button>
           </div>
-        </div>
-      </div>
-
-      {/* Delete Confirmation Modal */}
-      {showDeleteModal && (
-        <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>⚠️ Delete Account</h2>
-              <button className="modal-close" onClick={() => setShowDeleteModal(false)}>
-                ×
-              </button>
-            </div>
-            <div className="modal-body">
-              <p className="warning-text">
-                This action <strong>cannot be undone</strong>. This will permanently delete your
-                account and remove all your data from our servers.
-              </p>
-              <p>
-                Please type <strong>DELETE</strong> to confirm:
-              </p>
-              {deleteError && <div className="alert alert-error">{deleteError}</div>}
-              <input
-                type="text"
-                value={deleteConfirmText}
-                onChange={(e) => setDeleteConfirmText(e.target.value)}
-                placeholder="Type DELETE to confirm"
-                className="delete-confirm-input"
-              />
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setShowDeleteModal(false)}>
-                Cancel
-              </button>
-              <button
-                className="btn btn-danger"
-                onClick={handleDeleteAccount}
-                disabled={isDeleting || deleteConfirmText !== 'DELETE'}
-              >
-                {isDeleting ? 'Deleting...' : 'Delete My Account'}
-              </button>
-            </div>
           </div>
         </div>
-      )}
-    </div>
+
+        {/* Delete Confirmation Modal */}
+        {showDeleteModal && (
+          <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>⚠️ Delete Account</h2>
+                <button className="modal-close" onClick={() => setShowDeleteModal(false)}>
+                  ×
+                </button>
+              </div>
+              <div className="modal-body">
+                <p className="warning-text">
+                  This action <strong>cannot be undone</strong>. This will permanently delete your
+                  account and remove all your data from our servers.
+                </p>
+                <p>
+                  Please type <strong>DELETE</strong> to confirm:
+                </p>
+                {deleteError && <div className="alert alert-error">{deleteError}</div>}
+                <input
+                  type="text"
+                  value={deleteConfirmText}
+                  onChange={(e) => setDeleteConfirmText(e.target.value)}
+                  placeholder="Type DELETE to confirm"
+                  className="delete-confirm-input"
+                />
+              </div>
+              <div className="modal-footer">
+                <button className="btn btn-secondary" onClick={() => setShowDeleteModal(false)}>
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-danger"
+                  onClick={handleDeleteAccount}
+                  disabled={isDeleting || deleteConfirmText !== 'DELETE'}
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete My Account'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </PageLayout>
   );
 };
 

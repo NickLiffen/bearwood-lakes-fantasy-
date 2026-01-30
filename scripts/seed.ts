@@ -26,8 +26,8 @@ async function seed() {
     await db.collection('users').createIndex({ username: 1 }, { unique: true });
     await db.collection('users').createIndex({ email: 1 }, { unique: true });
 
-    // Players indexes
-    await db.collection('players').createIndex({ isActive: 1 });
+    // Golfers indexes
+    await db.collection('golfers').createIndex({ isActive: 1 });
 
     // Picks indexes (one pick per user per season)
     await db.collection('picks').createIndex({ userId: 1, season: 1 }, { unique: true });
@@ -40,12 +40,12 @@ async function seed() {
     await db.collection('tournaments').createIndex({ season: 1 });
     await db.collection('tournaments').createIndex({ status: 1 });
 
-    // Scores indexes (one score per player per tournament)
+    // Scores indexes (one score per golfer per tournament)
     await db
       .collection('scores')
-      .createIndex({ tournamentId: 1, playerId: 1 }, { unique: true });
+      .createIndex({ tournamentId: 1, golferId: 1 }, { unique: true });
     await db.collection('scores').createIndex({ tournamentId: 1 });
-    await db.collection('scores').createIndex({ playerId: 1 });
+    await db.collection('scores').createIndex({ golferId: 1 });
 
     // Settings indexes
     await db.collection('settings').createIndex({ key: 1 }, { unique: true });
@@ -113,7 +113,7 @@ async function seed() {
     // ============================================
     console.log('📊 Database summary:');
     console.log(`   Users: ${await db.collection('users').countDocuments()}`);
-    console.log(`   Players: ${await db.collection('players').countDocuments()}`);
+    console.log(`   Golfers: ${await db.collection('golfers').countDocuments()}`);
     console.log(`   Tournaments: ${await db.collection('tournaments').countDocuments()}`);
     console.log(`   Picks: ${await db.collection('picks').countDocuments()}`);
     console.log(`   Scores: ${await db.collection('scores').countDocuments()}`);

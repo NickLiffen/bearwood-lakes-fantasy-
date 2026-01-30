@@ -1,16 +1,10 @@
 // Dashboard page (logged-in home)
 
-import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { Link } from 'react-router-dom';
+import PageLayout from '../../components/layout/PageLayout';
+import { useAuth } from '../../hooks/useAuth';
 import './DashboardPage.css';
-
-interface User {
-  id: string;
-  firstName: string;
-  lastName: string;
-  username: string;
-  role: string;
-}
 
 // Dummy data for demonstration
 const DUMMY_LEADERBOARD = [
@@ -28,87 +22,15 @@ const DUMMY_RECENT_TOURNAMENTS = [
 ];
 
 const DashboardPage: React.FC = () => {
-  const navigate = useNavigate();
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (!storedUser) {
-      navigate('/login');
-      return;
-    }
-    setUser(JSON.parse(storedUser));
-  }, [navigate]);
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    navigate('/login');
-  };
-
-  if (!user) {
-    return (
-      <div className="dashboard-page">
-        <div className="dashboard-loading">
-          <div className="loading-spinner"></div>
-        </div>
-      </div>
-    );
-  }
+  const { user } = useAuth();
 
   return (
-    <div className="dashboard-page">
-      {/* Header */}
-      <header className="dashboard-header">
-        <div className="header-container">
-          <Link to="/dashboard" className="header-brand">
-            <img src="/bearwood_lakes_logo.png" alt="Bearwood Lakes" className="brand-logo" />
-            <span className="brand-text">Bearwood Lakes Fantasy</span>
-          </Link>
-
-          <nav className="header-nav">
-            <Link to="/dashboard" className="nav-link active">
-              Dashboard
-            </Link>
-            <Link to="/my-team" className="nav-link">
-              My Team
-            </Link>
-            <Link to="/players" className="nav-link">
-              Players
-            </Link>
-            <Link to="/leaderboard" className="nav-link">
-              Leaderboard
-            </Link>
-            <Link to="/tournaments" className="nav-link">
-              Tournaments
-            </Link>
-            <Link to="/profile" className="nav-link">
-              Profile
-            </Link>
-            {user.role === 'admin' && (
-              <Link to="/admin" className="nav-link nav-admin">
-                Admin
-              </Link>
-            )}
-          </nav>
-
-          <div className="header-user">
-            <span className="user-greeting">
-              Hi, <strong>{user.firstName}</strong>
-            </span>
-            <button onClick={handleLogout} className="btn-logout">
-              Logout
-            </button>
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="dashboard-main">
+    <PageLayout activeNav="dashboard">
+      <div className="dashboard-content">
         <div className="dashboard-container">
           {/* Welcome Section */}
           <section className="welcome-section">
-            <h1>Welcome back, {user.firstName}! 👋</h1>
+            <h1>Welcome back, {user?.firstName || 'Guest'}! 👋</h1>
             <p>Here's what's happening in the 2026 Fantasy Golf season.</p>
           </section>
 
@@ -132,7 +54,7 @@ const DashboardPage: React.FC = () => {
               <div className="stat-icon">👥</div>
               <div className="stat-content">
                 <span className="stat-value">0/6</span>
-                <span className="stat-label">Players Selected</span>
+                <span className="stat-label">golfers Selected</span>
               </div>
             </div>
             <div className="stat-card">
@@ -170,7 +92,7 @@ const DashboardPage: React.FC = () => {
                   <thead>
                     <tr>
                       <th>Rank</th>
-                      <th>Player</th>
+                      <th>golfer</th>
                       <th>Points</th>
                       <th>Last</th>
                     </tr>
@@ -186,7 +108,7 @@ const DashboardPage: React.FC = () => {
                             {entry.rank > 3 && entry.rank}
                           </span>
                         </td>
-                        <td className="player-name">{entry.username}</td>
+                        <td className="golfer-name">{entry.username}</td>
                         <td className="points">{entry.totalPoints.toLocaleString()}</td>
                         <td className="last-points">+{entry.lastTournament}</td>
                       </tr>
@@ -238,7 +160,7 @@ const DashboardPage: React.FC = () => {
             <h3>💡 Quick Tips</h3>
             <div className="tips-grid">
               <div className="tip-item">
-                <strong>Budget wisely</strong> – Don't spend all $50M on top players.
+                <strong>Budget wisely</strong> – Don't spend all $50M on top golfers.
                 Find value picks!
               </div>
               <div className="tip-item">
@@ -252,28 +174,8 @@ const DashboardPage: React.FC = () => {
             </div>
           </section>
         </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="dashboard-footer">
-        <div className="footer-container">
-          <div className="footer-brand">
-            <img src="/bearwood_lakes_logo.png" alt="Bearwood Lakes" className="footer-logo-img" /> Bearwood Lakes Fantasy Golf
-          </div>
-          <div className="footer-links">
-            <Link to="/dashboard">Dashboard</Link>
-            <Link to="/my-team">My Team</Link>
-            <Link to="/leaderboard">Leaderboard</Link>
-            <button onClick={handleLogout} className="footer-logout">
-              Logout
-            </button>
-          </div>
-          <div className="footer-copyright">
-            © 2026 Bearwood Lakes Golf Club
-          </div>
-        </div>
-      </footer>
-    </div>
+      </div>
+    </PageLayout>
   );
 };
 
