@@ -26,10 +26,6 @@
   animation: spin 1s linear infinite;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
 /* Header */
 .dashboard-header {
   background: linear-gradient(135deg, var(--primary-green) 0%, var(--secondary-green) 100%);
@@ -204,6 +200,147 @@
   color: var(--muted-text);
 }
 
+/* Loading States */
+.stat-card-loading {
+  min-height: 100px;
+}
+
+.stat-card-loading:hover {
+  transform: none;
+}
+
+/* Skeleton Loading */
+@keyframes skeleton-pulse {
+  0% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.4;
+  }
+}
+
+.skeleton-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.skeleton-value {
+  width: 60px;
+  height: 28px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+.skeleton-label {
+  width: 80px;
+  height: 14px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+  background-size: 200% 100%;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+  animation-delay: 0.1s;
+}
+
+/* Section Loading Spinner */
+.section-loading {
+  padding: 3rem 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+}
+
+/* Countdown Section */
+.countdown-section {
+  background: linear-gradient(135deg, var(--primary-green) 0%, var(--secondary-green) 100%);
+  border-radius: 12px;
+  padding: 1.5rem 2rem;
+  margin-bottom: 2rem;
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(26, 71, 42, 0.2);
+}
+
+.countdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.countdown-icon {
+  font-size: 1.5rem;
+}
+
+.countdown-header h2 {
+  font-size: 1.25rem;
+  color: white;
+  font-weight: 600;
+  margin: 0;
+}
+
+.countdown-subtitle {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.countdown-timer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.countdown-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  min-width: 70px;
+}
+
+.countdown-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: white;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.countdown-label {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 0.25rem;
+}
+
+.countdown-separator {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.5);
+}
+
 /* Action Banner */
 .action-banner {
   background: linear-gradient(135deg, var(--accent-gold) 0%, #d4af37 100%);
@@ -317,6 +454,14 @@
   background: #f9fafb;
 }
 
+.data-table tbody tr.current-user-row {
+  background: rgba(26, 71, 42, 0.08);
+}
+
+.data-table tbody tr.current-user-row:hover {
+  background: rgba(26, 71, 42, 0.12);
+}
+
 .rank {
   font-weight: 600;
 }
@@ -328,6 +473,21 @@
 .golfer-name {
   font-weight: 500;
   color: var(--dark-text);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.you-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  background: var(--primary-green);
+  color: white;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
 }
 
 .points {
@@ -361,6 +521,20 @@
   background: #f9fafb;
 }
 
+.tournament-item-link {
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.tournament-item-link:hover {
+  background: rgba(26, 71, 42, 0.05);
+}
+
+.tournament-item-link:hover .tournament-name {
+  color: var(--primary-green);
+}
+
 .tournament-info {
   display: flex;
   flex-direction: column;
@@ -373,6 +547,11 @@
 }
 
 .tournament-winner {
+  font-size: 0.85rem;
+  color: var(--muted-text);
+}
+
+.tournament-date {
   font-size: 0.85rem;
   color: var(--muted-text);
 }
@@ -398,6 +577,11 @@
 .status-in_progress {
   background: #fef3c7;
   color: #d97706;
+}
+
+.status-published {
+  background: #dbeafe;
+  color: #2563eb;
 }
 
 .tournament-multiplier {
@@ -440,6 +624,128 @@
 
 .tip-item strong {
   color: var(--dark-text);
+}
+
+/* Empty State */
+.empty-state-small {
+  padding: 2rem 1.5rem;
+  text-align: center;
+  color: var(--muted-text);
+}
+
+.empty-state-small p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* Error Message */
+.error-message {
+  background: #fef2f2;
+  color: #dc2626;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  border: 1px solid #fecaca;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.error-message .btn-sm {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+/* Action Banner Warning Variant */
+.action-banner-warning {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  box-shadow: 0 4px 15px rgba(251, 191, 36, 0.3);
+}
+
+/* Team Snapshot Card */
+.team-snapshot-card {
+  margin-bottom: 2rem;
+}
+
+.team-snapshot {
+  padding: 1rem 1.5rem;
+}
+
+.team-week-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, var(--primary-green) 0%, var(--secondary-green) 100%);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
+.week-total-label {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.week-total-value {
+  color: white;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.team-golfer-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.team-golfer-row {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  background: #fafafa;
+}
+
+.team-golfer-row:hover {
+  background: rgba(26, 71, 42, 0.05);
+  border-color: var(--primary-green);
+}
+
+.golfer-rank {
+  width: 24px;
+  color: var(--muted-text);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.golfer-name-cell {
+  flex: 1;
+  color: var(--dark-text);
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.golfer-week-points {
+  color: var(--muted-text);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.golfer-week-points.has-points {
+  color: #16a34a;
+  font-weight: 600;
+}
+
+/* Empty state button in team snapshot */
+.team-snapshot .btn-sm {
+  margin-top: 0.75rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
 }
 
 /* Footer */
@@ -546,6 +852,10 @@
     gap: 1rem;
   }
 
+  .team-golfer-list {
+    grid-template-columns: 1fr;
+  }
+
   .footer-container {
     flex-direction: column;
     gap: 1rem;
@@ -560,5 +870,30 @@
 
   .welcome-section h1 {
     font-size: 1.5rem;
+  }
+
+  .countdown-section {
+    padding: 1rem 1.25rem;
+  }
+
+  .countdown-timer {
+    gap: 0.25rem;
+  }
+
+  .countdown-unit {
+    min-width: 55px;
+    padding: 0.5rem 0.5rem;
+  }
+
+  .countdown-value {
+    font-size: 1.5rem;
+  }
+
+  .countdown-label {
+    font-size: 0.6rem;
+  }
+
+  .countdown-separator {
+    font-size: 1rem;
   }
 }

@@ -9,7 +9,7 @@ import { UserDocument, USERS_COLLECTION } from './_shared/models/User';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
 import { SettingDocument, SETTINGS_COLLECTION } from './_shared/models/Settings';
-import { getWeekStart, getMonthStart } from './_shared/utils/dates';
+import { getWeekStart, getMonthStart, getTeamEffectiveStartDate } from './_shared/utils/dates';
 
 interface LeaderboardEntry {
   rank: number;
@@ -88,43 +88,56 @@ async function calculateLeaderboard(
     const startDate = new Date(t.startDate);
     return startDate >= periodStart && startDate <= periodEnd;
   });
-  
+
   const periodTournamentIds = new Set(periodTournaments.map(t => t._id.toString()));
-  
+
+  // Create tournament date lookup
+  const tournamentDateMap = new Map<string, Date>();
+  for (const t of periodTournaments) {
+    tournamentDateMap.set(t._id.toString(), new Date(t.startDate));
+  }
+
   // Create score lookup
   const scoresByPlayerAndTournament = new Map<string, Map<string, ScoreDocument>>();
   for (const score of allScores) {
     if (!periodTournamentIds.has(score.tournamentId.toString())) continue;
-    
+
     const golferId = score.golferId.toString();
     if (!scoresByPlayerAndTournament.has(golferId)) {
       scoresByPlayerAndTournament.set(golferId, new Map());
     }
     scoresByPlayerAndTournament.get(golferId)!.set(score.tournamentId.toString(), score);
   }
-  
+
   // Calculate points for each user
   const entries: Array<{ userId: string; user: UserDocument; points: number; teamValue: number; events: number }> = [];
-  
+
   for (const pick of picks) {
     const user = userMap.get(pick.userId.toString());
     if (!user) continue;
-    
+
+    // Team only earns points from tournaments starting on or after their effective start date
+    const teamEffectiveStart = getTeamEffectiveStartDate(pick.createdAt);
+
     let points = 0;
     const eventsSet = new Set<string>();
-    
+
     for (const golferId of pick.golferIds) {
       const playerScores = scoresByPlayerAndTournament.get(golferId.toString());
       if (!playerScores) continue;
-      
+
       for (const [tournamentId, score] of playerScores) {
+        // Skip tournaments before team's effective start date
+        const tournamentDate = tournamentDateMap.get(tournamentId);
+        if (tournamentDate && tournamentDate < teamEffectiveStart) continue;
+
         points += score.multipliedPoints || 0;
         if (score.participated) {
           eventsSet.add(tournamentId);
         }
       }
     }
-    
+
     entries.push({
       userId: pick.userId.toString(),
       user,
@@ -133,7 +146,7 @@ async function calculateLeaderboard(
       events: eventsSet.size,
     });
   }
-  
+
   return { entries, tournamentCount: periodTournaments.length };
 }
 

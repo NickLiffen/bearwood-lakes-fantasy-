@@ -166,8 +166,8 @@
 }
 
 .nav-btn {
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border-radius: 6px;
   border: 1px solid rgba(26, 71, 42, 0.2);
   background: white;
@@ -200,6 +200,7 @@
   font-size: 0.85rem;
   cursor: pointer;
   min-width: 160px;
+  min-height: 44px;
 }
 
 .period-select:focus {
@@ -283,184 +284,6 @@
   margin-left: 0.5rem;
 }
 
-/* Table Container */
-.table-container {
-  background: white;
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  border: 1px solid rgba(26, 71, 42, 0.1);
-}
-
-/* Leaderboard Table */
-.leaderboard-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.leaderboard-table th {
-  padding: 1rem;
-  text-align: left;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--muted-text);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  background: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.leaderboard-table td {
-  padding: 1rem;
-  border-bottom: 1px solid #f3f4f6;
-  vertical-align: middle;
-}
-
-.leaderboard-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.leaderboard-table tbody tr:hover {
-  background: rgba(26, 71, 42, 0.02);
-}
-
-.current-user-row {
-  background: rgba(26, 71, 42, 0.05) !important;
-}
-
-/* Table Cells */
-.th-rank { width: 80px; text-align: center; }
-.th-golfer { min-width: 200px; }
-.th-points { width: 100px; text-align: center; }
-.th-value { width: 120px; text-align: center; }
-.th-events { width: 80px; text-align: center; }
-
-.td-rank {
-  text-align: center;
-  font-weight: 600;
-}
-
-.rank-emoji-small {
-  font-size: 1rem;
-  margin-right: 0.25rem;
-}
-
-.rank-text {
-  font-size: 1rem;
-}
-
-.rank-text.rank-gold { color: #f59e0b; }
-.rank-text.rank-silver { color: #6b7280; }
-.rank-text.rank-bronze { color: #d97706; }
-
-.td-golfer {
-  min-width: 200px;
-}
-
-.golfer-info {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.golfer-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary-green), var(--secondary-green));
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 600;
-  font-size: 0.875rem;
-  flex-shrink: 0;
-}
-
-.golfer-details {
-  display: flex;
-  flex-direction: column;
-}
-
-.golfer-name {
-  font-weight: 600;
-  color: var(--dark-text);
-  display: flex;
-  align-items: center;
-}
-
-.golfer-username {
-  font-size: 0.8rem;
-  color: var(--muted-text);
-}
-
-.td-points {
-  text-align: center;
-}
-
-.points-value {
-  font-weight: 700;
-  font-size: 1.1rem;
-  color: var(--primary-green);
-}
-
-.td-value {
-  text-align: center;
-  color: var(--dark-text);
-}
-
-.td-events {
-  text-align: center;
-  color: var(--muted-text);
-}
-
-/* Action Column */
-.th-action { 
-  width: 80px; 
-  text-align: center; 
-}
-
-.th-movement {
-  width: 60px;
-  text-align: center;
-}
-
-.td-action {
-  text-align: center;
-}
-
-/* golfer Link */
-.golfer-link {
-  text-decoration: none;
-  color: inherit;
-  display: block;
-}
-
-.golfer-link:hover .golfer-info {
-  opacity: 0.85;
-}
-
-.golfer-link:hover .golfer-name {
-  color: var(--primary-green);
-}
-
-/* Compare Button */
-.btn-compare-small {
-  background: none;
-  border: 1px solid var(--light-border);
-  border-radius: 6px;
-  padding: 0.4rem 0.6rem;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: all 0.2s;
-  opacity: 0.6;
-}
-
-.btn-compare-small:hover {
-  background: rgba(26, 71, 42, 0.08);
-  border-color: var(--primary-green);
-  opacity: 1;
-}
 
 /* Empty State */
 .empty-state {
@@ -505,10 +328,6 @@
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 1rem;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
 }
 
 /* Error Message */
@@ -666,111 +485,132 @@
   .leaderboard-main {
     padding: 1rem;
   }
-  
+
   .page-header h1 {
     font-size: 1.5rem;
   }
-  
+
   .view-toggle {
     width: 100%;
     display: flex;
   }
-  
+
   .toggle-btn {
     flex: 1;
     padding: 0.6rem 0.5rem;
     min-width: 0;
   }
-  
+
   .toggle-icon {
     font-size: 1rem;
   }
-  
+
   .toggle-label {
     font-size: 0.7rem;
   }
-  
+
   .view-title {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
   }
-  
+
   .podium-section {
     flex-direction: column;
     align-items: center;
   }
-  
+
   .podium-card {
     width: 100%;
     max-width: 280px;
   }
-  
+
   .podium-card.first {
     max-width: 280px;
   }
-  
-  /* Responsive Table */
-  .table-container {
-    border-radius: 8px;
-  }
-  
-  .leaderboard-table th,
-  .leaderboard-table td {
-    padding: 0.75rem 0.5rem;
-  }
-  
-  .th-value,
-  .td-value {
-    display: none;
-  }
-  
-  .golfer-avatar {
-    width: 32px;
-    height: 32px;
-    font-size: 0.75rem;
-  }
-  
-  .golfer-name {
-    font-size: 0.9rem;
-  }
-  
-  .golfer-username {
-    font-size: 0.7rem;
+
+  /* Leaders grid: 2 columns on tablet */
+  .leaders-section {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
 @media (max-width: 480px) {
-  .th-events,
-  .td-events {
-    display: none;
-  }
-  
-  .th-rank,
-  .td-rank {
-    width: 50px;
-    padding-left: 0.5rem;
-  }
-  
-  .rank-emoji-small {
-    display: none;
-  }
-  
   .podium-card {
     padding: 1rem;
   }
-  
+
   .podium-avatar {
     width: 48px;
     height: 48px;
     font-size: 1rem;
   }
-  
+
   .podium-points {
     font-size: 1.25rem;
   }
-  
+
   .podium-meta {
     font-size: 0.7rem;
+  }
+
+  .leaders-section {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Pagination Controls */
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border-top: 1px solid rgba(26, 71, 42, 0.1);
+  background: #fafafa;
+}
+
+.pagination-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid rgba(26, 71, 42, 0.2);
+  background: white;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--primary-green);
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: var(--primary-green);
+  color: white;
+  border-color: var(--primary-green);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-info {
+  color: var(--muted-text);
+  font-size: 0.9rem;
+}
+
+/* Responsive Pagination */
+@media (max-width: 480px) {
+  .pagination-controls {
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+
+  .pagination-btn {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  .page-info {
+    font-size: 0.8rem;
   }
 }

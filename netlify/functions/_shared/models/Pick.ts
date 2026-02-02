@@ -7,6 +7,7 @@ export interface PickDocument {
   _id: ObjectId;
   userId: ObjectId;
   golferIds: ObjectId[];
+  captainId?: ObjectId | null;
   totalSpent: number;
   season: number;
   createdAt: Date;
@@ -18,6 +19,7 @@ export function toPick(doc: PickDocument): Pick {
     id: doc._id.toString(),
     userId: doc.userId.toString(),
     golferIds: doc.golferIds.map((id) => id.toString()),
+    captainId: doc.captainId?.toString() || null,
     totalSpent: doc.totalSpent,
     season: doc.season,
     createdAt: doc.createdAt,

@@ -10,7 +10,7 @@ import { PickDocument, PICKS_COLLECTION } from './_shared/models/Pick';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
 import { SettingDocument, SETTINGS_COLLECTION } from './_shared/models/Settings';
-import { getWeekStart, getMonthStart, getSeasonStart } from './_shared/utils/dates';
+import { getWeekStart, getMonthStart, getSeasonStart, getTeamEffectiveStartDate } from './_shared/utils/dates';
 
 interface FantasyUser {
   id: string;
@@ -118,6 +118,9 @@ export const handler: Handler = withAuth(async () => {
       let monthPoints = 0;
       let seasonPoints = 0;
 
+      // Team only earns points from tournaments starting on or after their effective start date
+      const teamEffectiveStart = getTeamEffectiveStartDate(pick.createdAt);
+
       for (const golferId of pick.golferIds) {
         const golferScores = scoresByGolferTournament.get(golferId.toString());
         if (!golferScores) continue;
@@ -125,6 +128,9 @@ export const handler: Handler = withAuth(async () => {
         for (const [tournamentId, score] of golferScores) {
           const tournamentDate = tournamentDates.get(tournamentId);
           if (!tournamentDate) continue;
+
+          // Skip tournaments before team's effective start date
+          if (tournamentDate < teamEffectiveStart) continue;
 
           const points = score.multipliedPoints || 0;
 

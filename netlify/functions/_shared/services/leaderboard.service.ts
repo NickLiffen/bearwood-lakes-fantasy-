@@ -8,7 +8,7 @@ import { ScoreDocument, SCORES_COLLECTION } from '../models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from '../models/Tournament';
 import { SettingDocument, SETTINGS_COLLECTION } from '../models/Settings';
 import type { LeaderboardEntry } from '../../../../shared/types';
-import { getWeekStart, getMonthStart, getSeasonStart } from '../utils/dates';
+import { getWeekStart, getWeekEnd, getMonthStart, getMonthEnd, getSeasonStart, getTeamEffectiveStartDate } from '../utils/dates';
 
 interface ExtendedLeaderboardEntry {
   rank: number;
@@ -38,21 +38,6 @@ async function getCurrentSeason(): Promise<number> {
   return (setting?.value as number) || 2026;
 }
 
-// Get the end of the current week (Sunday 11:59pm)
-function getWeekEnd(): Date {
-  const weekStart = getWeekStart();
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekStart.getDate() + 6);
-  weekEnd.setHours(23, 59, 59, 999);
-  return weekEnd;
-}
-
-// Get the end of the current month
-function getMonthEnd(): Date {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-}
-
 export async function getFullLeaderboard(): Promise<FullLeaderboardResponse> {
   const { db } = await connectToDatabase();
   const currentSeason = await getCurrentSeason();
@@ -64,13 +49,14 @@ export async function getFullLeaderboard(): Promise<FullLeaderboardResponse> {
     .toArray();
   
   if (picks.length === 0) {
+    const emptyWeekStart = getWeekStart();
     return {
       season: [],
       month: [],
       week: [],
       currentMonth: new Date().toLocaleString('default', { month: 'long', year: 'numeric' }),
-      weekStart: getWeekStart().toISOString(),
-      weekEnd: getWeekEnd().toISOString(),
+      weekStart: emptyWeekStart.toISOString(),
+      weekEnd: getWeekEnd(emptyWeekStart).toISOString(),
     };
   }
   
@@ -116,7 +102,7 @@ export async function getFullLeaderboard(): Promise<FullLeaderboardResponse> {
   const monthStart = getMonthStart();
   const monthEnd = getMonthEnd();
   const weekStart = getWeekStart();
-  const weekEnd = getWeekEnd();
+  const weekEnd = getWeekEnd(weekStart);
   
   // Calculate points for each user
   const leaderboardData: Array<{
@@ -134,26 +120,37 @@ export async function getFullLeaderboard(): Promise<FullLeaderboardResponse> {
   for (const pick of picks) {
     const user = userMap.get(pick.userId.toString());
     if (!user) continue;
-    
+
+    // Team only earns points from tournaments starting on or after their effective start date
+    const teamEffectiveStart = getTeamEffectiveStartDate(pick.createdAt);
+
     let seasonPoints = 0;
     let monthPoints = 0;
     let weekPoints = 0;
     const seasonTournamentSet = new Set<string>();
     const monthTournamentSet = new Set<string>();
     const weekTournamentSet = new Set<string>();
-    
+
     // Calculate points for each golfer in the user's team
+    const captainIdString = pick.captainId?.toString();
     for (const golferId of pick.golferIds) {
       const golferScores = scoresByGolferAndTournament.get(golferId.toString());
       if (!golferScores) continue;
-      
+
+      const isCaptain = golferId.toString() === captainIdString;
+      const captainMultiplier = isCaptain ? 2 : 1;
+
       for (const [tournamentId, score] of golferScores) {
         const tournament = tournamentMap.get(tournamentId);
         if (!tournament) continue;
-        
+
         const tournamentDate = new Date(tournament.startDate);
-        const points = score.multipliedPoints || 0;
-        
+
+        // Skip tournaments before team's effective start date
+        if (tournamentDate < teamEffectiveStart) continue;
+
+        const points = (score.multipliedPoints || 0) * captainMultiplier;
+
         // Season points
         if (tournamentDate >= seasonStart) {
           seasonPoints += points;
@@ -161,7 +158,7 @@ export async function getFullLeaderboard(): Promise<FullLeaderboardResponse> {
             seasonTournamentSet.add(tournamentId);
           }
         }
-        
+
         // Month points
         if (tournamentDate >= monthStart && tournamentDate <= monthEnd) {
           monthPoints += points;
@@ -169,7 +166,7 @@ export async function getFullLeaderboard(): Promise<FullLeaderboardResponse> {
             monthTournamentSet.add(tournamentId);
           }
         }
-        
+
         // Week points
         if (tournamentDate >= weekStart && tournamentDate <= weekEnd) {
           weekPoints += points;
@@ -179,7 +176,7 @@ export async function getFullLeaderboard(): Promise<FullLeaderboardResponse> {
         }
       }
     }
-    
+
     leaderboardData.push({
       userId: pick.userId.toString(),
       user,
@@ -252,30 +249,57 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
 
   const publishedTournamentIds = publishedTournaments.map((t) => t._id);
 
+  // Create tournament date lookup
+  const tournamentDateMap = new Map<string, Date>();
+  for (const t of publishedTournaments) {
+    tournamentDateMap.set(t._id.toString(), new Date(t.startDate));
+  }
+
   // Get all scores from published tournaments
   const scores = await db
     .collection<ScoreDocument>(SCORES_COLLECTION)
     .find({ tournamentId: { $in: publishedTournamentIds } })
     .toArray();
 
-  // Build a map of golferId -> total multiplied points
-  const golferPointsMap = new Map<string, number>();
+  // Build a map of golferId -> tournamentId -> points (for filtering by date)
+  const golferScoresByTournament = new Map<string, Map<string, number>>();
   for (const score of scores) {
     const golferId = score.golferId.toString();
-    const current = golferPointsMap.get(golferId) || 0;
-    golferPointsMap.set(golferId, current + score.multipliedPoints);
+    const tournamentId = score.tournamentId.toString();
+    if (!golferScoresByTournament.has(golferId)) {
+      golferScoresByTournament.set(golferId, new Map());
+    }
+    golferScoresByTournament.get(golferId)!.set(tournamentId, score.multipliedPoints);
   }
+
+  // Create a map of picks by userId for faster lookup
+  const pickMap = new Map(picks.map(p => [p.userId.toString(), p]));
 
   // Calculate total points for each user based on their picks
   const leaderboardData: Array<{ userId: string; username: string; totalPoints: number }> = [];
 
   for (const user of users) {
-    const userPick = picks.find((p) => p.userId.toString() === user._id.toString());
+    const userPick = pickMap.get(user._id.toString());
 
     let totalPoints = 0;
     if (userPick) {
+      // Team only earns points from tournaments after their effective start date
+      const teamEffectiveStart = getTeamEffectiveStartDate(userPick.createdAt);
+      const captainIdString = userPick.captainId?.toString();
+
       for (const golferId of userPick.golferIds) {
-        totalPoints += golferPointsMap.get(golferId.toString()) || 0;
+        const golferTournamentScores = golferScoresByTournament.get(golferId.toString());
+        if (!golferTournamentScores) continue;
+
+        const isCaptain = golferId.toString() === captainIdString;
+        const captainMultiplier = isCaptain ? 2 : 1;
+
+        for (const [tournamentId, points] of golferTournamentScores) {
+          const tournamentDate = tournamentDateMap.get(tournamentId);
+          // Skip tournaments before team's effective start date
+          if (tournamentDate && tournamentDate < teamEffectiveStart) continue;
+          totalPoints += points * captainMultiplier;
+        }
       }
     }
 
@@ -319,6 +343,8 @@ export async function getTournamentLeaderboard(tournamentId: string): Promise<Le
     return [];
   }
 
+  const tournamentDate = new Date(tournament.startDate);
+
   // Get all users and their picks
   const users = await db.collection<UserDocument>(USERS_COLLECTION).find({}).toArray();
   const picks = await db
@@ -338,16 +364,28 @@ export async function getTournamentLeaderboard(tournamentId: string): Promise<Le
     golferPointsMap.set(score.golferId.toString(), score.multipliedPoints);
   }
 
+  // Create a map of picks by userId for faster lookup
+  const pickMap = new Map(picks.map(p => [p.userId.toString(), p]));
+
   // Calculate points for each user
   const leaderboardData: Array<{ userId: string; username: string; totalPoints: number }> = [];
 
   for (const user of users) {
-    const userPick = picks.find((p) => p.userId.toString() === user._id.toString());
+    const userPick = pickMap.get(user._id.toString());
 
     let totalPoints = 0;
     if (userPick) {
-      for (const golferId of userPick.golferIds) {
-        totalPoints += golferPointsMap.get(golferId.toString()) || 0;
+      // Check if team's effective start date allows them to earn points from this tournament
+      const teamEffectiveStart = getTeamEffectiveStartDate(userPick.createdAt);
+      const captainIdString = userPick.captainId?.toString();
+
+      // Only include points if tournament is on or after team's effective start date
+      if (tournamentDate >= teamEffectiveStart) {
+        for (const golferId of userPick.golferIds) {
+          const isCaptain = golferId.toString() === captainIdString;
+          const captainMultiplier = isCaptain ? 2 : 1;
+          totalPoints += (golferPointsMap.get(golferId.toString()) || 0) * captainMultiplier;
+        }
       }
     }
 

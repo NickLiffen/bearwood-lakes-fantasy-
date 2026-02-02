@@ -237,7 +237,7 @@ const GolferProfilePage: React.FC = () => {
           </div>
 
           {/* Stats Grid */}
-          <div className="stats-grid">
+          <div className="season-stats-grid">
             {/* 2025 Season */}
             <div className="season-card">
               <div className="season-header">

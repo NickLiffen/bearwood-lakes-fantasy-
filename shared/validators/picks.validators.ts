@@ -9,6 +9,7 @@ export const savePicksSchema = z.object({
     .min(MIN_PLAYERS, `You must select exactly ${MIN_PLAYERS} golfers`)
     .max(MAX_PLAYERS, `You must select exactly ${MAX_PLAYERS} golfers`)
     .refine((ids) => new Set(ids).size === ids.length, 'Duplicate golfers are not allowed'),
+  captainId: z.string().nullable().optional(),
 });
 
 export type SavePicksInput = z.infer<typeof savePicksSchema>;

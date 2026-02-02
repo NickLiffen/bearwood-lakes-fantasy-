@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import AdminLayout from '../../components/AdminLayout/AdminLayout';
+import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { validators, sanitizers, getInputClassName } from '../../utils/validation';
 import { useApiClient } from '../../hooks/useApiClient';
 
@@ -660,7 +661,7 @@ const GolfersAdminPage: React.FC = () => {
 
         {loading ? (
           <div className="admin-card-body">
-            <p>Loading Golfers...</p>
+            <LoadingSpinner text="Loading golfers..." size="medium" fullPage={false} />
           </div>
         ) : Golfers.length === 0 ? (
           <div className="empty-state">

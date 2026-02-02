@@ -1,33 +1,23 @@
 // My Team Page - View your fantasy team and scores
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import PageLayout from '../../components/layout/PageLayout';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
+import DataTable, { Column } from '../../components/ui/DataTable';
 import { useApiClient } from '../../hooks/useApiClient';
-import { formatPrice, getMembershipLabel, getMembershipClass } from '../../utils/formatters';
+import { formatPrice } from '../../utils/formatters';
+import type {
+  GolferSeasonStats,
+  MembershipType,
+} from '@shared/types';
+import type {
+  TournamentScore,
+  WeekOption,
+} from '@shared/types';
 import './MyTeamPage.css';
 
-interface GolferStats {
-  timesScored36Plus: number;
-  timesFinished1st: number;
-  timesFinished2nd: number;
-  timesFinished3rd: number;
-  timesPlayed: number;
-}
-
-interface TournamentScore {
-  tournamentId: string;
-  tournamentName: string;
-  position: number | null;
-  basePoints: number;
-  bonusPoints: number;
-  multipliedPoints: number;
-  scored36Plus: boolean;
-  participated: boolean;
-  tournamentDate: string;
-}
-
+// Local interface for golfer with scores - matches API response structure
 interface GolferWithScores {
   golfer: {
     id: string;
@@ -35,50 +25,157 @@ interface GolferWithScores {
     lastName: string;
     picture: string;
     price: number;
-    membershipType: 'men' | 'junior' | 'female' | 'senior';
+    membershipType: MembershipType;
     isActive: boolean;
-    stats2025: GolferStats;
-    stats2026: GolferStats;
+    stats2025: GolferSeasonStats;
+    stats2026: GolferSeasonStats;
   };
   weekPoints: number;
-  monthPoints: number;
   seasonPoints: number;
   weekScores: TournamentScore[];
-  monthScores: TournamentScore[];
   seasonScores: TournamentScore[];
+  isCaptain: boolean;
 }
 
+// Local interface for team data - matches API response structure
 interface TeamData {
   golfers: GolferWithScores[];
   totals: {
     weekPoints: number;
-    monthPoints: number;
     seasonPoints: number;
     totalSpent: number;
   };
-  weekStart: string;
-  monthStart: string;
+  captainId: string | null;
+  period: {
+    weekStart: string;
+    weekEnd: string;
+    label: string;
+    hasPrevious: boolean;
+    hasNext: boolean;
+  };
   seasonStart: string;
+  teamEffectiveStart: string;
   createdAt: string;
   updatedAt: string;
 }
 
-interface MyTeamResponse {
+// Local interface for API response - matches backend structure
+interface MyTeamApiResponse {
   hasTeam: boolean;
   transfersOpen: boolean;
   allowNewTeamCreation: boolean;
+  maxTransfersPerWeek: number;
+  transfersUsedThisWeek: number;
   team: TeamData | null;
 }
 
-type ViewMode = 'week' | 'month' | 'season';
+// Helper to get Saturday of the week containing a date
+const getSaturdayOfWeek = (date: Date): Date => {
+  const d = new Date(date);
+  const dayOfWeek = d.getDay(); // 0 = Sunday, 6 = Saturday
+  let daysSinceSaturday: number;
+  if (dayOfWeek === 6) {
+    daysSinceSaturday = 0;
+  } else {
+    daysSinceSaturday = dayOfWeek + 1;
+  }
+  d.setDate(d.getDate() - daysSinceSaturday);
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+// Helper to format date as YYYY-MM-DD
+const formatDateString = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+// Helper to format week label like "Sat, Feb 1, 2026"
+const formatWeekLabel = (weekStart: Date): string => {
+  return weekStart.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+};
 
 const MyTeamPage: React.FC = () => {
-  const [teamData, setTeamData] = useState<MyTeamResponse | null>(null);
+  const [teamData, setTeamData] = useState<MyTeamApiResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('week');
-  const [expandedPlayer, setExpandedPlayer] = useState<string | null>(null);
-  const { get, isAuthReady } = useApiClient();
+  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [weekOptions, setWeekOptions] = useState<WeekOption[]>([]);
+  const [savingCaptain, setSavingCaptain] = useState(false);
+  const { get, post, isAuthReady } = useApiClient();
+
+  // Generate week options from team effective start to current week
+  // Only shows weeks where the team could have earned points
+  const generateWeekOptions = useCallback((teamEffectiveStart: string) => {
+    const options: WeekOption[] = [];
+    const effectiveStart = new Date(teamEffectiveStart);
+    // Normalize to midnight for consistent comparison with getSaturdayOfWeek
+    effectiveStart.setHours(0, 0, 0, 0);
+    const now = new Date();
+    let current = getSaturdayOfWeek(now);
+
+    // Go back through weeks, stopping at team effective start
+    while (current >= effectiveStart) {
+      options.push({
+        value: formatDateString(current),
+        label: formatWeekLabel(current),
+      });
+      current = new Date(current);
+      current.setDate(current.getDate() - 7);
+    }
+
+    // Always include at least current week even if team just created
+    if (options.length === 0) {
+      const currentWeek = getSaturdayOfWeek(now);
+      options.push({
+        value: formatDateString(currentWeek),
+        label: formatWeekLabel(currentWeek),
+      });
+    }
+
+    return options;
+  }, []);
+
+  const fetchTeam = useCallback(async (date?: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const endpoint = date ? `my-team?date=${date}` : 'my-team';
+      const response = await get<MyTeamApiResponse>(endpoint);
+
+      if (response.cancelled) return;
+
+      if (response.success && response.data) {
+        setTeamData(response.data);
+
+        // Set selected date from response
+        if (response.data.team?.period) {
+          const weekStart = new Date(response.data.team.period.weekStart);
+          setSelectedDate(formatDateString(weekStart));
+
+          // Generate week options if not already set
+          if (weekOptions.length === 0) {
+            const options = generateWeekOptions(response.data.team.teamEffectiveStart);
+            setWeekOptions(options);
+          }
+        }
+      } else {
+        setError(response.error || 'Failed to load team');
+      }
+      setLoading(false);
+    } catch {
+      setError('Failed to load your team. Please try again.');
+      setLoading(false);
+    }
+  }, [get, weekOptions.length, generateWeekOptions]);
 
   useEffect(() => {
     if (isAuthReady) {
@@ -86,72 +183,97 @@ const MyTeamPage: React.FC = () => {
     }
   }, [isAuthReady]);
 
-  const fetchTeam = async () => {
+  // Navigation handlers
+  const handleWeekNavigation = (direction: 'prev' | 'next') => {
+    if (!selectedDate) return;
+    const current = new Date(selectedDate);
+    current.setDate(current.getDate() + (direction === 'next' ? 7 : -7));
+    const newDate = formatDateString(current);
+    setSelectedDate(newDate);
+    fetchTeam(newDate);
+  };
+
+  const handleWeekSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newDate = e.target.value;
+    setSelectedDate(newDate);
+    fetchTeam(newDate);
+  };
+
+  // Handle setting a golfer as captain
+  const handleSetCaptain = async (golferId: string) => {
+    if (!teamData?.team || savingCaptain) return;
+
+    setSavingCaptain(true);
     try {
-      setLoading(true);
-      setError(null);
+      const response = await post('picks-save', {
+        golferIds: teamData.team.golfers.map(g => g.golfer.id),
+        captainId: golferId,
+      });
 
-      const response = await get<MyTeamResponse>('my-team');
-
-      if (response.cancelled) return;
-
-      if (response.success && response.data) {
-        setTeamData(response.data);
+      if (response.success) {
+        // Refresh team data to get updated points
+        fetchTeam(selectedDate);
       } else {
-        setError(response.error || 'Failed to load team');
+        alert(response.error || 'Failed to set captain');
       }
     } catch {
-      setError('Failed to load your team. Please try again.');
+      alert('Failed to set captain. Please try again.');
     } finally {
-      setLoading(false);
+      setSavingCaptain(false);
     }
   };
 
-  // Helper functions
-  const getPositionDisplay = (position: number | null) => {
-    if (position === null) return '-';
-    if (position === 1) return '🥇 1st';
-    if (position === 2) return '🥈 2nd';
-    if (position === 3) return '🥉 3rd';
-    return `${position}th`;
-  };
+  // Column definitions for DataTable
+  const getColumns = (): Column<GolferWithScores>[] => [
+    {
+      key: 'captain',
+      header: 'C',
+      align: 'center',
+      render: (golferData) => (
+        <button
+          onClick={() => handleSetCaptain(golferData.golfer.id)}
+          className={`captain-badge ${golferData.isCaptain ? 'active' : ''}`}
+          disabled={savingCaptain}
+          title={golferData.isCaptain ? 'Captain (2x points)' : 'Set as captain'}
+        >
+          C
+        </button>
+      ),
+    },
+    {
+      key: 'golfer',
+      header: 'Golfer',
+      render: (golferData) => (
+        <div className="dt-info-cell">
+          <div className="dt-avatar">
+            {golferData.golfer.picture ? (
+              <img src={golferData.golfer.picture} alt={`${golferData.golfer.firstName} ${golferData.golfer.lastName}`} />
+            ) : (
+              <span className="dt-avatar-placeholder">
+                {golferData.golfer.firstName[0]}{golferData.golfer.lastName[0]}
+              </span>
+            )}
+          </div>
+          <Link to={`/golfers/${golferData.golfer.id}`} className="dt-text-link">
+            {golferData.golfer.firstName} {golferData.golfer.lastName}
+          </Link>
+        </div>
+      ),
+    },
+    {
+      key: 'week-pts',
+      header: 'Week Pts',
+      align: 'right',
+      render: (golferData) => (
+        <span className="dt-text-primary">
+          {golferData.weekPoints}
+          {golferData.isCaptain && <span className="captain-multiplier">(2x)</span>}
+        </span>
+      ),
+    },
+  ];
 
-  const getPointsForView = (golfer: GolferWithScores) => {
-    switch (viewMode) {
-      case 'week': return golfer.weekPoints;
-      case 'month': return golfer.monthPoints;
-      case 'season': return golfer.seasonPoints;
-    }
-  };
-
-  const getScoresForView = (golfer: GolferWithScores) => {
-    switch (viewMode) {
-      case 'week': return golfer.weekScores;
-      case 'month': return golfer.monthScores;
-      case 'season': return golfer.seasonScores;
-    }
-  };
-
-  const getViewLabel = () => {
-    switch (viewMode) {
-      case 'week': return 'This Week';
-      case 'month': return 'This Month';
-      case 'season': return '2026 Season';
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-GB', {
-      day: 'numeric',
-      month: 'short',
-    });
-  };
-
-  const togglePlayerExpand = (playerId: string) => {
-    setExpandedPlayer(expandedPlayer === playerId ? null : playerId);
-  };
-
-  // Loading state - uses standard LoadingSpinner
+  // Loading state
   if (loading) {
     return (
       <PageLayout activeNav="my-team">
@@ -164,14 +286,32 @@ const MyTeamPage: React.FC = () => {
     );
   }
 
-  // Error state - data failed to load
+  // Error state
+  if (error) {
+    return (
+      <PageLayout activeNav="my-team">
+        <div className="my-team-content">
+          <div className="my-team-container">
+            <div className="error-state">
+              <p>{error}</p>
+              <button onClick={() => fetchTeam()} className="btn-primary" style={{ marginTop: '1rem' }}>
+                Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+      </PageLayout>
+    );
+  }
+
+  // Safety fallback
   if (teamData === null) {
     return (
       <PageLayout activeNav="my-team">
         <div className="my-team-content">
           <div className="my-team-container">
             <div className="error-state">
-              <p>{error || 'Failed to load team data. Please refresh the page.'}</p>
+              <p>Unable to load team data. Please refresh the page.</p>
             </div>
           </div>
         </div>
@@ -208,53 +348,55 @@ const MyTeamPage: React.FC = () => {
 
   const team = teamData.team!;
 
-  // Sort golfers by points for current view
-  const sortedGolfers = [...team.golfers].sort((a, b) => {
-    const aPoints = getPointsForView(a);
-    const bPoints = getPointsForView(b);
-    return bPoints - aPoints;
-  });
+  // Sort golfers by week points
+  const sortedGolfers = [...team.golfers].sort((a, b) => b.weekPoints - a.weekPoints);
 
   return (
     <PageLayout activeNav="my-team">
       <div className="my-team-content">
         <div className="my-team-container">
-          {/* Page Header - Standard pattern */}
+          {/* Page Header */}
           <div className="users-page-header">
             <div className="page-header-row">
               <div>
-                <h1>⛳ My Team</h1>
+                <h1>My Team</h1>
                 <p className="users-page-subtitle">Your 2026 Fantasy Golf Squad</p>
               </div>
-              {teamData.transfersOpen ? (
-                <Link to="/team-builder" className="btn-edit-team">
-                  Edit Team →
-                </Link>
-              ) : (
-                <span className="transfers-locked">
-                  🔒 Transfers Locked
-                </span>
-              )}
+              <div className="header-actions">
+                {teamData.transfersOpen ? (
+                  <>
+                    <span className="transfers-info">
+                      Transfers: {teamData.transfersUsedThisWeek} / {teamData.maxTransfersPerWeek} used this week
+                    </span>
+                    {teamData.transfersUsedThisWeek < teamData.maxTransfersPerWeek ? (
+                      <Link to="/team-builder" className="btn-edit-team">
+                        Edit Team →
+                      </Link>
+                    ) : (
+                      <span className="transfers-exhausted">
+                        No transfers remaining
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <span className="transfers-locked">
+                    Transfers Locked
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Stats Grid - 4 cards */}
-          <section className="stats-grid">
-            <div className={`stat-card ${viewMode === 'week' ? 'stat-card-active' : ''}`}>
+          {/* Stats Grid - 3 cards */}
+          <section className="team-stats-grid">
+            <div className="stat-card stat-card-active">
               <div className="stat-icon">📅</div>
               <div className="stat-content">
                 <span className="stat-value">{team.totals.weekPoints}</span>
-                <span className="stat-label">This Week</span>
+                <span className="stat-label">Week Points</span>
               </div>
             </div>
-            <div className={`stat-card ${viewMode === 'month' ? 'stat-card-active' : ''}`}>
-              <div className="stat-icon">📆</div>
-              <div className="stat-content">
-                <span className="stat-value">{team.totals.monthPoints}</span>
-                <span className="stat-label">This Month</span>
-              </div>
-            </div>
-            <div className={`stat-card ${viewMode === 'season' ? 'stat-card-active' : ''}`}>
+            <div className="stat-card">
               <div className="stat-icon">🏆</div>
               <div className="stat-content">
                 <span className="stat-value">{team.totals.seasonPoints}</span>
@@ -270,25 +412,32 @@ const MyTeamPage: React.FC = () => {
             </div>
           </section>
 
-          {/* View Toggle */}
-          <div className="view-toggle">
+          {/* Week Navigation */}
+          <div className="period-navigation">
             <button
-              className={`toggle-btn ${viewMode === 'week' ? 'active' : ''}`}
-              onClick={() => setViewMode('week')}
+              className="nav-btn"
+              onClick={() => handleWeekNavigation('prev')}
+              disabled={!team.period.hasPrevious}
+              title="Previous week"
             >
-              This Week
+              ←
             </button>
-            <button
-              className={`toggle-btn ${viewMode === 'month' ? 'active' : ''}`}
-              onClick={() => setViewMode('month')}
+            <select
+              className="period-select"
+              value={selectedDate}
+              onChange={handleWeekSelect}
             >
-              This Month
-            </button>
+              {weekOptions.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
             <button
-              className={`toggle-btn ${viewMode === 'season' ? 'active' : ''}`}
-              onClick={() => setViewMode('season')}
+              className="nav-btn"
+              onClick={() => handleWeekNavigation('next')}
+              disabled={!team.period.hasNext}
+              title="Next week"
             >
-              2026 Season
+              →
             </button>
           </div>
 
@@ -297,148 +446,29 @@ const MyTeamPage: React.FC = () => {
             <div className="error-message">{error}</div>
           )}
 
-          {/* Golfers Section - Card with header */}
+          {/* Golfers Section - Using DataTable */}
           <section className="dashboard-card">
             <div className="card-header">
               <h2>Your 6 Golfers</h2>
-              <span className="card-header-subtitle">Sorted by {getViewLabel()} points</span>
+              <span className="card-header-subtitle">Sorted by week points</span>
             </div>
-            <div className="golfers-list">
-              {sortedGolfers.map((golferData: GolferWithScores, index: number) => {
-                const { golfer } = golferData;
-                const points = getPointsForView(golferData);
-                const scores = getScoresForView(golferData);
-                const isExpanded = expandedPlayer === golfer.id;
-
-                return (
-                  <div key={golfer.id} className="golfer-card">
-                    <div
-                      className="golfer-card-main"
-                      onClick={() => togglePlayerExpand(golfer.id)}
-                    >
-                      <div className="golfer-rank">#{index + 1}</div>
-                      <div className="golfer-avatar">
-                        {golfer.picture ? (
-                          <img src={golfer.picture} alt={`${golfer.firstName} ${golfer.lastName}`} />
-                        ) : (
-                          <div className="avatar-placeholder">
-                            {golfer.firstName[0]}{golfer.lastName[0]}
-                          </div>
-                        )}
-                      </div>
-                      <div className="golfer-info">
-                        <Link
-                          to={`/golfers/${golfer.id}`}
-                          className="golfer-name"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {golfer.firstName} {golfer.lastName}
-                        </Link>
-                        <div className="golfer-meta">
-                          <span className={`membership-badge ${getMembershipClass(golfer.membershipType)}`}>
-                            {getMembershipLabel(golfer.membershipType)}
-                          </span>
-                          <span className="golfer-price">{formatPrice(golfer.price)}</span>
-                        </div>
-                      </div>
-                      <div className="golfer-points">
-                        <span className="points-number">{points}</span>
-                        <span className="points-text">pts</span>
-                      </div>
-                      <div className={`expand-icon ${isExpanded ? 'expanded' : ''}`}>
-                        ▼
-                      </div>
-                    </div>
-
-                    {/* Expanded Details */}
-                    {isExpanded && (
-                      <div className="golfer-details">
-                        {/* 2026 Stats Summary */}
-                        <div className="golfer-stats-summary">
-                          <h4>2026 Season Stats</h4>
-                          <div className="golfer-stats-grid">
-                            <div className="golfer-stat-item">
-                              <span className="golfer-stat-value">{golfer.stats2026?.timesPlayed || 0}</span>
-                              <span className="golfer-stat-label">Played</span>
-                            </div>
-                            <div className="golfer-stat-item">
-                              <span className="golfer-stat-value gold">{golfer.stats2026?.timesFinished1st || 0}</span>
-                              <span className="golfer-stat-label">1st</span>
-                            </div>
-                            <div className="golfer-stat-item">
-                              <span className="golfer-stat-value silver">{golfer.stats2026?.timesFinished2nd || 0}</span>
-                              <span className="golfer-stat-label">2nd</span>
-                            </div>
-                            <div className="golfer-stat-item">
-                              <span className="golfer-stat-value bronze">{golfer.stats2026?.timesFinished3rd || 0}</span>
-                              <span className="golfer-stat-label">3rd</span>
-                            </div>
-                            <div className="golfer-stat-item">
-                              <span className="golfer-stat-value">{golfer.stats2026?.timesScored36Plus || 0}</span>
-                              <span className="golfer-stat-label">36+</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Tournament Scores */}
-                        <div className="tournament-scores">
-                          <h4>{getViewLabel()} Tournaments</h4>
-                          {scores.length === 0 ? (
-                            <p className="no-scores">No tournament results for this period</p>
-                          ) : (
-                            <div className="scores-list">
-                              {scores.map((score) => (
-                                <div key={score.tournamentId} className="score-row">
-                                  <div className="score-tournament">
-                                    <span className="tournament-name">{score.tournamentName}</span>
-                                    <span className="tournament-date">{formatDate(score.tournamentDate)}</span>
-                                  </div>
-                                  <div className="score-result">
-                                    {score.participated ? (
-                                      <>
-                                        <span className="result-position">{getPositionDisplay(score.position)}</span>
-                                        {score.scored36Plus && <span className="bonus-badge">+36</span>}
-                                      </>
-                                    ) : (
-                                      <span className="did-not-play">DNP</span>
-                                    )}
-                                  </div>
-                                  <div className="score-points">
-                                    <span className={`points ${score.multipliedPoints > 0 ? 'positive' : ''}`}>
-                                      {score.multipliedPoints > 0 ? `+${score.multipliedPoints}` : score.multipliedPoints}
-                                    </span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Points Breakdown */}
-                        <div className="points-breakdown">
-                          <div className="breakdown-item">
-                            <span className="breakdown-label">Week</span>
-                            <span className="breakdown-value">{golferData.weekPoints} pts</span>
-                          </div>
-                          <div className="breakdown-item">
-                            <span className="breakdown-label">Month</span>
-                            <span className="breakdown-value">{golferData.monthPoints} pts</span>
-                          </div>
-                          <div className="breakdown-item">
-                            <span className="breakdown-label">Season</span>
-                            <span className="breakdown-value">{golferData.seasonPoints} pts</span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+            <DataTable
+              data={sortedGolfers}
+              columns={getColumns()}
+              rowKey={(golferData) => golferData.golfer.id}
+              emptyMessage="No golfers in your team yet."
+            />
           </section>
 
           {/* Team Info Footer */}
           <div className="team-info-footer">
+            <p>Team created: {new Date(team.createdAt).toLocaleDateString('en-GB', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            })}</p>
             <p>Team last updated: {new Date(team.updatedAt).toLocaleDateString('en-GB', {
               day: 'numeric',
               month: 'long',

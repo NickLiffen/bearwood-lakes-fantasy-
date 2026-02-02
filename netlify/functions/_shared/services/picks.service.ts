@@ -13,6 +13,7 @@ import { GolferDocument, GOLFERS_COLLECTION } from '../models/Golfer';
 import { SettingDocument, SETTINGS_COLLECTION } from '../models/Settings';
 import { BUDGET_CAP, MAX_GOLFERS } from '../../../../shared/constants/rules';
 import type { Pick, PickWithGolfers, PickHistory } from '../../../../shared/types';
+import { getWeekStart } from '../utils/dates';
 
 async function getCurrentSeason(): Promise<number> {
   const { db } = await connectToDatabase();
@@ -37,6 +38,39 @@ async function isNewTeamCreationAllowed(): Promise<boolean> {
     .findOne({ key: 'allowNewTeamCreation' });
   // Default to true if not set
   return setting?.value !== undefined ? (setting.value as boolean) : true;
+}
+
+async function getMaxTransfersPerWeek(): Promise<number> {
+  const { db } = await connectToDatabase();
+  const setting = await db
+    .collection<SettingDocument>(SETTINGS_COLLECTION)
+    .findOne({ key: 'maxTransfersPerWeek' });
+  return (setting?.value as number) || 1;
+}
+
+async function getMaxPlayersPerTransfer(): Promise<number> {
+  const { db } = await connectToDatabase();
+  const setting = await db
+    .collection<SettingDocument>(SETTINGS_COLLECTION)
+    .findOne({ key: 'maxPlayersPerTransfer' });
+  return (setting?.value as number) || 6; // Default to 6 (full team)
+}
+
+export async function getTransfersThisWeek(userId: string): Promise<number> {
+  const { db } = await connectToDatabase();
+  const weekStart = getWeekStart(new Date());
+
+  // Count pickHistory entries for this user since weekStart
+  // Exclude initial picks (reason === 'Initial pick')
+  const count = await db
+    .collection<PickHistoryDocument>(PICK_HISTORY_COLLECTION)
+    .countDocuments({
+      userId: new ObjectId(userId),
+      changedAt: { $gte: weekStart },
+      reason: { $ne: 'Initial pick' },
+    });
+
+  return count;
 }
 
 export async function getUserPicks(userId: string, season?: number): Promise<Pick | null> {
@@ -77,6 +111,13 @@ export async function getUserPicksWithGolfers(userId: string): Promise<PickWithG
       timesFinished3rd: 0,
       timesPlayed: 0,
     },
+    stats2026: g.stats2026 || {
+      timesScored36Plus: 0,
+      timesFinished1st: 0,
+      timesFinished2nd: 0,
+      timesFinished3rd: 0,
+      timesPlayed: 0,
+    },
     createdAt: g.createdAt,
     updatedAt: g.updatedAt,
   }));
@@ -87,7 +128,8 @@ export async function getUserPicksWithGolfers(userId: string): Promise<PickWithG
 export async function savePicks(
   userId: string,
   golferIds: string[],
-  reason: string = 'Team selection'
+  reason: string = 'Team selection',
+  captainId?: string | null
 ): Promise<Pick> {
   const { db } = await connectToDatabase();
   const picksCollection = db.collection<PickDocument>(PICKS_COLLECTION);
@@ -97,10 +139,43 @@ export async function savePicks(
   // Check if transfers are open (for existing teams) or new team creation is allowed (for new teams)
   const existingPick = await getUserPicks(userId);
   if (existingPick) {
-    // User has an existing team - this is a transfer
-    const transfersOpen = await areTransfersOpen();
-    if (!transfersOpen) {
-      throw new Error('Transfers are currently locked');
+    // Check if this is ONLY a captain change (same golfers, different captain)
+    const oldGolferIds = new Set(existingPick.golferIds.map(id => id.toString()));
+    const newGolferIds = new Set(golferIds);
+    const isSameGolfers = oldGolferIds.size === newGolferIds.size &&
+      [...oldGolferIds].every(id => newGolferIds.has(id));
+
+    const isCaptainOnlyChange = isSameGolfers && captainId !== undefined;
+
+    // Captain changes are always allowed, but golfer changes require transfers to be open
+    if (!isCaptainOnlyChange) {
+      // User has an existing team and is changing golfers - this is a transfer
+      const transfersOpen = await areTransfersOpen();
+      if (!transfersOpen) {
+        throw new Error('Transfers are currently locked');
+      }
+
+      // Check transfer limit
+      const maxTransfers = await getMaxTransfersPerWeek();
+      const transfersUsed = await getTransfersThisWeek(userId);
+
+      if (transfersUsed >= maxTransfers) {
+        throw new Error(`Transfer limit reached. You've used ${transfersUsed} of ${maxTransfers} transfer${maxTransfers === 1 ? '' : 's'} this week.`);
+      }
+
+      // Check how many players are being changed
+      const removedCount = [...oldGolferIds].filter(id => !newGolferIds.has(id)).length;
+      const addedCount = [...newGolferIds].filter(id => !oldGolferIds.has(id)).length;
+      const playersChanged = Math.max(removedCount, addedCount);
+
+      const maxPlayersPerTransfer = await getMaxPlayersPerTransfer();
+
+      if (playersChanged > maxPlayersPerTransfer) {
+        throw new Error(
+          `You can only swap ${maxPlayersPerTransfer} golfer${maxPlayersPerTransfer === 1 ? '' : 's'} per transfer. ` +
+          `You're trying to change ${playersChanged}.`
+        );
+      }
     }
   } else {
     // User doesn't have a team - this is initial creation
@@ -118,6 +193,11 @@ export async function savePicks(
   // Check for duplicates
   if (new Set(golferIds).size !== golferIds.length) {
     throw new Error('Duplicate golfers are not allowed');
+  }
+
+  // Validate captain is in selected golfers
+  if (captainId && !golferIds.includes(captainId)) {
+    throw new Error('Captain must be one of your selected golfers');
   }
 
   // Get golfers and calculate total
@@ -154,6 +234,7 @@ export async function savePicks(
     {
       $set: {
         golferIds: objectIds,
+        captainId: captainId ? new ObjectId(captainId) : null,
         totalSpent,
         updatedAt: now,
       },

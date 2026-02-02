@@ -6,6 +6,7 @@ export interface Pick {
   id: string;
   userId: string;
   golferIds: string[];
+  captainId: string | null;
   totalSpent: number;
   season: number;
   createdAt: Date;
@@ -18,6 +19,7 @@ export interface PickWithGolfers extends Omit<Pick, 'golferIds'> {
 
 export interface SavePicksRequest {
   golferIds: string[];
+  captainId?: string | null;
 }
 
 export interface UserPicksSummary {

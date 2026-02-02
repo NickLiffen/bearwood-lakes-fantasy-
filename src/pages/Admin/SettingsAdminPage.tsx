@@ -11,6 +11,8 @@ interface AppSettings {
   allowNewTeamCreation: boolean;
   seasonStartDate: string;
   seasonEndDate: string;
+  maxTransfersPerWeek: number;
+  maxPlayersPerTransfer: number;
 }
 
 const SettingsAdminPage: React.FC = () => {
@@ -245,6 +247,92 @@ const SettingsAdminPage: React.FC = () => {
           <div style={{ background: '#f3f4f6', padding: '1rem', borderRadius: '8px', fontSize: '0.85rem', color: '#6b7280' }}>
             💡 <strong>Tip:</strong> Lock transfers during tournaments to prevent users from changing their teams while games are in progress.
           </div>
+
+          {/* Max Transfers Per Week - only show when transfers are open */}
+          {settings?.transfersOpen && (
+            <div style={{ marginTop: '1.5rem', padding: '1rem', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+                    Maximum Transfers Per Week
+                  </h3>
+                  <p style={{ color: '#6b7280', fontSize: '0.9rem', margin: 0 }}>
+                    Number of times users can change their team each week (resets Saturday 8am).
+                  </p>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={settings?.maxTransfersPerWeek || 1}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      if (val >= 1 && val <= 10) {
+                        updateSetting('maxTransfersPerWeek', val);
+                      }
+                    }}
+                    disabled={updating === 'maxTransfersPerWeek'}
+                    style={{
+                      width: '80px',
+                      padding: '0.5rem 0.75rem',
+                      fontSize: '1.25rem',
+                      fontWeight: 700,
+                      textAlign: 'center',
+                      border: '2px solid #d1d5db',
+                      borderRadius: '8px',
+                    }}
+                  />
+                  <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>
+                    {updating === 'maxTransfersPerWeek' ? 'Saving...' : 'per week'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Max Players Per Transfer - only show when transfers are open */}
+          {settings?.transfersOpen && (
+            <div style={{ marginTop: '1rem', padding: '1rem', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.25rem' }}>
+                    Maximum Players Per Transfer
+                  </h3>
+                  <p style={{ color: '#6b7280', fontSize: '0.9rem', margin: 0 }}>
+                    How many golfers can be swapped in a single transfer (1-6).
+                  </p>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <input
+                    type="number"
+                    min="1"
+                    max="6"
+                    value={settings?.maxPlayersPerTransfer || 6}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value);
+                      if (val >= 1 && val <= 6) {
+                        updateSetting('maxPlayersPerTransfer', val);
+                      }
+                    }}
+                    disabled={updating === 'maxPlayersPerTransfer'}
+                    style={{
+                      width: '80px',
+                      padding: '0.5rem 0.75rem',
+                      fontSize: '1.25rem',
+                      fontWeight: 700,
+                      textAlign: 'center',
+                      border: '2px solid #d1d5db',
+                      borderRadius: '8px',
+                    }}
+                  />
+                  <span style={{ color: '#6b7280', fontSize: '0.9rem' }}>
+                    {updating === 'maxPlayersPerTransfer' ? 'Saving...' : 'golfer(s)'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

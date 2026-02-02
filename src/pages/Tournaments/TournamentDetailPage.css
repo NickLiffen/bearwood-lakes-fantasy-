@@ -1,0 +1,457 @@
+/* TournamentDetailPage Styles */
+
+.tournament-detail-content {
+  padding: 2rem 0;
+}
+
+.tournament-detail-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+/* Back Link */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--muted-text);
+  text-decoration: none;
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+  transition: color 0.2s ease;
+}
+
+.back-link:hover {
+  color: var(--primary-green);
+}
+
+/* Tournament Header */
+.tournament-header {
+  margin-bottom: 2rem;
+}
+
+.tournament-header h1 {
+  font-family: var(--font-serif);
+  font-size: 2rem;
+  color: var(--dark-text);
+  margin-bottom: 0.75rem;
+}
+
+.tournament-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.tournament-date {
+  color: var(--muted-text);
+  font-size: 0.95rem;
+}
+
+/* Detail Type Badge */
+.detail-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.detail-type-regular {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.detail-type-elevated {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.detail-type-signature {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #92400e;
+}
+
+.detail-type-badge .multiplier {
+  background: rgba(0, 0, 0, 0.1);
+  padding: 0.125rem 0.375rem;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+/* Status Badge */
+.status-badge {
+  padding: 0.375rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.status-complete {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-published {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.status-draft {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+/* Stats Grid */
+.tournament-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.25rem;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.stat-icon {
+  font-size: 0.85rem;
+  color: var(--muted-text);
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--primary-green);
+  margin-bottom: 0.25rem;
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  color: var(--muted-text);
+}
+
+/* Podium Section */
+.podium-section {
+  margin-bottom: 2rem;
+}
+
+.podium-section h2 {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  color: var(--dark-text);
+  margin-bottom: 1.25rem;
+}
+
+.podium-display {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.podium-position {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.25rem;
+  border-radius: 12px;
+  background: white;
+  min-width: 140px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease;
+}
+
+.podium-position:hover {
+  transform: translateY(-4px);
+}
+
+/* First Place - Tallest */
+.podium-first {
+  padding-bottom: 2rem;
+  border: 2px solid #fbbf24;
+  background: linear-gradient(180deg, #fffbeb 0%, #ffffff 100%);
+}
+
+/* Second Place */
+.podium-second {
+  padding-bottom: 1.5rem;
+  border: 2px solid #9ca3af;
+  background: linear-gradient(180deg, #f9fafb 0%, #ffffff 100%);
+}
+
+/* Third Place */
+.podium-third {
+  padding-bottom: 1rem;
+  border: 2px solid #d97706;
+  background: linear-gradient(180deg, #fffbeb 0%, #ffffff 100%);
+}
+
+.podium-trophy {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #b8860b;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  margin-bottom: 0.75rem;
+}
+
+.podium-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.podium-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.podium-avatar span {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--muted-text);
+}
+
+.podium-first .podium-avatar {
+  width: 80px;
+  height: 80px;
+  border: 3px solid #fbbf24;
+}
+
+.podium-first .podium-avatar span {
+  font-size: 1.5rem;
+}
+
+.podium-rank {
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+}
+
+.podium-first .podium-rank {
+  color: #b8860b;
+}
+
+.podium-second .podium-rank {
+  color: #6b7280;
+}
+
+.podium-third .podium-rank {
+  color: #d97706;
+}
+
+.podium-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--dark-text);
+  text-decoration: none;
+  text-align: center;
+  margin-bottom: 0.375rem;
+  transition: color 0.2s ease;
+}
+
+.podium-name:hover {
+  color: var(--primary-green);
+}
+
+.podium-points {
+  font-size: 0.85rem;
+  color: var(--primary-green);
+  font-weight: 600;
+}
+
+.podium-empty {
+  color: var(--muted-text);
+  font-size: 1rem;
+}
+
+/* Results Section */
+.results-section {
+  margin-bottom: 2rem;
+}
+
+.results-section h2 {
+  font-family: var(--font-serif);
+  font-size: 1.5rem;
+  color: var(--dark-text);
+  margin-bottom: 1.25rem;
+}
+
+/* Position Badges */
+.position-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.position-gold {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #92400e;
+  border: 2px solid #fbbf24;
+}
+
+.position-silver {
+  background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+  color: #4b5563;
+  border: 2px solid #9ca3af;
+}
+
+.position-bronze {
+  background: linear-gradient(135deg, #fef3c7, #fed7aa);
+  color: #92400e;
+  border: 2px solid #d97706;
+}
+
+/* 36+ Badge */
+.badge-36plus {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  background: #dcfce7;
+  color: #166534;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* No Results */
+.no-results {
+  background: white;
+  border-radius: 12px;
+  padding: 3rem;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.no-results p {
+  color: var(--muted-text);
+  margin-bottom: 0.5rem;
+}
+
+.no-results-hint {
+  font-size: 0.9rem;
+  color: var(--muted-text);
+}
+
+/* Error State */
+.error-state {
+  background: white;
+  border-radius: 12px;
+  padding: 3rem;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.error-state p {
+  color: #b91c1c;
+  margin-bottom: 1.5rem;
+}
+
+.btn-back {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  background: var(--primary-green);
+  color: white;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: background 0.2s ease;
+}
+
+.btn-back:hover {
+  background: var(--secondary-green);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .tournament-detail-content {
+    padding: 1rem 0;
+  }
+
+  .tournament-detail-container {
+    padding: 0 1rem;
+  }
+
+  .tournament-header h1 {
+    font-size: 1.5rem;
+  }
+
+  .tournament-meta {
+    gap: 0.75rem;
+  }
+
+  .tournament-stats-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .podium-display {
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .podium-position {
+    min-width: 100%;
+    padding: 1rem;
+  }
+
+  .podium-first,
+  .podium-second,
+  .podium-third {
+    padding-bottom: 1rem;
+  }
+
+  /* Reorder podium for mobile: 1st, 2nd, 3rd top to bottom */
+  .podium-first {
+    order: -1;
+  }
+
+  .data-table-wrapper {
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .podium-avatar {
+    width: 56px;
+    height: 56px;
+  }
+
+  .podium-first .podium-avatar {
+    width: 64px;
+    height: 64px;
+  }
+}

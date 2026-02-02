@@ -42,8 +42,8 @@
 }
 
 .modal-close {
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: none;
   background: #f3f4f6;
@@ -84,10 +84,6 @@
   border-top-color: var(--primary-green);
   border-radius: 50%;
   animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
 }
 
 .error-state p {
@@ -382,5 +378,36 @@
   .their-points {
     font-size: 1rem;
     min-width: 50px;
+  }
+}
+
+@media (max-width: 480px) {
+  .modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .compare-modal {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .modal-header {
+    padding: 1rem;
+  }
+
+  .modal-body {
+    padding: 1rem;
+  }
+
+  .summary-col {
+    gap: 0.25rem;
+  }
+
+  .user-avatar-small {
+    width: 40px;
+    height: 40px;
+    font-size: 0.9rem;
   }
 }

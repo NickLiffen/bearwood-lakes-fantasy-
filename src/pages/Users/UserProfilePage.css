@@ -74,6 +74,12 @@
   font-size: 0.85rem;
 }
 
+.profile-team-created {
+  opacity: 0.8;
+  font-size: 0.85rem;
+  color: var(--accent-gold);
+}
+
 .own-profile-badge {
   display: inline-block;
   background: var(--accent-gold);
@@ -207,7 +213,7 @@
   font-size: 0.9rem;
 }
 
-/* View Toggle */
+/* View Toggle (legacy) */
 .view-toggle {
   display: flex;
   gap: 0.5rem;
@@ -238,6 +244,56 @@
   background: white;
   color: var(--primary-green);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Period Navigation */
+.period-navigation {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 0.5rem;
+}
+
+.nav-btn {
+  padding: 0.625rem 1rem;
+  background: var(--primary-green);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.nav-btn:hover:not(:disabled) {
+  background: var(--dark-green);
+}
+
+.nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.period-select {
+  flex: 1;
+  padding: 0.625rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--dark-text);
+  background: #f9fafb;
+  cursor: pointer;
+}
+
+.period-select:focus {
+  outline: none;
+  border-color: var(--primary-green);
 }
 
 /* Team Total */
@@ -648,15 +704,6 @@
   left: 30%;
 }
 
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
 .loading-text {
   color: var(--text-secondary);
   font-size: 1rem;
@@ -732,4 +779,25 @@
   .history-date {
     min-width: auto;
   }
+}
+
+/* Captain indicator and multiplier */
+.captain-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--primary-green);
+  color: white;
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.captain-multiplier {
+  margin-left: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--primary-green);
+  font-weight: 600;
 }

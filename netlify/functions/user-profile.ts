@@ -11,11 +11,21 @@ import { GolferDocument, GOLFERS_COLLECTION, toGolfer } from './_shared/models/G
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
 import { SettingDocument, SETTINGS_COLLECTION } from './_shared/models/Settings';
-import { getWeekStart, getMonthStart, getSeasonStart } from './_shared/utils/dates';
+import { getWeekStart, getMonthStart, getSeasonStart, getTeamEffectiveStartDate } from './_shared/utils/dates';
 
 export const handler: Handler = withAuth(async (event) => {
   try {
     const userId = event.queryStringParameters?.userId;
+    const dateParam = event.queryStringParameters?.date;
+
+    // Parse date parameter for selecting a specific week
+    let targetDate = new Date();
+    if (dateParam) {
+      const parsed = new Date(dateParam);
+      if (!isNaN(parsed.getTime())) {
+        targetDate = parsed;
+      }
+    }
 
     if (!userId) {
       return {
@@ -132,15 +142,23 @@ export const handler: Handler = withAuth(async (event) => {
       golferScoresMap.get(golferId)!.push(score);
     }
 
-    // Time boundaries
+    // Time boundaries - use targetDate for week calculations
     const now = new Date();
-    const weekStart = getWeekStart(now);
+    const weekStart = getWeekStart(targetDate);
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 7);
     const monthStart = getMonthStart(now);
     const seasonStart = getSeasonStart();
 
+    // Team can only earn points from tournaments after team creation
+    const teamEffectiveStart = getTeamEffectiveStartDate(pick.createdAt);
+
     // Build golfer data with scores
+    const captainIdString = pick.captainId?.toString();
     const golfersWithScores = golfers.map((golfer) => {
       const golferScores = golferScoresMap.get(golfer._id.toString()) || [];
+      const isCaptain = golfer._id.toString() === captainIdString;
+      const captainMultiplier = isCaptain ? 2 : 1;
 
       // Format scores with tournament info
       const formattedScores = golferScores.map((score) => {
@@ -158,18 +176,28 @@ export const handler: Handler = withAuth(async (event) => {
         };
       }).sort((a, b) => new Date(b.tournamentDate).getTime() - new Date(a.tournamentDate).getTime());
 
-      // Filter by time period
-      const weekScores = formattedScores.filter((s) => new Date(s.tournamentDate) >= weekStart);
-      const monthScores = formattedScores.filter((s) => new Date(s.tournamentDate) >= monthStart);
-      const seasonScores = formattedScores.filter((s) => new Date(s.tournamentDate) >= seasonStart);
+      // Filter by time period (only tournaments after team was created)
+      const weekScores = formattedScores.filter((s) => {
+        const date = new Date(s.tournamentDate);
+        return date >= weekStart && date < weekEnd && date >= teamEffectiveStart;
+      });
+      const monthScores = formattedScores.filter((s) => {
+        const date = new Date(s.tournamentDate);
+        return date >= monthStart && date >= teamEffectiveStart;
+      });
+      const seasonScores = formattedScores.filter((s) => {
+        const date = new Date(s.tournamentDate);
+        return date >= seasonStart && date >= teamEffectiveStart;
+      });
 
-      // Calculate totals
-      const weekPoints = weekScores.reduce((sum, s) => sum + s.multipliedPoints, 0);
-      const monthPoints = monthScores.reduce((sum, s) => sum + s.multipliedPoints, 0);
-      const seasonPoints = seasonScores.reduce((sum, s) => sum + s.multipliedPoints, 0);
+      // Calculate totals with captain multiplier
+      const weekPoints = weekScores.reduce((sum, s) => sum + s.multipliedPoints, 0) * captainMultiplier;
+      const monthPoints = monthScores.reduce((sum, s) => sum + s.multipliedPoints, 0) * captainMultiplier;
+      const seasonPoints = seasonScores.reduce((sum, s) => sum + s.multipliedPoints, 0) * captainMultiplier;
 
       return {
         golfer: toGolfer(golfer),
+        isCaptain,
         weekPoints,
         monthPoints,
         seasonPoints,
@@ -259,6 +287,22 @@ export const handler: Handler = withAuth(async (event) => {
       };
     });
 
+    // Calculate period navigation info
+    const currentWeek = getWeekStart(new Date());
+    // Use teamEffectiveStart for navigation - can only go back to first week team could earn points
+    const hasPrevious = weekStart > teamEffectiveStart;
+    const hasNext = weekStart < currentWeek;
+
+    // Format week label
+    const formatWeekLabel = (date: Date) => {
+      return date.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    };
+
     return {
       statusCode: 200,
       body: JSON.stringify({
@@ -286,6 +330,16 @@ export const handler: Handler = withAuth(async (event) => {
             createdAt: pick.createdAt,
             updatedAt: pick.updatedAt,
           },
+          period: {
+            weekStart: weekStart.toISOString(),
+            weekEnd: weekEnd.toISOString(),
+            label: formatWeekLabel(weekStart),
+            hasPrevious,
+            hasNext,
+          },
+          teamCreatedAt: pick.createdAt,
+          teamEffectiveStart: teamEffectiveStart.toISOString(),
+          captainId: pick.captainId?.toString() || null,
           history: formattedHistory,
         },
       }),
@@ -344,15 +398,25 @@ async function calculateAllUserPoints(
     let monthPoints = 0;
     let seasonPoints = 0;
 
+    // Only count points from tournaments after team was created
+    const teamEffectiveStart = getTeamEffectiveStartDate(pick.createdAt);
+    const captainIdString = pick.captainId?.toString();
+
     for (const golferId of pick.golferIds) {
       const golferScores = scoresByGolferTournament.get(golferId.toString());
       if (!golferScores) continue;
+
+      const isCaptain = golferId.toString() === captainIdString;
+      const captainMultiplier = isCaptain ? 2 : 1;
 
       for (const [tournamentId, score] of golferScores) {
         const tournamentDate = tournamentDates.get(tournamentId);
         if (!tournamentDate) continue;
 
-        const points = score.multipliedPoints || 0;
+        // Skip tournaments that occurred before team was created
+        if (tournamentDate < teamEffectiveStart) continue;
+
+        const points = (score.multipliedPoints || 0) * captainMultiplier;
 
         if (tournamentDate >= seasonStart) seasonPoints += points;
         if (tournamentDate >= monthStart) monthPoints += points;

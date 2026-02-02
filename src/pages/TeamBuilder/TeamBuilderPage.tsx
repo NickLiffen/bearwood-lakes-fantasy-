@@ -1,6 +1,6 @@
 // Team Builder Page - Pick your fantasy golf team
 
-import React, { useEffect, useState, useRef, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '../../components/layout/PageLayout';
 import { useApiClient } from '../../hooks/useApiClient';
@@ -76,11 +76,9 @@ const TeamBuilderPage: React.FC = () => {
   const [minRoundsPlayed, setMinRoundsPlayed] = useState<number>(0);
   const [showAffordableOnly, setShowAffordableOnly] = useState(false);
   const [settings, setSettings] = useState<Settings | null>(null);
-  const [showCelebration, setShowCelebration] = useState(false);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedGolferDetail, setSelectedGolferDetail] = useState<Golfer | null>(null);
-  const previousPlayerCount = useRef<number | null>(null);
   const { get, post, isAuthReady } = useApiClient();
 
   useEffect(() => {
@@ -88,21 +86,6 @@ const TeamBuilderPage: React.FC = () => {
       fetchData();
     }
   }, [isAuthReady]);
-
-  // Show celebration only when team becomes complete (going from <6 to 6 golfers)
-  useEffect(() => {
-    const currentCount = selectedGolfers.length;
-    const prevCount = previousPlayerCount.current;
-    
-    // Only celebrate if we're going from less than 6 to exactly 6
-    if (prevCount !== null && prevCount < TEAM_SIZE && currentCount === TEAM_SIZE) {
-      setShowCelebration(true);
-      setTimeout(() => setShowCelebration(false), 4000);
-    }
-    
-    // Update the ref with current count
-    previousPlayerCount.current = currentCount;
-  }, [selectedGolfers.length]);
 
   const fetchData = async () => {
     try {
@@ -387,26 +370,6 @@ const TeamBuilderPage: React.FC = () => {
   return (
     <PageLayout activeNav="my-team">
       <div className="team-builder-content">
-        {/* Celebration Overlay */}
-        {showCelebration && (
-          <div className="celebration-overlay">
-            <div className="celebration-content">
-              <div className="celebration-icon">🎉</div>
-              <h2>Team Complete!</h2>
-              <p>You've selected all 6 golfers. Don't forget to save your team!</p>
-            </div>
-            <div className="confetti">
-              {[...Array(50)].map((_, i) => (
-                <div key={i} className="confetti-piece" style={{
-                  left: `${Math.random() * 100}%`,
-                  animationDelay: `${Math.random() * 2}s`,
-                  backgroundColor: ['#1a472a', '#c9a227', '#2d5a3d', '#f4e4ba', '#4a7c59'][Math.floor(Math.random() * 5)]
-                }} />
-              ))}
-            </div>
-          </div>
-        )}
-
         <div className="team-builder-container">
           {/* Page Header */}
           <div className="users-page-header">

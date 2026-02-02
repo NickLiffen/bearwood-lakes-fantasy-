@@ -10,8 +10,8 @@ export const handler = withAuth(async (event: AuthenticatedEvent) => {
   }
 
   try {
-    const { golferIds } = validateBody(savePicksSchema, event.body);
-    const picks = await savePicks(event.user.userId, golferIds);
+    const { golferIds, captainId } = validateBody(savePicksSchema, event.body);
+    const picks = await savePicks(event.user.userId, golferIds, 'Team selection', captainId);
 
     return {
       statusCode: 200,

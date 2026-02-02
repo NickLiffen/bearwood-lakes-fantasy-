@@ -10,6 +10,11 @@
 }
 
 /* Main Content */
+.golfer-profile-content {
+  flex: 1;
+  padding: 2rem 0;
+}
+
 .profile-main {
   flex: 1;
   padding: 2rem 0;
@@ -305,11 +310,12 @@
 }
 
 /* Stats Grid */
-.stats-grid {
+.season-stats-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 1.5rem;
   margin-bottom: 1.5rem;
+  width: 100%;
 }
 
 .season-card {
@@ -606,7 +612,7 @@
     font-size: 2rem;
   }
 
-  .stats-grid {
+  .season-stats-grid {
     grid-template-columns: 1fr;
   }
 

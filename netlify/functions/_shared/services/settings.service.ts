@@ -33,6 +33,8 @@ export async function getAppSettings(): Promise<AppSettings> {
   const allowNewTeamCreation = (await getSetting<boolean>('allowNewTeamCreation')) ?? true;
   const seasonStartDate = (await getSetting<string>('seasonStartDate')) ?? '2026-01-01';
   const seasonEndDate = (await getSetting<string>('seasonEndDate')) ?? '2026-12-31';
+  const maxTransfersPerWeek = (await getSetting<number>('maxTransfersPerWeek')) ?? 1;
+  const maxPlayersPerTransfer = (await getSetting<number>('maxPlayersPerTransfer')) ?? 6;
 
   return {
     transfersOpen,
@@ -41,6 +43,8 @@ export async function getAppSettings(): Promise<AppSettings> {
     allowNewTeamCreation,
     seasonStartDate,
     seasonEndDate,
+    maxTransfersPerWeek,
+    maxPlayersPerTransfer,
   };
 }
 

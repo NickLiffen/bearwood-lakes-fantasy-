@@ -1,13 +1,17 @@
 // Leaderboard Page - Three separate tables: Weekly, Monthly, Season with navigation
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import PageLayout from '../../components/layout/PageLayout';
+import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import TeamCompareModal from '../../components/ui/TeamCompareModal';
+import DataTable, { Column } from '../../components/ui/DataTable';
 import { useAuth } from '../../hooks/useAuth';
 import { useApiClient } from '../../hooks/useApiClient';
 import { formatPrice } from '../../utils/formatters';
 import './LeaderboardPage.css';
+
+const ITEMS_PER_PAGE = 10;
 
 interface LeaderboardEntry {
   rank: number;
@@ -57,12 +61,17 @@ interface MonthOption {
   label: string;
 }
 
-// Helper to get Monday of the week for any date
-const getMondayOfWeek = (dateStr: string): string => {
+// Helper to get Saturday of the week for any date (matches backend)
+const getSaturdayOfWeek = (dateStr: string): string => {
   const d = new Date(dateStr);
-  const dayOfWeek = d.getDay();
-  const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  d.setDate(d.getDate() - daysSinceMonday);
+  const dayOfWeek = d.getDay(); // 0 = Sunday, 6 = Saturday
+  let daysSinceSaturday: number;
+  if (dayOfWeek === 6) {
+    daysSinceSaturday = 0;
+  } else {
+    daysSinceSaturday = dayOfWeek + 1;
+  }
+  d.setDate(d.getDate() - daysSinceSaturday);
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
@@ -95,41 +104,51 @@ const LeaderboardPage: React.FC = () => {
   const [weekOptions, setWeekOptions] = useState<WeekOption[]>([]);
   const [monthOptions, setMonthOptions] = useState<MonthOption[]>([]);
 
+  // Pagination state
+  const [weeklyPage, setWeeklyPage] = useState(1);
+  const [monthlyPage, setMonthlyPage] = useState(1);
+  const [seasonPage, setSeasonPage] = useState(1);
+
   // Generate week options from season start to now
   const generateWeekOptions = useCallback((seasonStart: string) => {
     const options: WeekOption[] = [];
     const start = new Date(seasonStart);
     const now = new Date();
-    
-    // Start from the Monday of the first week
+
+    // Start from the Saturday of the first week (matches backend)
     const dayOfWeek = start.getDay();
-    const firstMonday = new Date(start);
-    const daysSinceMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-    firstMonday.setDate(start.getDate() - daysSinceMonday);
-    firstMonday.setHours(0, 0, 0, 0);
-    
+    const firstSaturday = new Date(start);
+    let daysSinceSaturday: number;
+    if (dayOfWeek === 6) {
+      daysSinceSaturday = 0;
+    } else {
+      daysSinceSaturday = dayOfWeek + 1;
+    }
+    firstSaturday.setDate(start.getDate() - daysSinceSaturday);
+    firstSaturday.setHours(0, 0, 0, 0);
+
     // eslint-disable-next-line prefer-const
-    let current = new Date(firstMonday);
+    let current = new Date(firstSaturday);
     while (current <= now) {
       const weekEnd = new Date(current);
       weekEnd.setDate(current.getDate() + 6);
-      
+
       const formatOpts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
       const label = `${current.toLocaleDateString('en-GB', formatOpts)} - ${weekEnd.toLocaleDateString('en-GB', formatOpts)}`;
-      
+
       // Use consistent date format (YYYY-MM-DD in local time)
       const year = current.getFullYear();
       const month = String(current.getMonth() + 1).padStart(2, '0');
       const day = String(current.getDate()).padStart(2, '0');
-      
+
       options.push({
         date: `${year}-${month}-${day}`,
         label,
       });
-      
+
       current.setDate(current.getDate() + 7);
     }
-    
+
     return options.reverse(); // Most recent first
   }, []);
 
@@ -138,24 +157,24 @@ const LeaderboardPage: React.FC = () => {
     const options: MonthOption[] = [];
     const start = new Date(seasonStart);
     const now = new Date();
-    
+
     // eslint-disable-next-line prefer-const
     let current = new Date(start.getFullYear(), start.getMonth(), 1);
     while (current <= now) {
       const label = current.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
-      
+
       // Use consistent date format (YYYY-MM-DD in local time)
       const year = current.getFullYear();
       const month = String(current.getMonth() + 1).padStart(2, '0');
-      
+
       options.push({
         date: `${year}-${month}-01`,
         label,
       });
-      
+
       current.setMonth(current.getMonth() + 1);
     }
-    
+
     return options.reverse(); // Most recent first
   }, []);
 
@@ -168,10 +187,10 @@ const LeaderboardPage: React.FC = () => {
 
       if (response.success && response.data) {
         setLeaders(response.data);
-        
-        // Set initial dates - use getMondayOfWeek to ensure we match option values
+
+        // Set initial dates - use getSaturdayOfWeek to ensure we match option values
         if (response.data.currentWeek) {
-          setWeeklyDate(getMondayOfWeek(response.data.currentWeek.startDate));
+          setWeeklyDate(getSaturdayOfWeek(response.data.currentWeek.startDate));
         }
         if (response.data.currentMonth) {
           const d = new Date(response.data.currentMonth.startDate);
@@ -179,7 +198,7 @@ const LeaderboardPage: React.FC = () => {
           const month = String(d.getMonth() + 1).padStart(2, '0');
           setMonthlyDate(`${year}-${month}-01`);
         }
-        
+
         // Generate dropdown options
         if (response.data.seasonInfo) {
           setWeekOptions(generateWeekOptions(response.data.seasonInfo.startDate));
@@ -197,7 +216,7 @@ const LeaderboardPage: React.FC = () => {
       if (date) {
         url += `&date=${date}`;
       }
-      
+
       const response = await get<LeaderboardResponse>(url);
 
       // Ignore cancelled requests
@@ -221,14 +240,14 @@ const LeaderboardPage: React.FC = () => {
       setLoading(true);
       try {
         await fetchLeaders();
-        
+
         // Fetch all three tables in parallel
         const [weekly, monthly, season] = await Promise.all([
           fetchPeriodData('week'),
           fetchPeriodData('month'),
           fetchPeriodData('season'),
         ]);
-        
+
         setWeeklyData(weekly);
         setMonthlyData(monthly);
         setSeasonData(season);
@@ -245,94 +264,180 @@ const LeaderboardPage: React.FC = () => {
   // Navigation handlers
   const handleWeekNavigation = async (direction: 'prev' | 'next') => {
     if (!weeklyData?.period) return;
-    
+
     const currentDate = new Date(weeklyData.period.startDate);
     const offset = direction === 'prev' ? -7 : 7;
     currentDate.setDate(currentDate.getDate() + offset);
-    
+
     // Use consistent date format
-    const newDate = getMondayOfWeek(currentDate.toISOString());
-    
+    const newDate = getSaturdayOfWeek(currentDate.toISOString());
+
     setWeeklyDate(newDate);
+    setWeeklyPage(1); // Reset pagination when changing period
     const data = await fetchPeriodData('week', newDate);
     if (data) setWeeklyData(data);
   };
 
   const handleMonthNavigation = async (direction: 'prev' | 'next') => {
     if (!monthlyData?.period) return;
-    
+
     const currentDate = new Date(monthlyData.period.startDate);
     currentDate.setMonth(currentDate.getMonth() + (direction === 'prev' ? -1 : 1));
-    
+
     // Use consistent date format
     const year = currentDate.getFullYear();
     const month = String(currentDate.getMonth() + 1).padStart(2, '0');
     const newDate = `${year}-${month}-01`;
-    
+
     setMonthlyDate(newDate);
+    setMonthlyPage(1); // Reset pagination when changing period
     const data = await fetchPeriodData('month', newDate);
     if (data) setMonthlyData(data);
   };
 
   const handleWeekSelect = async (date: string) => {
     setWeeklyDate(date);
+    setWeeklyPage(1); // Reset pagination when changing period
     const data = await fetchPeriodData('week', date);
     if (data) setWeeklyData(data);
   };
 
   const handleMonthSelect = async (date: string) => {
     setMonthlyDate(date);
+    setMonthlyPage(1); // Reset pagination when changing period
     const data = await fetchPeriodData('month', date);
     if (data) setMonthlyData(data);
   };
 
-  const getRankDisplay = (rank: number): { emoji: string; className: string } => {
-    switch (rank) {
-      case 1: return { emoji: '🥇', className: 'rank-gold' };
-      case 2: return { emoji: '🥈', className: 'rank-silver' };
-      case 3: return { emoji: '🥉', className: 'rank-bronze' };
-      default: return { emoji: '', className: '' };
-    }
-  };
+  const isCurrentUser = useCallback((entryUserId: string): boolean => {
+    return user?.id === entryUserId;
+  }, [user?.id]);
 
-  const getMovementDisplay = (entry: LeaderboardEntry): React.ReactNode => {
-    if (entry.movement === 'new') {
-      return <span className="movement-new">NEW</span>;
-    }
-    if (entry.movement === 'up') {
-      return <span className="movement-up">↑{entry.movementAmount}</span>;
-    }
-    if (entry.movement === 'down') {
-      return <span className="movement-down">↓{entry.movementAmount}</span>;
-    }
-    return <span className="movement-same">-</span>;
-  };
-
-  const isCurrentUser = (userId: string): boolean => {
-    return user?.id === userId;
-  };
+  // Define columns for the DataTable
+  const columns: Column<LeaderboardEntry>[] = useMemo(() => [
+    {
+      key: 'rank',
+      header: 'Rank',
+      width: '80px',
+      align: 'center',
+      render: (entry) => {
+        const rankDisplay = entry.rank <= 3 ? (
+          <span className={`dt-rank dt-rank-${entry.rank}`}>
+            {entry.rank === 1 && '🥇 '}
+            {entry.rank === 2 && '🥈 '}
+            {entry.rank === 3 && '🥉 '}
+            {entry.rank}
+          </span>
+        ) : (
+          <span className="dt-rank">{entry.rank}</span>
+        );
+        return rankDisplay;
+      },
+    },
+    {
+      key: 'movement',
+      header: 'Move',
+      width: '70px',
+      align: 'center',
+      render: (entry) => {
+        if (entry.movement === 'new') {
+          return <span className="dt-badge dt-badge-warning">NEW</span>;
+        }
+        if (entry.movement === 'up') {
+          return <span className="movement-up">↑{entry.movementAmount}</span>;
+        }
+        if (entry.movement === 'down') {
+          return <span className="movement-down">↓{entry.movementAmount}</span>;
+        }
+        return <span className="dt-text-muted">-</span>;
+      },
+    },
+    {
+      key: 'user',
+      header: 'User',
+      render: (entry) => (
+        <Link to={`/users/${entry.userId}`} className="dt-text-link">
+          <div className="dt-info-cell">
+            <div className="dt-avatar">
+              {entry.firstName[0]}{entry.lastName[0]}
+            </div>
+            <div className="dt-info-details">
+              <span className="dt-info-name">
+                {entry.firstName} {entry.lastName}
+                {isCurrentUser(entry.userId) && <span className="dt-you-badge">You</span>}
+              </span>
+              <span className="dt-info-subtitle">@{entry.username}</span>
+            </div>
+          </div>
+        </Link>
+      ),
+    },
+    {
+      key: 'points',
+      header: 'Points',
+      width: '100px',
+      align: 'center',
+      render: (entry) => <span className="dt-text-price">{entry.points}</span>,
+    },
+    {
+      key: 'teamValue',
+      header: 'Team Value',
+      width: '120px',
+      align: 'center',
+      headerClassName: 'hide-on-mobile',
+      cellClassName: 'hide-on-mobile',
+      render: (entry) => formatPrice(entry.teamValue),
+    },
+    {
+      key: 'events',
+      header: 'Events',
+      width: '80px',
+      align: 'center',
+      headerClassName: 'hide-on-small',
+      cellClassName: 'hide-on-small',
+      render: (entry) => entry.eventsPlayed,
+    },
+    {
+      key: 'action',
+      header: 'Action',
+      width: '90px',
+      align: 'center',
+      render: (entry) => !isCurrentUser(entry.userId) ? (
+        <button
+          className="dt-btn dt-btn-secondary"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setCompareUserId(entry.userId);
+          }}
+          title="Compare teams"
+        >
+          Compare
+        </button>
+      ) : null,
+    },
+  ], [isCurrentUser]);
 
   if (loading) {
     return (
       <PageLayout activeNav="leaderboard">
         <div className="leaderboard-content">
           <div className="leaderboard-container">
-            <div className="loading-state">
-              <div className="loading-spinner"></div>
-              <p>Loading leaderboard...</p>
-            </div>
+            <LoadingSpinner text="Loading leaderboard..." />
           </div>
         </div>
       </PageLayout>
     );
   }
 
-  // Render a leaderboard table
+  // Render a leaderboard table using DataTable
   const renderTable = (
     data: LeaderboardResponse | null,
     title: string,
     type: 'week' | 'month' | 'season',
-    showNavigation: boolean = false
+    showNavigation: boolean = false,
+    currentPage: number,
+    setCurrentPage: (page: number) => void
   ) => {
     const entries = data?.entries || [];
     const period = data?.period;
@@ -341,6 +446,12 @@ const LeaderboardPage: React.FC = () => {
     const canGoPrev = period?.hasPrevious ?? false;
     const canGoNext = period?.hasNext ?? false;
 
+    // Pagination calculations
+    const totalEntries = entries.length;
+    const totalPages = Math.ceil(totalEntries / ITEMS_PER_PAGE);
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const paginatedEntries = entries.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
     return (
       <div className="leaderboard-section">
         <div className="section-header">
@@ -348,7 +459,7 @@ const LeaderboardPage: React.FC = () => {
             <h2>{title}</h2>
             {showNavigation && period && (
               <div className="period-navigation">
-                <button 
+                <button
                   className="nav-btn"
                   onClick={() => type === 'week' ? handleWeekNavigation('prev') : handleMonthNavigation('prev')}
                   disabled={!canGoPrev}
@@ -356,7 +467,7 @@ const LeaderboardPage: React.FC = () => {
                 >
                   ←
                 </button>
-                <select 
+                <select
                   className="period-select"
                   value={type === 'week' ? weeklyDate : monthlyDate}
                   onChange={(e) => type === 'week' ? handleWeekSelect(e.target.value) : handleMonthSelect(e.target.value)}
@@ -365,7 +476,7 @@ const LeaderboardPage: React.FC = () => {
                     <option key={opt.date} value={opt.date}>{opt.label}</option>
                   ))}
                 </select>
-                <button 
+                <button
                   className="nav-btn"
                   onClick={() => type === 'week' ? handleWeekNavigation('next') : handleMonthNavigation('next')}
                   disabled={!canGoNext}
@@ -385,76 +496,34 @@ const LeaderboardPage: React.FC = () => {
           </div>
         </div>
 
-        {entries.length === 0 ? (
-          <div className="empty-table-state">
-            <p>No tournaments this {type === 'week' ? 'week' : type === 'month' ? 'month' : 'season'} yet.</p>
-          </div>
-        ) : (
-          <div className="table-container">
-            <table className="leaderboard-table">
-              <thead>
-                <tr>
-                  <th className="th-rank">Rank</th>
-                  <th className="th-movement">Move</th>
-                  <th className="th-golfer">golfer</th>
-                  <th className="th-points">Points</th>
-                  <th className="th-value">Team Value</th>
-                  <th className="th-events">Events</th>
-                  <th className="th-action">Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {entries.map((entry) => {
-                  const { emoji, className } = getRankDisplay(entry.rank);
-                  return (
-                    <tr 
-                      key={entry.userId} 
-                      className={`${isCurrentUser(entry.userId) ? 'current-user-row' : ''} ${className}`}
-                    >
-                      <td className="td-rank">
-                        {emoji && <span className="rank-emoji-small">{emoji}</span>}
-                        <span className={`rank-text ${className}`}>{entry.rank}</span>
-                      </td>
-                      <td className="td-movement">
-                        {getMovementDisplay(entry)}
-                      </td>
-                      <td className="td-golfer">
-                        <Link to={`/users/${entry.userId}`} className="golfer-link">
-                          <div className="golfer-info">
-                            <div className="golfer-avatar">
-                              {entry.firstName[0]}{entry.lastName[0]}
-                            </div>
-                            <div className="golfer-details">
-                              <span className="golfer-name">
-                                {entry.firstName} {entry.lastName}
-                                {isCurrentUser(entry.userId) && <span className="you-badge-small">You</span>}
-                              </span>
-                              <span className="golfer-username">@{entry.username}</span>
-                            </div>
-                          </div>
-                        </Link>
-                      </td>
-                      <td className="td-points">
-                        <span className="points-value">{entry.points}</span>
-                      </td>
-                      <td className="td-value">{formatPrice(entry.teamValue)}</td>
-                      <td className="td-events">{entry.eventsPlayed}</td>
-                      <td className="td-action">
-                        {!isCurrentUser(entry.userId) && (
-                          <button 
-                            className="btn-compare-small"
-                            onClick={() => setCompareUserId(entry.userId)}
-                            title="Compare teams"
-                          >
-                            ⚖️
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+        <DataTable
+          data={paginatedEntries}
+          columns={columns}
+          rowKey={(entry) => entry.userId}
+          rowClassName={(entry) => isCurrentUser(entry.userId) ? 'dt-row-highlighted' : ''}
+          emptyMessage={`No tournaments this ${type === 'week' ? 'week' : type === 'month' ? 'month' : 'season'} yet.`}
+        />
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="pagination-controls">
+            <button
+              className="pagination-btn"
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              ← Previous
+            </button>
+            <span className="page-info">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              className="pagination-btn"
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              Next →
+            </button>
           </div>
         )}
       </div>
@@ -514,13 +583,13 @@ const LeaderboardPage: React.FC = () => {
           </div>
 
           {/* Weekly Table */}
-          {renderTable(weeklyData, 'Weekly Standings', 'week', true)}
+          {renderTable(weeklyData, 'Weekly Standings', 'week', true, weeklyPage, setWeeklyPage)}
 
           {/* Monthly Table */}
-          {renderTable(monthlyData, 'Monthly Standings', 'month', true)}
+          {renderTable(monthlyData, 'Monthly Standings', 'month', true, monthlyPage, setMonthlyPage)}
 
           {/* Season Table */}
-          {renderTable(seasonData, 'Season Standings', 'season', false)}
+          {renderTable(seasonData, 'Season Standings', 'season', false, seasonPage, setSeasonPage)}
         </div>
       </div>
 

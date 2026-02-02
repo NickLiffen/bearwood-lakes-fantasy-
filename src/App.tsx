@@ -3,6 +3,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
+import LoadingSpinner from './components/ui/LoadingSpinner';
 import HomePage from './pages/Home/HomePage';
 import LoginPage from './pages/Auth/LoginPage';
 import RegisterPage from './pages/Auth/RegisterPage';
@@ -15,6 +16,8 @@ import GolferProfilePage from './pages/GolferProfile/GolferProfilePage';
 import LeaderboardPage from './pages/Leaderboard/LeaderboardPage';
 import UsersPage from './pages/Users/UsersPage';
 import UserProfilePage from './pages/Users/UserProfilePage';
+import TournamentsPage from './pages/Tournaments/TournamentsPage';
+import TournamentDetailPage from './pages/Tournaments/TournamentDetailPage';
 
 // Admin pages
 import AdminOverviewPage from './pages/Admin/AdminOverviewPage';
@@ -29,7 +32,7 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isAdmin, loading } = useAuth();
 
   if (loading) {
-    return <div className="loading-screen">Loading...</div>;
+    return <LoadingSpinner text="Loading..." />;
   }
 
   if (!isAuthenticated) {
@@ -48,7 +51,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
-    return <div className="loading-screen">Loading...</div>;
+    return <LoadingSpinner text="Loading..." />;
   }
 
   if (!isAuthenticated) {
@@ -63,7 +66,7 @@ const HomeRoute: React.FC = () => {
   const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
-    return <div className="loading-screen">Loading...</div>;
+    return <LoadingSpinner text="Loading..." />;
   }
 
   if (isAuthenticated) {
@@ -152,6 +155,22 @@ const App: React.FC = () => {
           element={
             <ProtectedRoute>
               <UserProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tournaments"
+          element={
+            <ProtectedRoute>
+              <TournamentsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tournaments/:id"
+          element={
+            <ProtectedRoute>
+              <TournamentDetailPage />
             </ProtectedRoute>
           }
         />

@@ -1,12 +1,12 @@
 // All Golfers Page - View all golfers with stats
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import PageLayout from '../../components/layout/PageLayout';
 import SearchBar from '../../components/ui/SearchBar';
 import DataTable, { Column } from '../../components/ui/DataTable';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import { useApiClient } from '../../hooks/useApiClient';
+import { useAsyncData } from '../../hooks/useAsyncData';
 import { formatPrice, getMembershipLabel } from '../../utils/formatters';
 import './GolfersPage.css';
 
@@ -58,41 +58,12 @@ type QuickFilter =
   | 'budget';
 
 const GolfersPage: React.FC = () => {
-  const { get, isAuthReady } = useApiClient();
-  const [golfers, setGolfers] = useState<Golfer[] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Use the useAsyncData hook for data fetching with proper loading/error handling
+  const { data: golfers, loading, error } = useAsyncData<Golfer[]>('golfers-list');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortColumn, setSortColumn] = useState<SortColumn>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [quickFilter, setQuickFilter] = useState<QuickFilter>('all');
-
-  useEffect(() => {
-    const fetchGolfers = async () => {
-      try {
-        setLoading(true);
-        setError(null); // Clear previous errors
-        const response = await get<Golfer[]>('golfers-list');
-
-        // Ignore cancelled requests
-        if (response.cancelled) return;
-
-        if (response.success && response.data) {
-          setGolfers(response.data);
-        } else {
-          throw new Error(response.error || 'Failed to fetch golfers');
-        }
-      } catch {
-        setError('Failed to load golfers. Please refresh the page.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (isAuthReady) {
-      fetchGolfers();
-    }
-  }, [get, isAuthReady]);
 
   // Helper functions
   const getPodiums = (stats: GolferStats) => {

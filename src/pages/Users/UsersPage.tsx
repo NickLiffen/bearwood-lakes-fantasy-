@@ -1,13 +1,13 @@
 // All Users Page - View all fantasy participants
 
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import PageLayout from '../../components/layout/PageLayout';
 import SearchBar from '../../components/ui/SearchBar';
 import DataTable, { Column } from '../../components/ui/DataTable';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { useAuth } from '../../hooks/useAuth';
-import { useApiClient } from '../../hooks/useApiClient';
+import { useAsyncData } from '../../hooks/useAsyncData';
 import './UsersPage.css';
 
 interface FantasyUser {
@@ -32,9 +32,8 @@ type SortDirection = 'asc' | 'desc';
 type QuickFilter = 'all' | 'hasTeam' | 'noTeam' | 'top10Week' | 'top10Month' | 'top10Season';
 
 const UsersPage: React.FC = () => {
-  const [users, setUsers] = useState<FantasyUser[] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // Use the useAsyncData hook for data fetching with proper loading/error handling
+  const { data: users, loading, error } = useAsyncData<FantasyUser[]>('users-fantasy');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortColumn, setSortColumn] = useState<SortColumn>('seasonPoints');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
@@ -43,55 +42,6 @@ const UsersPage: React.FC = () => {
   // Get current user ID for highlighting
   const { user } = useAuth();
   const currentUserId = user?.id ?? null;
-  const { get, isAuthReady } = useApiClient();
-  
-  // Track if component is mounted to prevent state updates after unmount
-  const isMounted = useRef(true);
-
-  useEffect(() => {
-    isMounted.current = true;
-    
-    if (isAuthReady) {
-      fetchUsers();
-    }
-    
-    // Cleanup: mark as unmounted
-    return () => {
-      isMounted.current = false;
-    };
-  }, [isAuthReady]);
-
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      setError(null); // Clear any previous errors
-
-      const response = await get<FantasyUser[]>('users-fantasy');
-
-      // Don't update state if component unmounted or request was cancelled
-      if (!isMounted.current || response.cancelled) {
-        return;
-      }
-
-      if (response.success && response.data) {
-        setUsers(response.data);
-      } else {
-        // Only show error if we don't have data yet
-        if (users === null || users.length === 0) {
-          setError(response.error || 'Failed to load users');
-        }
-      }
-    } catch (err) {
-      if (isMounted.current) {
-        console.error('UsersPage fetchUsers error:', err);
-        setError('Failed to load users. Please refresh the page.');
-      }
-    } finally {
-      if (isMounted.current) {
-        setLoading(false);
-      }
-    }
-  };
 
   // Helper functions
   const formatDate = (dateString: string) => {

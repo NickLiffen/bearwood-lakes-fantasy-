@@ -1,13 +1,14 @@
 // User Profile Page - View another user's profile, team, and stats
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import PageLayout from '../../components/layout/PageLayout';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
+import DataTable, { Column } from '../../components/ui/DataTable';
 import TeamCompareModal from '../../components/ui/TeamCompareModal';
 import { useAuth } from '../../hooks/useAuth';
 import { useApiClient } from '../../hooks/useApiClient';
-import { formatPrice, formatDate, formatDateTime, getMembershipLabel, getMembershipClass } from '../../utils/formatters';
+import { formatDate, formatDateTime, formatPrice } from '../../utils/formatters';
 import './UserProfilePage.css';
 
 interface GolferStats {
@@ -50,6 +51,7 @@ interface GolferWithScores {
   weekScores: TournamentScore[];
   monthScores: TournamentScore[];
   seasonScores: TournamentScore[];
+  isCaptain: boolean;
 }
 
 interface HistoryEntry {
@@ -59,6 +61,19 @@ interface HistoryEntry {
   playerCount: number;
   addedPlayers: Array<{ id: string; name: string }>;
   removedPlayers: Array<{ id: string; name: string }>;
+}
+
+interface PeriodInfo {
+  weekStart: string;
+  weekEnd: string;
+  label: string;
+  hasPrevious: boolean;
+  hasNext: boolean;
+}
+
+interface WeekOption {
+  value: string;
+  label: string;
 }
 
 interface UserProfileData {
@@ -89,18 +104,53 @@ interface UserProfileData {
     createdAt: string;
     updatedAt: string;
   };
+  period?: PeriodInfo;
+  teamCreatedAt?: string;
+  teamEffectiveStart?: string;
+  captainId?: string | null;
   history: HistoryEntry[];
 }
 
-type ViewMode = 'week' | 'month' | 'season';
+// Helper to get Saturday of the week containing a date
+const getSaturdayOfWeek = (date: Date): Date => {
+  const d = new Date(date);
+  const dayOfWeek = d.getDay(); // 0 = Sunday, 6 = Saturday
+  let daysSinceSaturday: number;
+  if (dayOfWeek === 6) {
+    daysSinceSaturday = 0;
+  } else {
+    daysSinceSaturday = dayOfWeek + 1;
+  }
+  d.setDate(d.getDate() - daysSinceSaturday);
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+// Helper to format date as YYYY-MM-DD
+const formatDateString = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+// Helper to format week label like "Sat, Feb 1, 2026"
+const formatWeekLabel = (weekStart: Date): string => {
+  return weekStart.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric'
+  });
+};
 
 const UserProfilePage: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const [profileData, setProfileData] = useState<UserProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>('week');
-  const [expandedPlayer, setExpandedPlayer] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [weekOptions, setWeekOptions] = useState<WeekOption[]>([]);
   const [showCompareModal, setShowCompareModal] = useState(false);
 
   // Check if this is the current user's profile
@@ -112,87 +162,109 @@ const UserProfilePage: React.FC = () => {
   // Track request ID to ignore stale responses
   const requestIdRef = useRef(0);
 
-  useEffect(() => {
+  // Generate week options from team effective start to current week
+  // teamEffectiveStart is already a Saturday (from backend)
+  const generateWeekOptions = useCallback((teamEffectiveStart: string) => {
+    const options: WeekOption[] = [];
+    const effectiveStart = new Date(teamEffectiveStart);
+    // Normalize to midnight for consistent comparison with getSaturdayOfWeek
+    effectiveStart.setHours(0, 0, 0, 0);
+    const now = new Date();
+    let current = getSaturdayOfWeek(now);
+
+    // Go back through weeks, stopping at team effective start
+    while (current >= effectiveStart) {
+      options.push({
+        value: formatDateString(current),
+        label: formatWeekLabel(current),
+      });
+      current = new Date(current);
+      current.setDate(current.getDate() - 7);
+    }
+
+    // Always include at least current week
+    if (options.length === 0) {
+      const currentWeek = getSaturdayOfWeek(now);
+      options.push({
+        value: formatDateString(currentWeek),
+        label: formatWeekLabel(currentWeek),
+      });
+    }
+
+    return options;
+  }, []);
+
+  const fetchUserProfile = useCallback(async (date?: string) => {
     // Increment request ID - any in-flight requests with old IDs will be ignored
     const currentRequestId = ++requestIdRef.current;
-    
-    const fetchUserProfile = async () => {
-      try {
-        setLoading(true);
-        setError(null);
 
-        const response = await get<UserProfileData>(`user-profile?userId=${userId}`);
+    try {
+      setLoading(true);
+      setError(null);
 
-        // Ignore if this is a stale request or was cancelled
-        if (currentRequestId !== requestIdRef.current || response.cancelled) {
-          return;
-        }
+      const endpoint = date
+        ? `user-profile?userId=${userId}&date=${date}`
+        : `user-profile?userId=${userId}`;
+      const response = await get<UserProfileData>(endpoint);
 
-        if (response.success && response.data) {
-          setProfileData(response.data);
-        } else {
-          setError(response.error || 'Failed to load profile');
-        }
-      } catch {
-        // Only set error if this is still the current request
-        if (currentRequestId === requestIdRef.current) {
-          setError('Failed to load profile. Please try again.');
-        }
-      } finally {
-        // Only update loading if this is still the current request
-        if (currentRequestId === requestIdRef.current) {
-          setLoading(false);
-        }
+      // Ignore if this is a stale request or was cancelled
+      if (currentRequestId !== requestIdRef.current || response.cancelled) {
+        return;
       }
-    };
 
+      if (response.success && response.data) {
+        setProfileData(response.data);
+
+        // Set selected date and generate week options
+        if (response.data.period) {
+          const weekStart = new Date(response.data.period.weekStart);
+          setSelectedDate(formatDateString(weekStart));
+
+          // Generate week options if not already set
+          if (weekOptions.length === 0 && response.data.teamEffectiveStart) {
+            const options = generateWeekOptions(response.data.teamEffectiveStart);
+            setWeekOptions(options);
+          }
+        }
+      } else {
+        setError(response.error || 'Failed to load profile');
+      }
+    } catch {
+      // Only set error if this is still the current request
+      if (currentRequestId === requestIdRef.current) {
+        setError('Failed to load profile. Please try again.');
+      }
+    } finally {
+      // Only update loading if this is still the current request
+      if (currentRequestId === requestIdRef.current) {
+        setLoading(false);
+      }
+    }
+  }, [userId, get, weekOptions.length, generateWeekOptions]);
+
+  useEffect(() => {
     if (isAuthReady && userId) {
       fetchUserProfile();
     }
-  }, [userId, get, isAuthReady]);
+  }, [isAuthReady, userId]);
+
+  // Navigation handlers
+  const handleWeekNavigation = (direction: 'prev' | 'next') => {
+    if (!selectedDate) return;
+    const current = new Date(selectedDate);
+    current.setDate(current.getDate() + (direction === 'next' ? 7 : -7));
+    const newDate = formatDateString(current);
+    setSelectedDate(newDate);
+    fetchUserProfile(newDate);
+  };
+
+  const handleWeekSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newDate = e.target.value;
+    setSelectedDate(newDate);
+    fetchUserProfile(newDate);
+  };
 
   // Helper functions
-  const getPositionDisplay = (position: number | null) => {
-    if (position === null) return '-';
-    if (position === 1) return '🥇 1st';
-    if (position === 2) return '🥈 2nd';
-    if (position === 3) return '🥉 3rd';
-    return `${position}th`;
-  };
-
-  const getPointsForView = (golferData: GolferWithScores) => {
-    switch (viewMode) {
-      case 'week': return golferData.weekPoints;
-      case 'month': return golferData.monthPoints;
-      case 'season': return golferData.seasonPoints;
-    }
-  };
-
-  const getScoresForView = (golferData: GolferWithScores) => {
-    switch (viewMode) {
-      case 'week': return golferData.weekScores;
-      case 'month': return golferData.monthScores;
-      case 'season': return golferData.seasonScores;
-    }
-  };
-
-  const getTotalPointsForView = () => {
-    if (!profileData?.team) return 0;
-    switch (viewMode) {
-      case 'week': return profileData.team.totals.weekPoints;
-      case 'month': return profileData.team.totals.monthPoints;
-      case 'season': return profileData.team.totals.seasonPoints;
-    }
-  };
-
-  const getViewLabel = () => {
-    switch (viewMode) {
-      case 'week': return 'This Week';
-      case 'month': return 'This Month';
-      case 'season': return '2026 Season';
-    }
-  };
-
   const getRankDisplay = (rank: number | null) => {
     if (rank === null) return '-';
     if (rank === 1) return '🥇 1st';
@@ -201,9 +273,50 @@ const UserProfilePage: React.FC = () => {
     return `#${rank}`;
   };
 
-  const togglePlayerExpand = (playerId: string) => {
-    setExpandedPlayer(expandedPlayer === playerId ? null : playerId);
-  };
+  // Column definitions for DataTable
+  const getColumns = (): Column<GolferWithScores>[] => [
+    {
+      key: 'captain',
+      header: 'C',
+      align: 'center',
+      render: (golferData) => (
+        golferData.isCaptain ? (
+          <span className="captain-indicator" title="Captain (2x points)">C</span>
+        ) : null
+      ),
+    },
+    {
+      key: 'golfer',
+      header: 'Golfer',
+      render: (golferData) => (
+        <div className="dt-info-cell">
+          <div className="dt-avatar">
+            {golferData.golfer.picture ? (
+              <img src={golferData.golfer.picture} alt={`${golferData.golfer.firstName} ${golferData.golfer.lastName}`} />
+            ) : (
+              <span className="dt-avatar-placeholder">
+                {golferData.golfer.firstName[0]}{golferData.golfer.lastName[0]}
+              </span>
+            )}
+          </div>
+          <Link to={`/golfers/${golferData.golfer.id}`} className="dt-text-link">
+            {golferData.golfer.firstName} {golferData.golfer.lastName}
+          </Link>
+        </div>
+      ),
+    },
+    {
+      key: 'week-pts',
+      header: 'Week Pts',
+      align: 'right',
+      render: (golferData) => (
+        <span className="dt-text-primary">
+          {golferData.weekPoints}
+          {golferData.isCaptain && <span className="captain-multiplier">(2x)</span>}
+        </span>
+      ),
+    },
+  ];
 
   if (loading) {
     return (
@@ -250,6 +363,9 @@ const UserProfilePage: React.FC = () => {
               <h1>{user.firstName} {user.lastName}</h1>
               <p className="profile-username">@{user.username}</p>
               <p className="profile-member-since">Member since {formatDate(user.createdAt)}</p>
+              {hasTeam && team && (
+                <p className="profile-team-created">Team created {formatDate(team.createdAt)}</p>
+              )}
               {isOwnProfile && <span className="own-profile-badge">This is you!</span>}
             </div>
             {hasTeam && !isOwnProfile && (
@@ -275,7 +391,7 @@ const UserProfilePage: React.FC = () => {
                 <span className="stat-points">{stats.monthPoints} pts</span>
                 <span className="stat-rank">{getRankDisplay(stats.monthRank)}</span>
               </div>
-              <div className="stat-card stat-card-featured">
+              <div className="stat-card">
                 <span className="stat-period">🏆 2026 Season</span>
                 <span className="stat-points">{stats.seasonPoints} pts</span>
                 <span className="stat-rank">{getRankDisplay(stats.seasonRank)}</span>
@@ -302,167 +418,48 @@ const UserProfilePage: React.FC = () => {
                   <span className="team-value">{formatPrice(team.totals.totalSpent)} team value</span>
                 </div>
 
-                {/* View Toggle */}
-                <div className="view-toggle">
-                  <button 
-                    className={`toggle-btn ${viewMode === 'week' ? 'active' : ''}`}
-                    onClick={() => setViewMode('week')}
+                {/* Week Navigation */}
+                <div className="period-navigation">
+                  <button
+                    className="nav-btn"
+                    onClick={() => handleWeekNavigation('prev')}
+                    disabled={!profileData?.period?.hasPrevious}
+                    title="Previous week"
                   >
-                    This Week
+                    ←
                   </button>
-                  <button 
-                    className={`toggle-btn ${viewMode === 'month' ? 'active' : ''}`}
-                    onClick={() => setViewMode('month')}
+                  <select
+                    className="period-select"
+                    value={selectedDate}
+                    onChange={handleWeekSelect}
                   >
-                    This Month
-                  </button>
-                  <button 
-                    className={`toggle-btn ${viewMode === 'season' ? 'active' : ''}`}
-                    onClick={() => setViewMode('season')}
+                    {weekOptions.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                  <button
+                    className="nav-btn"
+                    onClick={() => handleWeekNavigation('next')}
+                    disabled={!profileData?.period?.hasNext}
+                    title="Next week"
                   >
-                    2026 Season
+                    →
                   </button>
                 </div>
 
                 {/* Team Total */}
                 <div className="team-total">
-                  <span className="total-label">{getViewLabel()} Total:</span>
-                  <span className="total-value">{getTotalPointsForView()} pts</span>
+                  <span className="total-label">Week Total:</span>
+                  <span className="total-value">{team.totals.weekPoints} pts</span>
                 </div>
 
-                {/* Golfers List */}
-                <div className="golfers-list">
-                  {team.golfers.map((golferData, index) => {
-                    const { golfer } = golferData;
-                    const points = getPointsForView(golferData);
-                    const scores = getScoresForView(golferData);
-                    const isExpanded = expandedPlayer === golfer.id;
-
-                    return (
-                      <div key={golfer.id} className="golfer-card">
-                        <div 
-                          className="golfer-card-main"
-                          onClick={() => togglePlayerExpand(golfer.id)}
-                        >
-                          <div className="golfer-rank">#{index + 1}</div>
-                          <div className="golfer-avatar">
-                            {golfer.picture ? (
-                              <img src={golfer.picture} alt={`${golfer.firstName} ${golfer.lastName}`} />
-                            ) : (
-                              <div className="avatar-placeholder">
-                                {golfer.firstName[0]}{golfer.lastName[0]}
-                              </div>
-                            )}
-                          </div>
-                          <div className="golfer-info">
-                            <Link 
-                              to={`/golfers/${golfer.id}`} 
-                              className="golfer-name"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {golfer.firstName} {golfer.lastName}
-                            </Link>
-                            <div className="golfer-meta">
-                              <span className={`membership-badge ${getMembershipClass(golfer.membershipType)}`}>
-                                {getMembershipLabel(golfer.membershipType)}
-                              </span>
-                              <span className="golfer-price">{formatPrice(golfer.price)}</span>
-                            </div>
-                          </div>
-                          <div className="golfer-points">
-                            <span className="points-number">{points}</span>
-                            <span className="points-text">pts</span>
-                          </div>
-                          <div className={`expand-icon ${isExpanded ? 'expanded' : ''}`}>
-                            ▼
-                          </div>
-                        </div>
-
-                        {/* Expanded Details */}
-                        {isExpanded && (
-                          <div className="golfer-details">
-                            {/* 2026 Stats Summary */}
-                            <div className="stats-summary">
-                              <h4>2026 Season Stats</h4>
-                              <div className="stats-grid">
-                                <div className="stat-item">
-                                  <span className="stat-value">{golfer.stats2026?.timesPlayed || 0}</span>
-                                  <span className="stat-label">Played</span>
-                                </div>
-                                <div className="stat-item">
-                                  <span className="stat-value gold">{golfer.stats2026?.timesFinished1st || 0}</span>
-                                  <span className="stat-label">1st</span>
-                                </div>
-                                <div className="stat-item">
-                                  <span className="stat-value silver">{golfer.stats2026?.timesFinished2nd || 0}</span>
-                                  <span className="stat-label">2nd</span>
-                                </div>
-                                <div className="stat-item">
-                                  <span className="stat-value bronze">{golfer.stats2026?.timesFinished3rd || 0}</span>
-                                  <span className="stat-label">3rd</span>
-                                </div>
-                                <div className="stat-item">
-                                  <span className="stat-value">{golfer.stats2026?.timesScored36Plus || 0}</span>
-                                  <span className="stat-label">36+</span>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Tournament Scores */}
-                            <div className="tournament-scores">
-                              <h4>{getViewLabel()} Tournaments</h4>
-                              {scores.length === 0 ? (
-                                <p className="no-scores">No tournament results for this period</p>
-                              ) : (
-                                <div className="scores-list">
-                                  {scores.map((score) => (
-                                    <div key={score.tournamentId} className="score-row">
-                                      <div className="score-tournament">
-                                        <span className="tournament-name">{score.tournamentName}</span>
-                                        <span className="tournament-date">{formatDate(score.tournamentDate)}</span>
-                                      </div>
-                                      <div className="score-result">
-                                        {score.participated ? (
-                                          <>
-                                            <span className="result-position">{getPositionDisplay(score.position)}</span>
-                                            {score.scored36Plus && <span className="bonus-badge">+36</span>}
-                                          </>
-                                        ) : (
-                                          <span className="did-not-play">DNP</span>
-                                        )}
-                                      </div>
-                                      <div className="score-points">
-                                        <span className={`points ${score.multipliedPoints > 0 ? 'positive' : ''}`}>
-                                          {score.multipliedPoints > 0 ? `+${score.multipliedPoints}` : score.multipliedPoints}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Points Breakdown */}
-                            <div className="points-breakdown">
-                              <div className="breakdown-item">
-                                <span className="breakdown-label">Week</span>
-                                <span className="breakdown-value">{golferData.weekPoints} pts</span>
-                              </div>
-                              <div className="breakdown-item">
-                                <span className="breakdown-label">Month</span>
-                                <span className="breakdown-value">{golferData.monthPoints} pts</span>
-                              </div>
-                              <div className="breakdown-item">
-                                <span className="breakdown-label">Season</span>
-                                <span className="breakdown-value">{golferData.seasonPoints} pts</span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
+                {/* Golfers Table - Using DataTable */}
+                <DataTable
+                  data={team.golfers}
+                  columns={getColumns()}
+                  rowKey={(golferData) => golferData.golfer.id}
+                  emptyMessage="No golfers in this team."
+                />
               </div>
 
               {/* Team History */}

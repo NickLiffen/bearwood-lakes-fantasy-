@@ -14,7 +14,7 @@ const handler = withAdmin(async (event: AuthenticatedEvent) => {
 
   try {
     const body = JSON.parse(event.body || '{}');
-    const { id, name, startDate, endDate, tournamentType, playerCountTier, status, participatingPlayerIds } = body;
+    const { id, name, startDate, endDate, tournamentType, golferCountTier, status, participatingGolferIds } = body;
 
     if (!id) {
       return {
@@ -28,9 +28,9 @@ const handler = withAdmin(async (event: AuthenticatedEvent) => {
       startDate,
       endDate,
       tournamentType,
-      playerCountTier,
+      golferCountTier,
       status,
-      participatingPlayerIds,
+      participatingGolferIds,
     });
 
     if (!tournament) {
