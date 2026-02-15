@@ -9,8 +9,8 @@ import { UserDocument, USERS_COLLECTION } from './_shared/models/User';
 import { PickDocument, PICKS_COLLECTION } from './_shared/models/Pick';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
-import { SettingDocument, SETTINGS_COLLECTION } from './_shared/models/Settings';
 import { getWeekStart, getMonthStart, getSeasonStart, getTeamEffectiveStartDate } from './_shared/utils/dates';
+import { getActiveSeason } from './_shared/services/seasons.service';
 
 interface FantasyUser {
   id: string;
@@ -33,11 +33,9 @@ export const handler: Handler = withAuth(async () => {
   try {
     const { db } = await connectToDatabase();
 
-    // Get current season setting first (needed for other queries)
-    const seasonSetting = await db
-      .collection<SettingDocument>(SETTINGS_COLLECTION)
-      .findOne({ key: 'currentSeason' });
-    const currentSeason = (seasonSetting?.value as number) || 2026;
+    // Get current season from active season
+    const activeSeason = await getActiveSeason();
+    const currentSeason = activeSeason ? (parseInt(activeSeason.name, 10) || new Date().getFullYear()) : new Date().getFullYear();
 
     // Parallelize independent queries for faster response
     const [users, picks, tournaments] = await Promise.all([

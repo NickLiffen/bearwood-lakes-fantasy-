@@ -14,13 +14,11 @@ import { SettingDocument, SETTINGS_COLLECTION } from '../models/Settings';
 import { BUDGET_CAP, MAX_GOLFERS } from '../../../../shared/constants/rules';
 import type { Pick, PickWithGolfers, PickHistory } from '../../../../shared/types';
 import { getWeekStart } from '../utils/dates';
+import { getActiveSeason } from './seasons.service';
 
 async function getCurrentSeason(): Promise<number> {
-  const { db } = await connectToDatabase();
-  const setting = await db
-    .collection<SettingDocument>(SETTINGS_COLLECTION)
-    .findOne({ key: 'currentSeason' });
-  return (setting?.value as number) || 2026;
+  const activeSeason = await getActiveSeason();
+  return activeSeason ? (parseInt(activeSeason.name, 10) || new Date().getFullYear()) : new Date().getFullYear();
 }
 
 async function areTransfersOpen(): Promise<boolean> {

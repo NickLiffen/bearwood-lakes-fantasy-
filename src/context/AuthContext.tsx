@@ -2,6 +2,7 @@
 
 import React, { createContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import type { User } from '@shared/types';
+import { clearSeasonCache } from '../hooks/useActiveSeason';
 
 interface AuthContextType {
   user: User | null;
@@ -119,6 +120,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     });
 
     clearAuth();
+    clearSeasonCache();
   }, [clearAuth]);
 
   const refreshToken = useCallback(async (): Promise<boolean> => {

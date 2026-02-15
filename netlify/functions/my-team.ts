@@ -13,6 +13,7 @@ import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tou
 import { SettingDocument, SETTINGS_COLLECTION } from './_shared/models/Settings';
 import { getWeekStart, getWeekEnd, getSeasonStart, getTeamEffectiveStartDate } from './_shared/utils/dates';
 import { getTransfersThisWeek } from './_shared/services/picks.service';
+import { getActiveSeason } from './_shared/services/seasons.service';
 
 interface TournamentScoreInfo {
   tournamentId: string;
@@ -69,15 +70,15 @@ export const handler: Handler = withAuth(async (event: AuthenticatedEvent) => {
       };
     }
 
-    // Parallelize all settings queries for faster response
-    const [seasonSetting, transfersSetting, newTeamSetting, maxTransfersSetting] = await Promise.all([
-      db.collection<SettingDocument>(SETTINGS_COLLECTION).findOne({ key: 'currentSeason' }),
+    // Get active season and parallelize settings queries
+    const [activeSeason, transfersSetting, newTeamSetting, maxTransfersSetting] = await Promise.all([
+      getActiveSeason(),
       db.collection<SettingDocument>(SETTINGS_COLLECTION).findOne({ key: 'transfersOpen' }),
       db.collection<SettingDocument>(SETTINGS_COLLECTION).findOne({ key: 'allowNewTeamCreation' }),
       db.collection<SettingDocument>(SETTINGS_COLLECTION).findOne({ key: 'maxTransfersPerWeek' }),
     ]);
 
-    const currentSeason = (seasonSetting?.value as number) || 2026;
+    const currentSeason = activeSeason ? (parseInt(activeSeason.name, 10) || new Date().getFullYear()) : new Date().getFullYear();
     const transfersOpen = (transfersSetting?.value as boolean) || false;
     const allowNewTeamCreation = (newTeamSetting?.value as boolean) ?? true;
     const maxTransfersPerWeek = (maxTransfersSetting?.value as number) || 1;

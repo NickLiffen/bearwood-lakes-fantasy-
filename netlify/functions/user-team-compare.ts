@@ -10,8 +10,8 @@ import { PickDocument, PICKS_COLLECTION } from './_shared/models/Pick';
 import { GolferDocument, GOLFERS_COLLECTION, toGolfer } from './_shared/models/Golfer';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
-import { SettingDocument, SETTINGS_COLLECTION } from './_shared/models/Settings';
 import { getWeekStart, getMonthStart, getSeasonStart } from './_shared/utils/dates';
+import { getActiveSeason } from './_shared/services/seasons.service';
 
 interface GolferWithPoints {
   golfer: ReturnType<typeof toGolfer>;
@@ -57,10 +57,8 @@ export const handler: Handler = withAuth(async (event: AuthenticatedEvent) => {
     const { db } = await connectToDatabase();
 
     // Get current season
-    const seasonSetting = await db
-      .collection<SettingDocument>(SETTINGS_COLLECTION)
-      .findOne({ key: 'currentSeason' });
-    const currentSeason = (seasonSetting?.value as number) || 2026;
+    const activeSeason = await getActiveSeason();
+    const currentSeason = activeSeason ? (parseInt(activeSeason.name, 10) || new Date().getFullYear()) : new Date().getFullYear();
 
     // Get both users
     const [currentUser, targetUser] = await Promise.all([

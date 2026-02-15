@@ -8,7 +8,7 @@ import { PickDocument, PICKS_COLLECTION } from './_shared/models/Pick';
 import { UserDocument, USERS_COLLECTION } from './_shared/models/User';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
-import { SettingDocument, SETTINGS_COLLECTION } from './_shared/models/Settings';
+import { getActiveSeason } from './_shared/services/seasons.service';
 import { getWeekStart, getMonthStart, getTeamEffectiveStartDate } from './_shared/utils/dates';
 
 interface LeaderboardEntry {
@@ -218,16 +218,14 @@ export const handler: Handler = withAuth(async (event) => {
     const dateParam = event.queryStringParameters?.date; // ISO date string
     const action = event.queryStringParameters?.action; // 'leaders' for top 3 summary
     
-    // Get season settings
-    const seasonStartSetting = await db.collection<SettingDocument>(SETTINGS_COLLECTION).findOne({ key: 'seasonStartDate' });
-    const seasonEndSetting = await db.collection<SettingDocument>(SETTINGS_COLLECTION).findOne({ key: 'seasonEndDate' });
-    const seasonStartDate = new Date((seasonStartSetting?.value as string) || '2026-01-01');
-    const seasonEndDate = new Date((seasonEndSetting?.value as string) || '2026-12-31');
+    // Get active season
+    const activeSeason = await getActiveSeason();
+    const fallbackYear = new Date().getFullYear();
+    const seasonStartDate = activeSeason ? new Date(activeSeason.startDate) : new Date(`${fallbackYear}-01-01`);
+    const seasonEndDate = activeSeason ? new Date(activeSeason.endDate) : new Date(`${fallbackYear}-12-31`);
     seasonEndDate.setHours(23, 59, 59, 999);
     
-    // Get all picks for current season
-    const currentSeasonSetting = await db.collection<SettingDocument>(SETTINGS_COLLECTION).findOne({ key: 'currentSeason' });
-    const currentSeason = (currentSeasonSetting?.value as number) || 2026;
+    const currentSeason = activeSeason ? parseInt(activeSeason.name) || fallbackYear : fallbackYear;
     
     const picks = await db.collection<PickDocument>(PICKS_COLLECTION).find({ season: currentSeason }).toArray();
     

@@ -117,6 +117,9 @@ const AdminOverviewPage: React.FC = () => {
                 <Link to="/admin/users" className="btn btn-secondary">
                   👥 Manage Users
                 </Link>
+                <Link to="/admin/season-upload" className="btn btn-secondary">
+                  📤 Upload Season
+                </Link>
               </div>
             </div>
           </div>

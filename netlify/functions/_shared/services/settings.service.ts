@@ -1,15 +1,43 @@
 // Settings service - manage global settings
 
 import { connectToDatabase } from '../db';
+import { getRedisClient } from '../rateLimit';
 import { SettingDocument, SETTINGS_COLLECTION } from '../models/Settings';
 import type { AppSettings } from '../../../../shared/types';
 
+const SETTINGS_CACHE_PREFIX = 'v1:cache:settings:';
+const SETTINGS_TTL = 300; // 5 minutes
+
 export async function getSetting<T>(key: string): Promise<T | null> {
+  // Try Redis cache first
+  try {
+    const redis = getRedisClient();
+    const cached = await redis.get(`${SETTINGS_CACHE_PREFIX}${key}`);
+    if (cached !== null && cached !== undefined) {
+      return (typeof cached === 'object' ? cached : JSON.parse(cached as string)) as T;
+    }
+  } catch {
+    // Redis unavailable — fall through to MongoDB
+  }
+
+  // Cache miss — query MongoDB
   const { db } = await connectToDatabase();
   const collection = db.collection<SettingDocument>(SETTINGS_COLLECTION);
 
   const setting = await collection.findOne({ key });
-  return setting ? (setting.value as T) : null;
+  const value = setting ? (setting.value as T) : null;
+
+  // Write to cache
+  if (value !== null) {
+    try {
+      const redis = getRedisClient();
+      await redis.set(`${SETTINGS_CACHE_PREFIX}${key}`, JSON.stringify(value), { ex: SETTINGS_TTL });
+    } catch {
+      // Redis unavailable — continue
+    }
+  }
+
+  return value;
 }
 
 export async function setSetting<T>(key: string, value: T): Promise<void> {
@@ -24,25 +52,27 @@ export async function setSetting<T>(key: string, value: T): Promise<void> {
     },
     { upsert: true }
   );
+
+  // Invalidate cache
+  try {
+    const redis = getRedisClient();
+    await redis.del(`${SETTINGS_CACHE_PREFIX}${key}`);
+  } catch {
+    // Redis unavailable — cache will expire in 5 min
+  }
 }
 
 export async function getAppSettings(): Promise<AppSettings> {
   const transfersOpen = (await getSetting<boolean>('transfersOpen')) ?? false;
-  const currentSeason = (await getSetting<number>('currentSeason')) ?? 2026;
   const registrationOpen = (await getSetting<boolean>('registrationOpen')) ?? true;
   const allowNewTeamCreation = (await getSetting<boolean>('allowNewTeamCreation')) ?? true;
-  const seasonStartDate = (await getSetting<string>('seasonStartDate')) ?? '2026-01-01';
-  const seasonEndDate = (await getSetting<string>('seasonEndDate')) ?? '2026-12-31';
   const maxTransfersPerWeek = (await getSetting<number>('maxTransfersPerWeek')) ?? 1;
   const maxPlayersPerTransfer = (await getSetting<number>('maxPlayersPerTransfer')) ?? 6;
 
   return {
     transfersOpen,
-    currentSeason,
     registrationOpen,
     allowNewTeamCreation,
-    seasonStartDate,
-    seasonEndDate,
     maxTransfersPerWeek,
     maxPlayersPerTransfer,
   };
@@ -50,10 +80,6 @@ export async function getAppSettings(): Promise<AppSettings> {
 
 export async function setTransfersOpen(open: boolean): Promise<void> {
   await setSetting('transfersOpen', open);
-}
-
-export async function setCurrentSeason(season: number): Promise<void> {
-  await setSetting('currentSeason', season);
 }
 
 export async function setRegistrationOpen(open: boolean): Promise<void> {

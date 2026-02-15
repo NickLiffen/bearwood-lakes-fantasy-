@@ -5,7 +5,7 @@ import { Redis } from '@upstash/redis';
 // Lazy-initialized Redis client
 let redisClient: Redis | null = null;
 
-function getRedisClient(): Redis {
+export function getRedisClient(): Redis {
   if (!redisClient) {
     const url = process.env.UPSTASH_REDIS_REST_URL;
     const token = process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -83,13 +83,12 @@ export async function checkRateLimit(
     // Key format: ratelimit:{identifier}:{endpoint}:{window}
     const windowKey = `${key}:${Math.floor(now / config.windowMs)}`;
 
-    // Increment counter and get current value
-    const count = await redis.incr(windowKey);
-
-    // Set TTL on first request in this window
-    if (count === 1) {
-      await redis.expire(windowKey, windowSeconds);
-    }
+    // Atomically increment counter and set TTL via pipeline
+    const pipe = redis.pipeline();
+    pipe.incr(windowKey);
+    pipe.expire(windowKey, windowSeconds);
+    const results = await pipe.exec();
+    const count = results[0] as number;
 
     const resetAt = new Date(Math.ceil(now / config.windowMs) * config.windowMs + config.windowMs);
     const remaining = Math.max(0, config.maxRequests - count);
@@ -110,8 +109,8 @@ export async function checkRateLimit(
       resetAt,
     };
   } catch (error) {
-    // Log error but fail open (allow request if Redis is unavailable)
-    console.error('Rate limit check failed:', error);
+    // Fail open if Redis is unavailable, but log for visibility
+    console.error('[RateLimit] Redis check failed, failing open:', error instanceof Error ? error.message : error);
     return {
       allowed: true,
       remaining: config.maxRequests,
@@ -160,7 +159,7 @@ export function createRateLimitKey(
   identifier: string,
   endpoint: string
 ): string {
-  return `ratelimit:${identifier}:${endpoint}`;
+  return `v1:ratelimit:${identifier}:${endpoint}`;
 }
 
 /**

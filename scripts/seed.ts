@@ -33,11 +33,9 @@ async function seed() {
     await db.collection('picks').createIndex({ userId: 1, season: 1 }, { unique: true });
 
     // Pick History indexes
-    await db.collection('pickHistory').createIndex({ userId: 1 });
     await db.collection('pickHistory').createIndex({ season: 1 });
 
     // Tournaments indexes
-    await db.collection('tournaments').createIndex({ season: 1 });
     await db.collection('tournaments').createIndex({ status: 1 });
 
     // Scores indexes (one score per golfer per tournament)
@@ -49,6 +47,35 @@ async function seed() {
 
     // Settings indexes
     await db.collection('settings').createIndex({ key: 1 }, { unique: true });
+
+    // Seasons indexes
+    await db.collection('seasons').createIndex({ isActive: 1 });
+    await db.collection('seasons').createIndex({ name: 1 }, { unique: true });
+
+    // --- Optimized compound & coverage indexes ---
+
+    // Tournaments - compound for season+status queries (leaderboard, picks, my-team)
+    await db.collection('tournaments').createIndex({ season: 1, status: 1 });
+    // Tournaments - sort index for getAllTournaments/getTournamentsBySeason
+    await db.collection('tournaments').createIndex({ startDate: -1 });
+    // Tournaments - idempotency check in season-upload
+    await db.collection('tournaments').createIndex({ name: 1, season: 1 });
+
+    // Picks - standalone season for leaderboard calculations
+    await db.collection('picks').createIndex({ season: 1 });
+
+    // PickHistory - compound for user history with sort (replaces standalone userId)
+    await db.collection('pickHistory').createIndex({ userId: 1, changedAt: -1 });
+
+    // RefreshTokens - token lookup during refresh flow
+    await db.collection('refreshTokens').createIndex({ tokenHash: 1 });
+    // RefreshTokens - revoke-all-for-user query
+    await db.collection('refreshTokens').createIndex({ userId: 1, revokedAt: 1 });
+    // RefreshTokens - TTL: auto-delete expired tokens
+    await db.collection('refreshTokens').createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+    // Golfers - name lookup for CSV upload (case-insensitive regex match)
+    await db.collection('golfers').createIndex({ firstName: 1, lastName: 1 });
 
     console.log('✅ Indexes created\n');
 
@@ -89,7 +116,6 @@ async function seed() {
 
     const settings = [
       { key: 'transfersOpen', value: false },
-      { key: 'currentSeason', value: 2026 },
     ];
 
     for (const setting of settings) {
@@ -109,7 +135,28 @@ async function seed() {
     console.log('');
 
     // ============================================
-    // 4. Summary
+    // 4. Create initial season
+    // ============================================
+    console.log('\n📅 Creating initial season...');
+
+    const existingSeason = await db.collection('seasons').findOne({ name: '2026' });
+    if (!existingSeason) {
+      await db.collection('seasons').insertOne({
+        name: '2026',
+        startDate: new Date('2026-04-01'),
+        endDate: new Date('2027-03-30'),
+        isActive: true,
+        status: 'setup',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      console.log('✅ Season "2026" created (Apr 2026 – Mar 2027, Active)');
+    } else {
+      console.log('ℹ️  Season "2026" already exists, skipping');
+    }
+
+    // ============================================
+    // 5. Summary
     // ============================================
     console.log('📊 Database summary:');
     console.log(`   Users: ${await db.collection('users').countDocuments()}`);
@@ -118,6 +165,7 @@ async function seed() {
     console.log(`   Picks: ${await db.collection('picks').countDocuments()}`);
     console.log(`   Scores: ${await db.collection('scores').countDocuments()}`);
     console.log(`   Settings: ${await db.collection('settings').countDocuments()}`);
+    console.log(`   Seasons: ${await db.collection('seasons').countDocuments()}`);
 
     console.log('\n🎉 Seed complete!');
   } catch (error) {

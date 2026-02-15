@@ -94,6 +94,10 @@ const GolfersAdminPage: React.FC = () => {
   const [batchProgress, setBatchProgress] = useState(0);
   const [batchFile, setBatchFile] = useState<File | null>(null);
 
+  // Calculate prices state
+  const [calculatingPrices, setCalculatingPrices] = useState(false);
+  const [priceResult, setPriceResult] = useState<{ updated: number; minPrice: number; maxPrice: number; summary: string } | null>(null);
+
   // Form validation state
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -204,6 +208,25 @@ const GolfersAdminPage: React.FC = () => {
       fetchGolfers();
     }
   }, [isAuthReady]);
+
+  const handleCalculatePrices = async () => {
+    const pricingSeason = new Date().getFullYear() - 1;
+    if (!window.confirm(`Calculate prices for all golfers based on ${pricingSeason} season performance? This will update all golfer prices.`)) return;
+    setCalculatingPrices(true);
+    setPriceResult(null);
+    try {
+      const response = await post<{ updated: number; minPrice: number; maxPrice: number; summary: string }>('golfers-calculate-prices', { season: pricingSeason });
+      if (response.cancelled) return;
+      if (response.success && response.data) {
+        setPriceResult(response.data);
+        fetchGolfers();
+      }
+    } catch (err) {
+      console.error('Failed to calculate prices:', err);
+    } finally {
+      setCalculatingPrices(false);
+    }
+  };
 
   // View Golfer handlers
   const handleViewGolfer = async (Golfer: Golfer) => {
@@ -650,6 +673,9 @@ const GolfersAdminPage: React.FC = () => {
         <div className="admin-card-header">
           <h2>All Golfers ({Golfers.length})</h2>
           <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button className="btn btn-primary" onClick={handleCalculatePrices} disabled={calculatingPrices}>
+              💰 {calculatingPrices ? 'Calculating...' : 'Calculate Prices'}
+            </button>
             <button className="btn btn-secondary" onClick={handleOpenBatchModal}>
               📤 Batch Upload
             </button>
@@ -657,6 +683,11 @@ const GolfersAdminPage: React.FC = () => {
               + Add Golfer
             </button>
           </div>
+          {priceResult && (
+            <div style={{ marginTop: '0.5rem', padding: '0.5rem 1rem', background: '#d4edda', color: '#155724', borderRadius: '6px', fontSize: '0.9rem' }}>
+              ✅ Updated {priceResult.updated} golfers. Price range: ${Math.round(priceResult.minPrice / 1_000_000)}M – ${Math.round(priceResult.maxPrice / 1_000_000)}M
+            </div>
+          )}
         </div>
 
         {loading ? (

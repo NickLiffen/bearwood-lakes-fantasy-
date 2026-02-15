@@ -6,6 +6,7 @@ import PageLayout from '../../components/layout/PageLayout';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import DataTable, { Column } from '../../components/ui/DataTable';
 import { useApiClient } from '../../hooks/useApiClient';
+import { useActiveSeason } from '../../hooks/useActiveSeason';
 import { formatPrice } from '../../utils/formatters';
 import type {
   GolferSeasonStats,
@@ -110,6 +111,8 @@ const MyTeamPage: React.FC = () => {
   const [weekOptions, setWeekOptions] = useState<WeekOption[]>([]);
   const [savingCaptain, setSavingCaptain] = useState(false);
   const { get, post, isAuthReady } = useApiClient();
+  const { season } = useActiveSeason();
+  const seasonName = season?.name || '2026';
 
   // Generate week options from team effective start to current week
   // Only shows weeks where the team could have earned points
@@ -360,7 +363,7 @@ const MyTeamPage: React.FC = () => {
             <div className="page-header-row">
               <div>
                 <h1>My Team</h1>
-                <p className="users-page-subtitle">Your 2026 Fantasy Golf Squad</p>
+                <p className="users-page-subtitle">Your {seasonName} Fantasy Golf Squad</p>
               </div>
               <div className="header-actions">
                 {teamData.transfersOpen ? (
@@ -400,7 +403,7 @@ const MyTeamPage: React.FC = () => {
               <div className="stat-icon">🏆</div>
               <div className="stat-content">
                 <span className="stat-value">{team.totals.seasonPoints}</span>
-                <span className="stat-label">2026 Season</span>
+                <span className="stat-label">{seasonName} Season</span>
               </div>
             </div>
             <div className="stat-card">

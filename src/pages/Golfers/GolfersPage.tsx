@@ -8,6 +8,7 @@ import DataTable, { Column } from '../../components/ui/DataTable';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { useAsyncData } from '../../hooks/useAsyncData';
 import { formatPrice, getMembershipLabel } from '../../utils/formatters';
+import { useActiveSeason } from '../../hooks/useActiveSeason';
 import './GolfersPage.css';
 
 interface GolferStats {
@@ -38,11 +39,7 @@ interface Golfer {
 }
 
 // Sort column and direction
-type SortColumn = 
-  | 'name' 
-  | 'price' 
-  | 'played-2026' | 'first-2026' | 'second-2026' | 'third-2026' | 'consistent-2026'
-  | 'week-pts' | 'month-pts' | 'season-pts';
+type SortColumn = string;
 
 type SortDirection = 'asc' | 'desc';
 
@@ -51,15 +48,21 @@ type QuickFilter =
   | 'all' 
   | 'active'
   | 'inactive'
-  | 'winners-2026'
-  | 'podium-finishers-2026'
-  | 'experienced-2026'
   | 'premium'
-  | 'budget';
+  | 'budget'
+  | string;
 
 const GolfersPage: React.FC = () => {
   // Use the useAsyncData hook for data fetching with proper loading/error handling
   const { data: golfers, loading, error } = useAsyncData<Golfer[]>('golfers-list');
+  const { season } = useActiveSeason();
+  const seasonName = season?.name || '2026';
+
+  const getStats = (golfer: any) => {
+    if (seasonName === '2025') return golfer.stats2025;
+    return golfer.stats2026;
+  };
+
   const [searchTerm, setSearchTerm] = useState('');
   const [sortColumn, setSortColumn] = useState<SortColumn>('name');
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
@@ -95,12 +98,12 @@ const GolfersPage: React.FC = () => {
           return golfer.isActive;
         case 'inactive':
           return !golfer.isActive;
-        case 'winners-2026':
-          return (golfer.stats2026?.timesFinished1st || 0) > 0;
-        case 'podium-finishers-2026':
-          return getPodiums(golfer.stats2026) > 0;
-        case 'experienced-2026':
-          return (golfer.stats2026?.timesPlayed || 0) >= 5;
+        case `winners-${seasonName}`:
+          return (getStats(golfer)?.timesFinished1st || 0) > 0;
+        case `podium-finishers-${seasonName}`:
+          return getPodiums(getStats(golfer)) > 0;
+        case `experienced-${seasonName}`:
+          return (getStats(golfer)?.timesPlayed || 0) >= 5;
         case 'premium':
           return golfer.price >= 10000000;
         case 'budget':
@@ -121,14 +124,15 @@ const GolfersPage: React.FC = () => {
         const dir = sortDirection === 'asc' ? 1 : -1;
         
         const getValue = (golfer: Golfer): number | string => {
-          switch (sortColumn) {
+          const sortKey = sortColumn.replace(/-\d+$/, '');
+          switch (sortKey) {
             case 'name': return `${golfer.firstName} ${golfer.lastName}`;
             case 'price': return golfer.price;
-            case 'played-2026': return golfer.stats2026?.timesPlayed || 0;
-            case 'first-2026': return golfer.stats2026?.timesFinished1st || 0;
-            case 'second-2026': return golfer.stats2026?.timesFinished2nd || 0;
-            case 'third-2026': return golfer.stats2026?.timesFinished3rd || 0;
-            case 'consistent-2026': return golfer.stats2026?.timesScored36Plus || 0;
+            case 'played': return getStats(golfer)?.timesPlayed || 0;
+            case 'first': return getStats(golfer)?.timesFinished1st || 0;
+            case 'second': return getStats(golfer)?.timesFinished2nd || 0;
+            case 'third': return getStats(golfer)?.timesFinished3rd || 0;
+            case 'consistent': return getStats(golfer)?.timesScored36Plus || 0;
             case 'week-pts': return golfer.points?.week || 0;
             case 'month-pts': return golfer.points?.month || 0;
             case 'season-pts': return golfer.points?.season || 0;
@@ -233,45 +237,45 @@ const GolfersPage: React.FC = () => {
       render: (golfer) => golfer.points?.season || 0,
     },
     {
-      key: 'played-2026',
+      key: `played-${seasonName}`,
       header: 'Played',
       sortable: true,
       align: 'center',
-      render: (golfer) => golfer.stats2026?.timesPlayed || 0,
+      render: (golfer) => getStats(golfer)?.timesPlayed || 0,
     },
     {
-      key: 'first-2026',
+      key: `first-${seasonName}`,
       header: '1st',
       sortable: true,
       align: 'center',
-      render: (golfer) => golfer.stats2026?.timesFinished1st > 0 ? (
-        <span className="dt-gold">{golfer.stats2026.timesFinished1st}</span>
+      render: (golfer) => getStats(golfer)?.timesFinished1st > 0 ? (
+        <span className="dt-gold">{getStats(golfer).timesFinished1st}</span>
       ) : '0',
     },
     {
-      key: 'second-2026',
+      key: `second-${seasonName}`,
       header: '2nd',
       sortable: true,
       align: 'center',
-      render: (golfer) => golfer.stats2026?.timesFinished2nd > 0 ? (
-        <span className="dt-silver">{golfer.stats2026.timesFinished2nd}</span>
+      render: (golfer) => getStats(golfer)?.timesFinished2nd > 0 ? (
+        <span className="dt-silver">{getStats(golfer).timesFinished2nd}</span>
       ) : '0',
     },
     {
-      key: 'third-2026',
+      key: `third-${seasonName}`,
       header: '3rd',
       sortable: true,
       align: 'center',
-      render: (golfer) => golfer.stats2026?.timesFinished3rd > 0 ? (
-        <span className="dt-bronze">{golfer.stats2026.timesFinished3rd}</span>
+      render: (golfer) => getStats(golfer)?.timesFinished3rd > 0 ? (
+        <span className="dt-bronze">{getStats(golfer).timesFinished3rd}</span>
       ) : '0',
     },
     {
-      key: 'consistent-2026',
+      key: `consistent-${seasonName}`,
       header: '36+',
       sortable: true,
       align: 'center',
-      render: (golfer) => golfer.stats2026?.timesScored36Plus || 0,
+      render: (golfer) => getStats(golfer)?.timesScored36Plus || 0,
     },
   ];
 
@@ -314,9 +318,9 @@ const GolfersPage: React.FC = () => {
               <option value="all">All Golfers</option>
               <option value="active">Active Only</option>
               <option value="inactive">Inactive Only</option>
-              <option value="winners-2026">🏆 Winners</option>
-              <option value="podium-finishers-2026">🥇 Podium Finishers</option>
-              <option value="experienced-2026">⭐ Experienced (5+ rounds)</option>
+              <option value={`winners-${seasonName}`}>🏆 Winners</option>
+              <option value={`podium-finishers-${seasonName}`}>🥇 Podium Finishers</option>
+              <option value={`experienced-${seasonName}`}>⭐ Experienced (5+ rounds)</option>
               <option value="premium">💎 Premium ($10M+)</option>
               <option value="budget">💰 Budget (≤$6M)</option>
             </select>

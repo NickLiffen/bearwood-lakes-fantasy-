@@ -6,6 +6,7 @@ import PageLayout from '../../components/layout/PageLayout';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { useAuth } from '../../hooks/useAuth';
 import { useApiClient } from '../../hooks/useApiClient';
+import { useActiveSeason } from '../../hooks/useActiveSeason';
 import './DashboardPage.css';
 
 // Get the next Saturday at 8am (weekly deadline)
@@ -164,7 +165,9 @@ interface Tournament {
 const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const { get, isAuthReady } = useApiClient();
+  const { season } = useActiveSeason();
   const navigate = useNavigate();
+  const seasonName = season?.name || '2026';
 
   // Individual loading states for each section
   const [statsLoading, setStatsLoading] = useState(true);
@@ -255,7 +258,7 @@ const DashboardPage: React.FC = () => {
           {/* Welcome Section */}
           <section className="welcome-section">
             <h1>Welcome back, {user?.firstName || 'Guest'}!</h1>
-            <p>Here's what's happening in the 2026 Fantasy Golf season.</p>
+            <p>{`Here's what's happening in the ${seasonName} Fantasy Golf season.`}</p>
           </section>
 
           {/* Error State */}

@@ -129,7 +129,7 @@ const LoginPage: React.FC = () => {
 
             <button type="submit" className="btn btn-primary btn-full" disabled={isLoading}>
               {isLoading ? (
-                <span className="loading-spinner">Signing in...</span>
+                <span className="btn-loading-spinner">Signing in...</span>
               ) : (
                 'Sign In'
               )}

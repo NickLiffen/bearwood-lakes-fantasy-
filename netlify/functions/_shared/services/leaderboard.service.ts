@@ -6,9 +6,9 @@ import { UserDocument, USERS_COLLECTION } from '../models/User';
 import { PickDocument, PICKS_COLLECTION } from '../models/Pick';
 import { ScoreDocument, SCORES_COLLECTION } from '../models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from '../models/Tournament';
-import { SettingDocument, SETTINGS_COLLECTION } from '../models/Settings';
 import type { LeaderboardEntry } from '../../../../shared/types';
 import { getWeekStart, getWeekEnd, getMonthStart, getMonthEnd, getSeasonStart, getTeamEffectiveStartDate } from '../utils/dates';
+import { getActiveSeason } from './seasons.service';
 
 interface ExtendedLeaderboardEntry {
   rank: number;
@@ -31,11 +31,8 @@ interface FullLeaderboardResponse {
 }
 
 async function getCurrentSeason(): Promise<number> {
-  const { db } = await connectToDatabase();
-  const setting = await db
-    .collection<SettingDocument>(SETTINGS_COLLECTION)
-    .findOne({ key: 'currentSeason' });
-  return (setting?.value as number) || 2026;
+  const activeSeason = await getActiveSeason();
+  return activeSeason ? (parseInt(activeSeason.name, 10) || new Date().getFullYear()) : new Date().getFullYear();
 }
 
 export async function getFullLeaderboard(): Promise<FullLeaderboardResponse> {

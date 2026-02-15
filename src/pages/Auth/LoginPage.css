@@ -183,13 +183,13 @@
   cursor: not-allowed;
 }
 
-.loading-spinner {
+.btn-loading-spinner {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
 }
 
-.loading-spinner::before {
+.btn-loading-spinner::before {
   content: '';
   width: 16px;
   height: 16px;

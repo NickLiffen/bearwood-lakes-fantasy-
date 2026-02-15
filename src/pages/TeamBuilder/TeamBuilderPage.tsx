@@ -4,6 +4,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '../../components/layout/PageLayout';
 import { useApiClient } from '../../hooks/useApiClient';
+import { useActiveSeason } from '../../hooks/useActiveSeason';
 import './TeamBuilderPage.css';
 
 interface GolferStats {
@@ -12,6 +13,19 @@ interface GolferStats {
   timesFinished2nd: number;
   timesFinished3rd: number;
   timesPlayed: number;
+}
+
+interface SeasonStat {
+  seasonName: string;
+  isActive: boolean;
+  startDate: string;
+  endDate: string;
+  timesPlayed: number;
+  timesFinished1st: number;
+  timesFinished2nd: number;
+  timesFinished3rd: number;
+  timesScored36Plus: number;
+  totalPoints: number;
 }
 
 interface Golfer {
@@ -24,6 +38,7 @@ interface Golfer {
   isActive: boolean;
   stats2025: GolferStats;
   stats2026?: GolferStats;
+  seasonStats?: SeasonStat[];
 }
 
 interface Settings {
@@ -80,6 +95,8 @@ const TeamBuilderPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedGolferDetail, setSelectedGolferDetail] = useState<Golfer | null>(null);
   const { get, post, isAuthReady } = useApiClient();
+  const { season } = useActiveSeason();
+  const seasonName = season?.name || '2026';
 
   useEffect(() => {
     if (isAuthReady) {
@@ -199,29 +216,48 @@ const TeamBuilderPage: React.FC = () => {
     }
   };
 
+  // Combine stats from all seasons for filtering/sorting
+  const getCombinedStats = (golfer: Golfer) => {
+    if (!golfer.seasonStats || golfer.seasonStats.length === 0) {
+      // Fall back to static stats fields if seasonStats not available
+      const s = golfer.stats2025;
+      return {
+        timesPlayed: s?.timesPlayed ?? 0,
+        timesFinished1st: s?.timesFinished1st ?? 0,
+        timesFinished2nd: s?.timesFinished2nd ?? 0,
+        timesFinished3rd: s?.timesFinished3rd ?? 0,
+        timesScored36Plus: s?.timesScored36Plus ?? 0,
+        totalPoints: 0,
+      };
+    }
+    return golfer.seasonStats.reduce(
+      (acc, ss) => ({
+        timesPlayed: acc.timesPlayed + ss.timesPlayed,
+        timesFinished1st: acc.timesFinished1st + ss.timesFinished1st,
+        timesFinished2nd: acc.timesFinished2nd + ss.timesFinished2nd,
+        timesFinished3rd: acc.timesFinished3rd + ss.timesFinished3rd,
+        timesScored36Plus: acc.timesScored36Plus + ss.timesScored36Plus,
+        totalPoints: acc.totalPoints + ss.totalPoints,
+      }),
+      { timesPlayed: 0, timesFinished1st: 0, timesFinished2nd: 0, timesFinished3rd: 0, timesScored36Plus: 0, totalPoints: 0 }
+    );
+  };
+
   // Helper functions for calculated stats
   const getPodiums = (golfer: Golfer) => {
-    const stats = golfer.stats2025;
-    if (!stats) return 0;
+    const stats = getCombinedStats(golfer);
     return stats.timesFinished1st + stats.timesFinished2nd + stats.timesFinished3rd;
   };
 
   const getWinRate = (golfer: Golfer) => {
-    const stats = golfer.stats2025;
-    if (!stats || stats.timesPlayed === 0) return 0;
-    return (stats.timesFinished1st / stats.timesPlayed) * 100;
+    const stats = getCombinedStats(golfer);
+    return stats.timesPlayed > 0 ? (stats.timesFinished1st / stats.timesPlayed) * 100 : 0;
   };
 
   const getPodiumRate = (golfer: Golfer) => {
-    const stats = golfer.stats2025;
-    if (!stats || stats.timesPlayed === 0) return 0;
-    return (getPodiums(golfer) / stats.timesPlayed) * 100;
-  };
-
-  const getConsistencyRate = (golfer: Golfer) => {
-    const stats = golfer.stats2025;
-    if (!stats || stats.timesPlayed === 0) return 0;
-    return (stats.timesScored36Plus / stats.timesPlayed) * 100;
+    const stats = getCombinedStats(golfer);
+    const podiums = stats.timesFinished1st + stats.timesFinished2nd + stats.timesFinished3rd;
+    return stats.timesPlayed > 0 ? (podiums / stats.timesPlayed) * 100 : 0;
   };
 
   const getValueScore = (golfer: Golfer) => {
@@ -234,16 +270,16 @@ const TeamBuilderPage: React.FC = () => {
 
   // Quick filter logic
   const applyQuickFilter = (golfer: Golfer): boolean => {
-    const stats = golfer.stats2025;
+    const stats = getCombinedStats(golfer);
     switch (quickFilter) {
       case 'winners':
-        return stats?.timesFinished1st > 0;
+        return stats.timesFinished1st > 0;
       case 'podium-finishers':
         return getPodiums(golfer) > 0;
       case 'consistent':
-        return stats?.timesScored36Plus >= 3;
+        return stats.timesScored36Plus >= 3;
       case 'experienced':
-        return stats?.timesPlayed >= 5;
+        return stats.timesPlayed >= 5;
       case 'value-picks':
         return golfer.price <= 8000000; // $8M or less
       case 'premium':
@@ -277,7 +313,7 @@ const TeamBuilderPage: React.FC = () => {
       const matchesSearch = fullName.includes(searchTerm.toLowerCase());
       const matchesMembership = membershipFilter === 'all' || golfer.membershipType === membershipFilter;
       const matchesQuickFilter = applyQuickFilter(golfer);
-      const matchesMinRounds = !golfer.stats2025 || golfer.stats2025.timesPlayed >= minRoundsPlayed;
+      const matchesMinRounds = getCombinedStats(golfer).timesPlayed >= minRoundsPlayed;
       const matchesAffordable = !showAffordableOnly || canAfford(golfer);
       return matchesSearch && matchesMembership && matchesQuickFilter && matchesMinRounds && matchesAffordable;
     })
@@ -290,13 +326,13 @@ const TeamBuilderPage: React.FC = () => {
         case 'price-high':
           return b.price - a.price;
         case 'most-wins':
-          return (b.stats2025?.timesFinished1st || 0) - (a.stats2025?.timesFinished1st || 0);
+          return getCombinedStats(b).timesFinished1st - getCombinedStats(a).timesFinished1st;
         case 'most-podiums':
           return getPodiums(b) - getPodiums(a);
         case 'most-played':
-          return (b.stats2025?.timesPlayed || 0) - (a.stats2025?.timesPlayed || 0);
+          return getCombinedStats(b).timesPlayed - getCombinedStats(a).timesPlayed;
         case 'most-consistent':
-          return (b.stats2025?.timesScored36Plus || 0) - (a.stats2025?.timesScored36Plus || 0);
+          return getCombinedStats(b).timesScored36Plus - getCombinedStats(a).timesScored36Plus;
         case 'best-value':
           return getValueScore(b) - getValueScore(a);
         case 'win-rate':
@@ -521,7 +557,7 @@ const TeamBuilderPage: React.FC = () => {
                     <option value="price-high">💰 Price: High to Low</option>
                     <option value="price-low">💰 Price: Low to High</option>
                   </optgroup>
-                  <optgroup label="2025 Performance">
+                  <optgroup label={`${seasonName} Performance`}>
                     <option value="most-wins">🏆 Most Wins</option>
                     <option value="most-podiums">🥇 Most Podiums</option>
                     <option value="most-played">⛳ Most Rounds Played</option>
@@ -572,7 +608,7 @@ const TeamBuilderPage: React.FC = () => {
             {showAdvancedFilters && (
               <div className="advanced-filters">
                 <div className="advanced-filter-item">
-                  <label>Min. Rounds Played (2025):</label>
+                  <label>Min. Rounds Played ({seasonName}):</label>
                   <div className="range-input-group">
                     <input
                       type="range"
@@ -649,7 +685,7 @@ const TeamBuilderPage: React.FC = () => {
                         </div>
                       )}
                       {selected && <div className="compact-selected-badge">✓</div>}
-                      {golfer.stats2025?.timesFinished1st > 0 && !selected && (
+                      {getCombinedStats(golfer).timesFinished1st > 0 && !selected && (
                         <div className="compact-winner-badge">🏆</div>
                       )}
                     </div>
@@ -747,67 +783,77 @@ const TeamBuilderPage: React.FC = () => {
               </div>
             </div>
 
-            <div className="modal-stats">
-              <h3>2025 Season Stats</h3>
-              <div className="modal-stats-grid">
-                <div className="modal-stat-item">
-                  <span className="modal-stat-value">{selectedGolferDetail.stats2025?.timesPlayed || 0}</span>
-                  <span className="modal-stat-label">Rounds Played</span>
-                </div>
-                <div className="modal-stat-item gold">
-                  <span className="modal-stat-value">{selectedGolferDetail.stats2025?.timesFinished1st || 0}</span>
-                  <span className="modal-stat-label">🥇 1st Place</span>
-                </div>
-                <div className="modal-stat-item silver">
-                  <span className="modal-stat-value">{selectedGolferDetail.stats2025?.timesFinished2nd || 0}</span>
-                  <span className="modal-stat-label">🥈 2nd Place</span>
-                </div>
-                <div className="modal-stat-item bronze">
-                  <span className="modal-stat-value">{selectedGolferDetail.stats2025?.timesFinished3rd || 0}</span>
-                  <span className="modal-stat-label">🥉 3rd Place</span>
-                </div>
-                <div className="modal-stat-item">
-                  <span className="modal-stat-value">{getPodiums(selectedGolferDetail)}</span>
-                  <span className="modal-stat-label">Total Podiums</span>
-                </div>
-                <div className="modal-stat-item">
-                  <span className="modal-stat-value">{selectedGolferDetail.stats2025?.timesScored36Plus || 0}</span>
-                  <span className="modal-stat-label">36+ Rounds</span>
-                </div>
-              </div>
+            {/* Dynamic Season Stats */}
+            {selectedGolferDetail.seasonStats && selectedGolferDetail.seasonStats.length > 0 ? (
+              selectedGolferDetail.seasonStats.map((ss) => {
+                const podiums = ss.timesFinished1st + ss.timesFinished2nd + ss.timesFinished3rd;
+                const winRate = ss.timesPlayed > 0 ? ((ss.timesFinished1st / ss.timesPlayed) * 100).toFixed(0) : '0';
+                const podiumRate = ss.timesPlayed > 0 ? ((podiums / ss.timesPlayed) * 100).toFixed(0) : '0';
 
-              {selectedGolferDetail.stats2025 && selectedGolferDetail.stats2025.timesPlayed > 0 && (
-                <div className="modal-rates">
-                  <span className="rate-badge win">{getWinRate(selectedGolferDetail).toFixed(1)}% Win Rate</span>
-                  <span className="rate-badge podium">{getPodiumRate(selectedGolferDetail).toFixed(1)}% Podium Rate</span>
-                  <span className="rate-badge consistency">{getConsistencyRate(selectedGolferDetail).toFixed(1)}% Consistency</span>
-                </div>
-              )}
-
-              {selectedGolferDetail.stats2026 && (
-                <>
-                  <h3>2026 Season Stats</h3>
-                  <div className="modal-stats-grid">
-                    <div className="modal-stat-item">
-                      <span className="modal-stat-value">{selectedGolferDetail.stats2026.timesPlayed}</span>
-                      <span className="modal-stat-label">Rounds Played</span>
+                return (
+                  <div key={ss.seasonName} className="modal-stats" style={ss.isActive ? {
+                    border: '2px solid var(--primary-green)',
+                    borderRadius: '12px',
+                    padding: '1rem',
+                    marginBottom: '1rem',
+                    background: 'rgba(22, 163, 74, 0.03)',
+                  } : {
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '12px',
+                    padding: '1rem',
+                    marginBottom: '1rem',
+                  }}>
+                    <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      {ss.seasonName} Season
+                      {ss.isActive && (
+                        <span style={{
+                          background: 'rgba(22, 163, 74, 0.1)',
+                          color: '#16a34a',
+                          padding: '0.15rem 0.5rem',
+                          borderRadius: '12px',
+                          fontSize: '0.7rem',
+                          fontWeight: 500,
+                        }}>Active</span>
+                      )}
+                    </h3>
+                    <div className="modal-stats-grid">
+                      <div className="modal-stat-item">
+                        <div className="stat-value">{ss.timesPlayed}</div>
+                        <div className="stat-label">Played</div>
+                      </div>
+                      <div className="modal-stat-item">
+                        <div className="stat-value">{ss.totalPoints}</div>
+                        <div className="stat-label">Points</div>
+                      </div>
+                      <div className="modal-stat-item">
+                        <div className="stat-value gold">{ss.timesFinished1st}</div>
+                        <div className="stat-label">🥇 1st</div>
+                      </div>
+                      <div className="modal-stat-item">
+                        <div className="stat-value silver">{ss.timesFinished2nd}</div>
+                        <div className="stat-label">🥈 2nd</div>
+                      </div>
+                      <div className="modal-stat-item">
+                        <div className="stat-value bronze">{ss.timesFinished3rd}</div>
+                        <div className="stat-label">🥉 3rd</div>
+                      </div>
+                      <div className="modal-stat-item">
+                        <div className="stat-value">{ss.timesScored36Plus}</div>
+                        <div className="stat-label">⭐ 36+</div>
+                      </div>
                     </div>
-                    <div className="modal-stat-item gold">
-                      <span className="modal-stat-value">{selectedGolferDetail.stats2026.timesFinished1st}</span>
-                      <span className="modal-stat-label">🥇 1st Place</span>
-                    </div>
-                    <div className="modal-stat-item silver">
-                      <span className="modal-stat-value">{selectedGolferDetail.stats2026.timesFinished2nd}</span>
-                      <span className="modal-stat-label">🥈 2nd Place</span>
-                    </div>
-                    <div className="modal-stat-item bronze">
-                      <span className="modal-stat-value">{selectedGolferDetail.stats2026.timesFinished3rd}</span>
-                      <span className="modal-stat-label">🥉 3rd Place</span>
+                    <div style={{ display: 'flex', gap: '1rem', marginTop: '0.75rem', fontSize: '0.85rem', color: '#6b7280' }}>
+                      <span>Win: {winRate}%</span>
+                      <span>Podium: {podiumRate}%</span>
                     </div>
                   </div>
-                </>
-              )}
-            </div>
+                );
+              })
+            ) : (
+              <div className="modal-stats">
+                <p style={{ color: '#6b7280' }}>No season data available.</p>
+              </div>
+            )}
 
             <div className="modal-action">
               {(() => {

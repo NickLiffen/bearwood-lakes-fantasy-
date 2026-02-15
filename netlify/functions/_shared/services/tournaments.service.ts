@@ -3,7 +3,6 @@
 import { ObjectId } from 'mongodb';
 import { connectToDatabase } from '../db';
 import { TournamentDocument, toTournament, TOURNAMENTS_COLLECTION } from '../models/Tournament';
-import { SettingDocument, SETTINGS_COLLECTION } from '../models/Settings';
 import type {
   Tournament,
   TournamentStatus,
@@ -11,13 +10,15 @@ import type {
   UpdateTournamentDTO,
 } from '../../../../shared/types';
 import { getMultiplierForType } from '../../../../shared/types/tournament.types';
+import { getActiveSeason } from './seasons.service';
 
 async function getCurrentSeason(): Promise<number> {
-  const { db } = await connectToDatabase();
-  const setting = await db
-    .collection<SettingDocument>(SETTINGS_COLLECTION)
-    .findOne({ key: 'currentSeason' });
-  return (setting?.value as number) || 2026;
+  const activeSeason = await getActiveSeason();
+  if (activeSeason) {
+    const parsed = parseInt(activeSeason.name, 10);
+    if (!isNaN(parsed)) return parsed;
+  }
+  return new Date().getFullYear();
 }
 
 export async function getAllTournaments(): Promise<Tournament[]> {

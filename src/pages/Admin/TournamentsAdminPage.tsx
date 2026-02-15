@@ -151,7 +151,7 @@ const TournamentsAdminPage: React.FC = () => {
 
   const fetchTournaments = async () => {
     try {
-      const response = await get<Tournament[]>('tournaments-list');
+      const response = await get<Tournament[]>('tournaments-list?allSeasons=true');
       
       // Ignore cancelled requests
       if (response.cancelled) return;

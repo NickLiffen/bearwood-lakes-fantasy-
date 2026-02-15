@@ -5,7 +5,8 @@ import { Link, useParams } from 'react-router-dom';
 import PageLayout from '../../components/layout/PageLayout';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { useApiClient } from '../../hooks/useApiClient';
-import { formatPrice, getMembershipLabel, getMembershipClass } from '../../utils/formatters';
+import { useActiveSeason } from '../../hooks/useActiveSeason';
+import { formatPrice, getMembershipLabel } from '../../utils/formatters';
 import './GolferProfilePage.css';
 
 interface GolferStats {
@@ -22,6 +23,19 @@ interface GolferPoints {
   season: number;
 }
 
+interface SeasonStat {
+  seasonName: string;
+  isActive: boolean;
+  startDate: string;
+  endDate: string;
+  timesPlayed: number;
+  timesFinished1st: number;
+  timesFinished2nd: number;
+  timesFinished3rd: number;
+  timesScored36Plus: number;
+  totalPoints: number;
+}
+
 interface Golfer {
   id: string;
   firstName: string;
@@ -33,6 +47,7 @@ interface Golfer {
   stats2025: GolferStats;
   stats2026: GolferStats;
   points: GolferPoints;
+  seasonStats?: SeasonStat[];
   createdAt: string;
   updatedAt: string;
 }
@@ -43,6 +58,9 @@ const GolferProfilePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { get, isAuthReady } = useApiClient();
+  const { season } = useActiveSeason();
+  const seasonName = season?.name || '2026';
+  const [expandedSeasons, setExpandedSeasons] = useState<Set<string>>(new Set());
   
   // Track request ID to ignore stale responses
   const requestIdRef = useRef(0);
@@ -84,6 +102,21 @@ const GolferProfilePage: React.FC = () => {
     }
   }, [id, get, isAuthReady]);
 
+  useEffect(() => {
+    if (golfer?.seasonStats?.length) {
+      setExpandedSeasons(new Set([golfer.seasonStats[0].seasonName]));
+    }
+  }, [golfer]);
+
+  const toggleSeason = (name: string) => {
+    setExpandedSeasons((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  };
+
   // Helper functions
   const getPodiums = (stats: GolferStats) => {
     if (!stats) return 0;
@@ -95,27 +128,9 @@ const GolferProfilePage: React.FC = () => {
     return ((stats.timesFinished1st / stats.timesPlayed) * 100).toFixed(1);
   };
 
-  const getPodiumRate = (stats: GolferStats) => {
-    if (!stats || stats.timesPlayed === 0) return 0;
-    return ((getPodiums(stats) / stats.timesPlayed) * 100).toFixed(1);
-  };
-
   const getConsistencyRate = (stats: GolferStats) => {
     if (!stats || stats.timesPlayed === 0) return 0;
     return ((stats.timesScored36Plus / stats.timesPlayed) * 100).toFixed(1);
-  };
-
-  const getTotalStats = () => {
-    if (!golfer) return null;
-    const s25 = golfer.stats2025 || { timesPlayed: 0, timesFinished1st: 0, timesFinished2nd: 0, timesFinished3rd: 0, timesScored36Plus: 0 };
-    const s26 = golfer.stats2026 || { timesPlayed: 0, timesFinished1st: 0, timesFinished2nd: 0, timesFinished3rd: 0, timesScored36Plus: 0 };
-    return {
-      timesPlayed: s25.timesPlayed + s26.timesPlayed,
-      timesFinished1st: s25.timesFinished1st + s26.timesFinished1st,
-      timesFinished2nd: s25.timesFinished2nd + s26.timesFinished2nd,
-      timesFinished3rd: s25.timesFinished3rd + s26.timesFinished3rd,
-      timesScored36Plus: s25.timesScored36Plus + s26.timesScored36Plus,
-    };
   };
 
   const formatDate = (dateString: string) => {
@@ -154,7 +169,16 @@ const GolferProfilePage: React.FC = () => {
     );
   }
 
-  const totalStats = getTotalStats();
+  const totalStats = golfer.seasonStats?.reduce(
+    (acc, ss) => ({
+      timesPlayed: acc.timesPlayed + ss.timesPlayed,
+      timesFinished1st: acc.timesFinished1st + ss.timesFinished1st,
+      timesFinished2nd: acc.timesFinished2nd + ss.timesFinished2nd,
+      timesFinished3rd: acc.timesFinished3rd + ss.timesFinished3rd,
+      timesScored36Plus: acc.timesScored36Plus + ss.timesScored36Plus,
+    }),
+    { timesPlayed: 0, timesFinished1st: 0, timesFinished2nd: 0, timesFinished3rd: 0, timesScored36Plus: 0 }
+  ) ?? null;
 
   return (
     <PageLayout activeNav="golfers">
@@ -174,23 +198,9 @@ const GolferProfilePage: React.FC = () => {
                     {golfer.firstName[0]}{golfer.lastName[0]}
                   </div>
                 )}
-                <span className={`status-indicator ${golfer.isActive ? 'active' : 'inactive'}`}></span>
               </div>
-              <div className="hero-info">
-                <h1 className="golfer-name">{golfer.firstName} {golfer.lastName}</h1>
-                <div className="golfer-meta">
-                  <span className={`membership-badge ${getMembershipClass(golfer.membershipType)}`}>
-                    {getMembershipLabel(golfer.membershipType)}
-                  </span>
-                  <span className={`status-badge ${golfer.isActive ? 'status-active' : 'status-inactive'}`}>
-                    {golfer.isActive ? 'Active Golfer' : 'Inactive'}
-                  </span>
-                </div>
-                <div className="golfer-value">
-                  <span className="value-label">Fantasy Value</span>
-                  <span className="value-amount">{formatPrice(golfer.price)}</span>
-                </div>
-              </div>
+              <h1 className="golfer-name">{golfer.firstName} {golfer.lastName}</h1>
+              <div className="golfer-value">{formatPrice(golfer.price)}</div>
             </div>
           </div>
 
@@ -229,140 +239,93 @@ const GolferProfilePage: React.FC = () => {
                 <div className="points-label">pts</div>
               </div>
               <div className="points-card highlight">
-                <div className="points-period">2026 Season</div>
+                <div className="points-period">{seasonName} Season</div>
                 <div className="points-amount">{golfer.points?.season || 0}</div>
                 <div className="points-label">pts</div>
               </div>
             </div>
           </div>
 
-          {/* Stats Grid */}
-          <div className="season-stats-grid">
-            {/* 2025 Season */}
-            <div className="season-card">
-              <div className="season-header">
-                <h2>2025 Season</h2>
-                <span className="season-rounds">{golfer.stats2025?.timesPlayed || 0} rounds</span>
+          {/* Season Performance */}
+          <div className="season-performance-section">
+            <h2>📊 Season Performance</h2>
+            {golfer.seasonStats && golfer.seasonStats.length > 0 ? (
+              <div className="season-accordion">
+                {golfer.seasonStats.map((ss) => {
+                  const isExpanded = expandedSeasons.has(ss.seasonName);
+                  const podiums = ss.timesFinished1st + ss.timesFinished2nd + ss.timesFinished3rd;
+                  const winRate = ss.timesPlayed > 0 ? ((ss.timesFinished1st / ss.timesPlayed) * 100).toFixed(0) : '0';
+                  const podiumRate = ss.timesPlayed > 0 ? ((podiums / ss.timesPlayed) * 100).toFixed(0) : '0';
+                  
+                  return (
+                    <div key={ss.seasonName} className={`season-card ${isExpanded ? 'expanded' : ''} ${ss.isActive ? 'active-season' : ''}`}>
+                      <button className="season-card-header" onClick={() => toggleSeason(ss.seasonName)}>
+                        <div className="season-card-title">
+                          <span className="season-name">{ss.seasonName} Season</span>
+                          {ss.isActive && <span className="active-badge">Active</span>}
+                        </div>
+                        <div className="season-card-summary">
+                          <span>{ss.timesPlayed} played</span>
+                          <span>•</span>
+                          <span>{ss.totalPoints} pts</span>
+                          <span>•</span>
+                          <span>{ss.timesFinished1st} wins</span>
+                        </div>
+                        <span className="accordion-arrow">{isExpanded ? '▲' : '▼'}</span>
+                      </button>
+                      {isExpanded && (
+                        <div className="season-card-body">
+                          <div className="season-stats-grid">
+                            <div className="season-stat">
+                              <div className="season-stat-value">{ss.timesPlayed}</div>
+                              <div className="season-stat-label">Played</div>
+                            </div>
+                            <div className="season-stat">
+                              <div className="season-stat-value">{ss.totalPoints}</div>
+                              <div className="season-stat-label">Points</div>
+                            </div>
+                            <div className="season-stat">
+                              <div className="season-stat-value gold">{ss.timesFinished1st}</div>
+                              <div className="season-stat-label">🥇 1st</div>
+                            </div>
+                            <div className="season-stat">
+                              <div className="season-stat-value silver">{ss.timesFinished2nd}</div>
+                              <div className="season-stat-label">🥈 2nd</div>
+                            </div>
+                            <div className="season-stat">
+                              <div className="season-stat-value bronze">{ss.timesFinished3rd}</div>
+                              <div className="season-stat-label">🥉 3rd</div>
+                            </div>
+                            <div className="season-stat">
+                              <div className="season-stat-value">{ss.timesScored36Plus}</div>
+                              <div className="season-stat-label">⭐ 36+</div>
+                            </div>
+                          </div>
+                          <div className="season-rates">
+                            <div className="rate-bar">
+                              <span className="rate-label">Win Rate</span>
+                              <div className="rate-track">
+                                <div className="rate-fill" style={{ width: `${winRate}%` }}></div>
+                              </div>
+                              <span className="rate-value">{winRate}%</span>
+                            </div>
+                            <div className="rate-bar">
+                              <span className="rate-label">Podium Rate</span>
+                              <div className="rate-track">
+                                <div className="rate-fill podium" style={{ width: `${podiumRate}%` }}></div>
+                              </div>
+                              <span className="rate-value">{podiumRate}%</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-              
-              <div className="stat-breakdown">
-                <div className="stat-row">
-                  <span className="stat-label">🏆 1st Place Finishes</span>
-                  <span className="stat-value gold">{golfer.stats2025?.timesFinished1st || 0}</span>
-                </div>
-                <div className="stat-row">
-                  <span className="stat-label">🥈 2nd Place Finishes</span>
-                  <span className="stat-value silver">{golfer.stats2025?.timesFinished2nd || 0}</span>
-                </div>
-                <div className="stat-row">
-                  <span className="stat-label">🥉 3rd Place Finishes</span>
-                  <span className="stat-value bronze">{golfer.stats2025?.timesFinished3rd || 0}</span>
-                </div>
-                <div className="stat-row">
-                  <span className="stat-label">⭐ Times Scored 36+</span>
-                  <span className="stat-value">{golfer.stats2025?.timesScored36Plus || 0}</span>
-                </div>
-              </div>
-
-              {golfer.stats2025?.timesPlayed > 0 && (
-                <div className="performance-metrics">
-                  <div className="metric">
-                    <div className="metric-bar">
-                      <div 
-                        className="metric-fill win-rate" 
-                        style={{ width: `${getWinRate(golfer.stats2025)}%` }}
-                      ></div>
-                    </div>
-                    <span className="metric-label">Win Rate: {getWinRate(golfer.stats2025)}%</span>
-                  </div>
-                  <div className="metric">
-                    <div className="metric-bar">
-                      <div 
-                        className="metric-fill podium-rate" 
-                        style={{ width: `${getPodiumRate(golfer.stats2025)}%` }}
-                      ></div>
-                    </div>
-                    <span className="metric-label">Podium Rate: {getPodiumRate(golfer.stats2025)}%</span>
-                  </div>
-                  <div className="metric">
-                    <div className="metric-bar">
-                      <div 
-                        className="metric-fill consistency-rate" 
-                        style={{ width: `${getConsistencyRate(golfer.stats2025)}%` }}
-                      ></div>
-                    </div>
-                    <span className="metric-label">Consistency (36+): {getConsistencyRate(golfer.stats2025)}%</span>
-                  </div>
-                </div>
-              )}
-
-              {!golfer.stats2025?.timesPlayed && (
-                <div className="no-data">No rounds played in 2025</div>
-              )}
-            </div>
-
-            {/* 2026 Season */}
-            <div className="season-card">
-              <div className="season-header">
-                <h2>2026 Season</h2>
-                <span className="season-rounds">{golfer.stats2026?.timesPlayed || 0} rounds</span>
-              </div>
-              
-              <div className="stat-breakdown">
-                <div className="stat-row">
-                  <span className="stat-label">🏆 1st Place Finishes</span>
-                  <span className="stat-value gold">{golfer.stats2026?.timesFinished1st || 0}</span>
-                </div>
-                <div className="stat-row">
-                  <span className="stat-label">🥈 2nd Place Finishes</span>
-                  <span className="stat-value silver">{golfer.stats2026?.timesFinished2nd || 0}</span>
-                </div>
-                <div className="stat-row">
-                  <span className="stat-label">🥉 3rd Place Finishes</span>
-                  <span className="stat-value bronze">{golfer.stats2026?.timesFinished3rd || 0}</span>
-                </div>
-                <div className="stat-row">
-                  <span className="stat-label">⭐ Times Scored 36+</span>
-                  <span className="stat-value">{golfer.stats2026?.timesScored36Plus || 0}</span>
-                </div>
-              </div>
-
-              {golfer.stats2026?.timesPlayed > 0 && (
-                <div className="performance-metrics">
-                  <div className="metric">
-                    <div className="metric-bar">
-                      <div 
-                        className="metric-fill win-rate" 
-                        style={{ width: `${getWinRate(golfer.stats2026)}%` }}
-                      ></div>
-                    </div>
-                    <span className="metric-label">Win Rate: {getWinRate(golfer.stats2026)}%</span>
-                  </div>
-                  <div className="metric">
-                    <div className="metric-bar">
-                      <div 
-                        className="metric-fill podium-rate" 
-                        style={{ width: `${getPodiumRate(golfer.stats2026)}%` }}
-                      ></div>
-                    </div>
-                    <span className="metric-label">Podium Rate: {getPodiumRate(golfer.stats2026)}%</span>
-                  </div>
-                  <div className="metric">
-                    <div className="metric-bar">
-                      <div 
-                        className="metric-fill consistency-rate" 
-                        style={{ width: `${getConsistencyRate(golfer.stats2026)}%` }}
-                      ></div>
-                    </div>
-                    <span className="metric-label">Consistency (36+): {getConsistencyRate(golfer.stats2026)}%</span>
-                  </div>
-                </div>
-              )}
-
-              {!golfer.stats2026?.timesPlayed && (
-                <div className="no-data">No rounds played in 2026 yet</div>
-              )}
-            </div>
+            ) : (
+              <p style={{ color: '#6b7280' }}>No season data available.</p>
+            )}
           </div>
 
           {/* Career Summary */}

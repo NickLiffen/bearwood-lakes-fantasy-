@@ -24,4 +24,4 @@ export const handler = withAuth(async (event: AuthenticatedEvent) => {
       body: JSON.stringify({ success: false, error: message }),
     };
   }
-});
+}, 'write');

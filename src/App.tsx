@@ -26,6 +26,8 @@ import TournamentsAdminPage from './pages/Admin/TournamentsAdminPage';
 import ScoresAdminPage from './pages/Admin/ScoresAdminPage';
 import UsersAdminPage from './pages/Admin/UsersAdminPage';
 import SettingsAdminPage from './pages/Admin/SettingsAdminPage';
+import SeasonUploadPage from './pages/Admin/SeasonUploadPage';
+import SeasonsAdminPage from './pages/Admin/SeasonsAdminPage';
 
 // Protected route wrapper for admin pages
 const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -221,6 +223,22 @@ const App: React.FC = () => {
           element={
             <AdminRoute>
               <SettingsAdminPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/seasons"
+          element={
+            <AdminRoute>
+              <SeasonsAdminPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/season-upload"
+          element={
+            <AdminRoute>
+              <SeasonUploadPage />
             </AdminRoute>
           }
         />

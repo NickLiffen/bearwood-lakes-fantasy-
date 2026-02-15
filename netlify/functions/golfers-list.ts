@@ -8,6 +8,7 @@ import { connectToDatabase } from './_shared/db';
 import { GolferDocument, GOLFERS_COLLECTION, toGolfer } from './_shared/models/Golfer';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
 import { SCORES_COLLECTION } from './_shared/models/Score';
+import { SeasonDocument, SEASONS_COLLECTION } from './_shared/models/Season';
 import { getWeekStart, getMonthStart, getSeasonStart } from './_shared/utils/dates';
 import { createPerfTimer } from './_shared/utils/perf';
 import { successResponse, successResponseWithMeta, internalError } from './_shared/utils/response';
@@ -29,15 +30,23 @@ export const handler = withAuth(async (event: AuthenticatedEvent) => {
     const monthStart = getMonthStart();
     const seasonStart = getSeasonStart();
 
-    // First, get published tournaments to build the filter
-    const tournaments = await timer.measure('tournaments-query', () =>
-      db.collection<TournamentDocument>(TOURNAMENTS_COLLECTION)
-        .find({ status: { $in: ['published', 'complete'] }, season: 2026 })
-        .toArray()
+    // First, get published tournaments and seasons
+    const [allPublishedTournaments, allSeasons] = await timer.measure('tournaments-query', () =>
+      Promise.all([
+        db.collection<TournamentDocument>(TOURNAMENTS_COLLECTION)
+          .find({ status: { $in: ['published', 'complete'] } })
+          .toArray(),
+        db.collection<SeasonDocument>(SEASONS_COLLECTION)
+          .find({}).sort({ startDate: -1 }).toArray(),
+      ])
     );
 
-    const publishedTournamentIds = tournaments.map(t => t._id);
-    const tournamentDateMap = new Map(tournaments.map(t => [t._id.toString(), new Date(t.startDate)]));
+    // Separate 2026 tournaments for existing stats
+    const tournaments2026 = allPublishedTournaments.filter(t => t.season === 2026);
+    const tournament2026IdSet = new Set(tournaments2026.map(t => t._id.toString()));
+
+    const publishedTournamentIds = allPublishedTournaments.map(t => t._id);
+    const tournamentDateMap = new Map(allPublishedTournaments.map(t => [t._id.toString(), new Date(t.startDate)]));
 
     // Use aggregation to fetch golfers with their scores in a single query
     const aggregationPipeline: object[] = [
@@ -85,6 +94,22 @@ export const handler = withAuth(async (event: AuthenticatedEvent) => {
       ])
     );
 
+    // Pre-compute season → tournament IDs mapping
+    const seasonTournamentMap = new Map<string, Set<string>>();
+    for (const season of allSeasons) {
+      const seasonStart = new Date(season.startDate);
+      const seasonEnd = new Date(season.endDate);
+      const ids = new Set(
+        allPublishedTournaments
+          .filter(t => {
+            const d = new Date(t.startDate);
+            return d >= seasonStart && d <= seasonEnd;
+          })
+          .map(t => t._id.toString())
+      );
+      seasonTournamentMap.set(season.name, ids);
+    }
+
     // Process results and calculate stats
     const golfersResult = golfersWithScores.map((doc) => {
       const golferDoc = doc as GolferDocument & { scores: Array<{
@@ -97,18 +122,21 @@ export const handler = withAuth(async (event: AuthenticatedEvent) => {
       const golfer = toGolfer(golferDoc);
       const scores = golferDoc.scores || [];
 
-      // Add tournament dates to scores for period filtering
-      const scoresWithDates = scores.map(s => ({
+      // Filter to 2026 scores for existing stats
+      const scores2026 = scores.filter(s => tournament2026IdSet.has(s.tournamentId.toString()));
+
+      // Add tournament dates to 2026 scores for period filtering
+      const scoresWithDates = scores2026.map(s => ({
         ...s,
         tournamentDate: tournamentDateMap.get(s.tournamentId.toString()) || new Date(0)
       }));
 
       const stats2026 = {
-        timesPlayed: scores.length,
-        timesFinished1st: scores.filter(s => s.position === 1).length,
-        timesFinished2nd: scores.filter(s => s.position === 2).length,
-        timesFinished3rd: scores.filter(s => s.position === 3).length,
-        timesScored36Plus: scores.filter(s => s.scored36Plus).length,
+        timesPlayed: scores2026.length,
+        timesFinished1st: scores2026.filter(s => s.position === 1).length,
+        timesFinished2nd: scores2026.filter(s => s.position === 2).length,
+        timesFinished3rd: scores2026.filter(s => s.position === 3).length,
+        timesScored36Plus: scores2026.filter(s => s.scored36Plus).length,
       };
 
       // Calculate points by period
@@ -122,10 +150,40 @@ export const handler = withAuth(async (event: AuthenticatedEvent) => {
         season: seasonScores.reduce((sum, s) => sum + (s.multipliedPoints || 0), 0),
       };
 
+      // Compute dynamic per-season stats
+      const seasonStats = [];
+      for (const season of allSeasons) {
+        const seasonTournamentIds = seasonTournamentMap.get(season.name) || new Set<string>();
+
+        const seasonGolferScores = scores.filter(
+          s => seasonTournamentIds.has(s.tournamentId.toString())
+        );
+
+        if (seasonGolferScores.length === 0 && !season.isActive) continue;
+
+        const totalPoints = seasonGolferScores.reduce(
+          (sum, s) => sum + (s.multipliedPoints || 0), 0
+        );
+
+        seasonStats.push({
+          seasonName: season.name,
+          isActive: season.isActive,
+          startDate: season.startDate,
+          endDate: season.endDate,
+          timesPlayed: seasonGolferScores.length,
+          timesFinished1st: seasonGolferScores.filter(s => s.position === 1).length,
+          timesFinished2nd: seasonGolferScores.filter(s => s.position === 2).length,
+          timesFinished3rd: seasonGolferScores.filter(s => s.position === 3).length,
+          timesScored36Plus: seasonGolferScores.filter(s => s.scored36Plus).length,
+          totalPoints,
+        });
+      }
+
       return {
         ...golfer,
         stats2026,
         points,
+        seasonStats,
       };
     });
 
