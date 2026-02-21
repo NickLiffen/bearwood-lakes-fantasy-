@@ -3,7 +3,7 @@
 
 import type { Handler } from '@netlify/functions';
 import { refreshAccessToken } from './_shared/services/auth.service';
-import { corsHeaders } from './_shared/middleware';
+import { withCors } from './_shared/middleware';
 import {
   getRefreshTokenFromCookie,
   setRefreshTokenCookie,
@@ -12,38 +12,28 @@ import {
 } from './_shared/utils/cookies';
 
 export const handler: Handler = async (event) => {
+  const requestOrigin = event.headers.origin;
+
   // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 204,
-      headers: {
-        ...corsHeaders,
-        'Access-Control-Allow-Credentials': 'true',
-      },
-      body: '',
-    };
+    return withCors({ statusCode: 204, body: '' }, requestOrigin);
   }
 
   if (event.httpMethod !== 'POST') {
-    return {
+    return withCors({
       statusCode: 405,
-      headers: corsHeaders,
       body: JSON.stringify({ error: 'Method not allowed' }),
-    };
+    }, requestOrigin);
   }
 
   try {
     const refreshToken = getRefreshTokenFromCookie(event.headers.cookie);
 
     if (!refreshToken) {
-      return {
+      return withCors({
         statusCode: 401,
-        headers: {
-          ...corsHeaders,
-          'Access-Control-Allow-Credentials': 'true',
-        },
         body: JSON.stringify({ success: false, error: 'No refresh token provided' }),
-      };
+      }, requestOrigin);
     }
 
     const { userAgent, ipAddress } = getClientInfo(event.headers);
@@ -52,11 +42,9 @@ export const handler: Handler = async (event) => {
     // Set new refresh token cookie (token rotation)
     const cookieHeader = setRefreshTokenCookie(result.refreshToken);
 
-    return {
+    return withCors({
       statusCode: 200,
       headers: {
-        ...corsHeaders,
-        'Access-Control-Allow-Credentials': 'true',
         'Set-Cookie': cookieHeader,
       },
       body: JSON.stringify({
@@ -66,19 +54,17 @@ export const handler: Handler = async (event) => {
           token: result.token,
         },
       }),
-    };
+    }, requestOrigin);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Token refresh failed';
     
     // Clear the invalid cookie
-    return {
+    return withCors({
       statusCode: 401,
       headers: {
-        ...corsHeaders,
-        'Access-Control-Allow-Credentials': 'true',
         'Set-Cookie': clearRefreshTokenCookie(),
       },
       body: JSON.stringify({ success: false, error: message }),
-    };
+    }, requestOrigin);
   }
 };

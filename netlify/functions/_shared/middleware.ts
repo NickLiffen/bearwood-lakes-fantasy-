@@ -47,10 +47,9 @@ function getAllowedOrigin(requestOrigin: string | undefined): string {
   return allowedOrigins[0];
 }
 
-// Standard CORS headers for all routes
+// Base CORS headers for all routes (origin is set dynamically by withCors)
 export const corsHeaders: Record<string, string> = {
   'Content-Type': 'application/json',
-  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   'Access-Control-Allow-Credentials': 'true',
@@ -88,9 +87,11 @@ export function withRateLimit(
   rateLimitType: RateLimitType = 'default'
 ): Handler {
   return async (event, context) => {
+    const requestOrigin = event.headers.origin;
+
     // Handle CORS preflight (no rate limiting for OPTIONS)
     if (event.httpMethod === 'OPTIONS') {
-      return { statusCode: 204, headers: corsHeaders, body: '' };
+      return withCors({ statusCode: 204, body: '' }, requestOrigin);
     }
 
     const endpoint = getEndpointName(event.path);
@@ -101,7 +102,7 @@ export function withRateLimit(
       const result = await checkRateLimit(key, config);
 
       if (!result.allowed) {
-        return withCors(rateLimitExceededResponse(result.retryAfter || 60));
+        return withCors(rateLimitExceededResponse(result.retryAfter || 60), requestOrigin);
       }
 
       const response = await handler(event, context);
@@ -113,12 +114,12 @@ export function withRateLimit(
           ...response.headers,
           ...rateLimitHeaders(config.maxRequests, result.remaining, result.resetAt),
         },
-      });
+      }, requestOrigin);
     } catch (error) {
       console.error('Rate limit check error:', error);
       // On rate limit check failure, allow the request (fail open)
       const response = await handler(event, context);
-      return withCors(response);
+      return withCors(response, requestOrigin);
     }
   };
 }
@@ -131,9 +132,11 @@ export function withAuth(
   rateLimitType: RateLimitType = 'default'
 ): Handler {
   return async (event, context) => {
+    const requestOrigin = event.headers.origin;
+
     // Handle CORS preflight
     if (event.httpMethod === 'OPTIONS') {
-      return { statusCode: 204, headers: corsHeaders, body: '' };
+      return withCors({ statusCode: 204, body: '' }, requestOrigin);
     }
 
     const authHeader = event.headers.authorization;
@@ -142,7 +145,7 @@ export function withAuth(
       return withCors({
         statusCode: 401,
         body: JSON.stringify({ success: false, error: 'Unauthorized' }),
-      });
+      }, requestOrigin);
     }
 
     try {
@@ -157,7 +160,7 @@ export function withAuth(
       const rateLimitResult = await checkRateLimit(key, config);
 
       if (!rateLimitResult.allowed) {
-        return withCors(rateLimitExceededResponse(rateLimitResult.retryAfter || 60));
+        return withCors(rateLimitExceededResponse(rateLimitResult.retryAfter || 60), requestOrigin);
       }
 
       const authenticatedEvent = { ...event, user } as AuthenticatedEvent;
@@ -169,7 +172,7 @@ export function withAuth(
           ...response.headers,
           ...rateLimitHeaders(config.maxRequests, rateLimitResult.remaining, rateLimitResult.resetAt),
         },
-      }, event.headers.origin);
+      }, requestOrigin);
     } catch (error) {
       // Check if it's a rate limit error or auth error
       if (error instanceof Error && error.message.includes('rate')) {
@@ -180,19 +183,19 @@ export function withAuth(
           const user = verifyToken(token);
           const authenticatedEvent = { ...event, user } as AuthenticatedEvent;
           const response = await handler(authenticatedEvent, context);
-          return withCors(response, event.headers.origin);
+          return withCors(response, requestOrigin);
         } catch {
           return withCors({
             statusCode: 401,
             body: JSON.stringify({ success: false, error: 'Invalid token' }),
-          }, event.headers.origin);
+          }, requestOrigin);
         }
       }
       
       return withCors({
         statusCode: 401,
         body: JSON.stringify({ success: false, error: 'Invalid token' }),
-      }, event.headers.origin);
+      }, requestOrigin);
     }
   };
 }

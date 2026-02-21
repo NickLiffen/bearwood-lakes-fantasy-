@@ -3,28 +3,22 @@
 
 import type { Handler } from '@netlify/functions';
 import { revokeRefreshToken } from './_shared/services/auth.service';
-import { corsHeaders } from './_shared/middleware';
+import { withCors } from './_shared/middleware';
 import { getRefreshTokenFromCookie, clearRefreshTokenCookie } from './_shared/utils/cookies';
 
 export const handler: Handler = async (event) => {
+  const requestOrigin = event.headers.origin;
+
   // Handle CORS preflight
   if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 204,
-      headers: {
-        ...corsHeaders,
-        'Access-Control-Allow-Credentials': 'true',
-      },
-      body: '',
-    };
+    return withCors({ statusCode: 204, body: '' }, requestOrigin);
   }
 
   if (event.httpMethod !== 'POST') {
-    return {
+    return withCors({
       statusCode: 405,
-      headers: corsHeaders,
       body: JSON.stringify({ error: 'Method not allowed' }),
-    };
+    }, requestOrigin);
   }
 
   try {
@@ -38,25 +32,21 @@ export const handler: Handler = async (event) => {
     }
 
     // Always clear the cookie
-    return {
+    return withCors({
       statusCode: 200,
       headers: {
-        ...corsHeaders,
-        'Access-Control-Allow-Credentials': 'true',
         'Set-Cookie': clearRefreshTokenCookie(),
       },
       body: JSON.stringify({ success: true }),
-    };
+    }, requestOrigin);
   } catch {
     // Even on error, clear the cookie
-    return {
+    return withCors({
       statusCode: 200,
       headers: {
-        ...corsHeaders,
-        'Access-Control-Allow-Credentials': 'true',
         'Set-Cookie': clearRefreshTokenCookie(),
       },
       body: JSON.stringify({ success: true }),
-    };
+    }, requestOrigin);
   }
 };

@@ -3,7 +3,7 @@
 import { registerUser } from './_shared/services/auth.service';
 import { validateBody, registerSchema } from './_shared/validators/auth.validator';
 import { getAppSettings } from './_shared/services/settings.service';
-import { withRateLimit, corsHeaders } from './_shared/middleware';
+import { withRateLimit } from './_shared/middleware';
 import { setRefreshTokenCookie, getClientInfo } from './_shared/utils/cookies';
 
 export const handler = withRateLimit(async (event) => {
@@ -34,7 +34,6 @@ export const handler = withRateLimit(async (event) => {
     return {
       statusCode: 201,
       headers: {
-        ...corsHeaders,
         'Set-Cookie': cookieHeader,
       },
       body: JSON.stringify({
