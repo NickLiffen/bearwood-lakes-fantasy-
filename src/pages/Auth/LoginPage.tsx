@@ -37,7 +37,7 @@ const LoginPage: React.FC = () => {
   const handleChange = (field: keyof LoginFormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value;
     if (field === 'username') {
-      value = sanitizers.trim(value);
+      value = sanitizers.trim(value).toLowerCase();
     }
     setValue(field, value);
   };
@@ -66,7 +66,7 @@ const LoginPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      await login(sanitizers.trim(values.username), values.password);
+      await login(sanitizers.trim(values.username).toLowerCase(), values.password);
       navigate('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
