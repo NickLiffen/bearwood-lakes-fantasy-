@@ -1,6 +1,6 @@
 // Admin: Users management page
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '../../components/AdminLayout/AdminLayout';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { useAuth } from '../../hooks/useAuth';
@@ -41,13 +41,7 @@ const UsersAdminPage: React.FC = () => {
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    if (isAuthReady) {
-      fetchUsers();
-    }
-  }, [isAuthReady]);
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setError(''); // Clear previous errors
       const response = await get<User[]>('users-list');
@@ -63,7 +57,13 @@ const UsersAdminPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [get]);
+
+  useEffect(() => {
+    if (isAuthReady) {
+      fetchUsers();
+    }
+  }, [isAuthReady, fetchUsers]);
 
   const handleRoleChange = async (user: User, newRole: 'admin' | 'user') => {
     if (user.id === currentUserId) {

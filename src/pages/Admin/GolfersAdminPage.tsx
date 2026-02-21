@@ -1,6 +1,6 @@
 // Admin: Golfers management page
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '../../components/AdminLayout/AdminLayout';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { validators, sanitizers, getInputClassName } from '../../utils/validation';
@@ -186,7 +186,7 @@ const GolfersAdminPage: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const fetchGolfers = async () => {
+  const fetchGolfers = useCallback(async () => {
     try {
       const response = await get<Golfer[]>('golfers-list');
       
@@ -201,13 +201,13 @@ const GolfersAdminPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [get]);
 
   useEffect(() => {
     if (isAuthReady) {
       fetchGolfers();
     }
-  }, [isAuthReady]);
+  }, [isAuthReady, fetchGolfers]);
 
   const handleCalculatePrices = async () => {
     const pricingSeason = new Date().getFullYear() - 1;

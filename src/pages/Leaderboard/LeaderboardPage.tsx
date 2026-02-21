@@ -259,7 +259,7 @@ const LeaderboardPage: React.FC = () => {
     };
 
     loadInitialData();
-  }, [userId, fetchLeaders, fetchPeriodData]);
+  }, [isAuthReady, userId, fetchLeaders, fetchPeriodData]);
 
   // Navigation handlers
   const handleWeekNavigation = async (direction: 'prev' | 'next') => {

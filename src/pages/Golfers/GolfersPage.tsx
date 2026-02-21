@@ -1,6 +1,6 @@
 // All Golfers Page - View all golfers with stats
 
-import React, { useState, useMemo } from 'react';
+import React, { useCallback, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import PageLayout from '../../components/layout/PageLayout';
 import SearchBar from '../../components/ui/SearchBar';
@@ -58,10 +58,10 @@ const GolfersPage: React.FC = () => {
   const { season } = useActiveSeason();
   const seasonName = season?.name || '2026';
 
-  const getStats = (golfer: any) => {
+  const getStats = useCallback((golfer: Golfer) => {
     if (seasonName === '2025') return golfer.stats2025;
     return golfer.stats2026;
-  };
+  }, [seasonName]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [sortColumn, setSortColumn] = useState<SortColumn>('name');
@@ -148,7 +148,7 @@ const GolfersPage: React.FC = () => {
         }
         return ((aVal as number) - (bVal as number)) * dir;
       });
-  }, [golfers, searchTerm, quickFilter, sortColumn, sortDirection]);
+  }, [golfers, searchTerm, quickFilter, sortColumn, sortDirection, seasonName, getStats]);
 
   // Reset filters
   const resetFilters = () => {

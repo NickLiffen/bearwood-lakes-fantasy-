@@ -246,7 +246,7 @@ const UserProfilePage: React.FC = () => {
     if (isAuthReady && userId) {
       fetchUserProfile();
     }
-  }, [isAuthReady, userId]);
+  }, [isAuthReady, userId, fetchUserProfile]);
 
   // Navigation handlers
   const handleWeekNavigation = (direction: 'prev' | 'next') => {

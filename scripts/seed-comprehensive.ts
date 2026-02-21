@@ -608,7 +608,7 @@ async function seedComprehensive() {
 
     for (const user of usersWithTeams) {
       // Select 6 golfers within budget
-      let selectedGolfers: GolferDoc[] = [];
+      const selectedGolfers: GolferDoc[] = [];
       let totalSpent = 0;
       let remainingBudget = TOTAL_BUDGET;
 

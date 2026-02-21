@@ -1,6 +1,6 @@
 // Admin: Settings management page
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '../../components/AdminLayout/AdminLayout';
 import { useApiClient } from '../../hooks/useApiClient';
 
@@ -26,7 +26,7 @@ const SettingsAdminPage: React.FC = () => {
   const [confirmText, setConfirmText] = useState('');
   const [isResetting, setIsResetting] = useState(false);
 
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     try {
       const response = await get<AppSettings>('settings');
       
@@ -42,13 +42,13 @@ const SettingsAdminPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [get]);
 
   useEffect(() => {
     if (isAuthReady) {
       fetchSettings();
     }
-  }, [isAuthReady]);
+  }, [isAuthReady, fetchSettings]);
 
   const updateSetting = async (key: string, value: boolean | number | string) => {
     setUpdating(key);

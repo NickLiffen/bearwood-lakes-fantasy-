@@ -185,7 +185,7 @@ const MyTeamPage: React.FC = () => {
     if (isAuthReady) {
       fetchTeam();
     }
-  }, [isAuthReady]);
+  }, [isAuthReady, fetchTeam]);
 
   // Navigation handlers
   const handleWeekNavigation = (direction: 'prev' | 'next') => {

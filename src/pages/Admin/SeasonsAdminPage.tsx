@@ -1,6 +1,6 @@
 // Admin: Seasons management page
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '../../components/AdminLayout/AdminLayout';
 import { validators, sanitizers, getInputClassName } from '../../utils/validation';
 import { useApiClient } from '../../hooks/useApiClient';
@@ -118,7 +118,7 @@ const SeasonsAdminPage: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const fetchSeasons = async () => {
+  const fetchSeasons = useCallback(async () => {
     try {
       const response = await get<Season[]>('seasons-list');
 
@@ -132,13 +132,13 @@ const SeasonsAdminPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [get]);
 
   useEffect(() => {
     if (isAuthReady) {
       fetchSeasons();
     }
-  }, [isAuthReady]);
+  }, [isAuthReady, fetchSeasons]);
 
   const handleOpenModal = (season?: Season) => {
     if (season) {

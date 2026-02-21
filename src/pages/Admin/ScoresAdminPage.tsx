@@ -1,6 +1,6 @@
 // Admin: Scores management page
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '../../components/AdminLayout/AdminLayout';
 import { useApiClient } from '../../hooks/useApiClient';
 
@@ -69,7 +69,7 @@ const ScoresAdminPage: React.FC = () => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [viewingTournament, setViewingTournament] = useState<TournamentWithScores | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setError(''); // Clear previous errors
       const [tournamentsRes, golfersRes, scoresRes] = await Promise.all([
@@ -139,13 +139,13 @@ const ScoresAdminPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [get]);
 
   useEffect(() => {
     if (isAuthReady) {
       fetchData();
     }
-  }, [isAuthReady]);
+  }, [isAuthReady, fetchData]);
 
   const getGolferName = (golferId: string) => {
     const golfer = golfers.find(g => g.id === golferId);

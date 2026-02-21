@@ -1,6 +1,6 @@
 // Admin: Tournaments management page
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '../../components/AdminLayout/AdminLayout';
 import { validators, sanitizers, getInputClassName } from '../../utils/validation';
 import { useApiClient } from '../../hooks/useApiClient';
@@ -149,7 +149,7 @@ const TournamentsAdminPage: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const fetchTournaments = async () => {
+  const fetchTournaments = useCallback(async () => {
     try {
       const response = await get<Tournament[]>('tournaments-list?allSeasons=true');
       
@@ -164,9 +164,9 @@ const TournamentsAdminPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [get]);
 
-  const fetchGolfers = async () => {
+  const fetchGolfers = useCallback(async () => {
     try {
       const response = await get<Golfer[]>('golfers-list');
       
@@ -179,14 +179,14 @@ const TournamentsAdminPage: React.FC = () => {
     } catch (err) {
       console.error('Failed to fetch golfers:', err);
     }
-  };
+  }, [get]);
 
   useEffect(() => {
     if (isAuthReady) {
       fetchTournaments();
       fetchGolfers();
     }
-  }, [isAuthReady]);
+  }, [isAuthReady, fetchTournaments, fetchGolfers]);
 
   const handleOpenModal = (tournament?: Tournament) => {
     if (tournament) {

@@ -1,6 +1,6 @@
 // Team Builder Page - Pick your fantasy golf team
 
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useCallback, useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '../../components/layout/PageLayout';
 import { useApiClient } from '../../hooks/useApiClient';
@@ -98,13 +98,7 @@ const TeamBuilderPage: React.FC = () => {
   const { season } = useActiveSeason();
   const seasonName = season?.name || '2026';
 
-  useEffect(() => {
-    if (isAuthReady) {
-      fetchData();
-    }
-  }, [isAuthReady]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       setError(null); // Clear previous errors
@@ -138,7 +132,13 @@ const TeamBuilderPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [get]);
+
+  useEffect(() => {
+    if (isAuthReady) {
+      fetchData();
+    }
+  }, [isAuthReady, fetchData]);
 
   const budgetUsed = selectedGolfers.reduce((sum, p) => sum + p.price, 0);
   const budgetRemaining = TOTAL_BUDGET - budgetUsed;
