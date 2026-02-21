@@ -1,0 +1,11 @@
+# Bearwood Lakes Fantasy Golf League
+# https://bearwoodlakes.netlify.app
+
+User-agent: *
+Allow: /
+
+# Disallow serverless function and API paths
+Disallow: /.netlify/
+Disallow: /api/
+
+Sitemap: https://bearwoodlakes.netlify.app/sitemap.xml
