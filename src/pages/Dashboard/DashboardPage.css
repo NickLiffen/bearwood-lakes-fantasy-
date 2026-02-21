@@ -478,18 +478,6 @@
   gap: 0.5rem;
 }
 
-.you-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.125rem 0.5rem;
-  background: var(--primary-green);
-  color: white;
-  border-radius: 999px;
-  font-size: 0.65rem;
-  font-weight: 600;
-  text-transform: uppercase;
-}
-
 .points {
   font-weight: 700;
   color: var(--primary-green);

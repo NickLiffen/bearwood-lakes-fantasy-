@@ -295,15 +295,6 @@
   color: var(--primary-green);
 }
 
-.you-badge {
-  background: var(--primary-green);
-  color: white;
-  font-size: 0.7rem;
-  padding: 0.125rem 0.5rem;
-  border-radius: 10px;
-  font-weight: 600;
-}
-
 .user-username {
   font-size: 0.8rem;
   color: var(--muted-text);

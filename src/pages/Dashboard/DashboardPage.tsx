@@ -398,7 +398,7 @@ const DashboardPage: React.FC = () => {
                           </td>
                           <td className="golfer-name">
                             {entry.firstName} {entry.lastName}
-                            {entry.id === user?.id && <span className="you-badge">You</span>}
+                            {entry.id === user?.id && <span className="dt-you-badge">You</span>}
                           </td>
                           <td className="points">{entry.seasonPoints.toLocaleString()}</td>
                           <td className="last-points">+{entry.weekPoints}</td>

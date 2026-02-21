@@ -555,7 +555,7 @@ const LeaderboardPage: React.FC = () => {
         </div>
         <div className="leader-name">
           {leader.firstName} {leader.lastName}
-          {isCurrentUser(leader.userId) && <span className="you-badge">You</span>}
+          {isCurrentUser(leader.userId) && <span className="dt-you-badge">You</span>}
         </div>
         <div className="leader-points">{leader.points} pts</div>
       </div>
