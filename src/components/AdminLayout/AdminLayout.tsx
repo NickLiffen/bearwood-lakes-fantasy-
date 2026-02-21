@@ -59,7 +59,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
       <header className="admin-header">
         <div className="admin-header-container">
           <Link to="/admin" className="admin-brand">
-            <img src="/bearwood_lakes_logo.png" alt="Bearwood Lakes" className="brand-logo" />
+            <img src="/bearwood_lakes_logo.png" alt="Bearwood Lakes" className="brand-logo" width="62" height="32" />
             <span className="brand-text">Admin Panel</span>
           </Link>
 

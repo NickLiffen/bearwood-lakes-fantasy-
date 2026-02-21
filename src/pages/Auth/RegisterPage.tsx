@@ -143,7 +143,7 @@ const RegisterPage: React.FC = () => {
 
         <div className="login-card">
           <div className="login-header">
-            <img src="/bearwood_lakes_logo.png" alt="Bearwood Lakes" className="login-logo-img" />
+            <img src="/bearwood_lakes_logo.png" alt="Bearwood Lakes" className="login-logo-img" width="80" height="80" />
             <h1>Join the League</h1>
             <p>Create your Fantasy Golf account</p>
           </div>

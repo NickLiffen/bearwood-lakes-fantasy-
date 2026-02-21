@@ -14,7 +14,7 @@ const HomePage: React.FC = () => {
       {/* Top Navigation */}
       <nav className="top-nav">
         <div className="nav-brand">
-          <img src="/bearwood_lakes_logo.png" alt="Bearwood Lakes Fantasy" className="nav-logo-img" />
+          <img src="/bearwood_lakes_logo.png" alt="Bearwood Lakes Fantasy" className="nav-logo-img" width="69" height="36" />
           <span className="nav-title">Bearwood Lakes Fantasy</span>
         </div>
         <div className="nav-links">
@@ -48,7 +48,7 @@ const HomePage: React.FC = () => {
         <div className="hero-overlay" />
         <div className="hero-content">
           <div className="logo-badge animate-fade-in">
-            <img src="/bearwood_lakes_logo.png" alt="Bearwood Lakes" className="logo-icon-img" />
+            <img src="/bearwood_lakes_logo.png" alt="Bearwood Lakes" className="logo-icon-img" width="70" height="70" />
           </div>
           <h1 className="hero-title animate-fade-in animate-delay-1">
             Bearwood Lakes
@@ -216,7 +216,7 @@ const HomePage: React.FC = () => {
         <div className="container">
           <div className="footer-content">
             <div className="footer-brand">
-              <img src="/bearwood_lakes_logo.png" alt="Bearwood Lakes" className="footer-logo-img" />
+              <img src="/bearwood_lakes_logo.png" alt="Bearwood Lakes" className="footer-logo-img" width="62" height="32" />
               <span>Bearwood Lakes Fantasy Golf</span>
             </div>
             <div className="footer-links">

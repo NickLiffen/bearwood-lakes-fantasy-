@@ -103,7 +103,7 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children, activeNav }) => {
       <header className={`page-header ${navCollapsed ? 'nav-collapsed' : ''}`}>
         <div className="header-container" ref={headerRef}>
           <Link to="/dashboard" className="header-brand" ref={brandRef}>
-            <img src="/bearwood_lakes_logo.png" alt="Bearwood Lakes" className="brand-logo" />
+            <img src="/bearwood_lakes_logo.png" alt="Bearwood Lakes" className="brand-logo" width="69" height="36" />
             <span className="brand-text">Bearwood Lakes Fantasy</span>
           </Link>
 
@@ -212,7 +212,7 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children, activeNav }) => {
       <footer className="page-footer">
         <div className="footer-container">
           <div className="footer-brand">
-            <img src="/bearwood_lakes_logo.png" alt="Bearwood Lakes" className="footer-logo-img" />
+            <img src="/bearwood_lakes_logo.png" alt="Bearwood Lakes" className="footer-logo-img" width="54" height="28" />
             <span>Bearwood Lakes Fantasy Golf</span>
           </div>
           <div className="footer-links">
