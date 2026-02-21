@@ -113,7 +113,7 @@ const TeamBuilderPage: React.FC = () => {
       const [playersRes, picksRes, settingsRes] = await Promise.all([
         get<Golfer[]>('golfers-list'),
         get<{ golfers: Golfer[] }>('picks-get'),
-        get<Settings>('settings'),
+        get<Settings>('settings-public'),
       ]);
 
       // Ignore cancelled requests
