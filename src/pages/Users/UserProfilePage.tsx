@@ -429,6 +429,8 @@ const UserProfilePage: React.FC = () => {
                     ←
                   </button>
                   <select
+                    id="profile-period"
+                    name="profile-period"
                     className="period-select"
                     value={selectedDate}
                     onChange={handleWeekSelect}

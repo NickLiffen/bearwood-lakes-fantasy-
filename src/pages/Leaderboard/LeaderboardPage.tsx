@@ -468,6 +468,8 @@ const LeaderboardPage: React.FC = () => {
                   ←
                 </button>
                 <select
+                  id="leaderboard-period"
+                  name="leaderboard-period"
                   className="period-select"
                   value={type === 'week' ? weeklyDate : monthlyDate}
                   onChange={(e) => type === 'week' ? handleWeekSelect(e.target.value) : handleMonthSelect(e.target.value)}

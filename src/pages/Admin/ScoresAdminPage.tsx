@@ -755,6 +755,8 @@ const ScoresAdminPage: React.FC = () => {
                             </td>
                             <td>
                               <input
+                                id={`participated-${golfer.id}`}
+                                name={`participated-${golfer.id}`}
                                 type="checkbox"
                                 checked={isParticipant}
                                 onChange={(e) => handleScoreChange(golfer.id, 'participated', e.target.checked)}
@@ -764,6 +766,8 @@ const ScoresAdminPage: React.FC = () => {
                             <td>
                               {isParticipant ? (
                                 <select
+                                  id={`score-position-${golfer.id}`}
+                                  name={`score-position-${golfer.id}`}
                                   value={score?.position || ''}
                                   onChange={(e) =>
                                     handleScoreChange(golfer.id, 'position', e.target.value)
@@ -787,6 +791,8 @@ const ScoresAdminPage: React.FC = () => {
                               {isParticipant ? (
                                 <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
                                   <input
+                                    id={`scored-36-plus-${golfer.id}`}
+                                    name={`scored-36-plus-${golfer.id}`}
                                     type="checkbox"
                                     checked={score?.scored36Plus || false}
                                     onChange={(e) =>

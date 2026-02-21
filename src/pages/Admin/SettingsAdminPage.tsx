@@ -197,6 +197,8 @@ const SettingsAdminPage: React.FC = () => {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   <input
+                    id="max-transfers-per-week"
+                    name="max-transfers-per-week"
                     type="number"
                     min="1"
                     max="10"
@@ -240,6 +242,8 @@ const SettingsAdminPage: React.FC = () => {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   <input
+                    id="max-players-per-transfer"
+                    name="max-players-per-transfer"
                     type="number"
                     min="1"
                     max="6"
@@ -483,6 +487,8 @@ const SettingsAdminPage: React.FC = () => {
                 Type <strong>CONFIRM</strong> to proceed:
               </p>
               <input
+                id="confirm-reset"
+                name="confirm-reset"
                 type="text"
                 value={confirmText}
                 onChange={(e) => setConfirmText(e.target.value)}

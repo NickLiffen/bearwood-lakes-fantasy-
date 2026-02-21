@@ -510,6 +510,8 @@ const TeamBuilderPage: React.FC = () => {
             <div className="search-box">
               <span className="search-icon">🔍</span>
               <input
+                id="golfer-search"
+                name="golfer-search"
                 type="text"
                 placeholder="Search golfers..."
                 value={searchTerm}
@@ -548,8 +550,10 @@ const TeamBuilderPage: React.FC = () => {
             {/* Sort & Basic Filters Row */}
             <div className="filters-row">
               <div className="filter-group">
-                <label>Sort by:</label>
-                <select 
+                <label htmlFor="sort-by">Sort by:</label>
+                <select
+                  id="sort-by"
+                  name="sort-by"
                   value={sortBy} 
                   onChange={(e) => setSortBy(e.target.value as SortOption)}
                 >
@@ -575,8 +579,10 @@ const TeamBuilderPage: React.FC = () => {
               </div>
 
               <div className="filter-group">
-                <label>Category:</label>
-                <select 
+                <label htmlFor="membership-filter">Category:</label>
+                <select
+                  id="membership-filter"
+                  name="membership-filter"
                   value={membershipFilter} 
                   onChange={(e) => setMembershipFilter(e.target.value)}
                 >
@@ -608,9 +614,11 @@ const TeamBuilderPage: React.FC = () => {
             {showAdvancedFilters && (
               <div className="advanced-filters">
                 <div className="advanced-filter-item">
-                  <label>Min. Rounds Played ({seasonName}):</label>
+                  <label htmlFor="min-rounds">Min. Rounds Played ({seasonName}):</label>
                   <div className="range-input-group">
                     <input
+                      id="min-rounds"
+                      name="min-rounds"
                       type="range"
                       min="0"
                       max="10"
@@ -624,6 +632,8 @@ const TeamBuilderPage: React.FC = () => {
                 <div className="advanced-filter-item">
                   <label className="checkbox-label">
                     <input
+                      id="show-affordable"
+                      name="show-affordable"
                       type="checkbox"
                       checked={showAffordableOnly}
                       onChange={(e) => setShowAffordableOnly(e.target.checked)}

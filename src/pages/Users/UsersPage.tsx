@@ -275,6 +275,8 @@ const UsersPage: React.FC = () => {
           {/* Filters Row */}
           <div className="filters-row">
             <select
+              id="users-filter"
+              name="users-filter"
               value={quickFilter}
               onChange={(e) => setQuickFilter(e.target.value as QuickFilter)}
               className="filter-select"

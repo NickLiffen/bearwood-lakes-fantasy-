@@ -311,6 +311,8 @@ const GolfersPage: React.FC = () => {
           {/* Filters Row */}
           <div className="filters-row">
             <select
+              id="golfer-filter"
+              name="golfer-filter"
               value={quickFilter}
               onChange={(e) => setQuickFilter(e.target.value as QuickFilter)}
               className="filter-select"

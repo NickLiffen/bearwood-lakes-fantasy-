@@ -470,6 +470,8 @@ const ProfilePage: React.FC = () => {
                 </p>
                 {deleteError && <div className="alert alert-error">{deleteError}</div>}
                 <input
+                  id="confirm-delete-account"
+                  name="confirm-delete-account"
                   type="text"
                   value={deleteConfirmText}
                   onChange={(e) => setDeleteConfirmText(e.target.value)}

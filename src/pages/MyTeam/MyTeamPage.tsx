@@ -443,6 +443,8 @@ const MyTeamPage: React.FC = () => {
               ←
             </button>
             <select
+              id="week-select"
+              name="week-select"
               className="period-select"
               value={selectedDate}
               onChange={handleWeekSelect}

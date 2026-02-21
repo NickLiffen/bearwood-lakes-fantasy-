@@ -590,6 +590,8 @@ const UsersAdminPage: React.FC = () => {
                 Type <strong>DELETE</strong> to confirm:
               </p>
               <input
+                id="confirm-delete-user"
+                name="confirm-delete-user"
                 type="text"
                 value={deleteConfirmText}
                 onChange={(e) => setDeleteConfirmText(e.target.value)}

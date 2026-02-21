@@ -247,6 +247,8 @@ const TournamentsPage: React.FC = () => {
           {/* Filters Row */}
           <div className="filters-row">
             <select
+              id="tournament-type-filter"
+              name="tournament-type-filter"
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value as TypeFilter)}
               className="filter-select"

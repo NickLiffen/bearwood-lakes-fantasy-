@@ -14,6 +14,8 @@ interface SearchBarProps {
   onClear?: () => void;
   /** Additional CSS class name */
   className?: string;
+  /** HTML id for the input element */
+  id?: string;
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({
@@ -22,6 +24,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
   placeholder = 'Search...',
   onClear,
   className = '',
+  id = 'search',
 }) => {
   const handleClear = () => {
     if (onClear) {
@@ -35,6 +38,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
     <div className={`search-bar ${className}`}>
       <span className="search-bar-icon">🔍</span>
       <input
+        id={id}
+        name={id}
         type="text"
         placeholder={placeholder}
         value={value}

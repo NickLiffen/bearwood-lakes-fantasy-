@@ -25,6 +25,7 @@ export const Input: React.FC<InputProps> = ({
   return (
     <div>
       <input
+        id={name}
         name={name}
         type={type}
         placeholder={placeholder}
