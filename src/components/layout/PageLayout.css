@@ -352,18 +352,36 @@
   background: rgba(255, 255, 255, 0.25);
 }
 
-/* Responsive */
-@media (max-width: 1024px) {
-  .header-container {
-    gap: 1rem;
-  }
-
-  .nav-link {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.9rem;
-  }
+/* Dynamic nav collapse (driven by ResizeObserver in JS) */
+.nav-collapsed .mobile-menu-btn {
+  display: block;
 }
 
+.nav-collapsed .mobile-menu,
+.nav-collapsed .mobile-menu-overlay {
+  display: flex;
+}
+
+.nav-collapsed .header-nav {
+  display: none;
+}
+
+.nav-collapsed .header-user {
+  display: none;
+}
+
+.nav-collapsed .header-container {
+  display: flex;
+  height: 56px;
+  padding: 0 1rem;
+  justify-content: space-between;
+}
+
+.nav-collapsed .header-brand {
+  justify-self: auto;
+}
+
+/* Responsive (no-JS fallback and footer) */
 @media (max-width: 768px) {
   /* Show mobile menu button */
   .mobile-menu-btn {

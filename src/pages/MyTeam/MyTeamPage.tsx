@@ -67,6 +67,7 @@ interface MyTeamApiResponse {
   allowNewTeamCreation: boolean;
   maxTransfersPerWeek: number;
   transfersUsedThisWeek: number;
+  unlimitedTransfers: boolean;
   team: TeamData | null;
 }
 
@@ -369,9 +370,11 @@ const MyTeamPage: React.FC = () => {
                 {teamData.transfersOpen ? (
                   <>
                     <span className="transfers-info">
-                      Transfers: {teamData.transfersUsedThisWeek} / {teamData.maxTransfersPerWeek} used this week
+                      {teamData.unlimitedTransfers
+                        ? 'Unlimited transfers (pre-season)'
+                        : `Transfers: ${teamData.transfersUsedThisWeek} / ${teamData.maxTransfersPerWeek} used this week`}
                     </span>
-                    {teamData.transfersUsedThisWeek < teamData.maxTransfersPerWeek ? (
+                    {teamData.unlimitedTransfers || teamData.transfersUsedThisWeek < teamData.maxTransfersPerWeek ? (
                       <Link to="/team-builder" className="btn-edit-team">
                         Edit Team →
                       </Link>
@@ -389,6 +392,20 @@ const MyTeamPage: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Captain Prompt Banner */}
+          {!team.captainId && (
+            <div className="captain-prompt-banner">
+              <span className="banner-icon">⭐</span>
+              <div className="banner-text">
+                <h3>Pick Your Captain</h3>
+                <p>
+                  Tap the <span className="captain-badge-hint">C</span> next to a golfer's name to
+                  make them captain. Your captain earns <strong>2× points</strong> every week!
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Stats Grid - 3 cards */}
           <section className="team-stats-grid">

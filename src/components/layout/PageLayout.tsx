@@ -1,6 +1,6 @@
 // Shared page layout component with header and footer
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import './PageLayout.css';
@@ -25,7 +25,40 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children, activeNav }) => {
   const location = useLocation();
   const [user, setUser] = useState<User | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [navCollapsed, setNavCollapsed] = useState(false);
   const { user: authUser, logout: authLogout } = useAuth();
+
+  const headerRef = useRef<HTMLDivElement>(null);
+  const navRef = useRef<HTMLElement>(null);
+  const brandRef = useRef<HTMLAnchorElement>(null);
+  const userRef = useRef<HTMLDivElement>(null);
+
+  // Detect when nav content overflows the header and toggle burger menu
+  const checkNavOverflow = useCallback(() => {
+    const header = headerRef.current;
+    const nav = navRef.current;
+    const brand = brandRef.current;
+    const userSection = userRef.current;
+    if (!header || !nav || !brand || !userSection) return;
+
+    const headerWidth = header.clientWidth;
+    const padding = 48; // 1.5rem × 2
+    const gaps = 32; // grid gaps
+    const contentWidth = brand.scrollWidth + nav.scrollWidth + userSection.scrollWidth + padding + gaps;
+    const shouldCollapse = contentWidth > headerWidth;
+    setNavCollapsed(prev => (prev !== shouldCollapse ? shouldCollapse : prev));
+  }, []);
+
+  useEffect(() => {
+    const header = headerRef.current;
+    if (!header) return;
+
+    const observer = new ResizeObserver(checkNavOverflow);
+    observer.observe(header);
+    checkNavOverflow();
+
+    return () => observer.disconnect();
+  }, [checkNavOverflow]);
 
   // Close mobile menu when route changes
   useEffect(() => {
@@ -67,14 +100,14 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children, activeNav }) => {
   return (
     <div className="page-layout">
       {/* Header */}
-      <header className="page-header">
-        <div className="header-container">
-          <Link to="/dashboard" className="header-brand">
+      <header className={`page-header ${navCollapsed ? 'nav-collapsed' : ''}`}>
+        <div className="header-container" ref={headerRef}>
+          <Link to="/dashboard" className="header-brand" ref={brandRef}>
             <img src="/bearwood_lakes_logo.png" alt="Bearwood Lakes" className="brand-logo" />
             <span className="brand-text">Bearwood Lakes Fantasy</span>
           </Link>
 
-          <nav className="header-nav">
+          <nav className="header-nav" ref={navRef}>
             <Link 
               to="/dashboard" 
               className={`nav-link ${activeNav === 'dashboard' ? 'active' : ''}`}
@@ -113,7 +146,7 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children, activeNav }) => {
             </Link>
           </nav>
 
-          <div className="header-user">
+          <div className="header-user" ref={userRef}>
             <Link to="/profile" className="user-greeting-link">
               Hi, <strong>{user.firstName}</strong>
             </Link>

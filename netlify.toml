@@ -8,6 +8,9 @@
 
 [functions]
   node_bundler = "esbuild"
+
+[[plugins]]
+  package = "./netlify-plugins/preview-isolation"
   
 # Redirects for SPA routing
 [[redirects]]
@@ -35,11 +38,11 @@
     # Permissions policy (disable unnecessary features)
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
     # Content Security Policy
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.netlify.app https://*.upstash.io; frame-ancestors 'none';"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.netlify.app; frame-ancestors 'none';"
     # Strict Transport Security (HTTPS only)
     Strict-Transport-Security = "max-age=31536000; includeSubDomains"
 
-# Note: Environment variables should be set in:
-# - Local development: .env.local file (not committed to git)
-# - Production: Netlify UI → Site settings → Environment variables
-# Required variables: MONGODB_URI, JWT_SECRET, UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN
+# Note: Environment variables are split between local and cloud:
+# - Local development: .env file (gitignored) with localhost defaults
+# - Production/Staging: Netlify UI → Site settings → Environment variables
+# Required variables: MONGODB_URI, JWT_SECRET, REDIS_URL

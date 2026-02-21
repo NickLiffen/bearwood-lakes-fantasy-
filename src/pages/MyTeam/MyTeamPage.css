@@ -95,6 +95,51 @@
   white-space: nowrap;
 }
 
+/* Captain Prompt Banner */
+.captain-prompt-banner {
+  background: linear-gradient(135deg, var(--accent-gold) 0%, #d4af37 100%);
+  border-radius: 12px;
+  padding: 1.25rem 1.75rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 15px rgba(201, 162, 39, 0.3);
+}
+
+.captain-prompt-banner .banner-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.captain-prompt-banner .banner-text h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--dark-text);
+  margin: 0 0 0.15rem;
+}
+
+.captain-prompt-banner .banner-text p {
+  color: rgba(0, 0, 0, 0.7);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.captain-prompt-banner .banner-text .captain-badge-hint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--primary-green);
+  color: var(--primary-green);
+  font-size: 0.75rem;
+  font-weight: 700;
+  vertical-align: middle;
+  margin: 0 0.2rem;
+}
+
 /* Stats Grid - 3 card summary */
 .team-stats-grid {
   display: grid;

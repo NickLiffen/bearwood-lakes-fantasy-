@@ -53,5 +53,5 @@ JWT access tokens are returned in JSON responses; refresh tokens are stored in h
 - **Path aliases**: Use `@/` for frontend imports and `@shared/` for shared imports. Both Vite and tsconfig are configured for these.
 - **Unused variables**: Prefix with `_` (ESLint rule `argsIgnorePattern: '^_'`).
 - **Formatting**: Prettier with single quotes, semicolons, 100 char print width, trailing commas (es5), 2-space tabs.
-- **Rate limiting**: Upstash Redis. Applied via `withRateLimit()` wrapper on sensitive endpoints (auth, writes).
+- **Rate limiting**: Redis (ioredis). Applied via `withRateLimit()` wrapper on sensitive endpoints (auth, writes).
 - **Database scripts**: Run with `npx tsx scripts/<name>.ts` (e.g., `npm run db:seed-comprehensive`). Scripts prompt for confirmation before destructive operations.

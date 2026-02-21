@@ -1,0 +1,60 @@
+# Cleanup preview environment resources when a PR is closed or merged.
+# Drops the PR-specific MongoDB database and flushes PR-scoped Redis keys.
+
+name: Cleanup Preview Environment
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install --no-save mongodb ioredis
+
+      - name: Cleanup MongoDB database
+        uses: actions/github-script@v7
+        env:
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        with:
+          script: |
+            const { MongoClient } = require('mongodb');
+            const dbName = `bearwood-fantasy-pr-${process.env.PR_NUMBER}`;
+            console.log(`Dropping database: ${dbName}`);
+            const client = await MongoClient.connect(process.env.MONGODB_URI);
+            const db = client.db(dbName);
+            await db.dropDatabase();
+            await client.close();
+            console.log(`Database ${dbName} dropped successfully.`);
+
+      - name: Cleanup Redis keys
+        uses: actions/github-script@v7
+        env:
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        with:
+          script: |
+            const Redis = require('ioredis');
+            const prefix = `pr${process.env.PR_NUMBER}:`;
+            console.log(`Flushing Redis keys with prefix: ${prefix}`);
+            const redis = new Redis(process.env.REDIS_URL);
+            let cursor = '0';
+            let totalDeleted = 0;
+            do {
+              const [nextCursor, keys] = await redis.scan(cursor, 'MATCH', `${prefix}*`, 'COUNT', 100);
+              cursor = nextCursor;
+              if (keys.length > 0) {
+                await redis.del(...keys);
+                totalDeleted += keys.length;
+              }
+            } while (cursor !== '0');
+            await redis.quit();
+            console.log(`Deleted ${totalDeleted} Redis keys with prefix ${prefix}`);

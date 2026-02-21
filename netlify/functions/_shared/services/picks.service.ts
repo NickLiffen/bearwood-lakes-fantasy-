@@ -13,7 +13,7 @@ import { GolferDocument, GOLFERS_COLLECTION } from '../models/Golfer';
 import { SettingDocument, SETTINGS_COLLECTION } from '../models/Settings';
 import { BUDGET_CAP, MAX_GOLFERS } from '../../../../shared/constants/rules';
 import type { Pick, PickWithGolfers, PickHistory } from '../../../../shared/types';
-import { getWeekStart } from '../utils/dates';
+import { getWeekStart, getTeamEffectiveStartDate } from '../utils/dates';
 import { getActiveSeason } from './seasons.service';
 
 async function getCurrentSeason(): Promise<number> {
@@ -153,26 +153,39 @@ export async function savePicks(
         throw new Error('Transfers are currently locked');
       }
 
-      // Check transfer limit
-      const maxTransfers = await getMaxTransfersPerWeek();
-      const transfersUsed = await getTransfersThisWeek(userId);
+      // Check if we're in an unlimited transfer period:
+      // 1. Before the season starts (pre-season setup)
+      // 2. Before the team's first game week (grace period after creation)
+      const now = new Date();
+      const activeSeason = await getActiveSeason();
+      const seasonStartDate = activeSeason?.startDate ? new Date(activeSeason.startDate) : null;
+      const teamEffectiveStart = getTeamEffectiveStartDate(existingPick.createdAt);
+      const isPreSeason = seasonStartDate && now < seasonStartDate;
+      const isPreFirstGameWeek = now < teamEffectiveStart;
+      const hasUnlimitedTransfers = isPreSeason || isPreFirstGameWeek;
 
-      if (transfersUsed >= maxTransfers) {
-        throw new Error(`Transfer limit reached. You've used ${transfersUsed} of ${maxTransfers} transfer${maxTransfers === 1 ? '' : 's'} this week.`);
-      }
+      if (!hasUnlimitedTransfers) {
+        // Enforce weekly transfer limit
+        const maxTransfers = await getMaxTransfersPerWeek();
+        const transfersUsed = await getTransfersThisWeek(userId);
 
-      // Check how many players are being changed
-      const removedCount = [...oldGolferIds].filter(id => !newGolferIds.has(id)).length;
-      const addedCount = [...newGolferIds].filter(id => !oldGolferIds.has(id)).length;
-      const playersChanged = Math.max(removedCount, addedCount);
+        if (transfersUsed >= maxTransfers) {
+          throw new Error(`Transfer limit reached. You've used ${transfersUsed} of ${maxTransfers} transfer${maxTransfers === 1 ? '' : 's'} this week.`);
+        }
 
-      const maxPlayersPerTransfer = await getMaxPlayersPerTransfer();
+        // Check how many players are being changed
+        const removedCount = [...oldGolferIds].filter(id => !newGolferIds.has(id)).length;
+        const addedCount = [...newGolferIds].filter(id => !oldGolferIds.has(id)).length;
+        const playersChanged = Math.max(removedCount, addedCount);
 
-      if (playersChanged > maxPlayersPerTransfer) {
-        throw new Error(
-          `You can only swap ${maxPlayersPerTransfer} golfer${maxPlayersPerTransfer === 1 ? '' : 's'} per transfer. ` +
-          `You're trying to change ${playersChanged}.`
-        );
+        const maxPlayersPerTransfer = await getMaxPlayersPerTransfer();
+
+        if (playersChanged > maxPlayersPerTransfer) {
+          throw new Error(
+            `You can only swap ${maxPlayersPerTransfer} golfer${maxPlayersPerTransfer === 1 ? '' : 's'} per transfer. ` +
+            `You're trying to change ${playersChanged}.`
+          );
+        }
       }
     }
   } else {

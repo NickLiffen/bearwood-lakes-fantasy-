@@ -1,23 +1,25 @@
-// Rate limiting for Netlify Functions using Upstash Redis
+// Rate limiting for Netlify Functions using Redis
 
-import { Redis } from '@upstash/redis';
+import Redis from 'ioredis';
 
 // Lazy-initialized Redis client
 let redisClient: Redis | null = null;
 
 export function getRedisClient(): Redis {
   if (!redisClient) {
-    const url = process.env.UPSTASH_REDIS_REST_URL;
-    const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+    const redisUrl = process.env.REDIS_URL;
 
-    if (!url || !token) {
+    if (!redisUrl) {
       throw new Error(
-        'Missing Upstash Redis configuration. ' +
-        'Please set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN environment variables.'
+        'Missing Redis configuration. ' +
+        'Please set the REDIS_URL environment variable (e.g. redis://:password@host:port).'
       );
     }
 
-    redisClient = new Redis({ url, token });
+    redisClient = new Redis(redisUrl, {
+      maxRetriesPerRequest: 3,
+      lazyConnect: true,
+    });
   }
   return redisClient;
 }
@@ -67,7 +69,7 @@ function getClientIp(headers: Record<string, string | undefined>): string {
 }
 
 /**
- * Check rate limit for a given key using Upstash Redis
+ * Check rate limit for a given key using Redis
  * Uses sliding window with Redis INCR and TTL
  */
 export async function checkRateLimit(
@@ -84,11 +86,15 @@ export async function checkRateLimit(
     const windowKey = `${key}:${Math.floor(now / config.windowMs)}`;
 
     // Atomically increment counter and set TTL via pipeline
-    const pipe = redis.pipeline();
-    pipe.incr(windowKey);
-    pipe.expire(windowKey, windowSeconds);
-    const results = await pipe.exec();
-    const count = results[0] as number;
+    const results = await redis.pipeline()
+      .incr(windowKey)
+      .expire(windowKey, windowSeconds)
+      .exec();
+    // ioredis pipeline returns [[err, result], ...] tuples
+    if (!results || results[0]?.[0]) {
+      throw new Error('Redis pipeline command failed');
+    }
+    const count = results[0][1] as number;
 
     const resetAt = new Date(Math.ceil(now / config.windowMs) * config.windowMs + config.windowMs);
     const remaining = Math.max(0, config.maxRequests - count);
@@ -153,13 +159,20 @@ export function rateLimitExceededResponse(retryAfter: number) {
 }
 
 /**
+ * Get the Redis key prefix for environment isolation (deploy previews).
+ */
+export function getRedisKeyPrefix(): string {
+  return process.env.REDIS_KEY_PREFIX || '';
+}
+
+/**
  * Helper to create rate limit key
  */
 export function createRateLimitKey(
   identifier: string,
   endpoint: string
 ): string {
-  return `v1:ratelimit:${identifier}:${endpoint}`;
+  return `${getRedisKeyPrefix()}v1:ratelimit:${identifier}:${endpoint}`;
 }
 
 /**

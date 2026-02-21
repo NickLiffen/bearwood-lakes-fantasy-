@@ -1,20 +1,22 @@
 // Settings service - manage global settings
 
 import { connectToDatabase } from '../db';
-import { getRedisClient } from '../rateLimit';
+import { getRedisClient, getRedisKeyPrefix } from '../rateLimit';
 import { SettingDocument, SETTINGS_COLLECTION } from '../models/Settings';
 import type { AppSettings } from '../../../../shared/types';
 
-const SETTINGS_CACHE_PREFIX = 'v1:cache:settings:';
+function settingsCachePrefix(): string {
+  return `${getRedisKeyPrefix()}v1:cache:settings:`;
+}
 const SETTINGS_TTL = 300; // 5 minutes
 
 export async function getSetting<T>(key: string): Promise<T | null> {
   // Try Redis cache first
   try {
     const redis = getRedisClient();
-    const cached = await redis.get(`${SETTINGS_CACHE_PREFIX}${key}`);
+    const cached = await redis.get(`${settingsCachePrefix()}${key}`);
     if (cached !== null && cached !== undefined) {
-      return (typeof cached === 'object' ? cached : JSON.parse(cached as string)) as T;
+      return JSON.parse(cached) as T;
     }
   } catch {
     // Redis unavailable — fall through to MongoDB
@@ -31,7 +33,7 @@ export async function getSetting<T>(key: string): Promise<T | null> {
   if (value !== null) {
     try {
       const redis = getRedisClient();
-      await redis.set(`${SETTINGS_CACHE_PREFIX}${key}`, JSON.stringify(value), { ex: SETTINGS_TTL });
+      await redis.set(`${settingsCachePrefix()}${key}`, JSON.stringify(value), 'EX', SETTINGS_TTL);
     } catch {
       // Redis unavailable — continue
     }
@@ -56,7 +58,7 @@ export async function setSetting<T>(key: string, value: T): Promise<void> {
   // Invalidate cache
   try {
     const redis = getRedisClient();
-    await redis.del(`${SETTINGS_CACHE_PREFIX}${key}`);
+    await redis.del(`${settingsCachePrefix()}${key}`);
   } catch {
     // Redis unavailable — cache will expire in 5 min
   }

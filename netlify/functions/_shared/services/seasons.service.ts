@@ -2,17 +2,19 @@
 
 import { ObjectId } from 'mongodb';
 import { connectToDatabase } from '../db';
-import { getRedisClient } from '../rateLimit';
+import { getRedisClient, getRedisKeyPrefix } from '../rateLimit';
 import { SeasonDocument, toSeason, SEASONS_COLLECTION } from '../models/Season';
 import type { Season, CreateSeasonDTO, UpdateSeasonDTO } from '../../../../shared/types';
 
-const ACTIVE_SEASON_CACHE_KEY = 'v1:cache:active-season';
+function activeSeasonCacheKey(): string {
+  return `${getRedisKeyPrefix()}v1:cache:active-season`;
+}
 const ACTIVE_SEASON_TTL = 60; // seconds
 
 async function invalidateActiveSeasonCache(): Promise<void> {
   try {
     const redis = getRedisClient();
-    await redis.del(ACTIVE_SEASON_CACHE_KEY);
+    await redis.del(activeSeasonCacheKey());
   } catch {
     // Redis unavailable — cache will expire naturally via TTL
   }
@@ -30,10 +32,9 @@ export async function getActiveSeason(): Promise<Season | null> {
   // Try Redis cache first
   try {
     const redis = getRedisClient();
-    const cached = await redis.get(ACTIVE_SEASON_CACHE_KEY);
+    const cached = await redis.get(activeSeasonCacheKey());
     if (cached) {
-      // Upstash auto-deserializes JSON, so cached may already be an object
-      return (typeof cached === 'object' ? cached : JSON.parse(cached as string)) as Season;
+      return JSON.parse(cached) as Season;
     }
   } catch {
     // Redis unavailable — fall through to MongoDB
@@ -51,7 +52,7 @@ export async function getActiveSeason(): Promise<Season | null> {
   // Write to cache (fire and forget)
   try {
     const redis = getRedisClient();
-    await redis.set(ACTIVE_SEASON_CACHE_KEY, JSON.stringify(season), { ex: ACTIVE_SEASON_TTL });
+    await redis.set(activeSeasonCacheKey(), JSON.stringify(season), 'EX', ACTIVE_SEASON_TTL);
   } catch {
     // Redis unavailable — continue without caching
   }
