@@ -2,7 +2,12 @@
 
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useFormValidation, validators, sanitizers, getInputClassName } from '../../utils/validation';
+import {
+  useFormValidation,
+  validators,
+  sanitizers,
+  getInputClassName,
+} from '../../utils/validation';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import './LoginPage.css'; // Reuse same styles
 
@@ -22,64 +27,68 @@ const RegisterPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const passwordRef = useRef('');
 
-  const { values, setValue, setFieldTouched, validateAll, getFieldState, errors } = useFormValidation<RegisterFormData>(
-    {
-      firstName: '',
-      lastName: '',
-      username: '',
-      email: '',
-      password: '',
-      confirmPassword: '',
-    },
-    {
-      firstName: [
-        validators.required('First name is required'),
-        validators.lettersOnly('First name can only contain letters'),
-        validators.minLength(2, 'First name must be at least 2 characters'),
-      ],
-      lastName: [
-        validators.required('Last name is required'),
-        validators.lettersOnly('Last name can only contain letters'),
-        validators.minLength(2, 'Last name must be at least 2 characters'),
-      ],
-      username: [
-        validators.required('Username is required'),
-        validators.alphanumeric('Username can only contain letters and numbers'),
-        validators.minLength(3, 'Username must be at least 3 characters'),
-        validators.maxLength(20, 'Username must be at most 20 characters'),
-      ],
-      email: [
-        validators.required('Email is required'),
-        validators.email('Please enter a valid email address'),
-      ],
-      password: [
-        validators.required('Password is required'),
-        validators.password('Password must be at least 8 characters with uppercase, lowercase, number, and special character'),
-      ],
-      confirmPassword: [
-        validators.required('Please confirm your password'),
-        validators.passwordMatch(() => passwordRef.current, 'Passwords do not match'),
-      ],
-    }
-  );
+  const { values, setValue, setFieldTouched, validateAll, getFieldState, errors } =
+    useFormValidation<RegisterFormData>(
+      {
+        firstName: '',
+        lastName: '',
+        username: '',
+        email: '',
+        password: '',
+        confirmPassword: '',
+      },
+      {
+        firstName: [
+          validators.required('First name is required'),
+          validators.lettersOnly('First name can only contain letters'),
+          validators.minLength(2, 'First name must be at least 2 characters'),
+        ],
+        lastName: [
+          validators.required('Last name is required'),
+          validators.lettersOnly('Last name can only contain letters'),
+          validators.minLength(2, 'Last name must be at least 2 characters'),
+        ],
+        username: [
+          validators.required('Username is required'),
+          validators.alphanumeric('Username can only contain letters and numbers'),
+          validators.minLength(3, 'Username must be at least 3 characters'),
+          validators.maxLength(20, 'Username must be at most 20 characters'),
+        ],
+        email: [
+          validators.required('Email is required'),
+          validators.email('Please enter a valid email address'),
+        ],
+        password: [
+          validators.required('Password is required'),
+          validators.password(
+            'Password must be at least 8 characters with uppercase, lowercase, number, and special character'
+          ),
+        ],
+        confirmPassword: [
+          validators.required('Please confirm your password'),
+          validators.passwordMatch(() => passwordRef.current, 'Passwords do not match'),
+        ],
+      }
+    );
   useDocumentTitle('Register');
 
-  const handleChange = (field: keyof RegisterFormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    let value = e.target.value;
-    // Apply sanitizers
-    if (field === 'firstName' || field === 'lastName') {
-      value = sanitizers.trimAndCapitalize(value);
-    } else if (field === 'email') {
-      value = sanitizers.lowercase(sanitizers.trim(value));
-    } else if (field === 'username') {
-      value = sanitizers.trim(value).toLowerCase();
-    }
-    // Keep password ref in sync
-    if (field === 'password') {
-      passwordRef.current = value;
-    }
-    setValue(field, value);
-  };
+  const handleChange =
+    (field: keyof RegisterFormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
+      let value = e.target.value;
+      // Apply sanitizers
+      if (field === 'firstName' || field === 'lastName') {
+        value = sanitizers.trimAndCapitalize(value);
+      } else if (field === 'email') {
+        value = sanitizers.lowercase(sanitizers.trim(value));
+      } else if (field === 'username') {
+        value = sanitizers.trim(value).toLowerCase();
+      }
+      // Keep password ref in sync
+      if (field === 'password') {
+        passwordRef.current = value;
+      }
+      setValue(field, value);
+    };
 
   const handleBlur = (field: keyof RegisterFormData) => () => {
     setFieldTouched(field);
@@ -92,7 +101,7 @@ const RegisterPage: React.FC = () => {
     // Validate all fields
     if (!validateAll()) {
       // Find first error to display
-      const firstError = Object.values(errors).find(err => err);
+      const firstError = Object.values(errors).find((err) => err);
       if (firstError) {
         setError(firstError);
       }
@@ -145,7 +154,13 @@ const RegisterPage: React.FC = () => {
 
         <div className="login-card">
           <div className="login-header">
-            <img src="/bearwood_lakes_logo.png" alt="Bearwood Lakes" className="login-logo-img" width="80" height="80" />
+            <img
+              src="/bearwood_lakes_logo.png"
+              alt="Bearwood Lakes"
+              className="login-logo-img"
+              width="80"
+              height="80"
+            />
             <h1>Join the League</h1>
             <p>Create your Fantasy Golf account</p>
           </div>
@@ -155,7 +170,9 @@ const RegisterPage: React.FC = () => {
 
             <div className="form-row">
               <div className="form-group">
-                <label htmlFor="firstName">First Name<span className="required-indicator">*</span></label>
+                <label htmlFor="firstName">
+                  First Name<span className="required-indicator">*</span>
+                </label>
                 <input
                   type="text"
                   id="firstName"
@@ -172,7 +189,9 @@ const RegisterPage: React.FC = () => {
               </div>
 
               <div className="form-group">
-                <label htmlFor="lastName">Last Name<span className="required-indicator">*</span></label>
+                <label htmlFor="lastName">
+                  Last Name<span className="required-indicator">*</span>
+                </label>
                 <input
                   type="text"
                   id="lastName"
@@ -189,7 +208,9 @@ const RegisterPage: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="username">Username<span className="required-indicator">*</span></label>
+              <label htmlFor="username">
+                Username<span className="required-indicator">*</span>
+              </label>
               <input
                 type="text"
                 id="username"
@@ -206,7 +227,9 @@ const RegisterPage: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="email">Email<span className="required-indicator">*</span></label>
+              <label htmlFor="email">
+                Email<span className="required-indicator">*</span>
+              </label>
               <input
                 type="email"
                 id="email"
@@ -223,7 +246,9 @@ const RegisterPage: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="password">Password<span className="required-indicator">*</span></label>
+              <label htmlFor="password">
+                Password<span className="required-indicator">*</span>
+              </label>
               <input
                 type="password"
                 id="password"
@@ -240,7 +265,9 @@ const RegisterPage: React.FC = () => {
             </div>
 
             <div className="form-group">
-              <label htmlFor="confirmPassword">Confirm Password<span className="required-indicator">*</span></label>
+              <label htmlFor="confirmPassword">
+                Confirm Password<span className="required-indicator">*</span>
+              </label>
               <input
                 type="password"
                 id="confirmPassword"
@@ -251,9 +278,10 @@ const RegisterPage: React.FC = () => {
                 className={getFieldClassName('confirmPassword')}
                 autoComplete="new-password"
               />
-              {getFieldState('confirmPassword').touched && getFieldState('confirmPassword').error && (
-                <span className="field-error">{getFieldState('confirmPassword').error}</span>
-              )}
+              {getFieldState('confirmPassword').touched &&
+                getFieldState('confirmPassword').error && (
+                  <span className="field-error">{getFieldState('confirmPassword').error}</span>
+                )}
             </div>
 
             <button type="submit" className="btn btn-primary btn-full" disabled={isLoading}>

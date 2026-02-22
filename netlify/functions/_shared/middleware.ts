@@ -21,10 +21,7 @@ type AuthenticatedHandler = (
   context: HandlerContext
 ) => Promise<HandlerResponse>;
 
-type PublicHandler = (
-  event: HandlerEvent,
-  context: HandlerContext
-) => Promise<HandlerResponse>;
+type PublicHandler = (event: HandlerEvent, context: HandlerContext) => Promise<HandlerResponse>;
 
 /**
  * Get allowed origin for CORS
@@ -32,17 +29,17 @@ type PublicHandler = (
  */
 function getAllowedOrigin(requestOrigin: string | undefined): string {
   const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || [];
-  
+
   // In development or if no origins configured, allow all
   if (allowedOrigins.length === 0) {
     return requestOrigin || '*';
   }
-  
+
   // Check if request origin is in allowed list
   if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
     return requestOrigin;
   }
-  
+
   // Default to first allowed origin
   return allowedOrigins[0];
 }
@@ -106,15 +103,18 @@ export function withRateLimit(
       }
 
       const response = await handler(event, context);
-      
+
       // Add rate limit headers to response
-      return withCors({
-        ...response,
-        headers: {
-          ...response.headers,
-          ...rateLimitHeaders(config.maxRequests, result.remaining, result.resetAt),
+      return withCors(
+        {
+          ...response,
+          headers: {
+            ...response.headers,
+            ...rateLimitHeaders(config.maxRequests, result.remaining, result.resetAt),
+          },
         },
-      }, requestOrigin);
+        requestOrigin
+      );
     } catch (error) {
       console.error('Rate limit check error:', error);
       // On rate limit check failure, allow the request (fail open)
@@ -142,10 +142,13 @@ export function withAuth(
     const authHeader = event.headers.authorization;
 
     if (!authHeader?.startsWith('Bearer ')) {
-      return withCors({
-        statusCode: 401,
-        body: JSON.stringify({ success: false, error: 'Unauthorized' }),
-      }, requestOrigin);
+      return withCors(
+        {
+          statusCode: 401,
+          body: JSON.stringify({ success: false, error: 'Unauthorized' }),
+        },
+        requestOrigin
+      );
     }
 
     try {
@@ -165,14 +168,21 @@ export function withAuth(
 
       const authenticatedEvent = { ...event, user } as AuthenticatedEvent;
       const response = await handler(authenticatedEvent, context);
-      
-      return withCors({
-        ...response,
-        headers: {
-          ...response.headers,
-          ...rateLimitHeaders(config.maxRequests, rateLimitResult.remaining, rateLimitResult.resetAt),
+
+      return withCors(
+        {
+          ...response,
+          headers: {
+            ...response.headers,
+            ...rateLimitHeaders(
+              config.maxRequests,
+              rateLimitResult.remaining,
+              rateLimitResult.resetAt
+            ),
+          },
         },
-      }, requestOrigin);
+        requestOrigin
+      );
     } catch (error) {
       // Check if it's a rate limit error or auth error
       if (error instanceof Error && error.message.includes('rate')) {
@@ -185,17 +195,23 @@ export function withAuth(
           const response = await handler(authenticatedEvent, context);
           return withCors(response, requestOrigin);
         } catch {
-          return withCors({
-            statusCode: 401,
-            body: JSON.stringify({ success: false, error: 'Invalid token' }),
-          }, requestOrigin);
+          return withCors(
+            {
+              statusCode: 401,
+              body: JSON.stringify({ success: false, error: 'Invalid token' }),
+            },
+            requestOrigin
+          );
         }
       }
-      
-      return withCors({
-        statusCode: 401,
-        body: JSON.stringify({ success: false, error: 'Invalid token' }),
-      }, requestOrigin);
+
+      return withCors(
+        {
+          statusCode: 401,
+          body: JSON.stringify({ success: false, error: 'Invalid token' }),
+        },
+        requestOrigin
+      );
     }
   };
 }
@@ -281,7 +297,7 @@ export function createHandler(config: {
 
     try {
       const response = await config.handler(event, context);
-      logger.info('Request completed', { 
+      logger.info('Request completed', {
         duration: Date.now() - startTime,
         status: response.statusCode,
       });
@@ -306,9 +322,8 @@ export function createHandler(config: {
           return apiResponse(409, null, error.message);
         }
         // Return generic error in production, detailed in development
-        const message = process.env.NODE_ENV === 'development' 
-          ? error.message 
-          : 'An unexpected error occurred';
+        const message =
+          process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error occurred';
         return apiResponse(500, null, message);
       }
 
@@ -330,12 +345,12 @@ export function createAuthHandler(config: {
   requireAdmin?: boolean;
 }): Handler {
   const wrapper = config.requireAdmin ? withAdmin : withAuth;
-  
+
   return wrapper(async (event, context) => {
     const requestId = getRequestId(event.headers);
     const endpoint = getEndpointName(event.path);
-    const logger = createLogger({ 
-      requestId, 
+    const logger = createLogger({
+      requestId,
       endpoint,
       userId: event.user.userId,
     });
@@ -351,7 +366,7 @@ export function createAuthHandler(config: {
 
     try {
       const response = await config.handler(event, context);
-      logger.info('Request completed', { 
+      logger.info('Request completed', {
         duration: Date.now() - startTime,
         status: response.statusCode,
       });
@@ -371,9 +386,8 @@ export function createAuthHandler(config: {
         if (error.message.includes('already exists')) {
           return apiResponse(409, null, error.message);
         }
-        const message = process.env.NODE_ENV === 'development' 
-          ? error.message 
-          : 'An unexpected error occurred';
+        const message =
+          process.env.NODE_ENV === 'development' ? error.message : 'An unexpected error occurred';
         return apiResponse(500, null, message);
       }
 

@@ -90,8 +90,9 @@ const UsersPage: React.FC = () => {
     return users
       .filter((user) => {
         const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
-        const matchesSearch = fullName.includes(searchTerm.toLowerCase()) || 
-                            user.username.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesSearch =
+          fullName.includes(searchTerm.toLowerCase()) ||
+          user.username.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesQuickFilter = applyQuickFilter(user);
         return matchesSearch && matchesQuickFilter;
       })
@@ -100,13 +101,20 @@ const UsersPage: React.FC = () => {
 
         const getValue = (user: FantasyUser): number | string => {
           switch (sortColumn) {
-            case 'name': return `${user.firstName} ${user.lastName}`;
-            case 'username': return user.username;
-            case 'weekPoints': return user.weekPoints;
-            case 'monthPoints': return user.monthPoints;
-            case 'seasonPoints': return user.seasonPoints;
-            case 'createdAt': return new Date(user.createdAt).getTime();
-            default: return 0;
+            case 'name':
+              return `${user.firstName} ${user.lastName}`;
+            case 'username':
+              return user.username;
+            case 'weekPoints':
+              return user.weekPoints;
+            case 'monthPoints':
+              return user.monthPoints;
+            case 'seasonPoints':
+              return user.seasonPoints;
+            case 'createdAt':
+              return new Date(user.createdAt).getTime();
+            default:
+              return 0;
           }
         };
 
@@ -140,102 +148,109 @@ const UsersPage: React.FC = () => {
   };
 
   // Define table columns
-  const columns: Column<FantasyUser>[] = useMemo(() => [
-    {
-      key: 'rank',
-      header: 'Rank',
-      width: '70px',
-      align: 'center',
-      render: (user) => getRankDisplay(user.seasonRank),
-    },
-    {
-      key: 'name',
-      header: 'User',
-      sortable: true,
-      render: (user) => (
-        <Link to={`/users/${user.id}`} className="dt-cell-link">
-          <div className="dt-info-cell">
-            <div className="dt-avatar">
-              {user.firstName[0]}{user.lastName[0]}
+  const columns: Column<FantasyUser>[] = useMemo(
+    () => [
+      {
+        key: 'rank',
+        header: 'Rank',
+        width: '70px',
+        align: 'center',
+        render: (user) => getRankDisplay(user.seasonRank),
+      },
+      {
+        key: 'name',
+        header: 'User',
+        sortable: true,
+        render: (user) => (
+          <Link to={`/users/${user.id}`} className="dt-cell-link">
+            <div className="dt-info-cell">
+              <div className="dt-avatar">
+                {user.firstName[0]}
+                {user.lastName[0]}
+              </div>
+              <div className="dt-info-details">
+                <span className="dt-info-name">
+                  {user.firstName} {user.lastName}
+                  {currentUserId === user.id && <span className="dt-you-badge">You</span>}
+                </span>
+                <span className="dt-info-subtitle">@{user.username}</span>
+              </div>
             </div>
-            <div className="dt-info-details">
-              <span className="dt-info-name">
-                {user.firstName} {user.lastName}
-                {currentUserId === user.id && <span className="dt-you-badge">You</span>}
-              </span>
-              <span className="dt-info-subtitle">@{user.username}</span>
-            </div>
+          </Link>
+        ),
+      },
+      {
+        key: 'team',
+        header: 'Team',
+        width: '120px',
+        align: 'center',
+        render: (user) =>
+          user.hasTeam ? (
+            <span className="dt-badge dt-badge-success">✓ {user.teamSize} golfers</span>
+          ) : (
+            <span className="dt-badge dt-badge-muted">No team</span>
+          ),
+      },
+      {
+        key: 'weekPoints',
+        header: 'Week',
+        sortable: true,
+        width: '100px',
+        align: 'center',
+        render: (user) => (
+          <div className="points-cell">
+            <span className="dt-cell-stat">{user.weekPoints}</span>
+            {user.weekRank && <span className="dt-cell-muted"> #{user.weekRank}</span>}
           </div>
-        </Link>
-      ),
-    },
-    {
-      key: 'team',
-      header: 'Team',
-      width: '120px',
-      align: 'center',
-      render: (user) => user.hasTeam ? (
-        <span className="dt-badge dt-badge-success">✓ {user.teamSize} golfers</span>
-      ) : (
-        <span className="dt-badge dt-badge-muted">No team</span>
-      ),
-    },
-    {
-      key: 'weekPoints',
-      header: 'Week',
-      sortable: true,
-      width: '100px',
-      align: 'center',
-      render: (user) => (
-        <div className="points-cell">
-          <span className="dt-cell-stat">{user.weekPoints}</span>
-          {user.weekRank && <span className="dt-cell-muted"> #{user.weekRank}</span>}
-        </div>
-      ),
-    },
-    {
-      key: 'monthPoints',
-      header: 'Month',
-      sortable: true,
-      width: '100px',
-      align: 'center',
-      render: (user) => (
-        <div className="points-cell">
-          <span className="dt-cell-stat">{user.monthPoints}</span>
-          {user.monthRank && <span className="dt-cell-muted"> #{user.monthRank}</span>}
-        </div>
-      ),
-    },
-    {
-      key: 'seasonPoints',
-      header: 'Season',
-      sortable: true,
-      width: '100px',
-      align: 'center',
-      render: (user) => (
-        <div className="points-cell">
-          <span className="dt-cell-stat dt-cell-stat-highlight">{user.seasonPoints}</span>
-          {user.seasonRank && <span className="dt-cell-muted"> #{user.seasonRank}</span>}
-        </div>
-      ),
-    },
-    {
-      key: 'createdAt',
-      header: 'Member Since',
-      sortable: true,
-      width: '130px',
-      render: (user) => <span className="dt-cell-muted">{formatDate(user.createdAt)}</span>,
-    },
-    {
-      key: 'action',
-      header: 'Action',
-      width: '120px',
-      align: 'center',
-      render: (user) => (
-        <Link to={`/users/${user.id}`} className="dt-btn dt-btn-primary">View Profile</Link>
-      ),
-    },
-  ], [currentUserId]);
+        ),
+      },
+      {
+        key: 'monthPoints',
+        header: 'Month',
+        sortable: true,
+        width: '100px',
+        align: 'center',
+        render: (user) => (
+          <div className="points-cell">
+            <span className="dt-cell-stat">{user.monthPoints}</span>
+            {user.monthRank && <span className="dt-cell-muted"> #{user.monthRank}</span>}
+          </div>
+        ),
+      },
+      {
+        key: 'seasonPoints',
+        header: 'Season',
+        sortable: true,
+        width: '100px',
+        align: 'center',
+        render: (user) => (
+          <div className="points-cell">
+            <span className="dt-cell-stat dt-cell-stat-highlight">{user.seasonPoints}</span>
+            {user.seasonRank && <span className="dt-cell-muted"> #{user.seasonRank}</span>}
+          </div>
+        ),
+      },
+      {
+        key: 'createdAt',
+        header: 'Member Since',
+        sortable: true,
+        width: '130px',
+        render: (user) => <span className="dt-cell-muted">{formatDate(user.createdAt)}</span>,
+      },
+      {
+        key: 'action',
+        header: 'Action',
+        width: '120px',
+        align: 'center',
+        render: (user) => (
+          <Link to={`/users/${user.id}`} className="dt-btn dt-btn-primary">
+            View Profile
+          </Link>
+        ),
+      },
+    ],
+    [currentUserId]
+  );
 
   // Get row class name
   const getRowClassName = (user: FantasyUser) => {
@@ -264,7 +279,9 @@ const UsersPage: React.FC = () => {
           {/* Page Title */}
           <div className="users-page-header">
             <h1>👥 Fantasy Participants</h1>
-            <p className="users-page-subtitle">View all users playing Bearwood Lakes Fantasy Golf</p>
+            <p className="users-page-subtitle">
+              View all users playing Bearwood Lakes Fantasy Golf
+            </p>
           </div>
 
           {/* Search Bar */}
@@ -291,15 +308,17 @@ const UsersPage: React.FC = () => {
               <option value="top10Season">🏆 Top 10 Season</option>
             </select>
             {hasActiveFilters && (
-              <button className="reset-btn" onClick={resetFilters}>Reset</button>
+              <button className="reset-btn" onClick={resetFilters}>
+                Reset
+              </button>
             )}
-            <span className="results-count">Showing {filteredUsers.length} of {users?.length ?? 0}</span>
+            <span className="results-count">
+              Showing {filteredUsers.length} of {users?.length ?? 0}
+            </span>
           </div>
 
           {/* Error State */}
-          {error && (
-            <div className="error-message">{error}</div>
-          )}
+          {error && <div className="error-message">{error}</div>}
 
           {/* Users Table */}
           <DataTable
@@ -321,11 +340,11 @@ const UsersPage: React.FC = () => {
               <span className="stat-label">Total Users</span>
             </div>
             <div className="stat-item">
-              <span className="stat-value">{users?.filter(u => u.hasTeam).length ?? 0}</span>
+              <span className="stat-value">{users?.filter((u) => u.hasTeam).length ?? 0}</span>
               <span className="stat-label">With Teams</span>
             </div>
             <div className="stat-item">
-              <span className="stat-value">{users?.filter(u => !u.hasTeam).length ?? 0}</span>
+              <span className="stat-value">{users?.filter((u) => !u.hasTeam).length ?? 0}</span>
               <span className="stat-label">Without Teams</span>
             </div>
           </div>

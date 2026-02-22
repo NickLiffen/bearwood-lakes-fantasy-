@@ -15,10 +15,13 @@ export const handler: Handler = async (event) => {
   }
 
   if (event.httpMethod !== 'POST') {
-    return withCors({
-      statusCode: 405,
-      body: JSON.stringify({ error: 'Method not allowed' }),
-    }, requestOrigin);
+    return withCors(
+      {
+        statusCode: 405,
+        body: JSON.stringify({ error: 'Method not allowed' }),
+      },
+      requestOrigin
+    );
   }
 
   try {
@@ -32,21 +35,27 @@ export const handler: Handler = async (event) => {
     }
 
     // Always clear the cookie
-    return withCors({
-      statusCode: 200,
-      headers: {
-        'Set-Cookie': clearRefreshTokenCookie(),
+    return withCors(
+      {
+        statusCode: 200,
+        headers: {
+          'Set-Cookie': clearRefreshTokenCookie(),
+        },
+        body: JSON.stringify({ success: true }),
       },
-      body: JSON.stringify({ success: true }),
-    }, requestOrigin);
+      requestOrigin
+    );
   } catch {
     // Even on error, clear the cookie
-    return withCors({
-      statusCode: 200,
-      headers: {
-        'Set-Cookie': clearRefreshTokenCookie(),
+    return withCors(
+      {
+        statusCode: 200,
+        headers: {
+          'Set-Cookie': clearRefreshTokenCookie(),
+        },
+        body: JSON.stringify({ success: true }),
       },
-      body: JSON.stringify({ success: true }),
-    }, requestOrigin);
+      requestOrigin
+    );
   }
 };

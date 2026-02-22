@@ -42,9 +42,11 @@ type SortDirection = 'asc' | 'desc';
 type TypeFilter = 'all' | 'regular' | 'elevated' | 'signature';
 
 const TournamentsPage: React.FC = () => {
-  const { data: tournaments, loading, error } = useAsyncData<Tournament[]>(
-    'tournaments-list?includeResults=true'
-  );
+  const {
+    data: tournaments,
+    loading,
+    error,
+  } = useAsyncData<Tournament[]>('tournaments-list?includeResults=true');
   useDocumentTitle('Tournaments');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortColumn, setSortColumn] = useState<SortColumn>('startDate');
@@ -63,9 +65,12 @@ const TournamentsPage: React.FC = () => {
   // Get tournament type badge class
   const getTypeBadgeClass = (type: string) => {
     switch (type) {
-      case 'signature': return 'tournament-type tournament-type-signature';
-      case 'elevated': return 'tournament-type tournament-type-elevated';
-      default: return 'tournament-type tournament-type-regular';
+      case 'signature':
+        return 'tournament-type tournament-type-signature';
+      case 'elevated':
+        return 'tournament-type tournament-type-elevated';
+      default:
+        return 'tournament-type tournament-type-regular';
     }
   };
 
@@ -120,97 +125,114 @@ const TournamentsPage: React.FC = () => {
   const hasActiveFilters = searchTerm !== '' || typeFilter !== 'all';
 
   // Define table columns
-  const columns: Column<Tournament>[] = useMemo(() => [
-    {
-      key: 'startDate',
-      header: 'Date',
-      sortable: true,
-      width: '120px',
-      render: (tournament) => (
-        <span className="dt-cell-muted">{formatDate(tournament.startDate)}</span>
-      ),
-    },
-    {
-      key: 'name',
-      header: 'Tournament',
-      sortable: true,
-      render: (tournament) => (
-        <Link to={`/tournaments/${tournament.id}`} className="dt-cell-link">
-          <span className="tournament-name">{tournament.name}</span>
-        </Link>
-      ),
-    },
-    {
-      key: 'type',
-      header: 'Type',
-      sortable: true,
-      width: '130px',
-      align: 'center',
-      render: (tournament) => (
-        <span className={getTypeBadgeClass(tournament.tournamentType)}>
-          {tournament.tournamentType.charAt(0).toUpperCase() + tournament.tournamentType.slice(1)}
-          <span className="multiplier-badge">{tournament.multiplier}x</span>
-        </span>
-      ),
-    },
-    {
-      key: 'first',
-      header: '1st',
-      width: '140px',
-      render: (tournament) => tournament.results?.first ? (
-        <Link to={`/golfers/${tournament.results.first.id}`} className="podium-link podium-gold">
-          {tournament.results.first.firstName} {tournament.results.first.lastName}
-        </Link>
-      ) : (
-        <span className="dt-cell-muted">-</span>
-      ),
-    },
-    {
-      key: 'second',
-      header: '2nd',
-      width: '140px',
-      render: (tournament) => tournament.results?.second ? (
-        <Link to={`/golfers/${tournament.results.second.id}`} className="podium-link podium-silver">
-          {tournament.results.second.firstName} {tournament.results.second.lastName}
-        </Link>
-      ) : (
-        <span className="dt-cell-muted">-</span>
-      ),
-    },
-    {
-      key: 'third',
-      header: '3rd',
-      width: '140px',
-      render: (tournament) => tournament.results?.third ? (
-        <Link to={`/golfers/${tournament.results.third.id}`} className="podium-link podium-bronze">
-          {tournament.results.third.firstName} {tournament.results.third.lastName}
-        </Link>
-      ) : (
-        <span className="dt-cell-muted">-</span>
-      ),
-    },
-    {
-      key: 'scored36Plus',
-      header: '36+',
-      width: '70px',
-      align: 'center',
-      render: (tournament) => (
-        <span className={tournament.results?.scored36PlusCount ? 'dt-cell-stat' : 'dt-cell-muted'}>
-          {tournament.results?.scored36PlusCount || 0}
-        </span>
-      ),
-    },
-    {
-      key: 'participants',
-      header: 'Players',
-      sortable: true,
-      width: '80px',
-      align: 'center',
-      render: (tournament) => (
-        <span className="dt-cell-stat">{tournament.results?.participantCount || 0}</span>
-      ),
-    },
-  ], []);
+  const columns: Column<Tournament>[] = useMemo(
+    () => [
+      {
+        key: 'startDate',
+        header: 'Date',
+        sortable: true,
+        width: '120px',
+        render: (tournament) => (
+          <span className="dt-cell-muted">{formatDate(tournament.startDate)}</span>
+        ),
+      },
+      {
+        key: 'name',
+        header: 'Tournament',
+        sortable: true,
+        render: (tournament) => (
+          <Link to={`/tournaments/${tournament.id}`} className="dt-cell-link">
+            <span className="tournament-name">{tournament.name}</span>
+          </Link>
+        ),
+      },
+      {
+        key: 'type',
+        header: 'Type',
+        sortable: true,
+        width: '130px',
+        align: 'center',
+        render: (tournament) => (
+          <span className={getTypeBadgeClass(tournament.tournamentType)}>
+            {tournament.tournamentType.charAt(0).toUpperCase() + tournament.tournamentType.slice(1)}
+            <span className="multiplier-badge">{tournament.multiplier}x</span>
+          </span>
+        ),
+      },
+      {
+        key: 'first',
+        header: '1st',
+        width: '140px',
+        render: (tournament) =>
+          tournament.results?.first ? (
+            <Link
+              to={`/golfers/${tournament.results.first.id}`}
+              className="podium-link podium-gold"
+            >
+              {tournament.results.first.firstName} {tournament.results.first.lastName}
+            </Link>
+          ) : (
+            <span className="dt-cell-muted">-</span>
+          ),
+      },
+      {
+        key: 'second',
+        header: '2nd',
+        width: '140px',
+        render: (tournament) =>
+          tournament.results?.second ? (
+            <Link
+              to={`/golfers/${tournament.results.second.id}`}
+              className="podium-link podium-silver"
+            >
+              {tournament.results.second.firstName} {tournament.results.second.lastName}
+            </Link>
+          ) : (
+            <span className="dt-cell-muted">-</span>
+          ),
+      },
+      {
+        key: 'third',
+        header: '3rd',
+        width: '140px',
+        render: (tournament) =>
+          tournament.results?.third ? (
+            <Link
+              to={`/golfers/${tournament.results.third.id}`}
+              className="podium-link podium-bronze"
+            >
+              {tournament.results.third.firstName} {tournament.results.third.lastName}
+            </Link>
+          ) : (
+            <span className="dt-cell-muted">-</span>
+          ),
+      },
+      {
+        key: 'scored36Plus',
+        header: '36+',
+        width: '70px',
+        align: 'center',
+        render: (tournament) => (
+          <span
+            className={tournament.results?.scored36PlusCount ? 'dt-cell-stat' : 'dt-cell-muted'}
+          >
+            {tournament.results?.scored36PlusCount || 0}
+          </span>
+        ),
+      },
+      {
+        key: 'participants',
+        header: 'Players',
+        sortable: true,
+        width: '80px',
+        align: 'center',
+        render: (tournament) => (
+          <span className="dt-cell-stat">{tournament.results?.participantCount || 0}</span>
+        ),
+      },
+    ],
+    []
+  );
 
   if (loading) {
     return (
@@ -225,9 +247,9 @@ const TournamentsPage: React.FC = () => {
   }
 
   // Calculate stats - only from complete tournaments
-  const completeTournaments = tournaments?.filter(t => t.status === 'complete') || [];
-  const signatureCount = completeTournaments.filter(t => t.tournamentType === 'signature').length;
-  const elevatedCount = completeTournaments.filter(t => t.tournamentType === 'elevated').length;
+  const completeTournaments = tournaments?.filter((t) => t.status === 'complete') || [];
+  const signatureCount = completeTournaments.filter((t) => t.tournamentType === 'signature').length;
+  const elevatedCount = completeTournaments.filter((t) => t.tournamentType === 'elevated').length;
 
   return (
     <PageLayout activeNav="tournaments">
@@ -236,7 +258,9 @@ const TournamentsPage: React.FC = () => {
           {/* Page Title */}
           <div className="tournaments-page-header">
             <h1>Tournaments</h1>
-            <p className="tournaments-page-subtitle">View all tournaments and results for the 2026 season</p>
+            <p className="tournaments-page-subtitle">
+              View all tournaments and results for the 2026 season
+            </p>
           </div>
 
           {/* Search Bar */}
@@ -261,7 +285,9 @@ const TournamentsPage: React.FC = () => {
               <option value="signature">Signature (3x)</option>
             </select>
             {hasActiveFilters && (
-              <button className="reset-btn" onClick={resetFilters}>Reset</button>
+              <button className="reset-btn" onClick={resetFilters}>
+                Reset
+              </button>
             )}
             <span className="results-count">
               Showing {filteredTournaments.length} of {completeTournaments.length} tournaments
@@ -269,9 +295,7 @@ const TournamentsPage: React.FC = () => {
           </div>
 
           {/* Error State */}
-          {error && (
-            <div className="error-message">{error}</div>
-          )}
+          {error && <div className="error-message">{error}</div>}
 
           {/* Tournaments Table */}
           <DataTable
@@ -292,7 +316,9 @@ const TournamentsPage: React.FC = () => {
               <span className="stat-label">Tournaments</span>
             </div>
             <div className="stat-item">
-              <span className="stat-value">{completeTournaments.length - signatureCount - elevatedCount}</span>
+              <span className="stat-value">
+                {completeTournaments.length - signatureCount - elevatedCount}
+              </span>
               <span className="stat-label">Regular (1x)</span>
             </div>
             <div className="stat-item">

@@ -342,8 +342,11 @@ const DashboardPage: React.FC = () => {
                           <span className="golfer-name-cell">
                             {entry.golfer.firstName} {entry.golfer.lastName}
                           </span>
-                          <span className={`golfer-week-points ${entry.weekPoints > 0 ? 'has-points' : ''}`}>
-                            {entry.weekPoints > 0 ? '+' : ''}{entry.weekPoints} pts
+                          <span
+                            className={`golfer-week-points ${entry.weekPoints > 0 ? 'has-points' : ''}`}
+                          >
+                            {entry.weekPoints > 0 ? '+' : ''}
+                            {entry.weekPoints} pts
                           </span>
                         </Link>
                       ))}
@@ -447,9 +450,7 @@ const DashboardPage: React.FC = () => {
                         </span>
                       </div>
                       <div className="tournament-meta">
-                        <span className="tournament-status status-complete">
-                          Complete
-                        </span>
+                        <span className="tournament-status status-complete">Complete</span>
                         {tournament.multiplier > 1 && (
                           <span className="tournament-multiplier">{tournament.multiplier}x</span>
                         )}

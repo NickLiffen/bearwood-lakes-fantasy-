@@ -13,7 +13,14 @@ interface User {
   role: string;
 }
 
-type NavItem = 'dashboard' | 'my-team' | 'golfers' | 'leaderboard' | 'users' | 'tournaments' | 'profile';
+type NavItem =
+  | 'dashboard'
+  | 'my-team'
+  | 'golfers'
+  | 'leaderboard'
+  | 'users'
+  | 'tournaments'
+  | 'profile';
 
 interface PageLayoutProps {
   children: React.ReactNode;
@@ -44,9 +51,10 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children, activeNav }) => {
     const headerWidth = header.clientWidth;
     const padding = 48; // 1.5rem × 2
     const gaps = 32; // grid gaps
-    const contentWidth = brand.scrollWidth + nav.scrollWidth + userSection.scrollWidth + padding + gaps;
+    const contentWidth =
+      brand.scrollWidth + nav.scrollWidth + userSection.scrollWidth + padding + gaps;
     const shouldCollapse = contentWidth > headerWidth;
-    setNavCollapsed(prev => (prev !== shouldCollapse ? shouldCollapse : prev));
+    setNavCollapsed((prev) => (prev !== shouldCollapse ? shouldCollapse : prev));
   }, []);
 
   useEffect(() => {
@@ -103,39 +111,36 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children, activeNav }) => {
       <header className={`page-header ${navCollapsed ? 'nav-collapsed' : ''}`}>
         <div className="header-container" ref={headerRef}>
           <Link to="/dashboard" className="header-brand" ref={brandRef}>
-            <img src="/bearwood_lakes_logo.png" alt="Bearwood Lakes" className="brand-logo" width="69" height="36" />
+            <img
+              src="/bearwood_lakes_logo.png"
+              alt="Bearwood Lakes"
+              className="brand-logo"
+              width="69"
+              height="36"
+            />
             <span className="brand-text">Bearwood Lakes Fantasy</span>
           </Link>
 
           <nav className="header-nav" ref={navRef}>
-            <Link 
-              to="/dashboard" 
+            <Link
+              to="/dashboard"
               className={`nav-link ${activeNav === 'dashboard' ? 'active' : ''}`}
             >
               Dashboard
             </Link>
-            <Link 
-              to="/my-team" 
-              className={`nav-link ${activeNav === 'my-team' ? 'active' : ''}`}
-            >
+            <Link to="/my-team" className={`nav-link ${activeNav === 'my-team' ? 'active' : ''}`}>
               My Team
             </Link>
-            <Link 
-              to="/golfers" 
-              className={`nav-link ${activeNav === 'golfers' ? 'active' : ''}`}
-            >
+            <Link to="/golfers" className={`nav-link ${activeNav === 'golfers' ? 'active' : ''}`}>
               Golfers
             </Link>
-            <Link 
-              to="/leaderboard" 
+            <Link
+              to="/leaderboard"
               className={`nav-link ${activeNav === 'leaderboard' ? 'active' : ''}`}
             >
               Leaderboard
             </Link>
-            <Link
-              to="/users"
-              className={`nav-link ${activeNav === 'users' ? 'active' : ''}`}
-            >
+            <Link to="/users" className={`nav-link ${activeNav === 'users' ? 'active' : ''}`}>
               Users
             </Link>
             <Link
@@ -188,31 +193,66 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children, activeNav }) => {
           <span className="mobile-user-greeting">Hi, {user.firstName}</span>
         </div>
         <div className="mobile-menu-links">
-          <Link to="/dashboard" className={`mobile-nav-link ${activeNav === 'dashboard' ? 'active' : ''}`}>Dashboard</Link>
-          <Link to="/my-team" className={`mobile-nav-link ${activeNav === 'my-team' ? 'active' : ''}`}>My Team</Link>
-          <Link to="/golfers" className={`mobile-nav-link ${activeNav === 'golfers' ? 'active' : ''}`}>Golfers</Link>
-          <Link to="/leaderboard" className={`mobile-nav-link ${activeNav === 'leaderboard' ? 'active' : ''}`}>Leaderboard</Link>
-          <Link to="/tournaments" className={`mobile-nav-link ${activeNav === 'tournaments' ? 'active' : ''}`}>Tournaments</Link>
-          <Link to="/users" className={`mobile-nav-link ${activeNav === 'users' ? 'active' : ''}`}>Users</Link>
+          <Link
+            to="/dashboard"
+            className={`mobile-nav-link ${activeNav === 'dashboard' ? 'active' : ''}`}
+          >
+            Dashboard
+          </Link>
+          <Link
+            to="/my-team"
+            className={`mobile-nav-link ${activeNav === 'my-team' ? 'active' : ''}`}
+          >
+            My Team
+          </Link>
+          <Link
+            to="/golfers"
+            className={`mobile-nav-link ${activeNav === 'golfers' ? 'active' : ''}`}
+          >
+            Golfers
+          </Link>
+          <Link
+            to="/leaderboard"
+            className={`mobile-nav-link ${activeNav === 'leaderboard' ? 'active' : ''}`}
+          >
+            Leaderboard
+          </Link>
+          <Link
+            to="/tournaments"
+            className={`mobile-nav-link ${activeNav === 'tournaments' ? 'active' : ''}`}
+          >
+            Tournaments
+          </Link>
+          <Link to="/users" className={`mobile-nav-link ${activeNav === 'users' ? 'active' : ''}`}>
+            Users
+          </Link>
           {user.role === 'admin' && (
-            <Link to="/admin" className="mobile-nav-link mobile-nav-admin">Admin</Link>
+            <Link to="/admin" className="mobile-nav-link mobile-nav-admin">
+              Admin
+            </Link>
           )}
         </div>
         <div className="mobile-menu-footer">
-          <button onClick={handleLogout} className="mobile-logout-btn">Sign Out</button>
+          <button onClick={handleLogout} className="mobile-logout-btn">
+            Sign Out
+          </button>
         </div>
       </nav>
 
       {/* Main Content */}
-      <main className="page-main">
-        {children}
-      </main>
+      <main className="page-main">{children}</main>
 
       {/* Footer */}
       <footer className="page-footer">
         <div className="footer-container">
           <div className="footer-brand">
-            <img src="/bearwood_lakes_logo.png" alt="Bearwood Lakes" className="footer-logo-img" width="54" height="28" />
+            <img
+              src="/bearwood_lakes_logo.png"
+              alt="Bearwood Lakes"
+              className="footer-logo-img"
+              width="54"
+              height="28"
+            />
             <span>Bearwood Lakes Fantasy Golf</span>
           </div>
           <div className="footer-links">
@@ -228,9 +268,7 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children, activeNav }) => {
               Logout
             </button>
           </div>
-          <div className="footer-copyright">
-            © 2026 Bearwood Lakes Golf Club
-          </div>
+          <div className="footer-copyright">© 2026 Bearwood Lakes Golf Club</div>
         </div>
       </footer>
     </div>

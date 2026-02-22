@@ -47,8 +47,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
         className="search-bar-input"
       />
       {value && (
-        <button 
-          className="search-bar-clear" 
+        <button
+          className="search-bar-clear"
           onClick={handleClear}
           type="button"
           aria-label="Clear search"

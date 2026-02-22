@@ -92,167 +92,167 @@ const AppRoutes: React.FC = () => {
 
   return (
     <Routes>
-        {/* Public routes */}
-        <Route path="/" element={<HomeRoute />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+      {/* Public routes */}
+      <Route path="/" element={<HomeRoute />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
 
-        {/* Protected user routes */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <DashboardPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <ProfilePage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/my-team"
-          element={
-            <ProtectedRoute>
-              <MyTeamPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/team-builder"
-          element={
-            <ProtectedRoute>
-              <TeamBuilderPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/golfers"
-          element={
-            <ProtectedRoute>
-              <GolfersPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/golfers/:id"
-          element={
-            <ProtectedRoute>
-              <GolferProfilePage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/leaderboard"
-          element={
-            <ProtectedRoute>
-              <LeaderboardPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/users"
-          element={
-            <ProtectedRoute>
-              <UsersPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/users/:userId"
-          element={
-            <ProtectedRoute>
-              <UserProfilePage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/tournaments"
-          element={
-            <ProtectedRoute>
-              <TournamentsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/tournaments/:id"
-          element={
-            <ProtectedRoute>
-              <TournamentDetailPage />
-            </ProtectedRoute>
-          }
-        />
+      {/* Protected user routes */}
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
+            <DashboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <ProfilePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/my-team"
+        element={
+          <ProtectedRoute>
+            <MyTeamPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/team-builder"
+        element={
+          <ProtectedRoute>
+            <TeamBuilderPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/golfers"
+        element={
+          <ProtectedRoute>
+            <GolfersPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/golfers/:id"
+        element={
+          <ProtectedRoute>
+            <GolferProfilePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/leaderboard"
+        element={
+          <ProtectedRoute>
+            <LeaderboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/users"
+        element={
+          <ProtectedRoute>
+            <UsersPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/users/:userId"
+        element={
+          <ProtectedRoute>
+            <UserProfilePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tournaments"
+        element={
+          <ProtectedRoute>
+            <TournamentsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/tournaments/:id"
+        element={
+          <ProtectedRoute>
+            <TournamentDetailPage />
+          </ProtectedRoute>
+        }
+      />
 
-        {/* Admin routes */}
-        <Route
-          path="/admin"
-          element={
-            <AdminRoute>
-              <AdminOverviewPage />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="/admin/golfers"
-          element={
-            <AdminRoute>
-              <GolfersAdminPage />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="/admin/tournaments"
-          element={
-            <AdminRoute>
-              <TournamentsAdminPage />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="/admin/scores"
-          element={
-            <AdminRoute>
-              <ScoresAdminPage />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="/admin/users"
-          element={
-            <AdminRoute>
-              <UsersAdminPage />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="/admin/settings"
-          element={
-            <AdminRoute>
-              <SettingsAdminPage />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="/admin/seasons"
-          element={
-            <AdminRoute>
-              <SeasonsAdminPage />
-            </AdminRoute>
-          }
-        />
-        <Route
-          path="/admin/season-upload"
-          element={
-            <AdminRoute>
-              <SeasonUploadPage />
-            </AdminRoute>
-          }
-        />
-      </Routes>
+      {/* Admin routes */}
+      <Route
+        path="/admin"
+        element={
+          <AdminRoute>
+            <AdminOverviewPage />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/golfers"
+        element={
+          <AdminRoute>
+            <GolfersAdminPage />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/tournaments"
+        element={
+          <AdminRoute>
+            <TournamentsAdminPage />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/scores"
+        element={
+          <AdminRoute>
+            <ScoresAdminPage />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/users"
+        element={
+          <AdminRoute>
+            <UsersAdminPage />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/settings"
+        element={
+          <AdminRoute>
+            <SettingsAdminPage />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/seasons"
+        element={
+          <AdminRoute>
+            <SeasonsAdminPage />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/season-upload"
+        element={
+          <AdminRoute>
+            <SeasonUploadPage />
+          </AdminRoute>
+        }
+      />
+    </Routes>
   );
 };
 

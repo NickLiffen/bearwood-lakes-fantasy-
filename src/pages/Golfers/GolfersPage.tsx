@@ -45,13 +45,7 @@ type SortColumn = string;
 type SortDirection = 'asc' | 'desc';
 
 // Quick filter presets
-type QuickFilter = 
-  | 'all' 
-  | 'active'
-  | 'inactive'
-  | 'premium'
-  | 'budget'
-  | string;
+type QuickFilter = 'all' | 'active' | 'inactive' | 'premium' | 'budget' | string;
 
 const GolfersPage: React.FC = () => {
   // Use the useAsyncData hook for data fetching with proper loading/error handling
@@ -60,10 +54,13 @@ const GolfersPage: React.FC = () => {
   const seasonName = season?.name || '2026';
   useDocumentTitle('Golfers');
 
-  const getStats = useCallback((golfer: Golfer) => {
-    if (seasonName === '2025') return golfer.stats2025;
-    return golfer.stats2026;
-  }, [seasonName]);
+  const getStats = useCallback(
+    (golfer: Golfer) => {
+      if (seasonName === '2025') return golfer.stats2025;
+      return golfer.stats2026;
+    },
+    [seasonName]
+  );
 
   const [searchTerm, setSearchTerm] = useState('');
   const [sortColumn, setSortColumn] = useState<SortColumn>('name');
@@ -124,21 +121,32 @@ const GolfersPage: React.FC = () => {
       })
       .sort((a, b) => {
         const dir = sortDirection === 'asc' ? 1 : -1;
-        
+
         const getValue = (golfer: Golfer): number | string => {
           const sortKey = sortColumn.replace(/-\d+$/, '');
           switch (sortKey) {
-            case 'name': return `${golfer.firstName} ${golfer.lastName}`;
-            case 'price': return golfer.price;
-            case 'played': return getStats(golfer)?.timesPlayed || 0;
-            case 'first': return getStats(golfer)?.timesFinished1st || 0;
-            case 'second': return getStats(golfer)?.timesFinished2nd || 0;
-            case 'third': return getStats(golfer)?.timesFinished3rd || 0;
-            case 'consistent': return getStats(golfer)?.timesScored36Plus || 0;
-            case 'week-pts': return golfer.points?.week || 0;
-            case 'month-pts': return golfer.points?.month || 0;
-            case 'season-pts': return golfer.points?.season || 0;
-            default: return 0;
+            case 'name':
+              return `${golfer.firstName} ${golfer.lastName}`;
+            case 'price':
+              return golfer.price;
+            case 'played':
+              return getStats(golfer)?.timesPlayed || 0;
+            case 'first':
+              return getStats(golfer)?.timesFinished1st || 0;
+            case 'second':
+              return getStats(golfer)?.timesFinished2nd || 0;
+            case 'third':
+              return getStats(golfer)?.timesFinished3rd || 0;
+            case 'consistent':
+              return getStats(golfer)?.timesScored36Plus || 0;
+            case 'week-pts':
+              return golfer.points?.week || 0;
+            case 'month-pts':
+              return golfer.points?.month || 0;
+            case 'season-pts':
+              return golfer.points?.season || 0;
+            default:
+              return 0;
           }
         };
 
@@ -170,11 +178,16 @@ const GolfersPage: React.FC = () => {
   // Helper to get membership class
   const getDtMembershipClass = (type: string) => {
     switch (type) {
-      case 'men': return 'dt-membership dt-membership-men';
-      case 'female': return 'dt-membership dt-membership-female';
-      case 'junior': return 'dt-membership dt-membership-junior';
-      case 'senior': return 'dt-membership dt-membership-senior';
-      default: return 'dt-membership';
+      case 'men':
+        return 'dt-membership dt-membership-men';
+      case 'female':
+        return 'dt-membership dt-membership-female';
+      case 'junior':
+        return 'dt-membership dt-membership-junior';
+      case 'senior':
+        return 'dt-membership dt-membership-senior';
+      default:
+        return 'dt-membership';
     }
   };
 
@@ -212,7 +225,9 @@ const GolfersPage: React.FC = () => {
       key: 'status',
       header: 'Status',
       render: (golfer) => (
-        <span className={`dt-status ${golfer.isActive ? 'dt-status-active' : 'dt-status-inactive'}`}>
+        <span
+          className={`dt-status ${golfer.isActive ? 'dt-status-active' : 'dt-status-inactive'}`}
+        >
           {golfer.isActive ? 'Active' : 'Inactive'}
         </span>
       ),
@@ -250,27 +265,36 @@ const GolfersPage: React.FC = () => {
       header: '1st',
       sortable: true,
       align: 'center',
-      render: (golfer) => getStats(golfer)?.timesFinished1st > 0 ? (
-        <span className="dt-gold">{getStats(golfer).timesFinished1st}</span>
-      ) : '0',
+      render: (golfer) =>
+        getStats(golfer)?.timesFinished1st > 0 ? (
+          <span className="dt-gold">{getStats(golfer).timesFinished1st}</span>
+        ) : (
+          '0'
+        ),
     },
     {
       key: `second-${seasonName}`,
       header: '2nd',
       sortable: true,
       align: 'center',
-      render: (golfer) => getStats(golfer)?.timesFinished2nd > 0 ? (
-        <span className="dt-silver">{getStats(golfer).timesFinished2nd}</span>
-      ) : '0',
+      render: (golfer) =>
+        getStats(golfer)?.timesFinished2nd > 0 ? (
+          <span className="dt-silver">{getStats(golfer).timesFinished2nd}</span>
+        ) : (
+          '0'
+        ),
     },
     {
       key: `third-${seasonName}`,
       header: '3rd',
       sortable: true,
       align: 'center',
-      render: (golfer) => getStats(golfer)?.timesFinished3rd > 0 ? (
-        <span className="dt-bronze">{getStats(golfer).timesFinished3rd}</span>
-      ) : '0',
+      render: (golfer) =>
+        getStats(golfer)?.timesFinished3rd > 0 ? (
+          <span className="dt-bronze">{getStats(golfer).timesFinished3rd}</span>
+        ) : (
+          '0'
+        ),
     },
     {
       key: `consistent-${seasonName}`,
@@ -329,15 +353,17 @@ const GolfersPage: React.FC = () => {
               <option value="budget">💰 Budget (≤$6M)</option>
             </select>
             {hasActiveFilters && (
-              <button className="reset-btn" onClick={resetFilters}>Reset</button>
+              <button className="reset-btn" onClick={resetFilters}>
+                Reset
+              </button>
             )}
-            <span className="results-count">Showing {filteredGolfers.length} of {golfers?.length ?? 0}</span>
+            <span className="results-count">
+              Showing {filteredGolfers.length} of {golfers?.length ?? 0}
+            </span>
           </div>
 
           {/* Error State */}
-          {error && (
-            <div className="error-message">{error}</div>
-          )}
+          {error && <div className="error-message">{error}</div>}
 
           {/* Golfers Table */}
           <DataTable
@@ -354,9 +380,15 @@ const GolfersPage: React.FC = () => {
 
           {/* Legend */}
           <div className="dt-legend">
-            <span className="dt-legend-item"><span className="dt-gold">●</span> 1st Place</span>
-            <span className="dt-legend-item"><span className="dt-silver">●</span> 2nd Place</span>
-            <span className="dt-legend-item"><span className="dt-bronze">●</span> 3rd Place</span>
+            <span className="dt-legend-item">
+              <span className="dt-gold">●</span> 1st Place
+            </span>
+            <span className="dt-legend-item">
+              <span className="dt-silver">●</span> 2nd Place
+            </span>
+            <span className="dt-legend-item">
+              <span className="dt-bronze">●</span> 3rd Place
+            </span>
             <span className="dt-legend-item">36+ = Scored 36 points or more</span>
           </div>
         </div>

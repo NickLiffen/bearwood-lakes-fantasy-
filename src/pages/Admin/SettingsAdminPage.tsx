@@ -24,17 +24,19 @@ const SettingsAdminPage: React.FC = () => {
 
   // Danger zone modal state
   const [showDangerModal, setShowDangerModal] = useState(false);
-  const [dangerAction, setDangerAction] = useState<'reset-scores' | 'reset-picks' | 'reset-all' | null>(null);
+  const [dangerAction, setDangerAction] = useState<
+    'reset-scores' | 'reset-picks' | 'reset-all' | null
+  >(null);
   const [confirmText, setConfirmText] = useState('');
   const [isResetting, setIsResetting] = useState(false);
 
   const fetchSettings = useCallback(async () => {
     try {
       const response = await get<AppSettings>('settings');
-      
+
       // Ignore cancelled requests
       if (response.cancelled) return;
-      
+
       if (response.success && response.data) {
         setSettings(response.data);
       }
@@ -109,19 +111,23 @@ const SettingsAdminPage: React.FC = () => {
       case 'reset-scores':
         return {
           title: '🗑️ Reset All Scores',
-          description: 'This will delete ALL tournament scores from the database. golfer stats will reset to zero. This action cannot be undone.',
-          warning: 'All golfer points, positions, and tournament results will be permanently deleted.',
+          description:
+            'This will delete ALL tournament scores from the database. golfer stats will reset to zero. This action cannot be undone.',
+          warning:
+            'All golfer points, positions, and tournament results will be permanently deleted.',
         };
       case 'reset-picks':
         return {
           title: '🗑️ Reset All Picks',
-          description: 'This will delete ALL user team picks from the database. Users will need to re-select their teams. This action cannot be undone.',
+          description:
+            'This will delete ALL user team picks from the database. Users will need to re-select their teams. This action cannot be undone.',
           warning: 'All user fantasy teams will be cleared.',
         };
       case 'reset-all':
         return {
           title: '⚠️ Full Season Reset',
-          description: 'This will delete ALL scores AND ALL user picks. Use this to start a fresh season while keeping golfers and tournaments.',
+          description:
+            'This will delete ALL scores AND ALL user picks. Use this to start a fresh season while keeping golfers and tournaments.',
           warning: 'This is a complete reset. Both scores and picks will be permanently deleted.',
         };
       default:
@@ -152,7 +158,14 @@ const SettingsAdminPage: React.FC = () => {
           <h2>🔒 Transfer Window</h2>
         </div>
         <div className="admin-card-body">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1rem',
+            }}
+          >
             <div>
               <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.25rem' }}>
                 Transfer Window Status
@@ -176,19 +189,38 @@ const SettingsAdminPage: React.FC = () => {
                 {updating === 'transfersOpen'
                   ? 'Updating...'
                   : settings?.transfersOpen
-                  ? '🔒 Lock Transfers'
-                  : '🔓 Open Transfers'}
+                    ? '🔒 Lock Transfers'
+                    : '🔓 Open Transfers'}
               </button>
             </div>
           </div>
-          <div style={{ background: '#f3f4f6', padding: '1rem', borderRadius: '8px', fontSize: '0.85rem', color: '#6b7280' }}>
-            💡 <strong>Tip:</strong> Lock transfers during tournaments to prevent users from changing their teams while games are in progress.
+          <div
+            style={{
+              background: '#f3f4f6',
+              padding: '1rem',
+              borderRadius: '8px',
+              fontSize: '0.85rem',
+              color: '#6b7280',
+            }}
+          >
+            💡 <strong>Tip:</strong> Lock transfers during tournaments to prevent users from
+            changing their teams while games are in progress.
           </div>
 
           {/* Max Transfers Per Week - only show when transfers are open */}
           {settings?.transfersOpen && (
-            <div style={{ marginTop: '1.5rem', padding: '1rem', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div
+              style={{
+                marginTop: '1.5rem',
+                padding: '1rem',
+                background: '#f9fafb',
+                borderRadius: '8px',
+                border: '1px solid #e5e7eb',
+              }}
+            >
+              <div
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+              >
                 <div>
                   <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.25rem' }}>
                     Maximum Transfers Per Week
@@ -232,8 +264,18 @@ const SettingsAdminPage: React.FC = () => {
 
           {/* Max Players Per Transfer - only show when transfers are open */}
           {settings?.transfersOpen && (
-            <div style={{ marginTop: '1rem', padding: '1rem', background: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div
+              style={{
+                marginTop: '1rem',
+                padding: '1rem',
+                background: '#f9fafb',
+                borderRadius: '8px',
+                border: '1px solid #e5e7eb',
+              }}
+            >
+              <div
+                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+              >
                 <div>
                   <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.25rem' }}>
                     Maximum Players Per Transfer
@@ -283,7 +325,14 @@ const SettingsAdminPage: React.FC = () => {
           <h2>👥 Registration</h2>
         </div>
         <div className="admin-card-body">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1rem',
+            }}
+          >
             <div>
               <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.25rem' }}>
                 New User Registration
@@ -307,13 +356,22 @@ const SettingsAdminPage: React.FC = () => {
                 {updating === 'registrationOpen'
                   ? 'Updating...'
                   : settings?.registrationOpen
-                  ? '🚫 Close Registration'
-                  : '✅ Open Registration'}
+                    ? '🚫 Close Registration'
+                    : '✅ Open Registration'}
               </button>
             </div>
           </div>
-          <div style={{ background: '#f3f4f6', padding: '1rem', borderRadius: '8px', fontSize: '0.85rem', color: '#6b7280' }}>
-            💡 <strong>Tip:</strong> Close registration once the season has started or when you have enough participants.
+          <div
+            style={{
+              background: '#f3f4f6',
+              padding: '1rem',
+              borderRadius: '8px',
+              fontSize: '0.85rem',
+              color: '#6b7280',
+            }}
+          >
+            💡 <strong>Tip:</strong> Close registration once the season has started or when you have
+            enough participants.
           </div>
         </div>
       </div>
@@ -324,7 +382,14 @@ const SettingsAdminPage: React.FC = () => {
           <h2>⛳ Team Creation</h2>
         </div>
         <div className="admin-card-body">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1rem',
+            }}
+          >
             <div>
               <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.25rem' }}>
                 New Team Creation
@@ -342,19 +407,31 @@ const SettingsAdminPage: React.FC = () => {
               </span>
               <button
                 className={`btn ${settings?.allowNewTeamCreation ? 'btn-secondary' : 'btn-primary'}`}
-                onClick={() => updateSetting('allowNewTeamCreation', !settings?.allowNewTeamCreation)}
+                onClick={() =>
+                  updateSetting('allowNewTeamCreation', !settings?.allowNewTeamCreation)
+                }
                 disabled={updating === 'allowNewTeamCreation'}
               >
                 {updating === 'allowNewTeamCreation'
                   ? 'Updating...'
                   : settings?.allowNewTeamCreation
-                  ? '🚫 Disable Creation'
-                  : '✅ Allow Creation'}
+                    ? '🚫 Disable Creation'
+                    : '✅ Allow Creation'}
               </button>
             </div>
           </div>
-          <div style={{ background: '#f3f4f6', padding: '1rem', borderRadius: '8px', fontSize: '0.85rem', color: '#6b7280' }}>
-            💡 <strong>Tip:</strong> This is separate from transfers. Keep this ON to allow new users to create teams, even when transfers are locked. Turn OFF to prevent any new teams being created (e.g., mid-season).
+          <div
+            style={{
+              background: '#f3f4f6',
+              padding: '1rem',
+              borderRadius: '8px',
+              fontSize: '0.85rem',
+              color: '#6b7280',
+            }}
+          >
+            💡 <strong>Tip:</strong> This is separate from transfers. Keep this ON to allow new
+            users to create teams, even when transfers are locked. Turn OFF to prevent any new teams
+            being created (e.g., mid-season).
           </div>
         </div>
       </div>
@@ -365,31 +442,68 @@ const SettingsAdminPage: React.FC = () => {
           <h2>📅 Season Information</h2>
         </div>
         <div className="admin-card-body">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '1rem',
+              marginBottom: '1rem',
+            }}
+          >
             <div style={{ background: '#f9fafb', padding: '1rem', borderRadius: '8px' }}>
-              <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.25rem' }}>Budget Cap</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#374151' }}>
-                $50M
+              <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.25rem' }}>
+                Budget Cap
               </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#374151' }}>$50M</div>
             </div>
             <div style={{ background: '#f9fafb', padding: '1rem', borderRadius: '8px' }}>
-              <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.25rem' }}>Team Size</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#374151' }}>
-                6 golfers
+              <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.25rem' }}>
+                Team Size
               </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#374151' }}>6 golfers</div>
             </div>
           </div>
 
           {/* Scoring Rules */}
-          <div style={{ background: '#ecfdf5', padding: '1rem', borderRadius: '8px', border: '1px solid #a7f3d0' }}>
-            <h4 style={{ fontSize: '0.9rem', fontWeight: 600, color: '#065f46', marginBottom: '0.5rem' }}>
+          <div
+            style={{
+              background: '#ecfdf5',
+              padding: '1rem',
+              borderRadius: '8px',
+              border: '1px solid #a7f3d0',
+            }}
+          >
+            <h4
+              style={{
+                fontSize: '0.9rem',
+                fontWeight: 600,
+                color: '#065f46',
+                marginBottom: '0.5rem',
+              }}
+            >
               📊 Scoring Rules
             </h4>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.5rem', fontSize: '0.85rem', color: '#065f46' }}>
-              <div>🥇 1st Place: <strong>5 pts</strong></div>
-              <div>🥈 2nd Place: <strong>2-3 pts</strong> (tier)</div>
-              <div>🥉 3rd Place: <strong>1 pt</strong> (20+ tier)</div>
-              <div>⭐ 36+ Bonus: <strong>+1 pt</strong></div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                gap: '0.5rem',
+                fontSize: '0.85rem',
+                color: '#065f46',
+              }}
+            >
+              <div>
+                🥇 1st Place: <strong>5 pts</strong>
+              </div>
+              <div>
+                🥈 2nd Place: <strong>2-3 pts</strong> (tier)
+              </div>
+              <div>
+                🥉 3rd Place: <strong>1 pt</strong> (20+ tier)
+              </div>
+              <div>
+                ⭐ 36+ Bonus: <strong>+1 pt</strong>
+              </div>
             </div>
             <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#047857' }}>
               Multipliers: Regular (1x) | Elevated (2x) | Signature (3x)
@@ -405,14 +519,32 @@ const SettingsAdminPage: React.FC = () => {
         </div>
         <div className="admin-card-body">
           <p style={{ color: '#991b1b', marginBottom: '1.5rem' }}>
-            These actions are destructive and cannot be undone. Please be absolutely sure before proceeding.
+            These actions are destructive and cannot be undone. Please be absolutely sure before
+            proceeding.
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {/* Reset Scores */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'white', borderRadius: '8px', border: '1px solid #fecaca' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '1rem',
+                background: 'white',
+                borderRadius: '8px',
+                border: '1px solid #fecaca',
+              }}
+            >
               <div>
-                <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#991b1b', marginBottom: '0.25rem' }}>
+                <h4
+                  style={{
+                    fontSize: '0.95rem',
+                    fontWeight: 600,
+                    color: '#991b1b',
+                    marginBottom: '0.25rem',
+                  }}
+                >
                   Reset All Scores
                 </h4>
                 <p style={{ color: '#6b7280', fontSize: '0.85rem', margin: 0 }}>
@@ -429,9 +561,26 @@ const SettingsAdminPage: React.FC = () => {
             </div>
 
             {/* Reset Picks */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'white', borderRadius: '8px', border: '1px solid #fecaca' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '1rem',
+                background: 'white',
+                borderRadius: '8px',
+                border: '1px solid #fecaca',
+              }}
+            >
               <div>
-                <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#991b1b', marginBottom: '0.25rem' }}>
+                <h4
+                  style={{
+                    fontSize: '0.95rem',
+                    fontWeight: 600,
+                    color: '#991b1b',
+                    marginBottom: '0.25rem',
+                  }}
+                >
                   Reset All Picks
                 </h4>
                 <p style={{ color: '#6b7280', fontSize: '0.85rem', margin: 0 }}>
@@ -448,9 +597,26 @@ const SettingsAdminPage: React.FC = () => {
             </div>
 
             {/* Full Reset */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', background: 'white', borderRadius: '8px', border: '2px solid #991b1b' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '1rem',
+                background: 'white',
+                borderRadius: '8px',
+                border: '2px solid #991b1b',
+              }}
+            >
               <div>
-                <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: '#991b1b', marginBottom: '0.25rem' }}>
+                <h4
+                  style={{
+                    fontSize: '0.95rem',
+                    fontWeight: 600,
+                    color: '#991b1b',
+                    marginBottom: '0.25rem',
+                  }}
+                >
                   Full Season Reset
                 </h4>
                 <p style={{ color: '#6b7280', fontSize: '0.85rem', margin: 0 }}>
@@ -473,7 +639,10 @@ const SettingsAdminPage: React.FC = () => {
       {showDangerModal && dangerAction && (
         <div className="modal-overlay" onClick={() => setShowDangerModal(false)}>
           <div className="modal" style={{ maxWidth: '500px' }} onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header" style={{ background: '#fef2f2', borderBottom: '1px solid #fecaca' }}>
+            <div
+              className="modal-header"
+              style={{ background: '#fef2f2', borderBottom: '1px solid #fecaca' }}
+            >
               <h2 style={{ color: '#dc2626' }}>{getDangerActionInfo().title}</h2>
               <button className="modal-close" onClick={() => setShowDangerModal(false)}>
                 ×
@@ -481,9 +650,19 @@ const SettingsAdminPage: React.FC = () => {
             </div>
             <div className="modal-body">
               <p style={{ marginBottom: '1rem' }}>{getDangerActionInfo().description}</p>
-              <div style={{ background: '#fef2f2', padding: '1rem', borderRadius: '8px', borderLeft: '4px solid #dc2626', marginBottom: '1.5rem' }}>
+              <div
+                style={{
+                  background: '#fef2f2',
+                  padding: '1rem',
+                  borderRadius: '8px',
+                  borderLeft: '4px solid #dc2626',
+                  marginBottom: '1.5rem',
+                }}
+              >
                 <strong style={{ color: '#dc2626' }}>⚠️ Warning:</strong>
-                <p style={{ color: '#991b1b', margin: '0.5rem 0 0' }}>{getDangerActionInfo().warning}</p>
+                <p style={{ color: '#991b1b', margin: '0.5rem 0 0' }}>
+                  {getDangerActionInfo().warning}
+                </p>
               </div>
               <p style={{ fontWeight: 500 }}>
                 Type <strong>CONFIRM</strong> to proceed:

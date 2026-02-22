@@ -54,26 +54,26 @@ const TEAM_SIZE = 6;
 const GOLFERS_PER_PAGE = 24; // 4 columns × 6 rows
 
 // Sort options type
-type SortOption = 
-  | 'price-high' 
-  | 'price-low' 
-  | 'name' 
-  | 'most-wins' 
-  | 'most-podiums' 
-  | 'most-played' 
+type SortOption =
+  | 'price-high'
+  | 'price-low'
+  | 'name'
+  | 'most-wins'
+  | 'most-podiums'
+  | 'most-played'
   | 'most-consistent'
   | 'best-value'
   | 'win-rate'
   | 'podium-rate';
 
 // Quick filter presets
-type QuickFilter = 
-  | 'all' 
-  | 'winners' 
-  | 'podium-finishers' 
-  | 'consistent' 
-  | 'experienced' 
-  | 'value-picks' 
+type QuickFilter =
+  | 'all'
+  | 'winners'
+  | 'podium-finishers'
+  | 'consistent'
+  | 'experienced'
+  | 'value-picks'
   | 'premium';
 
 const TeamBuilderPage: React.FC = () => {
@@ -161,19 +161,19 @@ const TeamBuilderPage: React.FC = () => {
   // Determine if the user can edit their team
   // - If they have an existing team, check transfersOpen
   // - If they don't have a team, check allowNewTeamCreation
-  const canEditTeam = hasExistingTeam 
+  const canEditTeam = hasExistingTeam
     ? (settings?.transfersOpen ?? true)
     : (settings?.allowNewTeamCreation ?? true);
 
   const handleToggleGolfer = (golfer: Golfer) => {
     if (!canEditTeam) return;
-    
+
     // If already selected, remove them
     if (isSelected(golfer)) {
       setSelectedGolfers(selectedGolfers.filter((g) => g.id !== golfer.id));
       return;
     }
-    
+
     // Otherwise, try to add them
     if (!canAfford(golfer)) return;
     if (selectedGolfers.length >= TEAM_SIZE) return;
@@ -193,7 +193,9 @@ const TeamBuilderPage: React.FC = () => {
 
     // Validate team is complete
     if (selectedGolfers.length < TEAM_SIZE) {
-      setError(`You must select ${TEAM_SIZE} golfers to save your team. Currently selected: ${selectedGolfers.length}`);
+      setError(
+        `You must select ${TEAM_SIZE} golfers to save your team. Currently selected: ${selectedGolfers.length}`
+      );
       return;
     }
 
@@ -241,7 +243,14 @@ const TeamBuilderPage: React.FC = () => {
         timesScored36Plus: acc.timesScored36Plus + ss.timesScored36Plus,
         totalPoints: acc.totalPoints + ss.totalPoints,
       }),
-      { timesPlayed: 0, timesFinished1st: 0, timesFinished2nd: 0, timesFinished3rd: 0, timesScored36Plus: 0, totalPoints: 0 }
+      {
+        timesPlayed: 0,
+        timesFinished1st: 0,
+        timesFinished2nd: 0,
+        timesFinished3rd: 0,
+        timesScored36Plus: 0,
+        totalPoints: 0,
+      }
     );
   };
 
@@ -302,10 +311,11 @@ const TeamBuilderPage: React.FC = () => {
   };
 
   // Check if any filters are active
-  const hasActiveFilters = searchTerm !== '' || 
-    membershipFilter !== 'all' || 
-    quickFilter !== 'all' || 
-    minRoundsPlayed > 0 || 
+  const hasActiveFilters =
+    searchTerm !== '' ||
+    membershipFilter !== 'all' ||
+    quickFilter !== 'all' ||
+    minRoundsPlayed > 0 ||
     showAffordableOnly;
 
   // Filter and sort golfers
@@ -313,11 +323,18 @@ const TeamBuilderPage: React.FC = () => {
     .filter((golfer) => {
       const fullName = `${golfer.firstName} ${golfer.lastName}`.toLowerCase();
       const matchesSearch = fullName.includes(searchTerm.toLowerCase());
-      const matchesMembership = membershipFilter === 'all' || golfer.membershipType === membershipFilter;
+      const matchesMembership =
+        membershipFilter === 'all' || golfer.membershipType === membershipFilter;
       const matchesQuickFilter = applyQuickFilter(golfer);
       const matchesMinRounds = getCombinedStats(golfer).timesPlayed >= minRoundsPlayed;
       const matchesAffordable = !showAffordableOnly || canAfford(golfer);
-      return matchesSearch && matchesMembership && matchesQuickFilter && matchesMinRounds && matchesAffordable;
+      return (
+        matchesSearch &&
+        matchesMembership &&
+        matchesQuickFilter &&
+        matchesMinRounds &&
+        matchesAffordable
+      );
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -411,21 +428,25 @@ const TeamBuilderPage: React.FC = () => {
         <div className="team-builder-container">
           {/* Page Header */}
           <div className="users-page-header">
-              <h1> 👥 {hasExistingTeam ? 'Edit Your Team' : 'Build Your Team'}</h1>
+            <h1> 👥 {hasExistingTeam ? 'Edit Your Team' : 'Build Your Team'}</h1>
             <p className="users-page-subtitle">Select 6 golfers within your $50M budget</p>
           </div>
-            {!canEditTeam && (
-              <div className="transfer-locked-banner">
-                <span className="lock-icon">🔒</span>
-                <span>{hasExistingTeam ? 'Transfer window is closed' : 'New team creation is disabled'}</span>
-              </div>
-            )}
+          {!canEditTeam && (
+            <div className="transfer-locked-banner">
+              <span className="lock-icon">🔒</span>
+              <span>
+                {hasExistingTeam ? 'Transfer window is closed' : 'New team creation is disabled'}
+              </span>
+            </div>
+          )}
 
           {/* Alerts */}
           {error && (
             <div className="alert alert-error">
               <span>⚠️</span> {error}
-              <button onClick={() => setError(null)} className="alert-close">×</button>
+              <button onClick={() => setError(null)} className="alert-close">
+                ×
+              </button>
             </div>
           )}
           {successMessage && (
@@ -442,7 +463,7 @@ const TeamBuilderPage: React.FC = () => {
                 <span className="budget-amount">{formatPrice(budgetRemaining)} remaining</span>
               </div>
               <div className="budget-bar-container">
-                <div 
+                <div
                   className={`budget-bar ${budgetPercentage > 90 ? 'budget-critical' : budgetPercentage > 70 ? 'budget-warning' : ''}`}
                   style={{ width: `${budgetPercentage}%` }}
                 />
@@ -456,16 +477,15 @@ const TeamBuilderPage: React.FC = () => {
             <div className="summary-card team-card">
               <div className="summary-header">
                 <h3>👥 Your Team</h3>
-                <span className="team-count">{selectedGolfers.length} / {TEAM_SIZE} golfers</span>
+                <span className="team-count">
+                  {selectedGolfers.length} / {TEAM_SIZE} golfers
+                </span>
               </div>
               <div className="team-slots">
                 {[...Array(TEAM_SIZE)].map((_, index) => {
                   const golfer = selectedGolfers[index];
                   return (
-                    <div 
-                      key={index} 
-                      className={`team-slot ${golfer ? 'filled' : 'empty'}`}
-                    >
+                    <div key={index} className={`team-slot ${golfer ? 'filled' : 'empty'}`}>
                       {golfer ? (
                         <>
                           <div className="slot-golfer">
@@ -473,7 +493,7 @@ const TeamBuilderPage: React.FC = () => {
                             <span className="slot-price">{formatPrice(golfer.price)}</span>
                           </div>
                           {canEditTeam && (
-                            <button 
+                            <button
                               className="slot-remove"
                               onClick={() => handleRemoveGolfer(golfer)}
                               title="Remove golfer"
@@ -490,17 +510,16 @@ const TeamBuilderPage: React.FC = () => {
                 })}
               </div>
               {canEditTeam && (
-                <button 
+                <button
                   className={`btn btn-save-team ${selectedGolfers.length === TEAM_SIZE ? '' : 'btn-incomplete'}`}
                   onClick={handleSaveTeam}
                   disabled={saving || selectedGolfers.length !== TEAM_SIZE}
                 >
-                  {saving 
-                    ? 'Saving...' 
-                    : selectedGolfers.length === TEAM_SIZE 
-                      ? 'Save Team' 
-                      : `Select ${TEAM_SIZE - selectedGolfers.length} more golfer${TEAM_SIZE - selectedGolfers.length !== 1 ? 's' : ''}`
-                  }
+                  {saving
+                    ? 'Saving...'
+                    : selectedGolfers.length === TEAM_SIZE
+                      ? 'Save Team'
+                      : `Select ${TEAM_SIZE - selectedGolfers.length} more golfer${TEAM_SIZE - selectedGolfers.length !== 1 ? 's' : ''}`}
                 </button>
               )}
             </div>
@@ -520,7 +539,9 @@ const TeamBuilderPage: React.FC = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
               {searchTerm && (
-                <button className="search-clear" onClick={() => setSearchTerm('')}>×</button>
+                <button className="search-clear" onClick={() => setSearchTerm('')}>
+                  ×
+                </button>
               )}
             </div>
 
@@ -536,7 +557,7 @@ const TeamBuilderPage: React.FC = () => {
                   { value: 'experienced', label: 'Experienced', icon: '⛳' },
                   { value: 'value-picks', label: 'Value Picks', icon: '💎' },
                   { value: 'premium', label: 'Premium', icon: '⭐' },
-                ].map(filter => (
+                ].map((filter) => (
                   <button
                     key={filter.value}
                     className={`quick-filter-chip ${quickFilter === filter.value ? 'active' : ''}`}
@@ -556,7 +577,7 @@ const TeamBuilderPage: React.FC = () => {
                 <select
                   id="sort-by"
                   name="sort-by"
-                  value={sortBy} 
+                  value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as SortOption)}
                 >
                   <optgroup label="Price">
@@ -585,7 +606,7 @@ const TeamBuilderPage: React.FC = () => {
                 <select
                   id="membership-filter"
                   name="membership-filter"
-                  value={membershipFilter} 
+                  value={membershipFilter}
                   onChange={(e) => setMembershipFilter(e.target.value)}
                 >
                   <option value="all">All Members</option>
@@ -596,7 +617,7 @@ const TeamBuilderPage: React.FC = () => {
                 </select>
               </div>
 
-              <button 
+              <button
                 className={`filter-toggle-btn ${showAdvancedFilters ? 'active' : ''}`}
                 onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
               >
@@ -651,9 +672,15 @@ const TeamBuilderPage: React.FC = () => {
               <div className="active-filters-summary">
                 <span className="summary-label">Active filters:</span>
                 {searchTerm && <span className="filter-tag">Search: "{searchTerm}"</span>}
-                {membershipFilter !== 'all' && <span className="filter-tag">Category: {membershipFilter}</span>}
-                {quickFilter !== 'all' && <span className="filter-tag">Quick: {quickFilter.replace('-', ' ')}</span>}
-                {minRoundsPlayed > 0 && <span className="filter-tag">Min rounds: {minRoundsPlayed}+</span>}
+                {membershipFilter !== 'all' && (
+                  <span className="filter-tag">Category: {membershipFilter}</span>
+                )}
+                {quickFilter !== 'all' && (
+                  <span className="filter-tag">Quick: {quickFilter.replace('-', ' ')}</span>
+                )}
+                {minRoundsPlayed > 0 && (
+                  <span className="filter-tag">Min rounds: {minRoundsPlayed}+</span>
+                )}
                 {showAffordableOnly && <span className="filter-tag">Affordable only</span>}
               </div>
             )}
@@ -666,12 +693,14 @@ const TeamBuilderPage: React.FC = () => {
               <div className="section-header-right">
                 {filteredGolfers.length > 0 && (
                   <span className="results-hint">
-                    Showing {((currentPage - 1) * GOLFERS_PER_PAGE) + 1}-{Math.min(currentPage * GOLFERS_PER_PAGE, filteredGolfers.length)} of {filteredGolfers.length}
+                    Showing {(currentPage - 1) * GOLFERS_PER_PAGE + 1}-
+                    {Math.min(currentPage * GOLFERS_PER_PAGE, filteredGolfers.length)} of{' '}
+                    {filteredGolfers.length}
                   </span>
                 )}
               </div>
             </div>
-            
+
             {/* Compact Golfer Grid */}
             <div className="golfers-grid-compact">
               {paginatedGolfers.map((golfer) => {
@@ -680,7 +709,7 @@ const TeamBuilderPage: React.FC = () => {
                 const podiums = getPodiums(golfer);
 
                 return (
-                  <div 
+                  <div
                     key={golfer.id}
                     className={`golfer-card-compact ${selected ? 'selected' : ''} ${!affordable && !selected ? 'unaffordable' : ''}`}
                     onClick={() => setSelectedGolferDetail(golfer)}
@@ -690,10 +719,15 @@ const TeamBuilderPage: React.FC = () => {
                   >
                     <div className="compact-photo">
                       {golfer.picture ? (
-                        <img src={golfer.picture} alt={`${golfer.firstName} ${golfer.lastName}`} loading="lazy" />
+                        <img
+                          src={golfer.picture}
+                          alt={`${golfer.firstName} ${golfer.lastName}`}
+                          loading="lazy"
+                        />
                       ) : (
                         <div className="compact-initials">
-                          {golfer.firstName[0]}{golfer.lastName[0]}
+                          {golfer.firstName[0]}
+                          {golfer.lastName[0]}
                         </div>
                       )}
                       {selected && <div className="compact-selected-badge">✓</div>}
@@ -702,7 +736,9 @@ const TeamBuilderPage: React.FC = () => {
                       )}
                     </div>
                     <div className="compact-info">
-                      <h4 className="compact-name">{golfer.firstName} {golfer.lastName}</h4>
+                      <h4 className="compact-name">
+                        {golfer.firstName} {golfer.lastName}
+                      </h4>
                       <div className="compact-meta">
                         <span className={`compact-membership ${golfer.membershipType}`}>
                           {getMembershipLabel(golfer.membershipType)}
@@ -711,7 +747,9 @@ const TeamBuilderPage: React.FC = () => {
                       </div>
                       <div className="compact-stat">
                         <span className="compact-stat-icon">🏅</span>
-                        <span>{podiums} podium{podiums !== 1 ? 's' : ''}</span>
+                        <span>
+                          {podiums} podium{podiums !== 1 ? 's' : ''}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -722,16 +760,16 @@ const TeamBuilderPage: React.FC = () => {
             {/* Pagination */}
             {totalPages > 1 && (
               <div className="pagination">
-                <button 
+                <button
                   className="pagination-btn pagination-nav"
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1}
                 >
                   ← Prev
                 </button>
-                
+
                 <div className="pagination-pages">
-                  {getPageNumbers().map((page, idx) => (
+                  {getPageNumbers().map((page, idx) =>
                     typeof page === 'number' ? (
                       <button
                         key={idx}
@@ -741,14 +779,16 @@ const TeamBuilderPage: React.FC = () => {
                         {page}
                       </button>
                     ) : (
-                      <span key={idx} className="pagination-ellipsis">{page}</span>
+                      <span key={idx} className="pagination-ellipsis">
+                        {page}
+                      </span>
                     )
-                  ))}
+                  )}
                 </div>
 
-                <button 
+                <button
                   className="pagination-btn pagination-nav"
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                   disabled={currentPage === totalPages}
                 >
                   Next →
@@ -761,7 +801,9 @@ const TeamBuilderPage: React.FC = () => {
                 <div className="no-results-icon">🔍</div>
                 <h3>No golfers found</h3>
                 <p>Try adjusting your filters or search term.</p>
-                <button className="btn-reset" onClick={resetFilters}>Reset All Filters</button>
+                <button className="btn-reset" onClick={resetFilters}>
+                  Reset All Filters
+                </button>
               </div>
             )}
           </section>
@@ -772,20 +814,29 @@ const TeamBuilderPage: React.FC = () => {
       {selectedGolferDetail && (
         <div className="golfer-detail-overlay" onClick={() => setSelectedGolferDetail(null)}>
           <div className="golfer-detail-modal" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setSelectedGolferDetail(null)}>×</button>
-            
+            <button className="modal-close" onClick={() => setSelectedGolferDetail(null)}>
+              ×
+            </button>
+
             <div className="modal-header">
               <div className="modal-photo">
                 {selectedGolferDetail.picture ? (
-                  <img src={selectedGolferDetail.picture} alt={`${selectedGolferDetail.firstName} ${selectedGolferDetail.lastName}`} loading="lazy" />
+                  <img
+                    src={selectedGolferDetail.picture}
+                    alt={`${selectedGolferDetail.firstName} ${selectedGolferDetail.lastName}`}
+                    loading="lazy"
+                  />
                 ) : (
                   <div className="modal-initials">
-                    {selectedGolferDetail.firstName[0]}{selectedGolferDetail.lastName[0]}
+                    {selectedGolferDetail.firstName[0]}
+                    {selectedGolferDetail.lastName[0]}
                   </div>
                 )}
               </div>
               <div className="modal-title">
-                <h2>{selectedGolferDetail.firstName} {selectedGolferDetail.lastName}</h2>
+                <h2>
+                  {selectedGolferDetail.firstName} {selectedGolferDetail.lastName}
+                </h2>
                 <div className="modal-meta">
                   <span className={`membership-badge ${selectedGolferDetail.membershipType}`}>
                     {getMembershipLabel(selectedGolferDetail.membershipType)}
@@ -799,33 +850,49 @@ const TeamBuilderPage: React.FC = () => {
             {selectedGolferDetail.seasonStats && selectedGolferDetail.seasonStats.length > 0 ? (
               selectedGolferDetail.seasonStats.map((ss) => {
                 const podiums = ss.timesFinished1st + ss.timesFinished2nd + ss.timesFinished3rd;
-                const winRate = ss.timesPlayed > 0 ? ((ss.timesFinished1st / ss.timesPlayed) * 100).toFixed(0) : '0';
-                const podiumRate = ss.timesPlayed > 0 ? ((podiums / ss.timesPlayed) * 100).toFixed(0) : '0';
+                const winRate =
+                  ss.timesPlayed > 0
+                    ? ((ss.timesFinished1st / ss.timesPlayed) * 100).toFixed(0)
+                    : '0';
+                const podiumRate =
+                  ss.timesPlayed > 0 ? ((podiums / ss.timesPlayed) * 100).toFixed(0) : '0';
 
                 return (
-                  <div key={ss.seasonName} className="modal-stats" style={ss.isActive ? {
-                    border: '2px solid var(--primary-green)',
-                    borderRadius: '12px',
-                    padding: '1rem',
-                    marginBottom: '1rem',
-                    background: 'rgba(22, 163, 74, 0.03)',
-                  } : {
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '12px',
-                    padding: '1rem',
-                    marginBottom: '1rem',
-                  }}>
+                  <div
+                    key={ss.seasonName}
+                    className="modal-stats"
+                    style={
+                      ss.isActive
+                        ? {
+                            border: '2px solid var(--primary-green)',
+                            borderRadius: '12px',
+                            padding: '1rem',
+                            marginBottom: '1rem',
+                            background: 'rgba(22, 163, 74, 0.03)',
+                          }
+                        : {
+                            border: '1px solid #e5e7eb',
+                            borderRadius: '12px',
+                            padding: '1rem',
+                            marginBottom: '1rem',
+                          }
+                    }
+                  >
                     <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       {ss.seasonName} Season
                       {ss.isActive && (
-                        <span style={{
-                          background: 'rgba(22, 163, 74, 0.1)',
-                          color: '#16a34a',
-                          padding: '0.15rem 0.5rem',
-                          borderRadius: '12px',
-                          fontSize: '0.7rem',
-                          fontWeight: 500,
-                        }}>Active</span>
+                        <span
+                          style={{
+                            background: 'rgba(22, 163, 74, 0.1)',
+                            color: '#16a34a',
+                            padding: '0.15rem 0.5rem',
+                            borderRadius: '12px',
+                            fontSize: '0.7rem',
+                            fontWeight: 500,
+                          }}
+                        >
+                          Active
+                        </span>
                       )}
                     </h3>
                     <div className="modal-stats-grid">
@@ -854,7 +921,15 @@ const TeamBuilderPage: React.FC = () => {
                         <div className="stat-label">⭐ 36+</div>
                       </div>
                     </div>
-                    <div style={{ display: 'flex', gap: '1rem', marginTop: '0.75rem', fontSize: '0.85rem', color: '#6b7280' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: '1rem',
+                        marginTop: '0.75rem',
+                        fontSize: '0.85rem',
+                        color: '#6b7280',
+                      }}
+                    >
                       <span>Win: {winRate}%</span>
                       <span>Podium: {podiumRate}%</span>
                     </div>
@@ -883,7 +958,7 @@ const TeamBuilderPage: React.FC = () => {
 
                 if (selected) {
                   return (
-                    <button 
+                    <button
                       className="modal-btn remove"
                       onClick={() => {
                         handleToggleGolfer(selectedGolferDetail);
@@ -898,7 +973,8 @@ const TeamBuilderPage: React.FC = () => {
                 if (!affordable) {
                   return (
                     <button className="modal-btn disabled" disabled>
-                      💰 Can't Afford ({formatPrice(selectedGolferDetail.price - budgetRemaining)} over budget)
+                      💰 Can't Afford ({formatPrice(selectedGolferDetail.price - budgetRemaining)}{' '}
+                      over budget)
                     </button>
                   );
                 }
@@ -912,7 +988,7 @@ const TeamBuilderPage: React.FC = () => {
                 }
 
                 return (
-                  <button 
+                  <button
                     className="modal-btn add"
                     onClick={() => {
                       handleToggleGolfer(selectedGolferDetail);

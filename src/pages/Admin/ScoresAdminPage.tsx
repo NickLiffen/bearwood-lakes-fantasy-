@@ -105,7 +105,7 @@ const ScoresAdminPage: React.FC = () => {
 
       // Group scores by tournament
       const scoresByTournament = new Map<string, Score[]>();
-      fetchedScores.forEach(score => {
+      fetchedScores.forEach((score) => {
         const existing = scoresByTournament.get(score.tournamentId) || [];
         existing.push(score);
         scoresByTournament.set(score.tournamentId, existing);
@@ -115,7 +115,7 @@ const ScoresAdminPage: React.FC = () => {
       const withScores: TournamentWithScores[] = [];
       const withoutScores: Tournament[] = [];
 
-      fetchedTournaments.forEach(tournament => {
+      fetchedTournaments.forEach((tournament) => {
         const tournamentScores = scoresByTournament.get(tournament.id);
         if (tournamentScores && tournamentScores.length > 0) {
           const totalPoints = tournamentScores.reduce((sum, s) => sum + s.multipliedPoints, 0);
@@ -126,11 +126,12 @@ const ScoresAdminPage: React.FC = () => {
       });
 
       // Sort by date (most recent first)
-      withScores.sort((a, b) => 
-        new Date(b.tournament.startDate).getTime() - new Date(a.tournament.startDate).getTime()
+      withScores.sort(
+        (a, b) =>
+          new Date(b.tournament.startDate).getTime() - new Date(a.tournament.startDate).getTime()
       );
-      withoutScores.sort((a, b) => 
-        new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
+      withoutScores.sort(
+        (a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
       );
 
       setTournamentsWithScores(withScores);
@@ -150,7 +151,7 @@ const ScoresAdminPage: React.FC = () => {
   }, [isAuthReady, fetchData]);
 
   const getGolferName = (golferId: string) => {
-    const golfer = golfers.find(g => g.id === golferId);
+    const golfer = golfers.find((g) => g.id === golferId);
     return golfer ? `${golfer.firstName} ${golfer.lastName}` : 'Unknown Golfer';
   };
 
@@ -169,18 +170,20 @@ const ScoresAdminPage: React.FC = () => {
 
     // Initialize scores for all active golfers
     const initialScores: Record<string, ScoreEntry> = {};
-    golfers.filter(g => g.isActive).forEach(golfer => {
-      initialScores[golfer.id] = {
-        golferId: golfer.id,
-        participated: false,
-        position: null,
-        scored36Plus: false,
-      };
-    });
+    golfers
+      .filter((g) => g.isActive)
+      .forEach((golfer) => {
+        initialScores[golfer.id] = {
+          golferId: golfer.id,
+          participated: false,
+          position: null,
+          scored36Plus: false,
+        };
+      });
 
     // Load existing participation from tournament if any
     if (tournament.participatingGolferIds?.length) {
-      tournament.participatingGolferIds.forEach(golferId => {
+      tournament.participatingGolferIds.forEach((golferId) => {
         if (initialScores[golferId]) {
           initialScores[golferId].participated = true;
         }
@@ -198,17 +201,19 @@ const ScoresAdminPage: React.FC = () => {
 
     // Initialize scores for all active golfers
     const initialScores: Record<string, ScoreEntry> = {};
-    golfers.filter(g => g.isActive).forEach(golfer => {
-      initialScores[golfer.id] = {
-        golferId: golfer.id,
-        participated: false,
-        position: null,
-        scored36Plus: false,
-      };
-    });
+    golfers
+      .filter((g) => g.isActive)
+      .forEach((golfer) => {
+        initialScores[golfer.id] = {
+          golferId: golfer.id,
+          participated: false,
+          position: null,
+          scored36Plus: false,
+        };
+      });
 
     // Load existing scores
-    tournamentWithScores.scores.forEach(score => {
+    tournamentWithScores.scores.forEach((score) => {
       if (initialScores[score.golferId]) {
         initialScores[score.golferId] = {
           golferId: score.golferId,
@@ -240,7 +245,11 @@ const ScoresAdminPage: React.FC = () => {
     setViewingTournament(null);
   };
 
-  const handleScoreChange = (golferId: string, field: 'participated' | 'position' | 'scored36Plus', value: string | boolean) => {
+  const handleScoreChange = (
+    golferId: string,
+    field: 'participated' | 'position' | 'scored36Plus',
+    value: string | boolean
+  ) => {
     setScores((prev) => {
       const newScore = {
         ...prev[golferId],
@@ -262,7 +271,7 @@ const ScoresAdminPage: React.FC = () => {
   };
 
   // Calculate participant count and tier dynamically
-  const participantCount = Object.values(scores).filter(s => s.participated).length;
+  const participantCount = Object.values(scores).filter((s) => s.participated).length;
   const getTier = (count: number): '0-10' | '10-20' | '20+' => {
     if (count <= 10) return '0-10';
     if (count < 20) return '10-20';
@@ -272,19 +281,19 @@ const ScoresAdminPage: React.FC = () => {
 
   // Validation function for scores
   const validateScores = (): { valid: boolean; error: string } => {
-    const participatingPlayers = Object.values(scores).filter(s => s.participated);
-    
+    const participatingPlayers = Object.values(scores).filter((s) => s.participated);
+
     // Rule 1: At least 1 golfer must have participated
     if (participatingPlayers.length === 0) {
       return { valid: false, error: 'At least one golfer must have participated' };
     }
 
     const tier = getTier(participatingPlayers.length);
-    
+
     // Check for required positions
-    const hasFirst = participatingPlayers.some(s => s.position === 1);
-    const hasSecond = participatingPlayers.some(s => s.position === 2);
-    const hasThird = participatingPlayers.some(s => s.position === 3);
+    const hasFirst = participatingPlayers.some((s) => s.position === 1);
+    const hasSecond = participatingPlayers.some((s) => s.position === 2);
+    const hasThird = participatingPlayers.some((s) => s.position === 3);
 
     // Rule 2: 0-10 golfers → must have 1st place
     if (tier === '0-10') {
@@ -296,24 +305,33 @@ const ScoresAdminPage: React.FC = () => {
     // Rule 3: 10-20 golfers → must have 1st and 2nd place
     if (tier === '10-20') {
       if (!hasFirst || !hasSecond) {
-        return { valid: false, error: 'With 10-20 golfers, you must assign both 1st and 2nd place finishes' };
+        return {
+          valid: false,
+          error: 'With 10-20 golfers, you must assign both 1st and 2nd place finishes',
+        };
       }
     }
 
     // Rule 4: 20+ golfers → must have 1st, 2nd, and 3rd place
     if (tier === '20+') {
       if (!hasFirst || !hasSecond || !hasThird) {
-        return { valid: false, error: 'With 20+ golfers, you must assign 1st, 2nd, and 3rd place finishes' };
+        return {
+          valid: false,
+          error: 'With 20+ golfers, you must assign 1st, 2nd, and 3rd place finishes',
+        };
       }
     }
 
     // Check for duplicate positions (only for positions 1, 2, 3)
     const positions = participatingPlayers
-      .filter(s => s.position !== null && s.position >= 1 && s.position <= 3)
-      .map(s => s.position);
+      .filter((s) => s.position !== null && s.position >= 1 && s.position <= 3)
+      .map((s) => s.position);
     const uniquePositions = new Set(positions);
     if (positions.length !== uniquePositions.size) {
-      return { valid: false, error: 'Duplicate positions found. Each position (1st, 2nd, 3rd) can only be assigned once' };
+      return {
+        valid: false,
+        error: 'Duplicate positions found. Each position (1st, 2nd, 3rd) can only be assigned once',
+      };
     }
 
     return { valid: true, error: '' };
@@ -335,7 +353,7 @@ const ScoresAdminPage: React.FC = () => {
       return;
     }
 
-    const participatingPlayers = Object.values(scores).filter(s => s.participated);
+    const participatingPlayers = Object.values(scores).filter((s) => s.participated);
 
     setSaving(true);
     setSaveProgress('Updating tournament...');
@@ -345,7 +363,7 @@ const ScoresAdminPage: React.FC = () => {
       // First, update tournament with participating golfers
       await put<Tournament>('tournaments-update', {
         id: editingTournament.id,
-        participatingGolferIds: participatingPlayers.map(s => s.golferId),
+        participatingGolferIds: participatingPlayers.map((s) => s.golferId),
       });
 
       // Save scores for ALL golfers (both participating and non-participating)
@@ -380,7 +398,11 @@ const ScoresAdminPage: React.FC = () => {
   };
 
   const handleDeleteScores = async (tournament: Tournament) => {
-    if (!window.confirm(`Are you sure you want to delete all scores for "${tournament.name}"? This action cannot be undone.`)) {
+    if (
+      !window.confirm(
+        `Are you sure you want to delete all scores for "${tournament.name}"? This action cannot be undone.`
+      )
+    ) {
       return;
     }
 
@@ -435,13 +457,10 @@ const ScoresAdminPage: React.FC = () => {
 
   // Calculate stats for summary boxes
   const totalScoresEntered = tournamentsWithScores.reduce(
-    (sum, t) => sum + t.scores.filter(s => s.participated).length, 
+    (sum, t) => sum + t.scores.filter((s) => s.participated).length,
     0
   );
-  const totalPointsAwarded = tournamentsWithScores.reduce(
-    (sum, t) => sum + t.totalPoints, 
-    0
-  );
+  const totalPointsAwarded = tournamentsWithScores.reduce((sum, t) => sum + t.totalPoints, 0);
   const tournamentsScored = tournamentsWithScores.length;
   const tournamentsNeedingScores = tournamentsWithoutScores.length;
 
@@ -528,7 +547,7 @@ const ScoresAdminPage: React.FC = () => {
                       </td>
                       <td>{formatDate(item.tournament.startDate)}</td>
                       <td>{getTypeBadge(item.tournament)}</td>
-                      <td>{item.scores.filter(s => s.participated).length} golfers</td>
+                      <td>{item.scores.filter((s) => s.participated).length} golfers</td>
                       <td>
                         <strong style={{ color: 'var(--primary-green)' }}>
                           {item.totalPoints} pts
@@ -588,7 +607,9 @@ const ScoresAdminPage: React.FC = () => {
                       <td>{formatDate(tournament.startDate)}</td>
                       <td>{getTypeBadge(tournament)}</td>
                       <td>
-                        <span className={`badge ${tournament.status === 'complete' ? 'badge-info' : 'badge-success'}`}>
+                        <span
+                          className={`badge ${tournament.status === 'complete' ? 'badge-info' : 'badge-success'}`}
+                        >
                           {tournament.status}
                         </span>
                       </td>
@@ -612,10 +633,17 @@ const ScoresAdminPage: React.FC = () => {
       {/* Add/Edit Scores Modal */}
       {showModal && editingTournament && (
         <div className="modal-overlay" onClick={handleCloseModal}>
-          <div className="modal modal-lg" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '900px', maxHeight: '90vh', overflow: 'auto' }}>
+          <div
+            className="modal modal-lg"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '900px', maxHeight: '90vh', overflow: 'auto' }}
+          >
             <div className="modal-header">
               <h2>
-                {tournamentsWithScores.some(t => t.tournament.id === editingTournament.id) ? 'Edit' : 'Add'} Scores: {editingTournament.name}
+                {tournamentsWithScores.some((t) => t.tournament.id === editingTournament.id)
+                  ? 'Edit'
+                  : 'Add'}{' '}
+                Scores: {editingTournament.name}
               </h2>
               <button className="modal-close" onClick={handleCloseModal}>
                 ×
@@ -637,8 +665,18 @@ const ScoresAdminPage: React.FC = () => {
                   <span
                     style={{
                       marginLeft: '0.5rem',
-                      background: editingTournament.tournamentType === 'signature' ? '#7c3aed' : editingTournament.tournamentType === 'elevated' ? 'var(--accent-gold)' : '#e5e7eb',
-                      color: editingTournament.tournamentType === 'signature' ? 'white' : editingTournament.tournamentType === 'elevated' ? '#1a1a1a' : '#6b7280',
+                      background:
+                        editingTournament.tournamentType === 'signature'
+                          ? '#7c3aed'
+                          : editingTournament.tournamentType === 'elevated'
+                            ? 'var(--accent-gold)'
+                            : '#e5e7eb',
+                      color:
+                        editingTournament.tournamentType === 'signature'
+                          ? 'white'
+                          : editingTournament.tournamentType === 'elevated'
+                            ? '#1a1a1a'
+                            : '#6b7280',
                       padding: '0.2rem 0.5rem',
                       borderRadius: '4px',
                       fontSize: '0.75rem',
@@ -649,24 +687,23 @@ const ScoresAdminPage: React.FC = () => {
                   </span>
                 </div>
                 <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>
-                  <strong>Participants:</strong> {participantCount} golfers |{' '}
-                  <strong>Tier:</strong> {currentTier} |{' '}
-                  <strong>Points:</strong>{' '}
-                  {currentTier === '0-10' && '1st = 5pts'}
+                  <strong>Participants:</strong> {participantCount} golfers | <strong>Tier:</strong>{' '}
+                  {currentTier} | <strong>Points:</strong> {currentTier === '0-10' && '1st = 5pts'}
                   {currentTier === '10-20' && '1st = 5pts, 2nd = 2pts'}
                   {currentTier === '20+' && '1st = 5pts, 2nd = 3pts, 3rd = 1pt'}
                   {' + 36+ bonus = +1pt'}
                 </div>
                 {/* Required positions indicator */}
                 {participantCount > 0 && (
-                  <div style={{ 
-                    marginTop: '0.5rem', 
-                    fontSize: '0.85rem', 
-                    color: validationResult.valid ? '#059669' : '#dc2626',
-                    fontWeight: 500,
-                  }}>
-                    ✓ Required:{' '}
-                    {currentTier === '0-10' && '1st place'}
+                  <div
+                    style={{
+                      marginTop: '0.5rem',
+                      fontSize: '0.85rem',
+                      color: validationResult.valid ? '#059669' : '#dc2626',
+                      fontWeight: 500,
+                    }}
+                  >
+                    ✓ Required: {currentTier === '0-10' && '1st place'}
                     {currentTier === '10-20' && '1st & 2nd place'}
                     {currentTier === '20+' && '1st, 2nd & 3rd place'}
                     {validationResult.valid && ' ✅'}
@@ -675,7 +712,8 @@ const ScoresAdminPage: React.FC = () => {
               </div>
 
               <p style={{ marginBottom: '1rem', color: '#6b7280' }}>
-                Mark the golfers who played in this tournament, then set their position and 36+ bonus.
+                Mark the golfers who played in this tournament, then set their position and 36+
+                bonus.
               </p>
 
               {golfers.length === 0 ? (
@@ -717,12 +755,15 @@ const ScoresAdminPage: React.FC = () => {
 
                         const basePoints = getBasePoints();
                         const bonusPoints = score?.scored36Plus ? 1 : 0;
-                        const finalPoints = (basePoints + bonusPoints) * editingTournament.multiplier;
+                        const finalPoints =
+                          (basePoints + bonusPoints) * editingTournament.multiplier;
 
                         return (
                           <tr key={golfer.id}>
                             <td>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                              <div
+                                style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}
+                              >
                                 {golfer.picture ? (
                                   <img
                                     src={golfer.picture}
@@ -762,7 +803,9 @@ const ScoresAdminPage: React.FC = () => {
                                 name={`participated-${golfer.id}`}
                                 type="checkbox"
                                 checked={isParticipant}
-                                onChange={(e) => handleScoreChange(golfer.id, 'participated', e.target.checked)}
+                                onChange={(e) =>
+                                  handleScoreChange(golfer.id, 'participated', e.target.checked)
+                                }
                                 style={{ width: '18px', height: '18px' }}
                               />
                             </td>
@@ -782,9 +825,7 @@ const ScoresAdminPage: React.FC = () => {
                                   {(currentTier === '10-20' || currentTier === '20+') && (
                                     <option value="2">🥈 2nd</option>
                                   )}
-                                  {currentTier === '20+' && (
-                                    <option value="3">🥉 3rd</option>
-                                  )}
+                                  {currentTier === '20+' && <option value="3">🥉 3rd</option>}
                                 </select>
                               ) : (
                                 <span style={{ color: '#9ca3af' }}>-</span>
@@ -792,7 +833,14 @@ const ScoresAdminPage: React.FC = () => {
                             </td>
                             <td>
                               {isParticipant ? (
-                                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                                <label
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem',
+                                    cursor: 'pointer',
+                                  }}
+                                >
                                   <input
                                     id={`scored-36-plus-${golfer.id}`}
                                     name={`scored-36-plus-${golfer.id}`}
@@ -803,7 +851,14 @@ const ScoresAdminPage: React.FC = () => {
                                     }
                                     style={{ width: '18px', height: '18px' }}
                                   />
-                                  <span style={{ fontSize: '0.85rem', color: score?.scored36Plus ? 'var(--primary-green)' : '#6b7280' }}>
+                                  <span
+                                    style={{
+                                      fontSize: '0.85rem',
+                                      color: score?.scored36Plus
+                                        ? 'var(--primary-green)'
+                                        : '#6b7280',
+                                    }}
+                                  >
                                     {score?.scored36Plus ? '+1' : ''}
                                   </span>
                                 </label>
@@ -835,14 +890,16 @@ const ScoresAdminPage: React.FC = () => {
             {/* Validation feedback */}
             {participantCount > 0 && !validationResult.valid && (
               <div style={{ padding: '0 1.5rem', marginBottom: '1rem' }}>
-                <div style={{ 
-                  background: '#fef2f2', 
-                  border: '1px solid #fecaca', 
-                  borderRadius: '8px', 
-                  padding: '0.75rem 1rem',
-                  color: '#dc2626',
-                  fontSize: '0.9rem',
-                }}>
+                <div
+                  style={{
+                    background: '#fef2f2',
+                    border: '1px solid #fecaca',
+                    borderRadius: '8px',
+                    padding: '0.75rem 1rem',
+                    color: '#dc2626',
+                    fontSize: '0.9rem',
+                  }}
+                >
                   ⚠️ {validationResult.error}
                 </div>
               </div>
@@ -857,7 +914,7 @@ const ScoresAdminPage: React.FC = () => {
                 disabled={saving || !validationResult.valid}
                 title={!validationResult.valid ? validationResult.error : ''}
               >
-                {saving ? (saveProgress || 'Saving...') : 'Save Scores'}
+                {saving ? saveProgress || 'Saving...' : 'Save Scores'}
               </button>
             </div>
           </div>
@@ -867,7 +924,11 @@ const ScoresAdminPage: React.FC = () => {
       {/* View Scores Details Modal */}
       {showDetailsModal && viewingTournament && (
         <div className="modal-overlay" onClick={handleCloseDetailsModal}>
-          <div className="modal modal-lg" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px', maxHeight: '90vh', overflow: 'auto' }}>
+          <div
+            className="modal modal-lg"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: '800px', maxHeight: '90vh', overflow: 'auto' }}
+          >
             <div className="modal-header">
               <h2>{viewingTournament.tournament.name} - Scores</h2>
               <button className="modal-close" onClick={handleCloseDetailsModal}>
@@ -883,29 +944,48 @@ const ScoresAdminPage: React.FC = () => {
                   borderRadius: '8px',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div
+                  style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                >
                   <div>
                     <strong>{viewingTournament.tournament.name}</strong>
                     <span
                       style={{
                         marginLeft: '0.5rem',
-                        background: viewingTournament.tournament.tournamentType === 'signature' ? '#7c3aed' : viewingTournament.tournament.tournamentType === 'elevated' ? 'var(--accent-gold)' : '#e5e7eb',
-                        color: viewingTournament.tournament.tournamentType === 'signature' ? 'white' : viewingTournament.tournament.tournamentType === 'elevated' ? '#1a1a1a' : '#6b7280',
+                        background:
+                          viewingTournament.tournament.tournamentType === 'signature'
+                            ? '#7c3aed'
+                            : viewingTournament.tournament.tournamentType === 'elevated'
+                              ? 'var(--accent-gold)'
+                              : '#e5e7eb',
+                        color:
+                          viewingTournament.tournament.tournamentType === 'signature'
+                            ? 'white'
+                            : viewingTournament.tournament.tournamentType === 'elevated'
+                              ? '#1a1a1a'
+                              : '#6b7280',
                         padding: '0.2rem 0.5rem',
                         borderRadius: '4px',
                         fontSize: '0.75rem',
                         fontWeight: 600,
                       }}
                     >
-                      {viewingTournament.tournament.multiplier}x {viewingTournament.tournament.tournamentType}
+                      {viewingTournament.tournament.multiplier}x{' '}
+                      {viewingTournament.tournament.tournamentType}
                     </span>
                   </div>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--primary-green)' }}>
+                    <div
+                      style={{
+                        fontSize: '1.25rem',
+                        fontWeight: 700,
+                        color: 'var(--primary-green)',
+                      }}
+                    >
                       {viewingTournament.totalPoints} pts
                     </div>
                     <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>
-                      {viewingTournament.scores.filter(s => s.participated).length} golfers
+                      {viewingTournament.scores.filter((s) => s.participated).length} golfers
                     </div>
                   </div>
                 </div>
@@ -922,9 +1002,10 @@ const ScoresAdminPage: React.FC = () => {
                 </thead>
                 <tbody>
                   {viewingTournament.scores
-                    .filter(s => s.participated)
+                    .filter((s) => s.participated)
                     .sort((a, b) => {
-                      if (a.position !== null && b.position !== null) return a.position - b.position;
+                      if (a.position !== null && b.position !== null)
+                        return a.position - b.position;
                       if (a.position !== null) return -1;
                       if (b.position !== null) return 1;
                       return b.multipliedPoints - a.multipliedPoints;
@@ -940,13 +1021,20 @@ const ScoresAdminPage: React.FC = () => {
                         <td style={{ fontWeight: 500 }}>{getGolferName(score.golferId)}</td>
                         <td>
                           {score.scored36Plus ? (
-                            <span style={{ color: 'var(--primary-green)', fontWeight: 600 }}>+1</span>
+                            <span style={{ color: 'var(--primary-green)', fontWeight: 600 }}>
+                              +1
+                            </span>
                           ) : (
                             <span style={{ color: '#9ca3af' }}>-</span>
                           )}
                         </td>
                         <td>
-                          <strong style={{ color: score.multipliedPoints > 0 ? 'var(--primary-green)' : '#9ca3af' }}>
+                          <strong
+                            style={{
+                              color:
+                                score.multipliedPoints > 0 ? 'var(--primary-green)' : '#9ca3af',
+                            }}
+                          >
                             {score.multipliedPoints > 0 ? `${score.multipliedPoints} pts` : '-'}
                           </strong>
                         </td>

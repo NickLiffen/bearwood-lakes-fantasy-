@@ -9,14 +9,8 @@ import { useApiClient } from '../../hooks/useApiClient';
 import { useActiveSeason } from '../../hooks/useActiveSeason';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { formatPrice } from '../../utils/formatters';
-import type {
-  GolferSeasonStats,
-  MembershipType,
-} from '@shared/types';
-import type {
-  TournamentScore,
-  WeekOption,
-} from '@shared/types';
+import type { GolferSeasonStats, MembershipType } from '@shared/types';
+import type { TournamentScore, WeekOption } from '@shared/types';
 import './MyTeamPage.css';
 
 // Local interface for golfer with scores - matches API response structure
@@ -101,7 +95,7 @@ const formatWeekLabel = (weekStart: Date): string => {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
-    year: 'numeric'
+    year: 'numeric',
   });
 };
 
@@ -149,39 +143,42 @@ const MyTeamPage: React.FC = () => {
     return options;
   }, []);
 
-  const fetchTeam = useCallback(async (date?: string) => {
-    setLoading(true);
-    setError(null);
+  const fetchTeam = useCallback(
+    async (date?: string) => {
+      setLoading(true);
+      setError(null);
 
-    try {
-      const endpoint = date ? `my-team?date=${date}` : 'my-team';
-      const response = await get<MyTeamApiResponse>(endpoint);
+      try {
+        const endpoint = date ? `my-team?date=${date}` : 'my-team';
+        const response = await get<MyTeamApiResponse>(endpoint);
 
-      if (response.cancelled) return;
+        if (response.cancelled) return;
 
-      if (response.success && response.data) {
-        setTeamData(response.data);
+        if (response.success && response.data) {
+          setTeamData(response.data);
 
-        // Set selected date from response
-        if (response.data.team?.period) {
-          const weekStart = new Date(response.data.team.period.weekStart);
-          setSelectedDate(formatDateString(weekStart));
+          // Set selected date from response
+          if (response.data.team?.period) {
+            const weekStart = new Date(response.data.team.period.weekStart);
+            setSelectedDate(formatDateString(weekStart));
 
-          // Generate week options if not already set
-          if (weekOptions.length === 0) {
-            const options = generateWeekOptions(response.data.team.teamEffectiveStart);
-            setWeekOptions(options);
+            // Generate week options if not already set
+            if (weekOptions.length === 0) {
+              const options = generateWeekOptions(response.data.team.teamEffectiveStart);
+              setWeekOptions(options);
+            }
           }
+        } else {
+          setError(response.error || 'Failed to load team');
         }
-      } else {
-        setError(response.error || 'Failed to load team');
+        setLoading(false);
+      } catch {
+        setError('Failed to load your team. Please try again.');
+        setLoading(false);
       }
-      setLoading(false);
-    } catch {
-      setError('Failed to load your team. Please try again.');
-      setLoading(false);
-    }
-  }, [get, weekOptions.length, generateWeekOptions]);
+    },
+    [get, weekOptions.length, generateWeekOptions]
+  );
 
   useEffect(() => {
     if (isAuthReady) {
@@ -212,7 +209,7 @@ const MyTeamPage: React.FC = () => {
     setSavingCaptain(true);
     try {
       const response = await post('picks-save', {
-        golferIds: teamData.team.golfers.map(g => g.golfer.id),
+        golferIds: teamData.team.golfers.map((g) => g.golfer.id),
         captainId: golferId,
       });
 
@@ -253,10 +250,15 @@ const MyTeamPage: React.FC = () => {
         <div className="dt-info-cell">
           <div className="dt-avatar">
             {golferData.golfer.picture ? (
-              <img src={golferData.golfer.picture} alt={`${golferData.golfer.firstName} ${golferData.golfer.lastName}`} loading="lazy" />
+              <img
+                src={golferData.golfer.picture}
+                alt={`${golferData.golfer.firstName} ${golferData.golfer.lastName}`}
+                loading="lazy"
+              />
             ) : (
               <span className="dt-avatar-placeholder">
-                {golferData.golfer.firstName[0]}{golferData.golfer.lastName[0]}
+                {golferData.golfer.firstName[0]}
+                {golferData.golfer.lastName[0]}
               </span>
             )}
           </div>
@@ -300,7 +302,11 @@ const MyTeamPage: React.FC = () => {
           <div className="my-team-container">
             <div className="error-state">
               <p>{error}</p>
-              <button onClick={() => fetchTeam()} className="btn-primary" style={{ marginTop: '1rem' }}>
+              <button
+                onClick={() => fetchTeam()}
+                className="btn-primary"
+                style={{ marginTop: '1rem' }}
+              >
                 Try Again
               </button>
             </div>
@@ -376,20 +382,17 @@ const MyTeamPage: React.FC = () => {
                         ? 'Unlimited transfers (pre-season)'
                         : `Transfers: ${teamData.transfersUsedThisWeek} / ${teamData.maxTransfersPerWeek} used this week`}
                     </span>
-                    {teamData.unlimitedTransfers || teamData.transfersUsedThisWeek < teamData.maxTransfersPerWeek ? (
+                    {teamData.unlimitedTransfers ||
+                    teamData.transfersUsedThisWeek < teamData.maxTransfersPerWeek ? (
                       <Link to="/team-builder" className="btn-edit-team">
                         Edit Team →
                       </Link>
                     ) : (
-                      <span className="transfers-exhausted">
-                        No transfers remaining
-                      </span>
+                      <span className="transfers-exhausted">No transfers remaining</span>
                     )}
                   </>
                 ) : (
-                  <span className="transfers-locked">
-                    Transfers Locked
-                  </span>
+                  <span className="transfers-locked">Transfers Locked</span>
                 )}
               </div>
             </div>
@@ -451,8 +454,10 @@ const MyTeamPage: React.FC = () => {
               value={selectedDate}
               onChange={handleWeekSelect}
             >
-              {weekOptions.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              {weekOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
               ))}
             </select>
             <button
@@ -466,9 +471,7 @@ const MyTeamPage: React.FC = () => {
           </div>
 
           {/* Error State */}
-          {error && (
-            <div className="error-message">{error}</div>
-          )}
+          {error && <div className="error-message">{error}</div>}
 
           {/* Golfers Section - Using DataTable */}
           <section className="dashboard-card">
@@ -486,20 +489,26 @@ const MyTeamPage: React.FC = () => {
 
           {/* Team Info Footer */}
           <div className="team-info-footer">
-            <p>Team created: {new Date(team.createdAt).toLocaleDateString('en-GB', {
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-            })}</p>
-            <p>Team last updated: {new Date(team.updatedAt).toLocaleDateString('en-GB', {
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-            })}</p>
+            <p>
+              Team created:{' '}
+              {new Date(team.createdAt).toLocaleDateString('en-GB', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </p>
+            <p>
+              Team last updated:{' '}
+              {new Date(team.updatedAt).toLocaleDateString('en-GB', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </p>
             {!teamData.transfersOpen && (
               <p className="locked-notice">
                 🔒 Transfer window is currently closed. You cannot make changes to your team.

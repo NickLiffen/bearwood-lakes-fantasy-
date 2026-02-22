@@ -339,11 +339,7 @@ const SeasonsAdminPage: React.FC = () => {
               {seasons.map((season) => (
                 <tr
                   key={season.id}
-                  style={
-                    season.isActive
-                      ? { background: 'rgba(22, 163, 74, 0.05)' }
-                      : undefined
-                  }
+                  style={season.isActive ? { background: 'rgba(22, 163, 74, 0.05)' } : undefined}
                 >
                   <td style={{ fontWeight: 500 }}>
                     {season.name}

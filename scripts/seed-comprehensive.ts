@@ -32,17 +32,8 @@ const tournamentTypeMultipliers: Record<TournamentType, number> = {
 
 // Tournament name templates
 const tournamentNameTemplates = {
-  monthly: [
-    '{month} Medal',
-    '{month} Stableford',
-    '{month} Board Competition',
-  ],
-  seasonal: [
-    'Winter Stableford',
-    'Spring Classic',
-    'Summer Medal',
-    'Autumn Trophy',
-  ],
+  monthly: ['{month} Medal', '{month} Stableford', '{month} Board Competition'],
+  seasonal: ['Winter Stableford', 'Spring Classic', 'Summer Medal', 'Autumn Trophy'],
   special: [
     "Captain's Cup",
     "President's Trophy",
@@ -75,32 +66,156 @@ const tournamentNameTemplates = {
 };
 
 const months = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 
 // User name pools (reused from seed-golfers.ts pattern)
 const userFirstNames = [
-  'James', 'William', 'Oliver', 'Thomas', 'Harry', 'George', 'Charlie', 'Jack',
-  'Edward', 'Henry', 'Samuel', 'Daniel', 'David', 'Michael', 'Richard', 'Robert',
-  'Andrew', 'Peter', 'Christopher', 'Matthew', 'Stephen', 'Paul', 'Mark', 'Simon',
-  'Jonathan', 'Nicholas', 'Timothy', 'Patrick', 'Graham', 'Colin', 'Stuart', 'Alan',
-  'Brian', 'Keith', 'Derek', 'Malcolm', 'Trevor', 'Nigel', 'Clive', 'Roger',
-  'Emma', 'Sophie', 'Charlotte', 'Victoria', 'Elizabeth', 'Sarah', 'Catherine',
-  'Rebecca', 'Rachel', 'Laura', 'Jessica', 'Hannah', 'Claire', 'Louise', 'Helen',
-  'Jennifer', 'Amanda', 'Susan', 'Patricia', 'Margaret', 'Caroline', 'Fiona',
-  'Geoffrey', 'Bernard', 'Harold', 'Kenneth', 'Ronald', 'Norman', 'Douglas',
-  'Raymond', 'Stanley', 'Albert', 'Arthur', 'Ernest', 'Frederick', 'Walter',
+  'James',
+  'William',
+  'Oliver',
+  'Thomas',
+  'Harry',
+  'George',
+  'Charlie',
+  'Jack',
+  'Edward',
+  'Henry',
+  'Samuel',
+  'Daniel',
+  'David',
+  'Michael',
+  'Richard',
+  'Robert',
+  'Andrew',
+  'Peter',
+  'Christopher',
+  'Matthew',
+  'Stephen',
+  'Paul',
+  'Mark',
+  'Simon',
+  'Jonathan',
+  'Nicholas',
+  'Timothy',
+  'Patrick',
+  'Graham',
+  'Colin',
+  'Stuart',
+  'Alan',
+  'Brian',
+  'Keith',
+  'Derek',
+  'Malcolm',
+  'Trevor',
+  'Nigel',
+  'Clive',
+  'Roger',
+  'Emma',
+  'Sophie',
+  'Charlotte',
+  'Victoria',
+  'Elizabeth',
+  'Sarah',
+  'Catherine',
+  'Rebecca',
+  'Rachel',
+  'Laura',
+  'Jessica',
+  'Hannah',
+  'Claire',
+  'Louise',
+  'Helen',
+  'Jennifer',
+  'Amanda',
+  'Susan',
+  'Patricia',
+  'Margaret',
+  'Caroline',
+  'Fiona',
+  'Geoffrey',
+  'Bernard',
+  'Harold',
+  'Kenneth',
+  'Ronald',
+  'Norman',
+  'Douglas',
+  'Raymond',
+  'Stanley',
+  'Albert',
+  'Arthur',
+  'Ernest',
+  'Frederick',
+  'Walter',
 ];
 
 const userLastNames = [
-  'Smith', 'Jones', 'Williams', 'Brown', 'Taylor', 'Davies', 'Wilson', 'Evans',
-  'Thomas', 'Johnson', 'Roberts', 'Walker', 'Wright', 'Robinson', 'Thompson',
-  'White', 'Hughes', 'Edwards', 'Green', 'Hall', 'Lewis', 'Harris', 'Clarke',
-  'Patel', 'Jackson', 'Wood', 'Turner', 'Martin', 'Cooper', 'Hill', 'Ward',
-  'Morris', 'Moore', 'Clark', 'Lee', 'King', 'Baker', 'Harrison', 'Morgan',
-  'Allen', 'James', 'Scott', 'Ellis', 'Bennett', 'Gray', 'Collins', 'Stewart',
-  'Murphy', 'Bell', 'Kelly', 'Cook', 'Murray', 'Shaw', 'Webb', 'Palmer',
+  'Smith',
+  'Jones',
+  'Williams',
+  'Brown',
+  'Taylor',
+  'Davies',
+  'Wilson',
+  'Evans',
+  'Thomas',
+  'Johnson',
+  'Roberts',
+  'Walker',
+  'Wright',
+  'Robinson',
+  'Thompson',
+  'White',
+  'Hughes',
+  'Edwards',
+  'Green',
+  'Hall',
+  'Lewis',
+  'Harris',
+  'Clarke',
+  'Patel',
+  'Jackson',
+  'Wood',
+  'Turner',
+  'Martin',
+  'Cooper',
+  'Hill',
+  'Ward',
+  'Morris',
+  'Moore',
+  'Clark',
+  'Lee',
+  'King',
+  'Baker',
+  'Harrison',
+  'Morgan',
+  'Allen',
+  'James',
+  'Scott',
+  'Ellis',
+  'Bennett',
+  'Gray',
+  'Collins',
+  'Stewart',
+  'Murphy',
+  'Bell',
+  'Kelly',
+  'Cook',
+  'Murray',
+  'Shaw',
+  'Webb',
+  'Palmer',
 ];
 
 // Helper functions
@@ -139,9 +254,9 @@ function getBasePointsForPosition(position: number | null, tier: GolferCountTier
 
 function getTournamentType(): TournamentType {
   const rand = Math.random();
-  if (rand < 0.70) return 'regular';     // 70% regular
-  if (rand < 0.90) return 'elevated';    // 20% elevated
-  return 'signature';                     // 10% signature
+  if (rand < 0.7) return 'regular'; // 70% regular
+  if (rand < 0.9) return 'elevated'; // 20% elevated
+  return 'signature'; // 10% signature
 }
 
 function getGolferCountTier(participantCount: number): GolferCountTier {
@@ -150,7 +265,11 @@ function getGolferCountTier(participantCount: number): GolferCountTier {
   return '20+';
 }
 
-function generateTournamentName(monthIndex: number, weekIndex: number, usedNames: Set<string>): string {
+function generateTournamentName(
+  monthIndex: number,
+  weekIndex: number,
+  usedNames: Set<string>
+): string {
   const month = months[monthIndex];
   let name: string;
   let attempts = 0;
@@ -193,7 +312,11 @@ function generateTournamentName(monthIndex: number, weekIndex: number, usedNames
   return name;
 }
 
-function generateWeekendDates(year: number, month: number, week: number): { start: Date; end: Date } {
+function generateWeekendDates(
+  year: number,
+  month: number,
+  week: number
+): { start: Date; end: Date } {
   // Get the first day of the month
   const firstDay = new Date(year, month, 1);
   // Find first Saturday
@@ -202,7 +325,7 @@ function generateWeekendDates(year: number, month: number, week: number): { star
 
   // Add weeks
   const startDate = new Date(firstSaturday);
-  startDate.setDate(firstSaturday.getDate() + (week * 7));
+  startDate.setDate(firstSaturday.getDate() + week * 7);
 
   // Sunday is the end date
   const endDate = new Date(startDate);
@@ -221,8 +344,9 @@ function generateWeekendDates(year: number, month: number, week: number): { star
 function getRandomTeamCreatedDate(): Date {
   // Random date between Jan 1, 2026 and Jan 30, 2026
   const startDate = new Date(2026, 0, 1); // Jan 1, 2026
-  const endDate = new Date(2026, 0, 30);  // Jan 30, 2026
-  const randomTime = startDate.getTime() + Math.random() * (endDate.getTime() - startDate.getTime());
+  const endDate = new Date(2026, 0, 30); // Jan 30, 2026
+  const randomTime =
+    startDate.getTime() + Math.random() * (endDate.getTime() - startDate.getTime());
   return new Date(randomTime);
 }
 
@@ -355,23 +479,27 @@ async function seedComprehensive() {
     console.log(`   Deleted ${deletedUsers.deletedCount} non-admin users`);
 
     // Reset golfer stats2026
-    await db.collection('golfers').updateMany({}, {
-      $set: {
-        'stats2026.timesScored36Plus': 0,
-        'stats2026.timesFinished1st': 0,
-        'stats2026.timesFinished2nd': 0,
-        'stats2026.timesFinished3rd': 0,
-        'stats2026.timesPlayed': 0,
+    await db.collection('golfers').updateMany(
+      {},
+      {
+        $set: {
+          'stats2026.timesScored36Plus': 0,
+          'stats2026.timesFinished1st': 0,
+          'stats2026.timesFinished2nd': 0,
+          'stats2026.timesFinished3rd': 0,
+          'stats2026.timesPlayed': 0,
+        },
       }
-    });
+    );
     console.log('   Reset golfer stats2026');
 
     // ============================================
     // 3. Get all active golfers
     // ============================================
-    const allGolfers = await db.collection('golfers')
+    const allGolfers = (await db
+      .collection('golfers')
       .find({ isActive: true })
-      .toArray() as unknown as GolferDoc[];
+      .toArray()) as unknown as GolferDoc[];
 
     console.log(`\n📊 Active golfers available: ${allGolfers.length}`);
 
@@ -414,7 +542,7 @@ async function seedComprehensive() {
           golferCountTier: tier,
           season: 2026,
           status: isJanuary ? 'complete' : 'published',
-          participatingGolferIds: participants.map(g => g._id),
+          participatingGolferIds: participants.map((g) => g._id),
           createdAt: now,
           updatedAt: now,
         };
@@ -429,26 +557,30 @@ async function seedComprehensive() {
     console.log(`   ✅ Created ${tournamentResult.insertedCount} tournaments`);
 
     // Update tournament documents with their IDs
-    const insertedTournaments = await db.collection('tournaments')
+    const insertedTournaments = (await db
+      .collection('tournaments')
       .find({ season: 2026 })
-      .toArray() as unknown as (TournamentDoc & { _id: ObjectId })[];
+      .toArray()) as unknown as (TournamentDoc & { _id: ObjectId })[];
 
     // ============================================
     // 5. Generate scores for January tournaments
     // ============================================
     console.log('\n📈 Generating scores for January tournaments...');
 
-    const januaryTournaments = insertedTournaments.filter(t => t.status === 'complete');
+    const januaryTournaments = insertedTournaments.filter((t) => t.status === 'complete');
     const scores: ScoreDoc[] = [];
 
     // Track stats updates for golfers
-    const golferStatsUpdates: Map<string, {
-      timesPlayed: number;
-      timesFinished1st: number;
-      timesFinished2nd: number;
-      timesFinished3rd: number;
-      timesScored36Plus: number;
-    }> = new Map();
+    const golferStatsUpdates: Map<
+      string,
+      {
+        timesPlayed: number;
+        timesFinished1st: number;
+        timesFinished2nd: number;
+        timesFinished3rd: number;
+        timesScored36Plus: number;
+      }
+    > = new Map();
 
     for (const tournament of januaryTournaments) {
       const participantIds = tournament.participatingGolferIds;
@@ -468,9 +600,10 @@ async function seedComprehensive() {
         else if (golferId.equals(thirdPlace)) position = 3;
 
         // ~25% chance of scoring 36+ (higher for podium finishers)
-        const scored36Plus = position !== null
-          ? Math.random() < 0.6  // 60% for podium
-          : Math.random() < 0.25; // 25% for others
+        const scored36Plus =
+          position !== null
+            ? Math.random() < 0.6 // 60% for podium
+            : Math.random() < 0.25; // 25% for others
 
         const basePoints = getBasePointsForPosition(position, tournament.golferCountTier);
         const bonusPoints = scored36Plus ? 1 : 0;
@@ -533,7 +666,7 @@ async function seedComprehensive() {
             'stats2026.timesFinished2nd': stats.timesFinished2nd,
             'stats2026.timesFinished3rd': stats.timesFinished3rd,
             'stats2026.timesScored36Plus': stats.timesScored36Plus,
-          }
+          },
         }
       );
       statsUpdated++;
@@ -550,10 +683,11 @@ async function seedComprehensive() {
     const usedUsernames = new Set<string>();
 
     // Get existing usernames
-    const existingUsers = await db.collection('users')
+    const existingUsers = await db
+      .collection('users')
       .find({}, { projection: { username: 1 } })
       .toArray();
-    existingUsers.forEach(u => usedUsernames.add(u.username));
+    existingUsers.forEach((u) => usedUsernames.add(u.username));
 
     let attempts = 0;
     while (users.length < TOTAL_USERS && attempts < 500) {
@@ -591,9 +725,7 @@ async function seedComprehensive() {
     console.log(`   ✅ Created ${userResult.insertedCount} users`);
 
     // Get inserted user IDs
-    const insertedUsers = await db.collection('users')
-      .find({ role: 'user' })
-      .toArray();
+    const insertedUsers = await db.collection('users').find({ role: 'user' }).toArray();
 
     // ============================================
     // 8. Generate picks (teams)
@@ -633,7 +765,7 @@ async function seedComprehensive() {
       if (selectedGolfers.length < TEAM_SIZE) {
         for (const golfer of golfersByPrice) {
           if (selectedGolfers.length >= TEAM_SIZE) break;
-          if (selectedGolfers.some(g => g._id.equals(golfer._id))) continue;
+          if (selectedGolfers.some((g) => g._id.equals(golfer._id))) continue;
 
           selectedGolfers.push(golfer);
           totalSpent += golfer.price;
@@ -642,7 +774,7 @@ async function seedComprehensive() {
 
       const pick: PickDoc = {
         userId: user._id,
-        golferIds: selectedGolfers.map(g => g._id),
+        golferIds: selectedGolfers.map((g) => g._id),
         totalSpent,
         season: 2026,
         createdAt: getRandomTeamCreatedDate(), // Random date Jan 1-30, 2026 for testing
@@ -674,7 +806,9 @@ async function seedComprehensive() {
 
     console.log(`\n   Tournaments: ${finalCounts.tournaments} total`);
     console.log(`      - January (complete): ${finalCounts.januaryTournaments}`);
-    console.log(`      - Future (published): ${finalCounts.tournaments - finalCounts.januaryTournaments}`);
+    console.log(
+      `      - Future (published): ${finalCounts.tournaments - finalCounts.januaryTournaments}`
+    );
     console.log(`   Scores: ${finalCounts.scores}`);
     console.log(`   Users: ${finalCounts.users} (including admin)`);
     console.log(`   Teams: ${finalCounts.usersWithTeams}`);
@@ -686,12 +820,13 @@ async function seedComprehensive() {
     // Calculate points for users with teams
     const leaderboardData = [];
     for (const pick of picks.slice(0, 5)) {
-      const userScores = await db.collection('scores')
+      const userScores = await db
+        .collection('scores')
         .find({ golferId: { $in: pick.golferIds } })
         .toArray();
 
       const totalPoints = userScores.reduce((sum, s) => sum + (s.multipliedPoints || 0), 0);
-      const user = insertedUsers.find(u => u._id.equals(pick.userId));
+      const user = insertedUsers.find((u) => u._id.equals(pick.userId));
 
       leaderboardData.push({
         username: user?.username || 'Unknown',
@@ -707,7 +842,6 @@ async function seedComprehensive() {
     console.log('\n' + '='.repeat(50));
     console.log(`\n🎉 Comprehensive seed complete!`);
     console.log(`\n💡 Default user password: ${DEFAULT_PASSWORD}`);
-
   } catch (error) {
     console.error('\n❌ Seed failed:', error);
     throw error;

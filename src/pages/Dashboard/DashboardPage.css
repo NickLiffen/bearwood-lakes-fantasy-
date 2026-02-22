@@ -172,7 +172,9 @@
   align-items: center;
   gap: 1rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .stat-card:hover {
@@ -466,7 +468,9 @@
   font-weight: 600;
 }
 
-.rank-1, .rank-2, .rank-3 {
+.rank-1,
+.rank-2,
+.rank-3 {
   font-size: 1.25rem;
 }
 

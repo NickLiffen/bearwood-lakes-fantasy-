@@ -63,14 +63,14 @@ const GolferProfilePage: React.FC = () => {
   const seasonName = season?.name || '2026';
   useDocumentTitle(golfer ? `${golfer.firstName} ${golfer.lastName}` : 'Golfer Profile');
   const [expandedSeasons, setExpandedSeasons] = useState<Set<string>>(new Set());
-  
+
   // Track request ID to ignore stale responses
   const requestIdRef = useRef(0);
 
   useEffect(() => {
     // Increment request ID - any in-flight requests with old IDs will be ignored
     const currentRequestId = ++requestIdRef.current;
-    
+
     const fetchGolfer = async () => {
       try {
         setLoading(true);
@@ -162,8 +162,10 @@ const GolferProfilePage: React.FC = () => {
           <div className="profile-container">
             <div className="error-state">
               <h2>Golfer Not Found</h2>
-              <p>{error || 'The golfer you\'re looking for doesn\'t exist.'}</p>
-              <Link to="/golfers" className="btn-back">← Back to Golfers</Link>
+              <p>{error || "The golfer you're looking for doesn't exist."}</p>
+              <Link to="/golfers" className="btn-back">
+                ← Back to Golfers
+              </Link>
             </div>
           </div>
         </div>
@@ -171,23 +173,32 @@ const GolferProfilePage: React.FC = () => {
     );
   }
 
-  const totalStats = golfer.seasonStats?.reduce(
-    (acc, ss) => ({
-      timesPlayed: acc.timesPlayed + ss.timesPlayed,
-      timesFinished1st: acc.timesFinished1st + ss.timesFinished1st,
-      timesFinished2nd: acc.timesFinished2nd + ss.timesFinished2nd,
-      timesFinished3rd: acc.timesFinished3rd + ss.timesFinished3rd,
-      timesScored36Plus: acc.timesScored36Plus + ss.timesScored36Plus,
-    }),
-    { timesPlayed: 0, timesFinished1st: 0, timesFinished2nd: 0, timesFinished3rd: 0, timesScored36Plus: 0 }
-  ) ?? null;
+  const totalStats =
+    golfer.seasonStats?.reduce(
+      (acc, ss) => ({
+        timesPlayed: acc.timesPlayed + ss.timesPlayed,
+        timesFinished1st: acc.timesFinished1st + ss.timesFinished1st,
+        timesFinished2nd: acc.timesFinished2nd + ss.timesFinished2nd,
+        timesFinished3rd: acc.timesFinished3rd + ss.timesFinished3rd,
+        timesScored36Plus: acc.timesScored36Plus + ss.timesScored36Plus,
+      }),
+      {
+        timesPlayed: 0,
+        timesFinished1st: 0,
+        timesFinished2nd: 0,
+        timesFinished3rd: 0,
+        timesScored36Plus: 0,
+      }
+    ) ?? null;
 
   return (
     <PageLayout activeNav="golfers">
       <div className="golfer-profile-content">
         <div className="profile-container">
           {/* Back Link */}
-          <Link to="/golfers" className="back-link">← Back to All Golfers</Link>
+          <Link to="/golfers" className="back-link">
+            ← Back to All Golfers
+          </Link>
 
           {/* Hero Section */}
           <div className="golfer-hero">
@@ -197,11 +208,14 @@ const GolferProfilePage: React.FC = () => {
                   <img src={golfer.picture} alt={`${golfer.firstName} ${golfer.lastName}`} />
                 ) : (
                   <div className="avatar-placeholder">
-                    {golfer.firstName[0]}{golfer.lastName[0]}
+                    {golfer.firstName[0]}
+                    {golfer.lastName[0]}
                   </div>
                 )}
               </div>
-              <h1 className="golfer-name">{golfer.firstName} {golfer.lastName}</h1>
+              <h1 className="golfer-name">
+                {golfer.firstName} {golfer.lastName}
+              </h1>
               <div className="golfer-value">{formatPrice(golfer.price)}</div>
             </div>
           </div>
@@ -256,12 +270,22 @@ const GolferProfilePage: React.FC = () => {
                 {golfer.seasonStats.map((ss) => {
                   const isExpanded = expandedSeasons.has(ss.seasonName);
                   const podiums = ss.timesFinished1st + ss.timesFinished2nd + ss.timesFinished3rd;
-                  const winRate = ss.timesPlayed > 0 ? ((ss.timesFinished1st / ss.timesPlayed) * 100).toFixed(0) : '0';
-                  const podiumRate = ss.timesPlayed > 0 ? ((podiums / ss.timesPlayed) * 100).toFixed(0) : '0';
-                  
+                  const winRate =
+                    ss.timesPlayed > 0
+                      ? ((ss.timesFinished1st / ss.timesPlayed) * 100).toFixed(0)
+                      : '0';
+                  const podiumRate =
+                    ss.timesPlayed > 0 ? ((podiums / ss.timesPlayed) * 100).toFixed(0) : '0';
+
                   return (
-                    <div key={ss.seasonName} className={`season-card ${isExpanded ? 'expanded' : ''} ${ss.isActive ? 'active-season' : ''}`}>
-                      <button className="season-card-header" onClick={() => toggleSeason(ss.seasonName)}>
+                    <div
+                      key={ss.seasonName}
+                      className={`season-card ${isExpanded ? 'expanded' : ''} ${ss.isActive ? 'active-season' : ''}`}
+                    >
+                      <button
+                        className="season-card-header"
+                        onClick={() => toggleSeason(ss.seasonName)}
+                      >
                         <div className="season-card-title">
                           <span className="season-name">{ss.seasonName} Season</span>
                           {ss.isActive && <span className="active-badge">Active</span>}
@@ -314,7 +338,10 @@ const GolferProfilePage: React.FC = () => {
                             <div className="rate-bar">
                               <span className="rate-label">Podium Rate</span>
                               <div className="rate-track">
-                                <div className="rate-fill podium" style={{ width: `${podiumRate}%` }}></div>
+                                <div
+                                  className="rate-fill podium"
+                                  style={{ width: `${podiumRate}%` }}
+                                ></div>
                               </div>
                               <span className="rate-value">{podiumRate}%</span>
                             </div>
@@ -358,7 +385,12 @@ const GolferProfilePage: React.FC = () => {
               <div className="summary-item">
                 <div className="summary-icon">📈</div>
                 <div className="summary-content">
-                  <span className="summary-value">{totalStats && totalStats.timesPlayed > 0 ? getWinRate(totalStats as GolferStats) : 0}%</span>
+                  <span className="summary-value">
+                    {totalStats && totalStats.timesPlayed > 0
+                      ? getWinRate(totalStats as GolferStats)
+                      : 0}
+                    %
+                  </span>
                   <span className="summary-label">Career Win Rate</span>
                 </div>
               </div>
@@ -372,7 +404,12 @@ const GolferProfilePage: React.FC = () => {
               <div className="summary-item">
                 <div className="summary-icon">💪</div>
                 <div className="summary-content">
-                  <span className="summary-value">{totalStats && totalStats.timesPlayed > 0 ? getConsistencyRate(totalStats as GolferStats) : 0}%</span>
+                  <span className="summary-value">
+                    {totalStats && totalStats.timesPlayed > 0
+                      ? getConsistencyRate(totalStats as GolferStats)
+                      : 0}
+                    %
+                  </span>
                   <span className="summary-label">Consistency Rate</span>
                 </div>
               </div>
@@ -409,7 +446,6 @@ const GolferProfilePage: React.FC = () => {
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </PageLayout>

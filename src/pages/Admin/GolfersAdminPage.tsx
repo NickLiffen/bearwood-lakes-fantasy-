@@ -98,7 +98,12 @@ const GolfersAdminPage: React.FC = () => {
 
   // Calculate prices state
   const [calculatingPrices, setCalculatingPrices] = useState(false);
-  const [priceResult, setPriceResult] = useState<{ updated: number; minPrice: number; maxPrice: number; summary: string } | null>(null);
+  const [priceResult, setPriceResult] = useState<{
+    updated: number;
+    minPrice: number;
+    maxPrice: number;
+    summary: string;
+  } | null>(null);
 
   // Form validation state
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -151,9 +156,9 @@ const GolfersAdminPage: React.FC = () => {
     } else if (field === 'picture') {
       sanitizedValue = sanitizers.trim(value);
     }
-    
+
     setFormData({ ...formData, [field]: sanitizedValue });
-    
+
     // Validate on change if field was already touched
     if (touched[field]) {
       setFieldErrors({ ...fieldErrors, [field]: validateField(field, sanitizedValue) });
@@ -162,7 +167,10 @@ const GolfersAdminPage: React.FC = () => {
 
   const handleFieldBlur = (field: string) => {
     setTouched({ ...touched, [field]: true });
-    setFieldErrors({ ...fieldErrors, [field]: validateField(field, formData[field as keyof GolferFormData] as string) });
+    setFieldErrors({
+      ...fieldErrors,
+      [field]: validateField(field, formData[field as keyof GolferFormData] as string),
+    });
   };
 
   const getFieldClass = (field: string): string => {
@@ -173,28 +181,30 @@ const GolfersAdminPage: React.FC = () => {
   const validateAllFields = (): boolean => {
     const newErrors: Record<string, string> = {};
     const fieldsToValidate = ['firstName', 'lastName', 'price'];
-    
-    fieldsToValidate.forEach(field => {
+
+    fieldsToValidate.forEach((field) => {
       const error = validateField(field, formData[field as keyof GolferFormData] as string);
       if (error) newErrors[field] = error;
     });
-    
+
     // Mark all fields as touched
     const newTouched: Record<string, boolean> = {};
-    fieldsToValidate.forEach(field => { newTouched[field] = true; });
+    fieldsToValidate.forEach((field) => {
+      newTouched[field] = true;
+    });
     setTouched({ ...touched, ...newTouched });
     setFieldErrors(newErrors);
-    
+
     return Object.keys(newErrors).length === 0;
   };
 
   const fetchGolfers = useCallback(async () => {
     try {
       const response = await get<Golfer[]>('golfers-list');
-      
+
       // Ignore cancelled requests
       if (response.cancelled) return;
-      
+
       if (response.success && response.data) {
         setGolfers(response.data);
       }
@@ -213,11 +223,21 @@ const GolfersAdminPage: React.FC = () => {
 
   const handleCalculatePrices = async () => {
     const pricingSeason = new Date().getFullYear() - 1;
-    if (!window.confirm(`Calculate prices for all golfers based on ${pricingSeason} season performance? This will update all golfer prices.`)) return;
+    if (
+      !window.confirm(
+        `Calculate prices for all golfers based on ${pricingSeason} season performance? This will update all golfer prices.`
+      )
+    )
+      return;
     setCalculatingPrices(true);
     setPriceResult(null);
     try {
-      const response = await post<{ updated: number; minPrice: number; maxPrice: number; summary: string }>('golfers-calculate-prices', { season: pricingSeason });
+      const response = await post<{
+        updated: number;
+        minPrice: number;
+        maxPrice: number;
+        summary: string;
+      }>('golfers-calculate-prices', { season: pricingSeason });
       if (response.cancelled) return;
       if (response.success && response.data) {
         setPriceResult(response.data);
@@ -413,11 +433,11 @@ const GolfersAdminPage: React.FC = () => {
 
   const parseCSV = (text: string): string[][] => {
     const lines = text.trim().split('\n');
-    return lines.map(line => {
+    return lines.map((line) => {
       const result: string[] = [];
       let current = '';
       let inQuotes = false;
-      
+
       for (let i = 0; i < line.length; i++) {
         const char = line[i];
         if (char === '"') {
@@ -439,19 +459,19 @@ const GolfersAdminPage: React.FC = () => {
     reader.onload = (e) => {
       const text = e.target?.result as string;
       const rows = parseCSV(text);
-      
+
       if (rows.length < 2) {
         setBatchErrors(['CSV file must have a header row and at least one data row']);
         return;
       }
 
-      const headers = rows[0].map(h => h.toLowerCase().trim());
+      const headers = rows[0].map((h) => h.toLowerCase().trim());
       const dataRows = rows.slice(1);
-      
+
       // Check for required columns
       const requiredColumns = ['firstname', 'lastname', 'price'];
-      const missingColumns = requiredColumns.filter(col => !headers.includes(col));
-      
+      const missingColumns = requiredColumns.filter((col) => !headers.includes(col));
+
       if (missingColumns.length > 0) {
         setBatchErrors([`Missing required columns: ${missingColumns.join(', ')}`]);
         return;
@@ -483,11 +503,11 @@ const GolfersAdminPage: React.FC = () => {
 
       dataRows.forEach((row, index) => {
         const rowNum = index + 2; // Account for header and 0-indexing
-        
+
         const firstName = colIndex.firstName >= 0 ? row[colIndex.firstName]?.trim() : '';
         const lastName = colIndex.lastName >= 0 ? row[colIndex.lastName]?.trim() : '';
         const priceStr = colIndex.price >= 0 ? row[colIndex.price]?.trim() : '';
-        
+
         // Validate required fields
         if (!firstName) {
           errors.push(`Row ${rowNum}: First name is required`);
@@ -498,7 +518,7 @@ const GolfersAdminPage: React.FC = () => {
         if (!priceStr) {
           errors.push(`Row ${rowNum}: Price is required`);
         }
-        
+
         // Validate price is a number
         const price = parseFloat(priceStr);
         if (isNaN(price) || price <= 0) {
@@ -507,7 +527,8 @@ const GolfersAdminPage: React.FC = () => {
 
         // Parse optional fields with defaults
         const picture = colIndex.picture >= 0 ? row[colIndex.picture]?.trim() || '' : '';
-        const isActiveStr = colIndex.isActive >= 0 ? row[colIndex.isActive]?.trim().toLowerCase() : 'true';
+        const isActiveStr =
+          colIndex.isActive >= 0 ? row[colIndex.isActive]?.trim().toLowerCase() : 'true';
         const isActive = isActiveStr !== 'false' && isActiveStr !== '0' && isActiveStr !== 'no';
 
         // Parse membershipType with validation
@@ -518,7 +539,9 @@ const GolfersAdminPage: React.FC = () => {
           if (validMembershipTypes.includes(rawType)) {
             membershipType = rawType as MembershipType;
           } else if (rawType) {
-            errors.push(`Row ${rowNum}: Invalid membershipType "${rawType}" (must be men, junior, female, or senior)`);
+            errors.push(
+              `Row ${rowNum}: Invalid membershipType "${rawType}" (must be men, junior, female, or senior)`
+            );
           }
         }
 
@@ -590,7 +613,7 @@ const GolfersAdminPage: React.FC = () => {
     for (let i = 0; i < batchData.length; i++) {
       const Golfer = batchData[i];
       const priceInPounds = parseFloat(Golfer.price) * 1_000_000;
-      
+
       try {
         const response = await post<Golfer>('golfers-create', {
           firstName: Golfer.firstName,
@@ -609,7 +632,9 @@ const GolfersAdminPage: React.FC = () => {
         });
 
         if (!response.success) {
-          errors.push(`${Golfer.firstName} ${Golfer.lastName}: ${response.error || 'Failed to create'}`);
+          errors.push(
+            `${Golfer.firstName} ${Golfer.lastName}: ${response.error || 'Failed to create'}`
+          );
         } else {
           successCount++;
         }
@@ -623,25 +648,26 @@ const GolfersAdminPage: React.FC = () => {
     if (errors.length > 0) {
       setBatchErrors(errors);
     }
-    
+
     if (successCount > 0) {
       setSuccess(`Successfully uploaded ${successCount} Golfer${successCount > 1 ? 's' : ''}!`);
       setTimeout(() => setSuccess(''), 5000);
     }
 
     fetchGolfers();
-    
+
     if (errors.length === 0) {
       handleCloseBatchModal();
     }
   };
 
   // Calculate stats
-  const activeGolfers = Golfers.filter(p => p.isActive).length;
-  const inactiveGolfers = Golfers.filter(p => !p.isActive).length;
-  const avgPrice = Golfers.length > 0 
-    ? (Golfers.reduce((sum, p) => sum + p.price, 0) / Golfers.length / 1_000_000).toFixed(1)
-    : '0';
+  const activeGolfers = Golfers.filter((p) => p.isActive).length;
+  const inactiveGolfers = Golfers.filter((p) => !p.isActive).length;
+  const avgPrice =
+    Golfers.length > 0
+      ? (Golfers.reduce((sum, p) => sum + p.price, 0) / Golfers.length / 1_000_000).toFixed(1)
+      : '0';
 
   return (
     <AdminLayout title="Manage Golfers">
@@ -675,7 +701,11 @@ const GolfersAdminPage: React.FC = () => {
         <div className="admin-card-header">
           <h2>All Golfers ({Golfers.length})</h2>
           <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <button className="btn btn-primary" onClick={handleCalculatePrices} disabled={calculatingPrices}>
+            <button
+              className="btn btn-primary"
+              onClick={handleCalculatePrices}
+              disabled={calculatingPrices}
+            >
               💰 {calculatingPrices ? 'Calculating...' : 'Calculate Prices'}
             </button>
             <button className="btn btn-secondary" onClick={handleOpenBatchModal}>
@@ -686,8 +716,19 @@ const GolfersAdminPage: React.FC = () => {
             </button>
           </div>
           {priceResult && (
-            <div style={{ marginTop: '0.5rem', padding: '0.5rem 1rem', background: '#d4edda', color: '#155724', borderRadius: '6px', fontSize: '0.9rem' }}>
-              ✅ Updated {priceResult.updated} golfers. Price range: ${Math.round(priceResult.minPrice / 1_000_000)}M – ${Math.round(priceResult.maxPrice / 1_000_000)}M
+            <div
+              style={{
+                marginTop: '0.5rem',
+                padding: '0.5rem 1rem',
+                background: '#d4edda',
+                color: '#155724',
+                borderRadius: '6px',
+                fontSize: '0.9rem',
+              }}
+            >
+              ✅ Updated {priceResult.updated} golfers. Price range: $
+              {Math.round(priceResult.minPrice / 1_000_000)}M – $
+              {Math.round(priceResult.maxPrice / 1_000_000)}M
             </div>
           )}
         </div>
@@ -720,8 +761,13 @@ const GolfersAdminPage: React.FC = () => {
               {Golfers.map((Golfer) => (
                 <tr key={Golfer.id}>
                   <td>
-                    <div 
-                      style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer' }}
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.75rem',
+                        cursor: 'pointer',
+                      }}
                       onClick={() => handleViewGolfer(Golfer)}
                     >
                       {Golfer.picture ? (
@@ -751,7 +797,13 @@ const GolfersAdminPage: React.FC = () => {
                           🏌️
                         </div>
                       )}
-                      <span style={{ fontWeight: 500, color: 'var(--primary-green)', textDecoration: 'underline' }}>
+                      <span
+                        style={{
+                          fontWeight: 500,
+                          color: 'var(--primary-green)',
+                          textDecoration: 'underline',
+                        }}
+                      >
                         {Golfer.firstName} {Golfer.lastName}
                       </span>
                     </div>
@@ -808,7 +860,9 @@ const GolfersAdminPage: React.FC = () => {
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label htmlFor="firstName">First Name<span className="required-indicator">*</span></label>
+                    <label htmlFor="firstName">
+                      First Name<span className="required-indicator">*</span>
+                    </label>
                     <input
                       type="text"
                       id="firstName"
@@ -823,7 +877,9 @@ const GolfersAdminPage: React.FC = () => {
                     )}
                   </div>
                   <div className="form-group">
-                    <label htmlFor="lastName">Last Name<span className="required-indicator">*</span></label>
+                    <label htmlFor="lastName">
+                      Last Name<span className="required-indicator">*</span>
+                    </label>
                     <input
                       type="text"
                       id="lastName"
@@ -857,7 +913,9 @@ const GolfersAdminPage: React.FC = () => {
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label htmlFor="price">Price (in millions $)<span className="required-indicator">*</span></label>
+                    <label htmlFor="price">
+                      Price (in millions $)<span className="required-indicator">*</span>
+                    </label>
                     <input
                       type="number"
                       id="price"
@@ -874,13 +932,18 @@ const GolfersAdminPage: React.FC = () => {
                     )}
                   </div>
                   <div className="form-group">
-                    <label htmlFor="membershipType">Membership Type<span className="required-indicator">*</span></label>
+                    <label htmlFor="membershipType">
+                      Membership Type<span className="required-indicator">*</span>
+                    </label>
                     <select
                       id="membershipType"
                       className="form-select"
                       value={formData.membershipType}
                       onChange={(e) =>
-                        setFormData({ ...formData, membershipType: e.target.value as MembershipType })
+                        setFormData({
+                          ...formData,
+                          membershipType: e.target.value as MembershipType,
+                        })
                       }
                     >
                       <option value="men">Men</option>
@@ -893,7 +956,9 @@ const GolfersAdminPage: React.FC = () => {
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label htmlFor="isActive">Status<span className="required-indicator">*</span></label>
+                    <label htmlFor="isActive">
+                      Status<span className="required-indicator">*</span>
+                    </label>
                     <select
                       id="isActive"
                       className="form-select"
@@ -910,8 +975,21 @@ const GolfersAdminPage: React.FC = () => {
                 </div>
 
                 {/* 2025 Performance Stats Section */}
-                <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid #e5e7eb' }}>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--dark-text)', marginBottom: '1rem' }}>
+                <div
+                  style={{
+                    marginTop: '1.5rem',
+                    paddingTop: '1.5rem',
+                    borderTop: '1px solid #e5e7eb',
+                  }}
+                >
+                  <h3
+                    style={{
+                      fontSize: '1rem',
+                      fontWeight: 600,
+                      color: 'var(--dark-text)',
+                      marginBottom: '1rem',
+                    }}
+                  >
                     📊 2025 Performance Stats
                   </h3>
 
@@ -926,7 +1004,9 @@ const GolfersAdminPage: React.FC = () => {
                         min="0"
                         placeholder="0"
                       />
-                      <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>Roll up, medal, board events</span>
+                      <span style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                        Roll up, medal, board events
+                      </span>
                     </div>
                     <div className="form-group">
                       <label htmlFor="timesScored36Plus">Times Scored 36+ Points</label>
@@ -934,7 +1014,9 @@ const GolfersAdminPage: React.FC = () => {
                         type="number"
                         id="timesScored36Plus"
                         value={formData.timesScored36Plus}
-                        onChange={(e) => setFormData({ ...formData, timesScored36Plus: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, timesScored36Plus: e.target.value })
+                        }
                         min="0"
                         placeholder="0"
                       />
@@ -948,7 +1030,9 @@ const GolfersAdminPage: React.FC = () => {
                         type="number"
                         id="timesFinished1st"
                         value={formData.timesFinished1st}
-                        onChange={(e) => setFormData({ ...formData, timesFinished1st: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, timesFinished1st: e.target.value })
+                        }
                         min="0"
                         placeholder="0"
                       />
@@ -959,7 +1043,9 @@ const GolfersAdminPage: React.FC = () => {
                         type="number"
                         id="timesFinished2nd"
                         value={formData.timesFinished2nd}
-                        onChange={(e) => setFormData({ ...formData, timesFinished2nd: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, timesFinished2nd: e.target.value })
+                        }
                         min="0"
                         placeholder="0"
                       />
@@ -973,7 +1059,9 @@ const GolfersAdminPage: React.FC = () => {
                         type="number"
                         id="timesFinished3rd"
                         value={formData.timesFinished3rd}
-                        onChange={(e) => setFormData({ ...formData, timesFinished3rd: e.target.value })}
+                        onChange={(e) =>
+                          setFormData({ ...formData, timesFinished3rd: e.target.value })
+                        }
                         min="0"
                         placeholder="0"
                       />
@@ -1010,11 +1098,22 @@ const GolfersAdminPage: React.FC = () => {
                 <>
                   <div style={{ marginBottom: '1.5rem' }}>
                     <p style={{ color: '#374151', marginBottom: '1rem' }}>
-                      Upload a CSV file with Golfer data. Maximum <strong>10 Golfers</strong> per batch.
+                      Upload a CSV file with Golfer data. Maximum <strong>10 Golfers</strong> per
+                      batch.
                     </p>
-                    <div style={{ background: '#f3f4f6', borderRadius: '8px', padding: '1rem', fontSize: '0.85rem' }}>
-                      <strong>Required columns:</strong> firstName, lastName, price (in millions)<br />
-                      <strong>Optional columns:</strong> picture, membershipType (men/junior/female/senior), isActive, timesScored36Plus, timesFinished1st, timesFinished2nd, timesFinished3rd, timesPlayed
+                    <div
+                      style={{
+                        background: '#f3f4f6',
+                        borderRadius: '8px',
+                        padding: '1rem',
+                        fontSize: '0.85rem',
+                      }}
+                    >
+                      <strong>Required columns:</strong> firstName, lastName, price (in millions)
+                      <br />
+                      <strong>Optional columns:</strong> picture, membershipType
+                      (men/junior/female/senior), isActive, timesScored36Plus, timesFinished1st,
+                      timesFinished2nd, timesFinished3rd, timesPlayed
                     </div>
                   </div>
 
@@ -1063,7 +1162,10 @@ const GolfersAdminPage: React.FC = () => {
 
                   {batchErrors.length > 0 && (
                     <div style={{ marginTop: '1rem' }}>
-                      <div className="alert alert-error" style={{ maxHeight: '150px', overflow: 'auto' }}>
+                      <div
+                        className="alert alert-error"
+                        style={{ maxHeight: '150px', overflow: 'auto' }}
+                      >
                         <strong>Validation Errors:</strong>
                         <ul style={{ margin: '0.5rem 0 0 1.25rem', padding: 0 }}>
                           {batchErrors.map((err, i) => (
@@ -1074,10 +1176,25 @@ const GolfersAdminPage: React.FC = () => {
                     </div>
                   )}
 
-                  <div style={{ marginTop: '1.5rem', padding: '1rem', background: '#fffbeb', borderRadius: '8px', border: '1px solid #fde68a' }}>
+                  <div
+                    style={{
+                      marginTop: '1.5rem',
+                      padding: '1rem',
+                      background: '#fffbeb',
+                      borderRadius: '8px',
+                      border: '1px solid #fde68a',
+                    }}
+                  >
                     <strong style={{ color: '#92400e' }}>📋 Sample CSV Format:</strong>
-                    <pre style={{ margin: '0.5rem 0 0', fontSize: '0.75rem', color: '#92400e', overflow: 'auto' }}>
-{`firstName,lastName,price,membershipType,picture,isActive,timesPlayed,timesScored36Plus,timesFinished1st,timesFinished2nd,timesFinished3rd
+                    <pre
+                      style={{
+                        margin: '0.5rem 0 0',
+                        fontSize: '0.75rem',
+                        color: '#92400e',
+                        overflow: 'auto',
+                      }}
+                    >
+                      {`firstName,lastName,price,membershipType,picture,isActive,timesPlayed,timesScored36Plus,timesFinished1st,timesFinished2nd,timesFinished3rd
 John,Smith,8.5,men,,true,12,3,1,2,1
 Jane,Doe,7.0,female,,true,10,2,0,1,0
 Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
@@ -1089,10 +1206,18 @@ Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
               {batchStep === 'preview' && (
                 <>
                   <div className="alert alert-success" style={{ marginBottom: '1rem' }}>
-                    ✅ CSV validated successfully! Review {batchData.length} Golfer{batchData.length > 1 ? 's' : ''} below.
+                    ✅ CSV validated successfully! Review {batchData.length} Golfer
+                    {batchData.length > 1 ? 's' : ''} below.
                   </div>
 
-                  <div style={{ maxHeight: '350px', overflow: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                  <div
+                    style={{
+                      maxHeight: '350px',
+                      overflow: 'auto',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                    }}
+                  >
                     <table className="admin-table" style={{ margin: 0 }}>
                       <thead>
                         <tr>
@@ -1114,14 +1239,19 @@ Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
                             <td style={{ fontWeight: 500 }}>
                               {Golfer.firstName} {Golfer.lastName}
                               {!Golfer.isActive && (
-                                <span className="badge badge-gray" style={{ marginLeft: '0.5rem' }}>Inactive</span>
+                                <span className="badge badge-gray" style={{ marginLeft: '0.5rem' }}>
+                                  Inactive
+                                </span>
                               )}
                             </td>
                             <td style={{ color: 'var(--primary-green)', fontWeight: 600 }}>
                               ${parseFloat(Golfer.price).toFixed(1)}M
                             </td>
                             <td>
-                              <span className="badge badge-secondary" style={{ textTransform: 'capitalize' }}>
+                              <span
+                                className="badge badge-secondary"
+                                style={{ textTransform: 'capitalize' }}
+                              >
                                 {Golfer.membershipType}
                               </span>
                             </td>
@@ -1142,26 +1272,31 @@ Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
                 <div style={{ textAlign: 'center', padding: '2rem' }}>
                   <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⏳</div>
                   <h3 style={{ marginBottom: '1rem' }}>Uploading Golfers...</h3>
-                  <div style={{ 
-                    background: '#e5e7eb', 
-                    borderRadius: '9999px', 
-                    height: '8px', 
-                    overflow: 'hidden',
-                    marginBottom: '0.5rem'
-                  }}>
-                    <div 
-                      style={{ 
-                        background: 'var(--primary-green)', 
-                        height: '100%', 
+                  <div
+                    style={{
+                      background: '#e5e7eb',
+                      borderRadius: '9999px',
+                      height: '8px',
+                      overflow: 'hidden',
+                      marginBottom: '0.5rem',
+                    }}
+                  >
+                    <div
+                      style={{
+                        background: 'var(--primary-green)',
+                        height: '100%',
                         width: `${batchProgress}%`,
-                        transition: 'width 0.3s ease'
-                      }} 
+                        transition: 'width 0.3s ease',
+                      }}
                     />
                   </div>
                   <p style={{ color: '#6b7280' }}>{batchProgress}% complete</p>
 
                   {batchErrors.length > 0 && (
-                    <div className="alert alert-error" style={{ marginTop: '1rem', textAlign: 'left' }}>
+                    <div
+                      className="alert alert-error"
+                      style={{ marginTop: '1rem', textAlign: 'left' }}
+                    >
                       <strong>Some uploads failed:</strong>
                       <ul style={{ margin: '0.5rem 0 0 1.25rem', padding: 0 }}>
                         {batchErrors.map((err, i) => (
@@ -1204,7 +1339,9 @@ Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
         <div className="modal-overlay" onClick={handleCloseViewModal}>
           <div className="modal" style={{ maxWidth: '700px' }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>🏌️ {viewingGolfer.firstName} {viewingGolfer.lastName}</h2>
+              <h2>
+                🏌️ {viewingGolfer.firstName} {viewingGolfer.lastName}
+              </h2>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                 <button className="btn btn-primary btn-sm" onClick={handleEditFromView}>
                   ✏️ Edit
@@ -1250,7 +1387,9 @@ Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
                     {viewingGolfer.firstName} {viewingGolfer.lastName}
                   </h3>
                   <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                    <span className={`badge ${viewingGolfer.isActive ? 'badge-success' : 'badge-gray'}`}>
+                    <span
+                      className={`badge ${viewingGolfer.isActive ? 'badge-success' : 'badge-gray'}`}
+                    >
                       {viewingGolfer.isActive ? 'Active' : 'Inactive'}
                     </span>
                     <span className="badge badge-secondary" style={{ textTransform: 'capitalize' }}>
@@ -1265,35 +1404,68 @@ Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
 
               {/* Golfer Info Section */}
               <div style={{ marginBottom: '1.5rem' }}>
-                <h4 style={{ fontSize: '0.9rem', fontWeight: 600, color: '#374151', marginBottom: '0.75rem' }}>
+                <h4
+                  style={{
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    color: '#374151',
+                    marginBottom: '0.75rem',
+                  }}
+                >
                   📋 Golfer Information (Editable)
                 </h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
+                <div
+                  style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}
+                >
                   <div style={{ background: '#f9fafb', padding: '1rem', borderRadius: '8px' }}>
-                    <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.25rem' }}>First Name</div>
+                    <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.25rem' }}>
+                      First Name
+                    </div>
                     <div style={{ fontWeight: 500 }}>{viewingGolfer.firstName}</div>
                   </div>
                   <div style={{ background: '#f9fafb', padding: '1rem', borderRadius: '8px' }}>
-                    <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.25rem' }}>Last Name</div>
+                    <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.25rem' }}>
+                      Last Name
+                    </div>
                     <div style={{ fontWeight: 500 }}>{viewingGolfer.lastName}</div>
                   </div>
                   <div style={{ background: '#f9fafb', padding: '1rem', borderRadius: '8px' }}>
-                    <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.25rem' }}>Price</div>
+                    <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.25rem' }}>
+                      Price
+                    </div>
                     <div style={{ fontWeight: 500, color: 'var(--primary-green)' }}>
                       ${(viewingGolfer.price / 1_000_000).toFixed(1)}M
                     </div>
                   </div>
                   <div style={{ background: '#f9fafb', padding: '1rem', borderRadius: '8px' }}>
-                    <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.25rem' }}>Membership Type</div>
-                    <div style={{ fontWeight: 500, textTransform: 'capitalize' }}>{viewingGolfer.membershipType || 'Men'}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.25rem' }}>
+                      Membership Type
+                    </div>
+                    <div style={{ fontWeight: 500, textTransform: 'capitalize' }}>
+                      {viewingGolfer.membershipType || 'Men'}
+                    </div>
                   </div>
                   <div style={{ background: '#f9fafb', padding: '1rem', borderRadius: '8px' }}>
-                    <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.25rem' }}>Status</div>
-                    <div style={{ fontWeight: 500 }}>{viewingGolfer.isActive ? 'Active' : 'Inactive'}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.25rem' }}>
+                      Status
+                    </div>
+                    <div style={{ fontWeight: 500 }}>
+                      {viewingGolfer.isActive ? 'Active' : 'Inactive'}
+                    </div>
                   </div>
                   <div style={{ background: '#f9fafb', padding: '1rem', borderRadius: '8px' }}>
-                    <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.25rem' }}>Photo URL</div>
-                    <div style={{ fontWeight: 500, fontSize: '0.85rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.25rem' }}>
+                      Photo URL
+                    </div>
+                    <div
+                      style={{
+                        fontWeight: 500,
+                        fontSize: '0.85rem',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
                       {viewingGolfer.picture || '—'}
                     </div>
                   </div>
@@ -1302,94 +1474,244 @@ Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
 
               {/* Current Season Stats (from Scores) */}
               <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '1.5rem' }}>
-                <h4 style={{ fontSize: '0.9rem', fontWeight: 600, color: '#374151', marginBottom: '0.75rem' }}>
+                <h4
+                  style={{
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    color: '#374151',
+                    marginBottom: '0.75rem',
+                  }}
+                >
                   📊 Current Season Stats (from Tournament Scores)
                 </h4>
-                
+
                 {loadingStats ? (
                   <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
                     Loading stats...
                   </div>
                 ) : GolferSeasonStats ? (
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}>
-                    <div style={{ background: '#ecfdf5', padding: '1rem', borderRadius: '8px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--primary-green)' }}>
+                  <div
+                    style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem' }}
+                  >
+                    <div
+                      style={{
+                        background: '#ecfdf5',
+                        padding: '1rem',
+                        borderRadius: '8px',
+                        textAlign: 'center',
+                      }}
+                    >
+                      <div
+                        style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--primary-green)' }}
+                      >
                         {GolferSeasonStats.totalPoints}
                       </div>
                       <div style={{ fontSize: '0.75rem', color: '#065f46' }}>Total Points</div>
                     </div>
-                    <div style={{ background: '#f9fafb', padding: '1rem', borderRadius: '8px', textAlign: 'center' }}>
+                    <div
+                      style={{
+                        background: '#f9fafb',
+                        padding: '1rem',
+                        borderRadius: '8px',
+                        textAlign: 'center',
+                      }}
+                    >
                       <div style={{ fontSize: '2rem', fontWeight: 700, color: '#374151' }}>
                         {GolferSeasonStats.tournamentsPlayed}
                       </div>
-                      <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>Tournaments Played</div>
+                      <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                        Tournaments Played
+                      </div>
                     </div>
-                    <div style={{ background: '#fef3c7', padding: '1rem', borderRadius: '8px', textAlign: 'center' }}>
+                    <div
+                      style={{
+                        background: '#fef3c7',
+                        padding: '1rem',
+                        borderRadius: '8px',
+                        textAlign: 'center',
+                      }}
+                    >
                       <div style={{ fontSize: '2rem', fontWeight: 700, color: '#92400e' }}>
                         {GolferSeasonStats.times36Plus}
                       </div>
                       <div style={{ fontSize: '0.75rem', color: '#92400e' }}>Times 36+ Points</div>
                     </div>
-                    <div style={{ background: '#fef9c3', padding: '1rem', borderRadius: '8px', textAlign: 'center' }}>
+                    <div
+                      style={{
+                        background: '#fef9c3',
+                        padding: '1rem',
+                        borderRadius: '8px',
+                        textAlign: 'center',
+                      }}
+                    >
                       <div style={{ fontSize: '1.75rem', fontWeight: 700, color: '#713f12' }}>
                         🥇 {GolferSeasonStats.firstPlaceFinishes}
                       </div>
-                      <div style={{ fontSize: '0.75rem', color: '#713f12' }}>1st Place Finishes</div>
+                      <div style={{ fontSize: '0.75rem', color: '#713f12' }}>
+                        1st Place Finishes
+                      </div>
                     </div>
-                    <div style={{ background: '#f3f4f6', padding: '1rem', borderRadius: '8px', textAlign: 'center' }}>
+                    <div
+                      style={{
+                        background: '#f3f4f6',
+                        padding: '1rem',
+                        borderRadius: '8px',
+                        textAlign: 'center',
+                      }}
+                    >
                       <div style={{ fontSize: '1.75rem', fontWeight: 700, color: '#374151' }}>
                         🥈 {GolferSeasonStats.secondPlaceFinishes}
                       </div>
-                      <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>2nd Place Finishes</div>
+                      <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                        2nd Place Finishes
+                      </div>
                     </div>
-                    <div style={{ background: '#fed7aa', padding: '1rem', borderRadius: '8px', textAlign: 'center' }}>
+                    <div
+                      style={{
+                        background: '#fed7aa',
+                        padding: '1rem',
+                        borderRadius: '8px',
+                        textAlign: 'center',
+                      }}
+                    >
                       <div style={{ fontSize: '1.75rem', fontWeight: 700, color: '#9a3412' }}>
                         🥉 {GolferSeasonStats.thirdPlaceFinishes}
                       </div>
-                      <div style={{ fontSize: '0.75rem', color: '#9a3412' }}>3rd Place Finishes</div>
+                      <div style={{ fontSize: '0.75rem', color: '#9a3412' }}>
+                        3rd Place Finishes
+                      </div>
                     </div>
                   </div>
                 ) : (
-                  <div style={{ textAlign: 'center', padding: '2rem', background: '#f9fafb', borderRadius: '8px' }}>
+                  <div
+                    style={{
+                      textAlign: 'center',
+                      padding: '2rem',
+                      background: '#f9fafb',
+                      borderRadius: '8px',
+                    }}
+                  >
                     <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📭</div>
-                    <p style={{ color: '#6b7280' }}>No tournament scores recorded yet for this Golfer.</p>
+                    <p style={{ color: '#6b7280' }}>
+                      No tournament scores recorded yet for this Golfer.
+                    </p>
                   </div>
                 )}
-                
-                <div style={{ marginTop: '1rem', padding: '0.75rem', background: '#f3f4f6', borderRadius: '8px', fontSize: '0.85rem', color: '#6b7280' }}>
-                  ℹ️ Season stats are automatically calculated from tournament scores. To update these, edit scores in the Scores tab.
+
+                <div
+                  style={{
+                    marginTop: '1rem',
+                    padding: '0.75rem',
+                    background: '#f3f4f6',
+                    borderRadius: '8px',
+                    fontSize: '0.85rem',
+                    color: '#6b7280',
+                  }}
+                >
+                  ℹ️ Season stats are automatically calculated from tournament scores. To update
+                  these, edit scores in the Scores tab.
                 </div>
               </div>
 
               {/* 2025 Historical Stats (Editable) */}
-              <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '1.5rem', marginTop: '1.5rem' }}>
-                <h4 style={{ fontSize: '0.9rem', fontWeight: 600, color: '#374151', marginBottom: '0.75rem' }}>
+              <div
+                style={{
+                  borderTop: '1px solid #e5e7eb',
+                  paddingTop: '1.5rem',
+                  marginTop: '1.5rem',
+                }}
+              >
+                <h4
+                  style={{
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    color: '#374151',
+                    marginBottom: '0.75rem',
+                  }}
+                >
                   📈 Historical 2025 Stats (Editable via Edit Button)
                 </h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.75rem' }}>
-                  <div style={{ background: '#f9fafb', padding: '0.75rem', borderRadius: '8px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>{viewingGolfer.stats2025?.timesPlayed || 0}</div>
+                <div
+                  style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.75rem' }}
+                >
+                  <div
+                    style={{
+                      background: '#f9fafb',
+                      padding: '0.75rem',
+                      borderRadius: '8px',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>
+                      {viewingGolfer.stats2025?.timesPlayed || 0}
+                    </div>
                     <div style={{ fontSize: '0.7rem', color: '#6b7280' }}>Played</div>
                   </div>
-                  <div style={{ background: '#f9fafb', padding: '0.75rem', borderRadius: '8px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>{viewingGolfer.stats2025?.timesScored36Plus || 0}</div>
+                  <div
+                    style={{
+                      background: '#f9fafb',
+                      padding: '0.75rem',
+                      borderRadius: '8px',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>
+                      {viewingGolfer.stats2025?.timesScored36Plus || 0}
+                    </div>
                     <div style={{ fontSize: '0.7rem', color: '#6b7280' }}>36+ Pts</div>
                   </div>
-                  <div style={{ background: '#f9fafb', padding: '0.75rem', borderRadius: '8px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>🥇 {viewingGolfer.stats2025?.timesFinished1st || 0}</div>
+                  <div
+                    style={{
+                      background: '#f9fafb',
+                      padding: '0.75rem',
+                      borderRadius: '8px',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>
+                      🥇 {viewingGolfer.stats2025?.timesFinished1st || 0}
+                    </div>
                     <div style={{ fontSize: '0.7rem', color: '#6b7280' }}>1st</div>
                   </div>
-                  <div style={{ background: '#f9fafb', padding: '0.75rem', borderRadius: '8px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>🥈 {viewingGolfer.stats2025?.timesFinished2nd || 0}</div>
+                  <div
+                    style={{
+                      background: '#f9fafb',
+                      padding: '0.75rem',
+                      borderRadius: '8px',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>
+                      🥈 {viewingGolfer.stats2025?.timesFinished2nd || 0}
+                    </div>
                     <div style={{ fontSize: '0.7rem', color: '#6b7280' }}>2nd</div>
                   </div>
-                  <div style={{ background: '#f9fafb', padding: '0.75rem', borderRadius: '8px', textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>🥉 {viewingGolfer.stats2025?.timesFinished3rd || 0}</div>
+                  <div
+                    style={{
+                      background: '#f9fafb',
+                      padding: '0.75rem',
+                      borderRadius: '8px',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>
+                      🥉 {viewingGolfer.stats2025?.timesFinished3rd || 0}
+                    </div>
                     <div style={{ fontSize: '0.7rem', color: '#6b7280' }}>3rd</div>
                   </div>
                 </div>
-                <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: '#fffbeb', borderRadius: '8px', fontSize: '0.85rem', color: '#92400e' }}>
-                  ⚠️ These are historical stats you entered when creating the Golfer. They are separate from the live season stats above.
+                <div
+                  style={{
+                    marginTop: '0.75rem',
+                    padding: '0.75rem',
+                    background: '#fffbeb',
+                    borderRadius: '8px',
+                    fontSize: '0.85rem',
+                    color: '#92400e',
+                  }}
+                >
+                  ⚠️ These are historical stats you entered when creating the Golfer. They are
+                  separate from the live season stats above.
                 </div>
               </div>
             </div>
@@ -1418,24 +1740,28 @@ Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
             <div className="modal-body">
               {error && <div className="alert alert-error">{error}</div>}
               <p style={{ marginBottom: '1rem' }}>
-                Are you sure you want to delete <strong>{GolferToDelete.firstName} {GolferToDelete.lastName}</strong>?
+                Are you sure you want to delete{' '}
+                <strong>
+                  {GolferToDelete.firstName} {GolferToDelete.lastName}
+                </strong>
+                ?
               </p>
               <p style={{ color: '#dc2626', fontSize: '0.9rem' }}>
                 ⚠️ This action cannot be undone. The Golfer will be permanently removed.
               </p>
             </div>
             <div className="modal-footer">
-              <button 
-                type="button" 
-                className="btn btn-secondary" 
+              <button
+                type="button"
+                className="btn btn-secondary"
                 onClick={handleCloseDeleteModal}
                 disabled={deleting}
               >
                 Cancel
               </button>
-              <button 
-                type="button" 
-                className="btn btn-danger" 
+              <button
+                type="button"
+                className="btn btn-danger"
                 onClick={handleDeleteGolfer}
                 disabled={deleting}
               >

@@ -212,27 +212,30 @@ const LeaderboardPage: React.FC = () => {
     }
   }, [get, generateWeekOptions, generateMonthOptions]);
 
-  const fetchPeriodData = useCallback(async (period: 'week' | 'month' | 'season', date?: string) => {
-    try {
-      let url = `leaderboard-periods?period=${period}`;
-      if (date) {
-        url += `&date=${date}`;
+  const fetchPeriodData = useCallback(
+    async (period: 'week' | 'month' | 'season', date?: string) => {
+      try {
+        let url = `leaderboard-periods?period=${period}`;
+        if (date) {
+          url += `&date=${date}`;
+        }
+
+        const response = await get<LeaderboardResponse>(url);
+
+        // Ignore cancelled requests
+        if (response.cancelled) return null;
+
+        if (response.success && response.data) {
+          return response.data;
+        }
+        return null;
+      } catch (err) {
+        console.error(`Failed to fetch ${period} data:`, err);
+        return null;
       }
-
-      const response = await get<LeaderboardResponse>(url);
-
-      // Ignore cancelled requests
-      if (response.cancelled) return null;
-
-      if (response.success && response.data) {
-        return response.data;
-      }
-      return null;
-    } catch (err) {
-      console.error(`Failed to fetch ${period} data:`, err);
-      return null;
-    }
-  }, [get]);
+    },
+    [get]
+  );
 
   // Initial data fetch
   useEffect(() => {
@@ -311,114 +314,123 @@ const LeaderboardPage: React.FC = () => {
     if (data) setMonthlyData(data);
   };
 
-  const isCurrentUser = useCallback((entryUserId: string): boolean => {
-    return user?.id === entryUserId;
-  }, [user?.id]);
+  const isCurrentUser = useCallback(
+    (entryUserId: string): boolean => {
+      return user?.id === entryUserId;
+    },
+    [user?.id]
+  );
 
   // Define columns for the DataTable
-  const columns: Column<LeaderboardEntry>[] = useMemo(() => [
-    {
-      key: 'rank',
-      header: 'Rank',
-      width: '80px',
-      align: 'center',
-      render: (entry) => {
-        const rankDisplay = entry.rank <= 3 ? (
-          <span className={`dt-rank dt-rank-${entry.rank}`}>
-            {entry.rank === 1 && '🥇 '}
-            {entry.rank === 2 && '🥈 '}
-            {entry.rank === 3 && '🥉 '}
-            {entry.rank}
-          </span>
-        ) : (
-          <span className="dt-rank">{entry.rank}</span>
-        );
-        return rankDisplay;
-      },
-    },
-    {
-      key: 'movement',
-      header: 'Move',
-      width: '70px',
-      align: 'center',
-      render: (entry) => {
-        if (entry.movement === 'new') {
-          return <span className="dt-badge dt-badge-warning">NEW</span>;
-        }
-        if (entry.movement === 'up') {
-          return <span className="movement-up">↑{entry.movementAmount}</span>;
-        }
-        if (entry.movement === 'down') {
-          return <span className="movement-down">↓{entry.movementAmount}</span>;
-        }
-        return <span className="dt-text-muted">-</span>;
-      },
-    },
-    {
-      key: 'user',
-      header: 'User',
-      render: (entry) => (
-        <Link to={`/users/${entry.userId}`} className="dt-text-link">
-          <div className="dt-info-cell">
-            <div className="dt-avatar">
-              {entry.firstName[0]}{entry.lastName[0]}
-            </div>
-            <div className="dt-info-details">
-              <span className="dt-info-name">
-                {entry.firstName} {entry.lastName}
-                {isCurrentUser(entry.userId) && <span className="dt-you-badge">You</span>}
+  const columns: Column<LeaderboardEntry>[] = useMemo(
+    () => [
+      {
+        key: 'rank',
+        header: 'Rank',
+        width: '80px',
+        align: 'center',
+        render: (entry) => {
+          const rankDisplay =
+            entry.rank <= 3 ? (
+              <span className={`dt-rank dt-rank-${entry.rank}`}>
+                {entry.rank === 1 && '🥇 '}
+                {entry.rank === 2 && '🥈 '}
+                {entry.rank === 3 && '🥉 '}
+                {entry.rank}
               </span>
-              <span className="dt-info-subtitle">@{entry.username}</span>
+            ) : (
+              <span className="dt-rank">{entry.rank}</span>
+            );
+          return rankDisplay;
+        },
+      },
+      {
+        key: 'movement',
+        header: 'Move',
+        width: '70px',
+        align: 'center',
+        render: (entry) => {
+          if (entry.movement === 'new') {
+            return <span className="dt-badge dt-badge-warning">NEW</span>;
+          }
+          if (entry.movement === 'up') {
+            return <span className="movement-up">↑{entry.movementAmount}</span>;
+          }
+          if (entry.movement === 'down') {
+            return <span className="movement-down">↓{entry.movementAmount}</span>;
+          }
+          return <span className="dt-text-muted">-</span>;
+        },
+      },
+      {
+        key: 'user',
+        header: 'User',
+        render: (entry) => (
+          <Link to={`/users/${entry.userId}`} className="dt-text-link">
+            <div className="dt-info-cell">
+              <div className="dt-avatar">
+                {entry.firstName[0]}
+                {entry.lastName[0]}
+              </div>
+              <div className="dt-info-details">
+                <span className="dt-info-name">
+                  {entry.firstName} {entry.lastName}
+                  {isCurrentUser(entry.userId) && <span className="dt-you-badge">You</span>}
+                </span>
+                <span className="dt-info-subtitle">@{entry.username}</span>
+              </div>
             </div>
-          </div>
-        </Link>
-      ),
-    },
-    {
-      key: 'points',
-      header: 'Points',
-      width: '100px',
-      align: 'center',
-      render: (entry) => <span className="dt-text-price">{entry.points}</span>,
-    },
-    {
-      key: 'teamValue',
-      header: 'Team Value',
-      width: '120px',
-      align: 'center',
-      headerClassName: 'hide-on-mobile',
-      cellClassName: 'hide-on-mobile',
-      render: (entry) => formatPrice(entry.teamValue),
-    },
-    {
-      key: 'events',
-      header: 'Events',
-      width: '80px',
-      align: 'center',
-      headerClassName: 'hide-on-small',
-      cellClassName: 'hide-on-small',
-      render: (entry) => entry.eventsPlayed,
-    },
-    {
-      key: 'action',
-      header: 'Action',
-      width: '90px',
-      align: 'center',
-      render: (entry) => !isCurrentUser(entry.userId) ? (
-        <button
-          className="dt-btn dt-btn-secondary"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setCompareUserId(entry.userId);
-          }}
-          title="Compare teams"
-        >
-          Compare
-        </button>
-      ) : null,
-    },
-  ], [isCurrentUser]);
+          </Link>
+        ),
+      },
+      {
+        key: 'points',
+        header: 'Points',
+        width: '100px',
+        align: 'center',
+        render: (entry) => <span className="dt-text-price">{entry.points}</span>,
+      },
+      {
+        key: 'teamValue',
+        header: 'Team Value',
+        width: '120px',
+        align: 'center',
+        headerClassName: 'hide-on-mobile',
+        cellClassName: 'hide-on-mobile',
+        render: (entry) => formatPrice(entry.teamValue),
+      },
+      {
+        key: 'events',
+        header: 'Events',
+        width: '80px',
+        align: 'center',
+        headerClassName: 'hide-on-small',
+        cellClassName: 'hide-on-small',
+        render: (entry) => entry.eventsPlayed,
+      },
+      {
+        key: 'action',
+        header: 'Action',
+        width: '90px',
+        align: 'center',
+        render: (entry) =>
+          !isCurrentUser(entry.userId) ? (
+            <button
+              className="dt-btn dt-btn-secondary"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setCompareUserId(entry.userId);
+              }}
+              title="Compare teams"
+            >
+              Compare
+            </button>
+          ) : null,
+      },
+    ],
+    [isCurrentUser]
+  );
 
   if (loading) {
     return (
@@ -463,7 +475,9 @@ const LeaderboardPage: React.FC = () => {
               <div className="period-navigation">
                 <button
                   className="nav-btn"
-                  onClick={() => type === 'week' ? handleWeekNavigation('prev') : handleMonthNavigation('prev')}
+                  onClick={() =>
+                    type === 'week' ? handleWeekNavigation('prev') : handleMonthNavigation('prev')
+                  }
                   disabled={!canGoPrev}
                   aria-label="Previous"
                 >
@@ -474,15 +488,23 @@ const LeaderboardPage: React.FC = () => {
                   name="leaderboard-period"
                   className="period-select"
                   value={type === 'week' ? weeklyDate : monthlyDate}
-                  onChange={(e) => type === 'week' ? handleWeekSelect(e.target.value) : handleMonthSelect(e.target.value)}
+                  onChange={(e) =>
+                    type === 'week'
+                      ? handleWeekSelect(e.target.value)
+                      : handleMonthSelect(e.target.value)
+                  }
                 >
-                  {(type === 'week' ? weekOptions : monthOptions).map(opt => (
-                    <option key={opt.date} value={opt.date}>{opt.label}</option>
+                  {(type === 'week' ? weekOptions : monthOptions).map((opt) => (
+                    <option key={opt.date} value={opt.date}>
+                      {opt.label}
+                    </option>
                   ))}
                 </select>
                 <button
                   className="nav-btn"
-                  onClick={() => type === 'week' ? handleWeekNavigation('next') : handleMonthNavigation('next')}
+                  onClick={() =>
+                    type === 'week' ? handleWeekNavigation('next') : handleMonthNavigation('next')
+                  }
                   disabled={!canGoNext}
                   aria-label="Next"
                 >
@@ -494,7 +516,9 @@ const LeaderboardPage: React.FC = () => {
           <div className="section-subtitle">
             <span className="period-label">{period?.label || ''}</span>
             <span className="meta-separator">•</span>
-            <span className="tournament-count">{tournamentCount} tournament{tournamentCount !== 1 ? 's' : ''}</span>
+            <span className="tournament-count">
+              {tournamentCount} tournament{tournamentCount !== 1 ? 's' : ''}
+            </span>
             <span className="meta-separator">•</span>
             <span className="participant-count">{entries.length} participants</span>
           </div>
@@ -504,7 +528,7 @@ const LeaderboardPage: React.FC = () => {
           data={paginatedEntries}
           columns={columns}
           rowKey={(entry) => entry.userId}
-          rowClassName={(entry) => isCurrentUser(entry.userId) ? 'dt-row-highlighted' : ''}
+          rowClassName={(entry) => (isCurrentUser(entry.userId) ? 'dt-row-highlighted' : '')}
           emptyMessage={`No tournaments this ${type === 'week' ? 'week' : type === 'month' ? 'month' : 'season'} yet.`}
         />
 
@@ -535,15 +559,13 @@ const LeaderboardPage: React.FC = () => {
   };
 
   // Render leader card
-  const renderLeaderCard = (
-    leader: LeaderboardEntry | null,
-    title: string,
-    emoji: string
-  ) => {
+  const renderLeaderCard = (leader: LeaderboardEntry | null, title: string, emoji: string) => {
     if (!leader) {
       return (
         <div className="leader-card empty">
-          <div className="leader-title">{emoji} {title}</div>
+          <div className="leader-title">
+            {emoji} {title}
+          </div>
           <div className="leader-empty">No leader yet</div>
         </div>
       );
@@ -551,9 +573,12 @@ const LeaderboardPage: React.FC = () => {
 
     return (
       <div className={`leader-card ${isCurrentUser(leader.userId) ? 'is-you' : ''}`}>
-        <div className="leader-title">{emoji} {title}</div>
+        <div className="leader-title">
+          {emoji} {title}
+        </div>
         <div className="leader-avatar">
-          {leader.firstName[0]}{leader.lastName[0]}
+          {leader.firstName[0]}
+          {leader.lastName[0]}
         </div>
         <div className="leader-name">
           {leader.firstName} {leader.lastName}
@@ -575,9 +600,7 @@ const LeaderboardPage: React.FC = () => {
           </div>
 
           {/* Error State */}
-          {error && (
-            <div className="error-message">{error}</div>
-          )}
+          {error && <div className="error-message">{error}</div>}
 
           {/* Leader Cards */}
           <div className="leaders-section">
@@ -590,7 +613,14 @@ const LeaderboardPage: React.FC = () => {
           {renderTable(weeklyData, 'Weekly Standings', 'week', true, weeklyPage, setWeeklyPage)}
 
           {/* Monthly Table */}
-          {renderTable(monthlyData, 'Monthly Standings', 'month', true, monthlyPage, setMonthlyPage)}
+          {renderTable(
+            monthlyData,
+            'Monthly Standings',
+            'month',
+            true,
+            monthlyPage,
+            setMonthlyPage
+          )}
 
           {/* Season Table */}
           {renderTable(seasonData, 'Season Standings', 'season', false, seasonPage, setSeasonPage)}
@@ -599,10 +629,7 @@ const LeaderboardPage: React.FC = () => {
 
       {/* Team Compare Modal */}
       {compareUserId && (
-        <TeamCompareModal
-          targetUserId={compareUserId}
-          onClose={() => setCompareUserId(null)}
-        />
+        <TeamCompareModal targetUserId={compareUserId} onClose={() => setCompareUserId(null)} />
       )}
     </PageLayout>
   );

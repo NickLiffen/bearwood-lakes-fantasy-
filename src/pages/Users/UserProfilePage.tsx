@@ -141,7 +141,7 @@ const formatWeekLabel = (weekStart: Date): string => {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
-    year: 'numeric'
+    year: 'numeric',
   });
 };
 
@@ -162,7 +162,7 @@ const UserProfilePage: React.FC = () => {
   useDocumentTitle(
     profileData ? `${profileData.user.firstName} ${profileData.user.lastName}` : 'User Profile'
   );
-  
+
   // Track request ID to ignore stale responses
   const requestIdRef = useRef(0);
 
@@ -198,53 +198,56 @@ const UserProfilePage: React.FC = () => {
     return options;
   }, []);
 
-  const fetchUserProfile = useCallback(async (date?: string) => {
-    // Increment request ID - any in-flight requests with old IDs will be ignored
-    const currentRequestId = ++requestIdRef.current;
+  const fetchUserProfile = useCallback(
+    async (date?: string) => {
+      // Increment request ID - any in-flight requests with old IDs will be ignored
+      const currentRequestId = ++requestIdRef.current;
 
-    try {
-      setLoading(true);
-      setError(null);
+      try {
+        setLoading(true);
+        setError(null);
 
-      const endpoint = date
-        ? `user-profile?userId=${userId}&date=${date}`
-        : `user-profile?userId=${userId}`;
-      const response = await get<UserProfileData>(endpoint);
+        const endpoint = date
+          ? `user-profile?userId=${userId}&date=${date}`
+          : `user-profile?userId=${userId}`;
+        const response = await get<UserProfileData>(endpoint);
 
-      // Ignore if this is a stale request or was cancelled
-      if (currentRequestId !== requestIdRef.current || response.cancelled) {
-        return;
-      }
-
-      if (response.success && response.data) {
-        setProfileData(response.data);
-
-        // Set selected date and generate week options
-        if (response.data.period) {
-          const weekStart = new Date(response.data.period.weekStart);
-          setSelectedDate(formatDateString(weekStart));
-
-          // Generate week options if not already set
-          if (weekOptions.length === 0 && response.data.teamEffectiveStart) {
-            const options = generateWeekOptions(response.data.teamEffectiveStart);
-            setWeekOptions(options);
-          }
+        // Ignore if this is a stale request or was cancelled
+        if (currentRequestId !== requestIdRef.current || response.cancelled) {
+          return;
         }
-      } else {
-        setError(response.error || 'Failed to load profile');
+
+        if (response.success && response.data) {
+          setProfileData(response.data);
+
+          // Set selected date and generate week options
+          if (response.data.period) {
+            const weekStart = new Date(response.data.period.weekStart);
+            setSelectedDate(formatDateString(weekStart));
+
+            // Generate week options if not already set
+            if (weekOptions.length === 0 && response.data.teamEffectiveStart) {
+              const options = generateWeekOptions(response.data.teamEffectiveStart);
+              setWeekOptions(options);
+            }
+          }
+        } else {
+          setError(response.error || 'Failed to load profile');
+        }
+      } catch {
+        // Only set error if this is still the current request
+        if (currentRequestId === requestIdRef.current) {
+          setError('Failed to load profile. Please try again.');
+        }
+      } finally {
+        // Only update loading if this is still the current request
+        if (currentRequestId === requestIdRef.current) {
+          setLoading(false);
+        }
       }
-    } catch {
-      // Only set error if this is still the current request
-      if (currentRequestId === requestIdRef.current) {
-        setError('Failed to load profile. Please try again.');
-      }
-    } finally {
-      // Only update loading if this is still the current request
-      if (currentRequestId === requestIdRef.current) {
-        setLoading(false);
-      }
-    }
-  }, [userId, get, weekOptions.length, generateWeekOptions]);
+    },
+    [userId, get, weekOptions.length, generateWeekOptions]
+  );
 
   useEffect(() => {
     if (isAuthReady && userId) {
@@ -283,11 +286,12 @@ const UserProfilePage: React.FC = () => {
       key: 'captain',
       header: 'C',
       align: 'center',
-      render: (golferData) => (
+      render: (golferData) =>
         golferData.isCaptain ? (
-          <span className="captain-indicator" title="Captain (2x points)">C</span>
-        ) : null
-      ),
+          <span className="captain-indicator" title="Captain (2x points)">
+            C
+          </span>
+        ) : null,
     },
     {
       key: 'golfer',
@@ -296,10 +300,15 @@ const UserProfilePage: React.FC = () => {
         <div className="dt-info-cell">
           <div className="dt-avatar">
             {golferData.golfer.picture ? (
-              <img src={golferData.golfer.picture} alt={`${golferData.golfer.firstName} ${golferData.golfer.lastName}`} loading="lazy" />
+              <img
+                src={golferData.golfer.picture}
+                alt={`${golferData.golfer.firstName} ${golferData.golfer.lastName}`}
+                loading="lazy"
+              />
             ) : (
               <span className="dt-avatar-placeholder">
-                {golferData.golfer.firstName[0]}{golferData.golfer.lastName[0]}
+                {golferData.golfer.firstName[0]}
+                {golferData.golfer.lastName[0]}
               </span>
             )}
           </div>
@@ -341,7 +350,9 @@ const UserProfilePage: React.FC = () => {
           <div className="user-profile-container">
             <div className="error-state">
               <p>{error || 'User not found'}</p>
-              <Link to="/users" className="btn-back">← Back to Users</Link>
+              <Link to="/users" className="btn-back">
+                ← Back to Users
+              </Link>
             </div>
           </div>
         </div>
@@ -356,15 +367,20 @@ const UserProfilePage: React.FC = () => {
       <div className="user-profile-content">
         <div className="user-profile-container">
           {/* Back Link */}
-          <Link to="/users" className="user-profile-back-link">← Back to Users</Link>
+          <Link to="/users" className="user-profile-back-link">
+            ← Back to Users
+          </Link>
 
           {/* Profile Header */}
           <div className="profile-header-card">
             <div className="profile-avatar-large">
-              {user.firstName[0]}{user.lastName[0]}
+              {user.firstName[0]}
+              {user.lastName[0]}
             </div>
             <div className="profile-header-info">
-              <h1>{user.firstName} {user.lastName}</h1>
+              <h1>
+                {user.firstName} {user.lastName}
+              </h1>
               <p className="profile-username">@{user.username}</p>
               <p className="profile-member-since">Member since {formatDate(user.createdAt)}</p>
               {hasTeam && team && (
@@ -373,10 +389,7 @@ const UserProfilePage: React.FC = () => {
               {isOwnProfile && <span className="own-profile-badge">This is you!</span>}
             </div>
             {hasTeam && !isOwnProfile && (
-              <button 
-                className="btn-compare"
-                onClick={() => setShowCompareModal(true)}
-              >
+              <button className="btn-compare" onClick={() => setShowCompareModal(true)}>
                 ⚖️ Compare Teams
               </button>
             )}
@@ -419,7 +432,9 @@ const UserProfilePage: React.FC = () => {
               <div className="team-section">
                 <div className="section-header">
                   <h2>🏌️ {user.firstName}'s Team</h2>
-                  <span className="team-value">{formatPrice(team.totals.totalSpent)} team value</span>
+                  <span className="team-value">
+                    {formatPrice(team.totals.totalSpent)} team value
+                  </span>
                 </div>
 
                 {/* Week Navigation */}
@@ -439,8 +454,10 @@ const UserProfilePage: React.FC = () => {
                     value={selectedDate}
                     onChange={handleWeekSelect}
                   >
-                    {weekOptions.map(opt => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    {weekOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
                     ))}
                   </select>
                   <button
@@ -481,15 +498,19 @@ const UserProfilePage: React.FC = () => {
                           <div className="history-changes">
                             {entry.addedPlayers.length > 0 && (
                               <div className="golfers-added">
-                                {entry.addedPlayers.map(p => (
-                                  <span key={p.id} className="golfer-change added">+ {p.name}</span>
+                                {entry.addedPlayers.map((p) => (
+                                  <span key={p.id} className="golfer-change added">
+                                    + {p.name}
+                                  </span>
                                 ))}
                               </div>
                             )}
                             {entry.removedPlayers.length > 0 && (
                               <div className="golfers-removed">
-                                {entry.removedPlayers.map(p => (
-                                  <span key={p.id} className="golfer-change removed">- {p.name}</span>
+                                {entry.removedPlayers.map((p) => (
+                                  <span key={p.id} className="golfer-change removed">
+                                    - {p.name}
+                                  </span>
                                 ))}
                               </div>
                             )}
@@ -507,10 +528,7 @@ const UserProfilePage: React.FC = () => {
 
       {/* Compare Modal */}
       {showCompareModal && userId && (
-        <TeamCompareModal
-          targetUserId={userId}
-          onClose={() => setShowCompareModal(false)}
-        />
+        <TeamCompareModal targetUserId={userId} onClose={() => setShowCompareModal(false)} />
       )}
     </PageLayout>
   );

@@ -258,7 +258,6 @@
   text-align: center;
 }
 
-
 /* Empty State */
 .empty-state {
   text-align: center;
@@ -426,30 +425,30 @@
   .header-nav {
     display: none;
   }
-  
+
   .podium-section {
     flex-wrap: wrap;
   }
-  
+
   .podium-card {
     min-width: 140px;
   }
-  
+
   .podium-card.first {
     order: 1;
     width: 100%;
     max-width: 200px;
     transform: scale(1);
   }
-  
+
   .podium-card.first:hover {
     transform: translateY(-4px);
   }
-  
+
   .podium-card.second {
     order: 2;
   }
-  
+
   .podium-card.third {
     order: 3;
   }

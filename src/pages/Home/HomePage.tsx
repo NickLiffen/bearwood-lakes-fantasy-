@@ -16,7 +16,13 @@ const HomePage: React.FC = () => {
       {/* Top Navigation */}
       <nav className="top-nav">
         <div className="nav-brand">
-          <img src="/bearwood_lakes_logo.png" alt="Bearwood Lakes Fantasy" className="nav-logo-img" width="69" height="36" />
+          <img
+            src="/bearwood_lakes_logo.png"
+            alt="Bearwood Lakes Fantasy"
+            className="nav-logo-img"
+            width="69"
+            height="36"
+          />
           <span className="nav-title">Bearwood Lakes Fantasy</span>
         </div>
         <div className="nav-links">
@@ -28,9 +34,7 @@ const HomePage: React.FC = () => {
               <Link to="/profile" className="nav-link">
                 Profile
               </Link>
-              <span className="nav-user">
-                Hi, {user?.firstName}
-              </span>
+              <span className="nav-user">Hi, {user?.firstName}</span>
             </>
           ) : (
             <>
@@ -50,14 +54,22 @@ const HomePage: React.FC = () => {
         <div className="hero-overlay" />
         <div className="hero-content">
           <div className="logo-badge animate-fade-in">
-            <img src="/bearwood_lakes_logo.png" alt="Bearwood Lakes" className="logo-icon-img" width="70" height="70" />
+            <img
+              src="/bearwood_lakes_logo.png"
+              alt="Bearwood Lakes"
+              className="logo-icon-img"
+              width="70"
+              height="70"
+            />
           </div>
           <h1 className="hero-title animate-fade-in animate-delay-1">
             Bearwood Lakes
             <span className="hero-subtitle">Fantasy Golf</span>
           </h1>
           <p className="hero-tagline animate-fade-in animate-delay-2">
-            Think you know Bearwood Lakes? Think you know the members? Prove it by battling it out in the Bearwood Lakes 2026 Fantasy Golf League.          </p>
+            Think you know Bearwood Lakes? Think you know the members? Prove it by battling it out
+            in the Bearwood Lakes 2026 Fantasy Golf League.{' '}
+          </p>
           <div className="hero-cta animate-fade-in animate-delay-3">
             <Link to="/register" className="btn btn-primary btn-lg">
               Join the Competition
@@ -80,9 +92,7 @@ const HomePage: React.FC = () => {
       <section className="how-it-works">
         <div className="container">
           <h2 className="section-title">How It Works</h2>
-          <p className="section-subtitle">
-            Three simple steps to fantasy golf glory
-          </p>
+          <p className="section-subtitle">Three simple steps to fantasy golf glory</p>
 
           <div className="steps-grid">
             <div className="step-card">
@@ -90,9 +100,8 @@ const HomePage: React.FC = () => {
               <div className="step-icon">💰</div>
               <h3>Build Your Team</h3>
               <p>
-                You have <strong>$50 million</strong> to assemble your dream
-                team of <strong>6 professional golfers</strong>. Choose wisely –
-                budget management is key!
+                You have <strong>$50 million</strong> to assemble your dream team of{' '}
+                <strong>6 professional golfers</strong>. Choose wisely – budget management is key!
               </p>
             </div>
 
@@ -101,9 +110,8 @@ const HomePage: React.FC = () => {
               <div className="step-icon">📊</div>
               <h3>Score Points</h3>
               <p>
-                Your team earns points based on real tournament performances.
-                Eagles, birdies, top finishes – it all counts towards your
-                total.
+                Your team earns points based on real tournament performances. Eagles, birdies, top
+                finishes – it all counts towards your total.
               </p>
             </div>
 
@@ -112,8 +120,8 @@ const HomePage: React.FC = () => {
               <div className="step-icon">🏆</div>
               <h3>Climb the Leaderboard</h3>
               <p>
-                Compete against fellow Bearwood members throughout the season.
-                Bragging rights and glory await the champion!
+                Compete against fellow Bearwood members throughout the season. Bragging rights and
+                glory await the champion!
               </p>
             </div>
           </div>
@@ -131,36 +139,28 @@ const HomePage: React.FC = () => {
                   <span className="rule-icon">�</span>
                   <div>
                     <strong>$50M Budget</strong>
-                    <p>
-                      Spend wisely across your 6 picks – no going over budget!
-                    </p>
+                    <p>Spend wisely across your 6 picks – no going over budget!</p>
                   </div>
                 </li>
                 <li>
                   <span className="rule-icon">👥</span>
                   <div>
                     <strong>Exactly 6 golfers</strong>
-                    <p>
-                      No more, no less. Every roster spot matters.
-                    </p>
+                    <p>No more, no less. Every roster spot matters.</p>
                   </div>
                 </li>
                 <li>
                   <span className="rule-icon">🔒</span>
                   <div>
                     <strong>Transfer Windows</strong>
-                    <p>
-                      Transfers lock before each major tournament. Plan ahead!
-                    </p>
+                    <p>Transfers lock before each major tournament. Plan ahead!</p>
                   </div>
                 </li>
                 <li>
                   <span className="rule-icon">⚡</span>
                   <div>
                     <strong>Live Scoring</strong>
-                    <p>
-                      Watch your points update as the action unfolds.
-                    </p>
+                    <p>Watch your points update as the action unfolds.</p>
                   </div>
                 </li>
               </ul>
@@ -183,9 +183,8 @@ const HomePage: React.FC = () => {
           <div className="fun-content">
             <h2 className="fun-title">⚠️ Fair Warning ⚠️</h2>
             <p className="fun-text">
-              This game has been known to cause heated debates at the 19th hole,
-              questionable predictions, and sudden expertise in golfers you've
-              never heard of.
+              This game has been known to cause heated debates at the 19th hole, questionable
+              predictions, and sudden expertise in golfers you've never heard of.
             </p>
             <div className="fun-quotes">
               <div className="quote">
@@ -218,7 +217,13 @@ const HomePage: React.FC = () => {
         <div className="container">
           <div className="footer-content">
             <div className="footer-brand">
-              <img src="/bearwood_lakes_logo.png" alt="Bearwood Lakes" className="footer-logo-img" width="62" height="32" />
+              <img
+                src="/bearwood_lakes_logo.png"
+                alt="Bearwood Lakes"
+                className="footer-logo-img"
+                width="62"
+                height="32"
+              />
               <span>Bearwood Lakes Fantasy Golf</span>
             </div>
             <div className="footer-links">

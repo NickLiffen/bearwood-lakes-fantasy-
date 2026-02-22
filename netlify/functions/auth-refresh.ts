@@ -20,20 +20,26 @@ export const handler: Handler = async (event) => {
   }
 
   if (event.httpMethod !== 'POST') {
-    return withCors({
-      statusCode: 405,
-      body: JSON.stringify({ error: 'Method not allowed' }),
-    }, requestOrigin);
+    return withCors(
+      {
+        statusCode: 405,
+        body: JSON.stringify({ error: 'Method not allowed' }),
+      },
+      requestOrigin
+    );
   }
 
   try {
     const refreshToken = getRefreshTokenFromCookie(event.headers.cookie);
 
     if (!refreshToken) {
-      return withCors({
-        statusCode: 401,
-        body: JSON.stringify({ success: false, error: 'No refresh token provided' }),
-      }, requestOrigin);
+      return withCors(
+        {
+          statusCode: 401,
+          body: JSON.stringify({ success: false, error: 'No refresh token provided' }),
+        },
+        requestOrigin
+      );
     }
 
     const { userAgent, ipAddress } = getClientInfo(event.headers);
@@ -42,29 +48,35 @@ export const handler: Handler = async (event) => {
     // Set new refresh token cookie (token rotation)
     const cookieHeader = setRefreshTokenCookie(result.refreshToken);
 
-    return withCors({
-      statusCode: 200,
-      headers: {
-        'Set-Cookie': cookieHeader,
-      },
-      body: JSON.stringify({
-        success: true,
-        data: {
-          user: result.user,
-          token: result.token,
+    return withCors(
+      {
+        statusCode: 200,
+        headers: {
+          'Set-Cookie': cookieHeader,
         },
-      }),
-    }, requestOrigin);
+        body: JSON.stringify({
+          success: true,
+          data: {
+            user: result.user,
+            token: result.token,
+          },
+        }),
+      },
+      requestOrigin
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Token refresh failed';
-    
+
     // Clear the invalid cookie
-    return withCors({
-      statusCode: 401,
-      headers: {
-        'Set-Cookie': clearRefreshTokenCookie(),
+    return withCors(
+      {
+        statusCode: 401,
+        headers: {
+          'Set-Cookie': clearRefreshTokenCookie(),
+        },
+        body: JSON.stringify({ success: false, error: message }),
       },
-      body: JSON.stringify({ success: false, error: message }),
-    }, requestOrigin);
+      requestOrigin
+    );
   }
 };

@@ -111,22 +111,25 @@ const TournamentsAdminPage: React.FC = () => {
     if (field === 'name') {
       sanitizedValue = sanitizers.removeExtraSpaces(value);
     }
-    
+
     setFormData({ ...formData, [field]: sanitizedValue });
-    
+
     if (touched[field]) {
       setFieldErrors({ ...fieldErrors, [field]: validateField(field, sanitizedValue) });
     }
-    
+
     // Re-validate endDate when startDate changes
     if (field === 'startDate' && touched.endDate) {
-      setFieldErrors(prev => ({ ...prev, endDate: validateField('endDate', formData.endDate) }));
+      setFieldErrors((prev) => ({ ...prev, endDate: validateField('endDate', formData.endDate) }));
     }
   };
 
   const handleFieldBlur = (field: string) => {
     setTouched({ ...touched, [field]: true });
-    setFieldErrors({ ...fieldErrors, [field]: validateField(field, formData[field as keyof TournamentFormData]) });
+    setFieldErrors({
+      ...fieldErrors,
+      [field]: validateField(field, formData[field as keyof TournamentFormData]),
+    });
   };
 
   const getFieldClass = (field: string): string => {
@@ -137,27 +140,29 @@ const TournamentsAdminPage: React.FC = () => {
   const validateAllFields = (): boolean => {
     const newErrors: Record<string, string> = {};
     const fieldsToValidate = ['name', 'startDate', 'endDate'];
-    
-    fieldsToValidate.forEach(field => {
+
+    fieldsToValidate.forEach((field) => {
       const error = validateField(field, formData[field as keyof TournamentFormData]);
       if (error) newErrors[field] = error;
     });
-    
+
     const newTouched: Record<string, boolean> = {};
-    fieldsToValidate.forEach(field => { newTouched[field] = true; });
+    fieldsToValidate.forEach((field) => {
+      newTouched[field] = true;
+    });
     setTouched({ ...touched, ...newTouched });
     setFieldErrors(newErrors);
-    
+
     return Object.keys(newErrors).length === 0;
   };
 
   const fetchTournaments = useCallback(async () => {
     try {
       const response = await get<Tournament[]>('tournaments-list?allSeasons=true');
-      
+
       // Ignore cancelled requests
       if (response.cancelled) return;
-      
+
       if (response.success && response.data) {
         setTournaments(response.data);
       }
@@ -171,10 +176,10 @@ const TournamentsAdminPage: React.FC = () => {
   const fetchGolfers = useCallback(async () => {
     try {
       const response = await get<Golfer[]>('golfers-list');
-      
+
       // Ignore cancelled requests
       if (response.cancelled) return;
-      
+
       if (response.success && response.data) {
         setGolfers(response.data);
       }
@@ -224,13 +229,12 @@ const TournamentsAdminPage: React.FC = () => {
     setLoadingScores(true);
     setTournamentScores([]);
 
-
     try {
       const response = await get<Score[]>(`scores-list?tournamentId=${tournament.id}`);
       if (response.success && response.data) {
         // Map scores to include golfer names
         const scoresWithNames: ScoreWithGolfer[] = response.data.map((score: Score) => {
-          const golfer = golfers.find(g => g.id === score.golferId);
+          const golfer = golfers.find((g) => g.id === score.golferId);
           return {
             ...score,
             golferName: golfer ? `${golfer.firstName} ${golfer.lastName}` : 'Unknown Golfer',
@@ -316,7 +320,11 @@ const TournamentsAdminPage: React.FC = () => {
   };
 
   const handleDeleteTournament = async (tournament: Tournament) => {
-    if (!window.confirm(`Are you sure you want to delete "${tournament.name}"? This action cannot be undone.`)) {
+    if (
+      !window.confirm(
+        `Are you sure you want to delete "${tournament.name}"? This action cannot be undone.`
+      )
+    ) {
       return;
     }
 
@@ -356,9 +364,9 @@ const TournamentsAdminPage: React.FC = () => {
   };
 
   // Calculate stats
-  const draftCount = tournaments.filter(t => t.status === 'draft').length;
-  const publishedCount = tournaments.filter(t => t.status === 'published').length;
-  const completeCount = tournaments.filter(t => t.status === 'complete').length;
+  const draftCount = tournaments.filter((t) => t.status === 'draft').length;
+  const publishedCount = tournaments.filter((t) => t.status === 'published').length;
+  const completeCount = tournaments.filter((t) => t.status === 'complete').length;
 
   return (
     <AdminLayout title="Manage Tournaments">
@@ -534,7 +542,9 @@ const TournamentsAdminPage: React.FC = () => {
                 {error && <div className="alert alert-error">{error}</div>}
 
                 <div className="form-group">
-                  <label htmlFor="name">Tournament Name<span className="required-indicator">*</span></label>
+                  <label htmlFor="name">
+                    Tournament Name<span className="required-indicator">*</span>
+                  </label>
                   <input
                     type="text"
                     id="name"
@@ -551,7 +561,9 @@ const TournamentsAdminPage: React.FC = () => {
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label htmlFor="startDate">Start Date<span className="required-indicator">*</span></label>
+                    <label htmlFor="startDate">
+                      Start Date<span className="required-indicator">*</span>
+                    </label>
                     <input
                       type="date"
                       id="startDate"
@@ -565,7 +577,9 @@ const TournamentsAdminPage: React.FC = () => {
                     )}
                   </div>
                   <div className="form-group">
-                    <label htmlFor="endDate">End Date<span className="required-indicator">*</span></label>
+                    <label htmlFor="endDate">
+                      End Date<span className="required-indicator">*</span>
+                    </label>
                     <input
                       type="date"
                       id="endDate"
@@ -581,18 +595,32 @@ const TournamentsAdminPage: React.FC = () => {
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="tournamentType">Tournament Type<span className="required-indicator">*</span></label>
+                  <label htmlFor="tournamentType">
+                    Tournament Type<span className="required-indicator">*</span>
+                  </label>
                   <select
                     id="tournamentType"
                     className="form-select"
                     value={formData.tournamentType}
-                    onChange={(e) => setFormData({ ...formData, tournamentType: e.target.value as 'regular' | 'elevated' | 'signature' })}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        tournamentType: e.target.value as 'regular' | 'elevated' | 'signature',
+                      })
+                    }
                   >
                     <option value="regular">1x - Regular Tournament</option>
                     <option value="elevated">2x - Elevated Tournament</option>
                     <option value="signature">3x - Signature Event</option>
                   </select>
-                  <small style={{ color: '#6b7280', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+                  <small
+                    style={{
+                      color: '#6b7280',
+                      fontSize: '0.8rem',
+                      marginTop: '0.25rem',
+                      display: 'block',
+                    }}
+                  >
                     Regular = 1x, Elevated = 2x, Signature = 3x points multiplier
                   </small>
                 </div>
@@ -622,41 +650,67 @@ const TournamentsAdminPage: React.FC = () => {
             </div>
             <div className="modal-body">
               {/* Tournament Info */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1rem', marginBottom: '1.5rem' }}>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: '1rem',
+                  marginBottom: '1.5rem',
+                }}
+              >
                 <div style={{ background: '#f9fafb', padding: '1rem', borderRadius: '8px' }}>
-                  <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.25rem' }}>📅 Dates</div>
+                  <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.25rem' }}>
+                    📅 Dates
+                  </div>
                   <div style={{ fontWeight: 500 }}>
-                    {formatDate(viewingTournament.startDate)} – {formatDate(viewingTournament.endDate)}
+                    {formatDate(viewingTournament.startDate)} –{' '}
+                    {formatDate(viewingTournament.endDate)}
                   </div>
                 </div>
                 <div style={{ background: '#f9fafb', padding: '1rem', borderRadius: '8px' }}>
-                  <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.25rem' }}>⚡ Type</div>
+                  <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.25rem' }}>
+                    ⚡ Type
+                  </div>
                   <div style={{ fontWeight: 500 }}>
                     {viewingTournament.tournamentType === 'signature' ? (
-                      <span style={{ color: '#7c3aed' }}>{viewingTournament.multiplier}x Signature</span>
+                      <span style={{ color: '#7c3aed' }}>
+                        {viewingTournament.multiplier}x Signature
+                      </span>
                     ) : viewingTournament.tournamentType === 'elevated' ? (
-                      <span style={{ color: 'var(--accent-gold)' }}>{viewingTournament.multiplier}x Elevated</span>
+                      <span style={{ color: 'var(--accent-gold)' }}>
+                        {viewingTournament.multiplier}x Elevated
+                      </span>
                     ) : (
                       '1x Regular'
                     )}
                   </div>
                 </div>
                 <div style={{ background: '#f9fafb', padding: '1rem', borderRadius: '8px' }}>
-                  <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.25rem' }}>📊 Status</div>
+                  <div style={{ fontSize: '0.8rem', color: '#6b7280', marginBottom: '0.25rem' }}>
+                    📊 Status
+                  </div>
                   <div>{getStatusBadge(viewingTournament.status)}</div>
                 </div>
               </div>
 
               {/* Points Info Box - Dynamic based on participants */}
               {(() => {
-                const participantCount = tournamentScores.filter(s => s.participated).length;
-                const tier = participantCount <= 10 ? '0-10' : participantCount < 20 ? '10-20' : '20+';
+                const participantCount = tournamentScores.filter((s) => s.participated).length;
+                const tier =
+                  participantCount <= 10 ? '0-10' : participantCount < 20 ? '10-20' : '20+';
                 return (
-                  <div style={{ background: '#fffbeb', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', border: '1px solid #fde68a' }}>
+                  <div
+                    style={{
+                      background: '#fffbeb',
+                      padding: '1rem',
+                      borderRadius: '8px',
+                      marginBottom: '1.5rem',
+                      border: '1px solid #fde68a',
+                    }}
+                  >
                     <div style={{ fontSize: '0.85rem', color: '#92400e' }}>
                       <strong>golfers:</strong> {participantCount} ({tier} tier){' | '}
-                      <strong>Points:</strong>{' '}
-                      {tier === '0-10' && '1st = 5pts'}
+                      <strong>Points:</strong> {tier === '0-10' && '1st = 5pts'}
                       {tier === '10-20' && '1st = 5pts, 2nd = 2pts'}
                       {tier === '20+' && '1st = 5pts, 2nd = 3pts, 3rd = 1pt'}
                       {' | '}36+ bonus = +1pt{' | '}
@@ -669,20 +723,37 @@ const TournamentsAdminPage: React.FC = () => {
               {/* Scores Section */}
               <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '1.5rem' }}>
                 <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem' }}>
-                  📋 Submitted Scores ({tournamentScores.filter(s => s.participated).length} participants)
+                  📋 Submitted Scores ({tournamentScores.filter((s) => s.participated).length}{' '}
+                  participants)
                 </h3>
 
                 {loadingScores ? (
                   <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
                     Loading scores...
                   </div>
-                ) : tournamentScores.filter(s => s.participated).length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: '2rem', background: '#f9fafb', borderRadius: '8px' }}>
+                ) : tournamentScores.filter((s) => s.participated).length === 0 ? (
+                  <div
+                    style={{
+                      textAlign: 'center',
+                      padding: '2rem',
+                      background: '#f9fafb',
+                      borderRadius: '8px',
+                    }}
+                  >
                     <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📭</div>
-                    <p style={{ color: '#6b7280' }}>No scores have been submitted for this tournament yet.</p>
+                    <p style={{ color: '#6b7280' }}>
+                      No scores have been submitted for this tournament yet.
+                    </p>
                   </div>
                 ) : (
-                  <div style={{ maxHeight: '300px', overflow: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+                  <div
+                    style={{
+                      maxHeight: '300px',
+                      overflow: 'auto',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                    }}
+                  >
                     <table className="admin-table" style={{ margin: 0 }}>
                       <thead>
                         <tr>
@@ -694,39 +765,60 @@ const TournamentsAdminPage: React.FC = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {tournamentScores.filter(s => s.participated).map((score) => (
-                          <tr key={score.id}>
-                            <td>
-                              {score.position === 1 && <span style={{ fontSize: '1.1rem' }}>🥇</span>}
-                              {score.position === 2 && <span style={{ fontSize: '1.1rem' }}>🥈</span>}
-                              {score.position === 3 && <span style={{ fontSize: '1.1rem' }}>🥉</span>}
-                              {score.position !== null && score.position > 3 && (
-                                <span style={{ color: '#6b7280' }}>{score.position}</span>
-                              )}
-                              {score.position === null && <span style={{ color: '#9ca3af' }}>—</span>}
-                            </td>
-                            <td style={{ fontWeight: 500 }}>{score.golferName}</td>
-                            <td>
-                              {score.scored36Plus ? (
-                                <span style={{ color: 'var(--primary-green)' }}>✓</span>
-                              ) : (
-                                <span style={{ color: '#9ca3af' }}>—</span>
-                              )}
-                            </td>
-                            <td style={{ color: '#6b7280' }}>
-                              {score.basePoints}
-                              {score.bonusPoints > 0 && <span style={{ color: 'var(--primary-green)' }}> +{score.bonusPoints}</span>}
-                            </td>
-                            <td style={{ fontWeight: 600, color: 'var(--primary-green)' }}>
-                              {score.multipliedPoints}
-                              {viewingTournament.multiplier > 1 && (
-                                <span style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', marginLeft: '0.25rem' }}>
-                                  ({viewingTournament.multiplier}x)
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
+                        {tournamentScores
+                          .filter((s) => s.participated)
+                          .map((score) => (
+                            <tr key={score.id}>
+                              <td>
+                                {score.position === 1 && (
+                                  <span style={{ fontSize: '1.1rem' }}>🥇</span>
+                                )}
+                                {score.position === 2 && (
+                                  <span style={{ fontSize: '1.1rem' }}>🥈</span>
+                                )}
+                                {score.position === 3 && (
+                                  <span style={{ fontSize: '1.1rem' }}>🥉</span>
+                                )}
+                                {score.position !== null && score.position > 3 && (
+                                  <span style={{ color: '#6b7280' }}>{score.position}</span>
+                                )}
+                                {score.position === null && (
+                                  <span style={{ color: '#9ca3af' }}>—</span>
+                                )}
+                              </td>
+                              <td style={{ fontWeight: 500 }}>{score.golferName}</td>
+                              <td>
+                                {score.scored36Plus ? (
+                                  <span style={{ color: 'var(--primary-green)' }}>✓</span>
+                                ) : (
+                                  <span style={{ color: '#9ca3af' }}>—</span>
+                                )}
+                              </td>
+                              <td style={{ color: '#6b7280' }}>
+                                {score.basePoints}
+                                {score.bonusPoints > 0 && (
+                                  <span style={{ color: 'var(--primary-green)' }}>
+                                    {' '}
+                                    +{score.bonusPoints}
+                                  </span>
+                                )}
+                              </td>
+                              <td style={{ fontWeight: 600, color: 'var(--primary-green)' }}>
+                                {score.multipliedPoints}
+                                {viewingTournament.multiplier > 1 && (
+                                  <span
+                                    style={{
+                                      fontSize: '0.75rem',
+                                      color: 'var(--accent-gold)',
+                                      marginLeft: '0.25rem',
+                                    }}
+                                  >
+                                    ({viewingTournament.multiplier}x)
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
                       </tbody>
                     </table>
                   </div>

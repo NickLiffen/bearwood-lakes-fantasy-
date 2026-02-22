@@ -17,9 +17,9 @@ export const handler = withRateLimit(async (event) => {
     if (!settings.registrationOpen) {
       return {
         statusCode: 403,
-        body: JSON.stringify({ 
-          success: false, 
-          error: 'Registration is currently closed. Please contact an administrator.' 
+        body: JSON.stringify({
+          success: false,
+          error: 'Registration is currently closed. Please contact an administrator.',
         }),
       };
     }

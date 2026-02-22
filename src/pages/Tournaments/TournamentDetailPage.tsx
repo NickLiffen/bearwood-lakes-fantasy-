@@ -121,120 +121,144 @@ const TournamentDetailPage: React.FC = () => {
   // Get tournament type badge class
   const getTypeBadgeClass = (type: string) => {
     switch (type) {
-      case 'signature': return 'detail-type-badge detail-type-signature';
-      case 'elevated': return 'detail-type-badge detail-type-elevated';
-      default: return 'detail-type-badge detail-type-regular';
+      case 'signature':
+        return 'detail-type-badge detail-type-signature';
+      case 'elevated':
+        return 'detail-type-badge detail-type-elevated';
+      default:
+        return 'detail-type-badge detail-type-regular';
     }
   };
 
   // Get membership badge class
   const getMembershipClass = (type: string) => {
     switch (type) {
-      case 'men': return 'dt-membership dt-membership-men';
-      case 'female': return 'dt-membership dt-membership-female';
-      case 'junior': return 'dt-membership dt-membership-junior';
-      case 'senior': return 'dt-membership dt-membership-senior';
-      default: return 'dt-membership';
+      case 'men':
+        return 'dt-membership dt-membership-men';
+      case 'female':
+        return 'dt-membership dt-membership-female';
+      case 'junior':
+        return 'dt-membership dt-membership-junior';
+      case 'senior':
+        return 'dt-membership dt-membership-senior';
+      default:
+        return 'dt-membership';
     }
   };
 
   // Get membership label
   const getMembershipLabel = (type: string) => {
     switch (type) {
-      case 'men': return 'Men';
-      case 'female': return 'Ladies';
-      case 'junior': return 'Junior';
-      case 'senior': return 'Senior';
-      default: return type;
+      case 'men':
+        return 'Men';
+      case 'female':
+        return 'Ladies';
+      case 'junior':
+        return 'Junior';
+      case 'senior':
+        return 'Senior';
+      default:
+        return type;
     }
   };
 
   // Define table columns
-  const columns: Column<GolferScore>[] = useMemo(() => [
-    {
-      key: 'position',
-      header: 'Pos',
-      width: '60px',
-      align: 'center',
-      render: (score) => {
-        if (score.position === 1) return <span className="position-badge position-gold">1</span>;
-        if (score.position === 2) return <span className="position-badge position-silver">2</span>;
-        if (score.position === 3) return <span className="position-badge position-bronze">3</span>;
-        return <span className="dt-cell-muted">-</span>;
+  const columns: Column<GolferScore>[] = useMemo(
+    () => [
+      {
+        key: 'position',
+        header: 'Pos',
+        width: '60px',
+        align: 'center',
+        render: (score) => {
+          if (score.position === 1) return <span className="position-badge position-gold">1</span>;
+          if (score.position === 2)
+            return <span className="position-badge position-silver">2</span>;
+          if (score.position === 3)
+            return <span className="position-badge position-bronze">3</span>;
+          return <span className="dt-cell-muted">-</span>;
+        },
       },
-    },
-    {
-      key: 'golfer',
-      header: 'Golfer',
-      render: (score) => (
-        <Link to={`/golfers/${score.golfer.id}`} className="dt-cell-link">
-          <div className="dt-info-cell">
-            <div className="dt-avatar">
-              {score.golfer.picture ? (
-                <img src={score.golfer.picture} alt={`${score.golfer.firstName} ${score.golfer.lastName}`} loading="lazy" />
-              ) : (
-                <span className="dt-avatar-placeholder">
-                  {score.golfer.firstName[0]}{score.golfer.lastName[0]}
+      {
+        key: 'golfer',
+        header: 'Golfer',
+        render: (score) => (
+          <Link to={`/golfers/${score.golfer.id}`} className="dt-cell-link">
+            <div className="dt-info-cell">
+              <div className="dt-avatar">
+                {score.golfer.picture ? (
+                  <img
+                    src={score.golfer.picture}
+                    alt={`${score.golfer.firstName} ${score.golfer.lastName}`}
+                    loading="lazy"
+                  />
+                ) : (
+                  <span className="dt-avatar-placeholder">
+                    {score.golfer.firstName[0]}
+                    {score.golfer.lastName[0]}
+                  </span>
+                )}
+              </div>
+              <div className="dt-info-details">
+                <span className="dt-info-name">
+                  {score.golfer.firstName} {score.golfer.lastName}
                 </span>
-              )}
+                <span className={getMembershipClass(score.golfer.membershipType)}>
+                  {getMembershipLabel(score.golfer.membershipType)}
+                </span>
+              </div>
             </div>
-            <div className="dt-info-details">
-              <span className="dt-info-name">
-                {score.golfer.firstName} {score.golfer.lastName}
-              </span>
-              <span className={getMembershipClass(score.golfer.membershipType)}>
-                {getMembershipLabel(score.golfer.membershipType)}
-              </span>
-            </div>
-          </div>
-        </Link>
-      ),
-    },
-    {
-      key: 'multipliedPoints',
-      header: 'Points',
-      width: '100px',
-      align: 'center',
-      render: (score) => (
-        <span className={score.multipliedPoints > 0 ? 'dt-cell-stat dt-cell-stat-highlight' : 'dt-cell-muted'}>
-          {score.multipliedPoints}
-        </span>
-      ),
-    },
-    {
-      key: 'basePoints',
-      header: 'Base',
-      width: '80px',
-      align: 'center',
-      render: (score) => (
-        <span className="dt-cell-stat">{score.basePoints}</span>
-      ),
-    },
-    {
-      key: 'bonusPoints',
-      header: 'Bonus',
-      width: '80px',
-      align: 'center',
-      render: (score) => (
-        <span className={score.bonusPoints > 0 ? 'dt-cell-stat' : 'dt-cell-muted'}>
-          {score.bonusPoints > 0 ? `+${score.bonusPoints}` : '0'}
-        </span>
-      ),
-    },
-    {
-      key: 'scored36Plus',
-      header: '36+',
-      width: '70px',
-      align: 'center',
-      render: (score) => (
-        score.scored36Plus ? (
-          <span className="badge-36plus">Yes</span>
-        ) : (
-          <span className="dt-cell-muted">-</span>
-        )
-      ),
-    },
-  ], []);
+          </Link>
+        ),
+      },
+      {
+        key: 'multipliedPoints',
+        header: 'Points',
+        width: '100px',
+        align: 'center',
+        render: (score) => (
+          <span
+            className={
+              score.multipliedPoints > 0 ? 'dt-cell-stat dt-cell-stat-highlight' : 'dt-cell-muted'
+            }
+          >
+            {score.multipliedPoints}
+          </span>
+        ),
+      },
+      {
+        key: 'basePoints',
+        header: 'Base',
+        width: '80px',
+        align: 'center',
+        render: (score) => <span className="dt-cell-stat">{score.basePoints}</span>,
+      },
+      {
+        key: 'bonusPoints',
+        header: 'Bonus',
+        width: '80px',
+        align: 'center',
+        render: (score) => (
+          <span className={score.bonusPoints > 0 ? 'dt-cell-stat' : 'dt-cell-muted'}>
+            {score.bonusPoints > 0 ? `+${score.bonusPoints}` : '0'}
+          </span>
+        ),
+      },
+      {
+        key: 'scored36Plus',
+        header: '36+',
+        width: '70px',
+        align: 'center',
+        render: (score) =>
+          score.scored36Plus ? (
+            <span className="badge-36plus">Yes</span>
+          ) : (
+            <span className="dt-cell-muted">-</span>
+          ),
+      },
+    ],
+    []
+  );
 
   if (loading) {
     return (
@@ -282,7 +306,8 @@ const TournamentDetailPage: React.FC = () => {
             <div className="tournament-meta">
               <span className="tournament-date">{formatDate(tournament.startDate)}</span>
               <span className={getTypeBadgeClass(tournament.tournamentType)}>
-                {tournament.tournamentType.charAt(0).toUpperCase() + tournament.tournamentType.slice(1)}
+                {tournament.tournamentType.charAt(0).toUpperCase() +
+                  tournament.tournamentType.slice(1)}
                 <span className="multiplier">{tournament.multiplier}x</span>
               </span>
               <span className={`status-badge status-${tournament.status}`}>
@@ -321,9 +346,16 @@ const TournamentDetailPage: React.FC = () => {
                     <>
                       <div className="podium-avatar">
                         {podium.second.golfer.picture ? (
-                          <img src={podium.second.golfer.picture} alt={`${podium.second.golfer.firstName} ${podium.second.golfer.lastName}`} loading="lazy" />
+                          <img
+                            src={podium.second.golfer.picture}
+                            alt={`${podium.second.golfer.firstName} ${podium.second.golfer.lastName}`}
+                            loading="lazy"
+                          />
                         ) : (
-                          <span>{podium.second.golfer.firstName[0]}{podium.second.golfer.lastName[0]}</span>
+                          <span>
+                            {podium.second.golfer.firstName[0]}
+                            {podium.second.golfer.lastName[0]}
+                          </span>
                         )}
                       </div>
                       <div className="podium-rank">2nd</div>
@@ -344,9 +376,16 @@ const TournamentDetailPage: React.FC = () => {
                       <div className="podium-trophy">Winner</div>
                       <div className="podium-avatar">
                         {podium.first.golfer.picture ? (
-                          <img src={podium.first.golfer.picture} alt={`${podium.first.golfer.firstName} ${podium.first.golfer.lastName}`} loading="lazy" />
+                          <img
+                            src={podium.first.golfer.picture}
+                            alt={`${podium.first.golfer.firstName} ${podium.first.golfer.lastName}`}
+                            loading="lazy"
+                          />
                         ) : (
-                          <span>{podium.first.golfer.firstName[0]}{podium.first.golfer.lastName[0]}</span>
+                          <span>
+                            {podium.first.golfer.firstName[0]}
+                            {podium.first.golfer.lastName[0]}
+                          </span>
                         )}
                       </div>
                       <div className="podium-rank">1st</div>
@@ -366,9 +405,16 @@ const TournamentDetailPage: React.FC = () => {
                     <>
                       <div className="podium-avatar">
                         {podium.third.golfer.picture ? (
-                          <img src={podium.third.golfer.picture} alt={`${podium.third.golfer.firstName} ${podium.third.golfer.lastName}`} loading="lazy" />
+                          <img
+                            src={podium.third.golfer.picture}
+                            alt={`${podium.third.golfer.firstName} ${podium.third.golfer.lastName}`}
+                            loading="lazy"
+                          />
                         ) : (
-                          <span>{podium.third.golfer.firstName[0]}{podium.third.golfer.lastName[0]}</span>
+                          <span>
+                            {podium.third.golfer.firstName[0]}
+                            {podium.third.golfer.lastName[0]}
+                          </span>
                         )}
                       </div>
                       <div className="podium-rank">3rd</div>
@@ -399,7 +445,9 @@ const TournamentDetailPage: React.FC = () => {
               <div className="no-results">
                 <p>No results available for this tournament yet.</p>
                 {tournament.status === 'published' && (
-                  <p className="no-results-hint">Results will be available after the tournament is complete.</p>
+                  <p className="no-results-hint">
+                    Results will be available after the tournament is complete.
+                  </p>
                 )}
               </div>
             )}

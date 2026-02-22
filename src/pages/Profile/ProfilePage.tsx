@@ -110,9 +110,12 @@ const ProfilePage: React.FC = () => {
       sanitizedValue = sanitizers.lowercase(sanitizers.trim(value));
     }
     setter(sanitizedValue);
-    
+
     if (profileTouched[field]) {
-      setProfileFieldErrors({ ...profileFieldErrors, [field]: validateProfileField(field, sanitizedValue) });
+      setProfileFieldErrors({
+        ...profileFieldErrors,
+        [field]: validateProfileField(field, sanitizedValue),
+      });
     }
   };
 
@@ -123,23 +126,29 @@ const ProfilePage: React.FC = () => {
 
   const handlePasswordChange = (field: string, value: string, setter: (v: string) => void) => {
     setter(value);
-    
+
     if (passwordTouched[field]) {
-      setPasswordFieldErrors({ ...passwordFieldErrors, [field]: validatePasswordField(field, value) });
+      setPasswordFieldErrors({
+        ...passwordFieldErrors,
+        [field]: validatePasswordField(field, value),
+      });
     }
-    
+
     // Re-validate confirmNewPassword when newPassword changes
     if (field === 'newPassword' && passwordTouched.confirmNewPassword) {
-      setPasswordFieldErrors(prev => ({ 
-        ...prev, 
-        confirmNewPassword: confirmNewPassword !== value ? 'Passwords do not match' : '' 
+      setPasswordFieldErrors((prev) => ({
+        ...prev,
+        confirmNewPassword: confirmNewPassword !== value ? 'Passwords do not match' : '',
       }));
     }
   };
 
   const handlePasswordBlur = (field: string, value: string) => {
     setPasswordTouched({ ...passwordTouched, [field]: true });
-    setPasswordFieldErrors({ ...passwordFieldErrors, [field]: validatePasswordField(field, value) });
+    setPasswordFieldErrors({
+      ...passwordFieldErrors,
+      [field]: validatePasswordField(field, value),
+    });
   };
 
   const getProfileFieldClass = (field: string): string => {
@@ -157,10 +166,10 @@ const ProfilePage: React.FC = () => {
     errors.firstName = validateProfileField('firstName', firstName);
     errors.lastName = validateProfileField('lastName', lastName);
     errors.email = validateProfileField('email', email);
-    
+
     setProfileTouched({ firstName: true, lastName: true, email: true });
     setProfileFieldErrors(errors);
-    
+
     return !errors.firstName && !errors.lastName && !errors.email;
   };
 
@@ -169,10 +178,10 @@ const ProfilePage: React.FC = () => {
     errors.currentPassword = validatePasswordField('currentPassword', currentPassword);
     errors.newPassword = validatePasswordField('newPassword', newPassword);
     errors.confirmNewPassword = validatePasswordField('confirmNewPassword', confirmNewPassword);
-    
+
     setPasswordTouched({ currentPassword: true, newPassword: true, confirmNewPassword: true });
     setPasswordFieldErrors(errors);
-    
+
     return !errors.currentPassword && !errors.newPassword && !errors.confirmNewPassword;
   };
 
@@ -205,10 +214,10 @@ const ProfilePage: React.FC = () => {
     setIsUpdatingProfile(true);
 
     try {
-      const response = await put<User>('users-update-profile', { 
-        firstName: sanitizers.trim(firstName), 
-        lastName: sanitizers.trim(lastName), 
-        email: sanitizers.lowercase(sanitizers.trim(email)) 
+      const response = await put<User>('users-update-profile', {
+        firstName: sanitizers.trim(firstName),
+        lastName: sanitizers.trim(lastName),
+        email: sanitizers.lowercase(sanitizers.trim(email)),
       });
 
       if (!response.success) throw new Error(response.error || 'Failed to update profile');
@@ -315,140 +324,168 @@ const ProfilePage: React.FC = () => {
 
               <div className="form-row">
                 <div className="form-group">
-                  <label htmlFor="firstName">First Name<span className="required-indicator">*</span></label>
+                  <label htmlFor="firstName">
+                    First Name<span className="required-indicator">*</span>
+                  </label>
                   <input
-                  type="text"
-                  id="firstName"
-                  className={getProfileFieldClass('firstName')}
-                  value={firstName}
-                  onChange={(e) => handleProfileChange('firstName', e.target.value, setFirstName)}
-                  onBlur={() => handleProfileBlur('firstName', firstName)}
+                    type="text"
+                    id="firstName"
+                    className={getProfileFieldClass('firstName')}
+                    value={firstName}
+                    onChange={(e) => handleProfileChange('firstName', e.target.value, setFirstName)}
+                    onBlur={() => handleProfileBlur('firstName', firstName)}
+                  />
+                  {profileTouched.firstName && profileFieldErrors.firstName && (
+                    <span className="field-error">{profileFieldErrors.firstName}</span>
+                  )}
+                </div>
+                <div className="form-group">
+                  <label htmlFor="lastName">
+                    Last Name<span className="required-indicator">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="lastName"
+                    className={getProfileFieldClass('lastName')}
+                    value={lastName}
+                    onChange={(e) => handleProfileChange('lastName', e.target.value, setLastName)}
+                    onBlur={() => handleProfileBlur('lastName', lastName)}
+                  />
+                  {profileTouched.lastName && profileFieldErrors.lastName && (
+                    <span className="field-error">{profileFieldErrors.lastName}</span>
+                  )}
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="email">
+                  Email<span className="required-indicator">*</span>
+                </label>
+                <input
+                  type="email"
+                  id="email"
+                  className={getProfileFieldClass('email')}
+                  value={email}
+                  onChange={(e) => handleProfileChange('email', e.target.value, setEmail)}
+                  onBlur={() => handleProfileBlur('email', email)}
                 />
-                {profileTouched.firstName && profileFieldErrors.firstName && (
-                  <span className="field-error">{profileFieldErrors.firstName}</span>
+                {profileTouched.email && profileFieldErrors.email && (
+                  <span className="field-error">{profileFieldErrors.email}</span>
                 )}
               </div>
+
               <div className="form-group">
-                <label htmlFor="lastName">Last Name<span className="required-indicator">*</span></label>
+                <label htmlFor="username">Username</label>
                 <input
                   type="text"
-                  id="lastName"
-                  className={getProfileFieldClass('lastName')}
-                  value={lastName}
-                  onChange={(e) => handleProfileChange('lastName', e.target.value, setLastName)}
-                  onBlur={() => handleProfileBlur('lastName', lastName)}
+                  id="username"
+                  value={user.username}
+                  disabled
+                  className="disabled"
                 />
-                {profileTouched.lastName && profileFieldErrors.lastName && (
-                  <span className="field-error">{profileFieldErrors.lastName}</span>
+                <span className="form-hint">Username cannot be changed</span>
+              </div>
+
+              <button type="submit" className="btn btn-primary" disabled={isUpdatingProfile}>
+                {isUpdatingProfile ? 'Saving...' : 'Save Changes'}
+              </button>
+            </form>
+          </div>
+
+          {/* Change Password Section */}
+          <div className="profile-card">
+            <div className="profile-card-header">
+              <h2>Change Password</h2>
+            </div>
+            <form onSubmit={handleUpdatePassword} className="profile-form">
+              {passwordSuccess && <div className="alert alert-success">{passwordSuccess}</div>}
+              {passwordError && <div className="alert alert-error">{passwordError}</div>}
+
+              <div className="form-group">
+                <label htmlFor="currentPassword">
+                  Current Password<span className="required-indicator">*</span>
+                </label>
+                <input
+                  type="password"
+                  id="currentPassword"
+                  className={getPasswordFieldClass('currentPassword')}
+                  value={currentPassword}
+                  onChange={(e) =>
+                    handlePasswordChange('currentPassword', e.target.value, setCurrentPassword)
+                  }
+                  onBlur={() => handlePasswordBlur('currentPassword', currentPassword)}
+                  autoComplete="current-password"
+                />
+                {passwordTouched.currentPassword && passwordFieldErrors.currentPassword && (
+                  <span className="field-error">{passwordFieldErrors.currentPassword}</span>
                 )}
               </div>
-            </div>
 
-            <div className="form-group">
-              <label htmlFor="email">Email<span className="required-indicator">*</span></label>
-              <input
-                type="email"
-                id="email"
-                className={getProfileFieldClass('email')}
-                value={email}
-                onChange={(e) => handleProfileChange('email', e.target.value, setEmail)}
-                onBlur={() => handleProfileBlur('email', email)}
-              />
-              {profileTouched.email && profileFieldErrors.email && (
-                <span className="field-error">{profileFieldErrors.email}</span>
-              )}
-            </div>
+              <div className="form-group">
+                <label htmlFor="newPassword">
+                  New Password<span className="required-indicator">*</span>
+                </label>
+                <input
+                  type="password"
+                  id="newPassword"
+                  className={getPasswordFieldClass('newPassword')}
+                  value={newPassword}
+                  onChange={(e) =>
+                    handlePasswordChange('newPassword', e.target.value, setNewPassword)
+                  }
+                  onBlur={() => handlePasswordBlur('newPassword', newPassword)}
+                  placeholder="At least 8 characters"
+                  autoComplete="new-password"
+                />
+                {passwordTouched.newPassword && passwordFieldErrors.newPassword && (
+                  <span className="field-error">{passwordFieldErrors.newPassword}</span>
+                )}
+              </div>
 
-            <div className="form-group">
-              <label htmlFor="username">Username</label>
-              <input type="text" id="username" value={user.username} disabled className="disabled" />
-              <span className="form-hint">Username cannot be changed</span>
-            </div>
+              <div className="form-group">
+                <label htmlFor="confirmNewPassword">
+                  Confirm New Password<span className="required-indicator">*</span>
+                </label>
+                <input
+                  type="password"
+                  id="confirmNewPassword"
+                  className={getPasswordFieldClass('confirmNewPassword')}
+                  value={confirmNewPassword}
+                  onChange={(e) =>
+                    handlePasswordChange(
+                      'confirmNewPassword',
+                      e.target.value,
+                      setConfirmNewPassword
+                    )
+                  }
+                  onBlur={() => handlePasswordBlur('confirmNewPassword', confirmNewPassword)}
+                  autoComplete="new-password"
+                />
+                {passwordTouched.confirmNewPassword && passwordFieldErrors.confirmNewPassword && (
+                  <span className="field-error">{passwordFieldErrors.confirmNewPassword}</span>
+                )}
+              </div>
 
-            <button type="submit" className="btn btn-primary" disabled={isUpdatingProfile}>
-              {isUpdatingProfile ? 'Saving...' : 'Save Changes'}
-            </button>
-          </form>
-        </div>
-
-        {/* Change Password Section */}
-        <div className="profile-card">
-          <div className="profile-card-header">
-            <h2>Change Password</h2>
+              <button type="submit" className="btn btn-primary" disabled={isUpdatingPassword}>
+                {isUpdatingPassword ? 'Updating...' : 'Update Password'}
+              </button>
+            </form>
           </div>
-          <form onSubmit={handleUpdatePassword} className="profile-form">
-            {passwordSuccess && <div className="alert alert-success">{passwordSuccess}</div>}
-            {passwordError && <div className="alert alert-error">{passwordError}</div>}
 
-            <div className="form-group">
-              <label htmlFor="currentPassword">Current Password<span className="required-indicator">*</span></label>
-              <input
-                type="password"
-                id="currentPassword"
-                className={getPasswordFieldClass('currentPassword')}
-                value={currentPassword}
-                onChange={(e) => handlePasswordChange('currentPassword', e.target.value, setCurrentPassword)}
-                onBlur={() => handlePasswordBlur('currentPassword', currentPassword)}
-                autoComplete="current-password"
-              />
-              {passwordTouched.currentPassword && passwordFieldErrors.currentPassword && (
-                <span className="field-error">{passwordFieldErrors.currentPassword}</span>
-              )}
+          {/* Danger Zone */}
+          <div className="profile-card danger-zone">
+            <div className="profile-card-header">
+              <h2>⚠️ Danger Zone</h2>
             </div>
-
-            <div className="form-group">
-              <label htmlFor="newPassword">New Password<span className="required-indicator">*</span></label>
-              <input
-                type="password"
-                id="newPassword"
-                className={getPasswordFieldClass('newPassword')}
-                value={newPassword}
-                onChange={(e) => handlePasswordChange('newPassword', e.target.value, setNewPassword)}
-                onBlur={() => handlePasswordBlur('newPassword', newPassword)}
-                placeholder="At least 8 characters"
-                autoComplete="new-password"
-              />
-              {passwordTouched.newPassword && passwordFieldErrors.newPassword && (
-                <span className="field-error">{passwordFieldErrors.newPassword}</span>
-              )}
+            <div className="profile-card-body">
+              <p>
+                Once you delete your account, there is no going back. All your picks and data will
+                be permanently removed.
+              </p>
+              <button className="btn btn-danger" onClick={() => setShowDeleteModal(true)}>
+                Delete Account
+              </button>
             </div>
-
-            <div className="form-group">
-              <label htmlFor="confirmNewPassword">Confirm New Password<span className="required-indicator">*</span></label>
-              <input
-                type="password"
-                id="confirmNewPassword"
-                className={getPasswordFieldClass('confirmNewPassword')}
-                value={confirmNewPassword}
-                onChange={(e) => handlePasswordChange('confirmNewPassword', e.target.value, setConfirmNewPassword)}
-                onBlur={() => handlePasswordBlur('confirmNewPassword', confirmNewPassword)}
-                autoComplete="new-password"
-              />
-              {passwordTouched.confirmNewPassword && passwordFieldErrors.confirmNewPassword && (
-                <span className="field-error">{passwordFieldErrors.confirmNewPassword}</span>
-              )}
-            </div>
-
-            <button type="submit" className="btn btn-primary" disabled={isUpdatingPassword}>
-              {isUpdatingPassword ? 'Updating...' : 'Update Password'}
-            </button>
-          </form>
-        </div>
-
-        {/* Danger Zone */}
-        <div className="profile-card danger-zone">
-          <div className="profile-card-header">
-            <h2>⚠️ Danger Zone</h2>
-          </div>
-          <div className="profile-card-body">
-            <p>
-              Once you delete your account, there is no going back. All your picks and data will be
-              permanently removed.
-            </p>
-            <button className="btn btn-danger" onClick={() => setShowDeleteModal(true)}>
-              Delete Account
-            </button>
-          </div>
           </div>
         </div>
 
