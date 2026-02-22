@@ -20,7 +20,7 @@ interface GolferScore {
   };
   position: number | null;
   participated: boolean;
-  scored36Plus: boolean;
+  rawScore: number | null;
   basePoints: number;
   bonusPoints: number;
   multipliedPoints: number;
@@ -145,7 +145,7 @@ const handler: Handler = async (event: HandlerEvent) => {
         },
         position: score.position,
         participated: score.participated,
-        scored36Plus: score.scored36Plus,
+        rawScore: score.rawScore,
         basePoints: score.basePoints,
         bonusPoints: score.bonusPoints,
         multipliedPoints: score.multipliedPoints,
@@ -193,7 +193,7 @@ const handler: Handler = async (event: HandlerEvent) => {
 
     // Calculate stats
     const participatedScores = golferScores.filter(s => s.participated);
-    const scored36PlusCount = golferScores.filter(s => s.scored36Plus).length;
+    const bonusScorerCount = golferScores.filter(s => s.bonusPoints > 0).length;
     const totalPoints = participatedScores.reduce((sum, s) => sum + s.multipliedPoints, 0);
     const averagePoints = participatedScores.length > 0
       ? Math.round((totalPoints / participatedScores.length) * 10) / 10
@@ -201,7 +201,7 @@ const handler: Handler = async (event: HandlerEvent) => {
 
     const stats = {
       totalParticipants: participatedScores.length,
-      scored36Plus: scored36PlusCount,
+      bonusScorers: bonusScorerCount,
       averagePoints,
     };
 

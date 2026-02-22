@@ -60,7 +60,7 @@ export const handler = withAuth(async (event) => {
       timesFinished1st: relevantScores.filter(s => s.position === 1).length,
       timesFinished2nd: relevantScores.filter(s => s.position === 2).length,
       timesFinished3rd: relevantScores.filter(s => s.position === 3).length,
-      timesScored36Plus: relevantScores.filter(s => s.scored36Plus).length,
+      timesBonusScored: relevantScores.filter(s => s.bonusPoints > 0).length,
     };
     
     // Calculate points by period
@@ -114,7 +114,7 @@ export const handler = withAuth(async (event) => {
         timesFinished1st: seasonGolferScores.filter(s => s.position === 1).length,
         timesFinished2nd: seasonGolferScores.filter(s => s.position === 2).length,
         timesFinished3rd: seasonGolferScores.filter(s => s.position === 3).length,
-        timesScored36Plus: seasonGolferScores.filter(s => s.scored36Plus).length,
+        timesBonusScored: seasonGolferScores.filter(s => s.bonusPoints > 0).length,
         totalPoints,
       });
     }

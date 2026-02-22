@@ -9,7 +9,7 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import './TeamBuilderPage.css';
 
 interface GolferStats {
-  timesScored36Plus: number;
+  timesBonusScored: number;
   timesFinished1st: number;
   timesFinished2nd: number;
   timesFinished3rd: number;
@@ -25,7 +25,7 @@ interface SeasonStat {
   timesFinished1st: number;
   timesFinished2nd: number;
   timesFinished3rd: number;
-  timesScored36Plus: number;
+  timesBonusScored: number;
   totalPoints: number;
 }
 
@@ -231,7 +231,7 @@ const TeamBuilderPage: React.FC = () => {
         timesFinished1st: s?.timesFinished1st ?? 0,
         timesFinished2nd: s?.timesFinished2nd ?? 0,
         timesFinished3rd: s?.timesFinished3rd ?? 0,
-        timesScored36Plus: s?.timesScored36Plus ?? 0,
+        timesBonusScored: s?.timesBonusScored ?? 0,
         totalPoints: 0,
       };
     }
@@ -241,7 +241,7 @@ const TeamBuilderPage: React.FC = () => {
         timesFinished1st: acc.timesFinished1st + ss.timesFinished1st,
         timesFinished2nd: acc.timesFinished2nd + ss.timesFinished2nd,
         timesFinished3rd: acc.timesFinished3rd + ss.timesFinished3rd,
-        timesScored36Plus: acc.timesScored36Plus + ss.timesScored36Plus,
+        timesBonusScored: acc.timesBonusScored + ss.timesBonusScored,
         totalPoints: acc.totalPoints + ss.totalPoints,
       }),
       {
@@ -249,7 +249,7 @@ const TeamBuilderPage: React.FC = () => {
         timesFinished1st: 0,
         timesFinished2nd: 0,
         timesFinished3rd: 0,
-        timesScored36Plus: 0,
+        timesBonusScored: 0,
         totalPoints: 0,
       }
     );
@@ -289,7 +289,7 @@ const TeamBuilderPage: React.FC = () => {
       case 'podium-finishers':
         return getPodiums(golfer) > 0;
       case 'consistent':
-        return stats.timesScored36Plus >= 3;
+        return stats.timesBonusScored >= 3;
       case 'experienced':
         return stats.timesPlayed >= 5;
       case 'value-picks':
@@ -352,7 +352,7 @@ const TeamBuilderPage: React.FC = () => {
         case 'most-played':
           return getCombinedStats(b).timesPlayed - getCombinedStats(a).timesPlayed;
         case 'most-consistent':
-          return getCombinedStats(b).timesScored36Plus - getCombinedStats(a).timesScored36Plus;
+          return getCombinedStats(b).timesBonusScored - getCombinedStats(a).timesBonusScored;
         case 'best-value':
           return getValueScore(b) - getValueScore(a);
         case 'win-rate':
@@ -918,8 +918,8 @@ const TeamBuilderPage: React.FC = () => {
                         <div className="stat-label">🥉 3rd</div>
                       </div>
                       <div className="modal-stat-item">
-                        <div className="stat-value">{ss.timesScored36Plus}</div>
-                        <div className="stat-label">⭐ 36+</div>
+                        <div className="stat-value">{ss.timesBonusScored}</div>
+                        <div className="stat-label">⭐ Bonus</div>
                       </div>
                     </div>
                     <div

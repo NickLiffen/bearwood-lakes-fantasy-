@@ -20,7 +20,7 @@ interface TournamentResults {
   first: PodiumGolfer | null;
   second: PodiumGolfer | null;
   third: PodiumGolfer | null;
-  scored36PlusCount: number;
+  bonusScorerCount: number;
   participantCount: number;
 }
 
@@ -208,15 +208,15 @@ const TournamentsPage: React.FC = () => {
           ),
       },
       {
-        key: 'scored36Plus',
-        header: '36+',
+        key: 'bonusScorers',
+        header: 'Bonus',
         width: '70px',
         align: 'center',
         render: (tournament) => (
           <span
-            className={tournament.results?.scored36PlusCount ? 'dt-cell-stat' : 'dt-cell-muted'}
+            className={tournament.results?.bonusScorerCount ? 'dt-cell-stat' : 'dt-cell-muted'}
           >
-            {tournament.results?.scored36PlusCount || 0}
+            {tournament.results?.bonusScorerCount || 0}
           </span>
         ),
       },

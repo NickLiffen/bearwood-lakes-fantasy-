@@ -5,15 +5,7 @@ import { connectToDatabase } from '../db';
 import { ScoreDocument, toScore, SCORES_COLLECTION } from '../models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from '../models/Tournament';
 import type { Score, EnterScoreRequest, BulkEnterScoresRequest } from '../../../../shared/types';
-import type { GolferCountTier } from '../../../../shared/types/tournament.types';
-import { getBasePointsForPosition } from '../../../../shared/types/tournament.types';
-
-// Helper to determine tier from participant count
-function getTierFromCount(count: number): GolferCountTier {
-  if (count <= 10) return '0-10';
-  if (count < 20) return '10-20';
-  return '20+';
-}
+import { getBasePointsForPosition, getBonusPoints } from '../../../../shared/types/tournament.types';
 
 export async function getScoresForTournament(tournamentId: string): Promise<Score[]> {
   const { db } = await connectToDatabase();
@@ -35,7 +27,7 @@ export async function getScoresForGolfer(golferId: string): Promise<Score[]> {
   return scores.map(toScore);
 }
 
-export async function enterScore(data: EnterScoreRequest, golferCountTier?: GolferCountTier): Promise<Score> {
+export async function enterScore(data: EnterScoreRequest): Promise<Score> {
   const { db } = await connectToDatabase();
   const scoresCollection = db.collection<ScoreDocument>(SCORES_COLLECTION);
   const tournamentsCollection = db.collection<TournamentDocument>(TOURNAMENTS_COLLECTION);
@@ -49,17 +41,16 @@ export async function enterScore(data: EnterScoreRequest, golferCountTier?: Golf
     throw new Error('Tournament not found');
   }
 
-  // Use provided tier or default to 20+
-  const tier = golferCountTier || '20+';
-  
+  const scoringFormat = tournament.scoringFormat || 'stableford';
+
   // Calculate points - only if participated
   let basePoints = 0;
   let bonusPoints = 0;
   let multipliedPoints = 0;
   
   if (data.participated) {
-    basePoints = getBasePointsForPosition(data.position, tier);
-    bonusPoints = data.scored36Plus ? 1 : 0;
+    basePoints = getBasePointsForPosition(data.position);
+    bonusPoints = getBonusPoints(data.rawScore, scoringFormat);
     multipliedPoints = (basePoints + bonusPoints) * tournament.multiplier;
   }
   
@@ -72,7 +63,7 @@ export async function enterScore(data: EnterScoreRequest, golferCountTier?: Golf
       $set: {
         participated: data.participated,
         position: data.participated ? data.position : null,
-        scored36Plus: data.participated ? data.scored36Plus : false,
+        rawScore: data.participated ? data.rawScore : null,
         basePoints,
         bonusPoints,
         multipliedPoints,
@@ -102,10 +93,7 @@ export async function bulkEnterScores(data: BulkEnterScoresRequest): Promise<Sco
     throw new Error('Tournament not found');
   }
 
-  // Determine tier from participant count
-  const participantCount = data.scores.filter(s => s.participated).length;
-  const tier = getTierFromCount(participantCount);
-  
+  const scoringFormat = tournament.scoringFormat || 'stableford';
   const now = new Date();
 
   // Build bulk operations for MongoDB bulkWrite
@@ -118,8 +106,8 @@ export async function bulkEnterScores(data: BulkEnterScoresRequest): Promise<Sco
     let multipliedPoints = 0;
     
     if (scoreData.participated) {
-      basePoints = getBasePointsForPosition(scoreData.position, tier);
-      bonusPoints = scoreData.scored36Plus ? 1 : 0;
+      basePoints = getBasePointsForPosition(scoreData.position);
+      bonusPoints = getBonusPoints(scoreData.rawScore, scoringFormat);
       multipliedPoints = (basePoints + bonusPoints) * tournament.multiplier;
     }
 
@@ -130,7 +118,7 @@ export async function bulkEnterScores(data: BulkEnterScoresRequest): Promise<Sco
           $set: {
             participated: scoreData.participated,
             position: scoreData.participated ? scoreData.position : null,
-            scored36Plus: scoreData.participated ? scoreData.scored36Plus : false,
+            rawScore: scoreData.participated ? scoreData.rawScore : null,
             basePoints,
             bonusPoints,
             multipliedPoints,
@@ -223,16 +211,14 @@ export async function recalculateScoresForTournament(tournamentId: string): Prom
     throw new Error('Tournament not found');
   }
 
+  const scoringFormat = tournament.scoringFormat || 'stableford';
+
   // Get all scores for this tournament
   const scores = await scoresCollection.find({ tournamentId: tournamentObjectId }).toArray();
   
   if (scores.length === 0) {
     return 0;
   }
-
-  // Determine tier based on participant count
-  const participantCount = scores.filter(s => s.participated).length;
-  const tier = getTierFromCount(participantCount);
 
   // Recalculate each score
   let updatedCount = 0;
@@ -242,8 +228,8 @@ export async function recalculateScoresForTournament(tournamentId: string): Prom
     let multipliedPoints = 0;
 
     if (score.participated) {
-      basePoints = getBasePointsForPosition(score.position, tier);
-      bonusPoints = score.scored36Plus ? 1 : 0;
+      basePoints = getBasePointsForPosition(score.position);
+      bonusPoints = getBonusPoints(score.rawScore, scoringFormat);
       multipliedPoints = (basePoints + bonusPoints) * tournament.multiplier;
     }
 

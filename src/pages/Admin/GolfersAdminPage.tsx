@@ -8,7 +8,7 @@ import { useApiClient } from '../../hooks/useApiClient';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 
 interface Golfer2025Stats {
-  timesScored36Plus: number;
+  timesBonusScored: number;
   timesFinished1st: number;
   timesFinished2nd: number;
   timesFinished3rd: number;
@@ -46,7 +46,7 @@ interface GolferFormData {
   price: string;
   membershipType: MembershipType;
   isActive: boolean;
-  timesScored36Plus: string;
+  timesBonusScored: string;
   timesFinished1st: string;
   timesFinished2nd: string;
   timesFinished3rd: string;
@@ -60,7 +60,7 @@ const initialFormData: GolferFormData = {
   price: '',
   membershipType: 'men',
   isActive: true,
-  timesScored36Plus: '0',
+  timesBonusScored: '0',
   timesFinished1st: '0',
   timesFinished2nd: '0',
   timesFinished3rd: '0',
@@ -293,7 +293,7 @@ const GolfersAdminPage: React.FC = () => {
         price: (Golfer.price / 1_000_000).toString(),
         membershipType: Golfer.membershipType || 'men',
         isActive: Golfer.isActive,
-        timesScored36Plus: (Golfer.stats2025?.timesScored36Plus || 0).toString(),
+        timesBonusScored: (Golfer.stats2025?.timesBonusScored || 0).toString(),
         timesFinished1st: (Golfer.stats2025?.timesFinished1st || 0).toString(),
         timesFinished2nd: (Golfer.stats2025?.timesFinished2nd || 0).toString(),
         timesFinished3rd: (Golfer.stats2025?.timesFinished3rd || 0).toString(),
@@ -331,7 +331,7 @@ const GolfersAdminPage: React.FC = () => {
     const priceInPounds = parseFloat(formData.price) * 1_000_000;
 
     const stats2025 = {
-      timesScored36Plus: parseInt(formData.timesScored36Plus) || 0,
+      timesBonusScored: parseInt(formData.timesBonusScored) || 0,
       timesFinished1st: parseInt(formData.timesFinished1st) || 0,
       timesFinished2nd: parseInt(formData.timesFinished2nd) || 0,
       timesFinished3rd: parseInt(formData.timesFinished3rd) || 0,
@@ -492,7 +492,7 @@ const GolfersAdminPage: React.FC = () => {
         price: headers.indexOf('price'),
         membershipType: headers.indexOf('membershiptype'),
         isActive: headers.indexOf('isactive'),
-        timesScored36Plus: headers.indexOf('timesscored36plus'),
+        timesBonusScored: headers.indexOf('timesbonusscored'),
         timesFinished1st: headers.indexOf('timesfinished1st'),
         timesFinished2nd: headers.indexOf('timesfinished2nd'),
         timesFinished3rd: headers.indexOf('timesfinished3rd'),
@@ -567,7 +567,7 @@ const GolfersAdminPage: React.FC = () => {
           price: price.toString(),
           membershipType,
           isActive,
-          timesScored36Plus: parseStatField('timesScored36Plus', 'Times Scored 36+'),
+          timesBonusScored: parseStatField('timesBonusScored', 'Times Bonus Scored'),
           timesFinished1st: parseStatField('timesFinished1st', '1st Place Finishes'),
           timesFinished2nd: parseStatField('timesFinished2nd', '2nd Place Finishes'),
           timesFinished3rd: parseStatField('timesFinished3rd', '3rd Place Finishes'),
@@ -624,7 +624,7 @@ const GolfersAdminPage: React.FC = () => {
           membershipType: Golfer.membershipType,
           isActive: Golfer.isActive,
           stats2025: {
-            timesScored36Plus: parseInt(Golfer.timesScored36Plus) || 0,
+            timesBonusScored: parseInt(Golfer.timesBonusScored) || 0,
             timesFinished1st: parseInt(Golfer.timesFinished1st) || 0,
             timesFinished2nd: parseInt(Golfer.timesFinished2nd) || 0,
             timesFinished3rd: parseInt(Golfer.timesFinished3rd) || 0,
@@ -1010,13 +1010,13 @@ const GolfersAdminPage: React.FC = () => {
                       </span>
                     </div>
                     <div className="form-group">
-                      <label htmlFor="timesScored36Plus">Times Scored 36+ Points</label>
+                      <label htmlFor="timesBonusScored">Times Bonus Scored</label>
                       <input
                         type="number"
-                        id="timesScored36Plus"
-                        value={formData.timesScored36Plus}
+                        id="timesBonusScored"
+                        value={formData.timesBonusScored}
                         onChange={(e) =>
-                          setFormData({ ...formData, timesScored36Plus: e.target.value })
+                          setFormData({ ...formData, timesBonusScored: e.target.value })
                         }
                         min="0"
                         placeholder="0"
@@ -1113,7 +1113,7 @@ const GolfersAdminPage: React.FC = () => {
                       <strong>Required columns:</strong> firstName, lastName, price (in millions)
                       <br />
                       <strong>Optional columns:</strong> picture, membershipType
-                      (men/junior/female/senior), isActive, timesScored36Plus, timesFinished1st,
+                      (men/junior/female/senior), isActive, timesBonusScored, timesFinished1st,
                       timesFinished2nd, timesFinished3rd, timesPlayed
                     </div>
                   </div>
@@ -1195,7 +1195,7 @@ const GolfersAdminPage: React.FC = () => {
                         overflow: 'auto',
                       }}
                     >
-                      {`firstName,lastName,price,membershipType,picture,isActive,timesPlayed,timesScored36Plus,timesFinished1st,timesFinished2nd,timesFinished3rd
+                      {`firstName,lastName,price,membershipType,picture,isActive,timesPlayed,timesBonusScored,timesFinished1st,timesFinished2nd,timesFinished3rd
 John,Smith,8.5,men,,true,12,3,1,2,1
 Jane,Doe,7.0,female,,true,10,2,0,1,0
 Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
@@ -1257,7 +1257,7 @@ Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
                               </span>
                             </td>
                             <td>{Golfer.timesPlayed}</td>
-                            <td>{Golfer.timesScored36Plus}</td>
+                            <td>{Golfer.timesBonusScored}</td>
                             <td>{Golfer.timesFinished1st}</td>
                             <td>{Golfer.timesFinished2nd}</td>
                             <td>{Golfer.timesFinished3rd}</td>
@@ -1657,9 +1657,9 @@ Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
                     }}
                   >
                     <div style={{ fontSize: '1.25rem', fontWeight: 600 }}>
-                      {viewingGolfer.stats2025?.timesScored36Plus || 0}
+                      {viewingGolfer.stats2025?.timesBonusScored || 0}
                     </div>
-                    <div style={{ fontSize: '0.7rem', color: '#6b7280' }}>36+ Pts</div>
+                    <div style={{ fontSize: '0.7rem', color: '#6b7280' }}>Bonus</div>
                   </div>
                   <div
                     style={{

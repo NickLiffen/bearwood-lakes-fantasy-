@@ -13,7 +13,7 @@ import { formatDate, formatDateTime, formatPrice } from '../../utils/formatters'
 import './UserProfilePage.css';
 
 interface GolferStats {
-  timesScored36Plus: number;
+  timesBonusScored: number;
   timesFinished1st: number;
   timesFinished2nd: number;
   timesFinished3rd: number;
@@ -27,7 +27,7 @@ interface TournamentScore {
   basePoints: number;
   bonusPoints: number;
   multipliedPoints: number;
-  scored36Plus: boolean;
+  rawScore: number;
   participated: boolean;
   tournamentDate: string;
 }

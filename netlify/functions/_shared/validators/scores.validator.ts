@@ -7,7 +7,7 @@ export const enterScoreSchema = z.object({
   tournamentId: z.string().min(1, 'Tournament ID is required'),
   golferId: z.string().min(1, 'Golfer ID is required'),
   position: z.number().int().min(1).max(100).nullable().optional(),
-  scored36Plus: z.boolean().default(false),
+  rawScore: z.number().int().nullable().optional(),
   participated: z.boolean().default(true),
 });
 
@@ -15,7 +15,7 @@ export const enterScoreSchema = z.object({
 export const bulkScoreEntrySchema = z.object({
   golferId: z.string().min(1, 'Golfer ID is required'),
   position: z.number().int().min(1).max(100).nullable().optional(),
-  scored36Plus: z.boolean().default(false),
+  rawScore: z.number().int().nullable().optional(),
   participated: z.boolean().default(false),
 });
 
@@ -36,43 +36,54 @@ export const bulkEnterScoresSchema = z.object({
     return;
   }
 
-  // Determine tier based on participant count
-  const count = participatingScores.length;
-  const tier = count <= 10 ? '0-10' : count < 20 ? '10-20' : '20+';
-  
-  // Check for required positions
+  // Rule 2: All participating golfers must have a rawScore
+  const missingScores = participatingScores.filter(
+    s => s.rawScore === null || s.rawScore === undefined
+  );
+  if (missingScores.length > 0) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'All participating golfers must have a raw score entered',
+      path: ['scores'],
+    });
+    return;
+  }
+
+  // Rule 3: Must have at least 1st place assigned
   const hasFirst = participatingScores.some(s => s.position === 1);
-  const hasSecond = participatingScores.some(s => s.position === 2);
-  const hasThird = participatingScores.some(s => s.position === 3);
-
-  // Rule 2: 0-10 golfers → must have 1st place
-  if (tier === '0-10' && !hasFirst) {
+  if (!hasFirst) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: 'With 1-10 golfers, you must assign a 1st place finish',
+      message: 'You must assign a 1st place finish',
       path: ['scores'],
     });
     return;
   }
 
-  // Rule 3: 10-20 golfers → must have 1st and 2nd place
-  if (tier === '10-20' && (!hasFirst || !hasSecond)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'With 10-20 golfers, you must assign both 1st and 2nd place finishes',
-      path: ['scores'],
-    });
-    return;
+  // Rule 4: If 2+ participants, must have 2nd place
+  if (participatingScores.length >= 2) {
+    const hasSecond = participatingScores.some(s => s.position === 2);
+    if (!hasSecond) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'With 2+ golfers, you must assign a 2nd place finish',
+        path: ['scores'],
+      });
+      return;
+    }
   }
 
-  // Rule 4: 20+ golfers → must have 1st, 2nd, and 3rd place
-  if (tier === '20+' && (!hasFirst || !hasSecond || !hasThird)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: 'With 20+ golfers, you must assign 1st, 2nd, and 3rd place finishes',
-      path: ['scores'],
-    });
-    return;
+  // Rule 5: If 3+ participants, must have 3rd place
+  if (participatingScores.length >= 3) {
+    const hasThird = participatingScores.some(s => s.position === 3);
+    if (!hasThird) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'With 3+ golfers, you must assign a 3rd place finish',
+        path: ['scores'],
+      });
+      return;
+    }
   }
 
   // Check for duplicate positions (only for positions 1, 2, 3)

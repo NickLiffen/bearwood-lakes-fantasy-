@@ -28,7 +28,7 @@ export const handler = withAdmin(async (event) => {
         scores: data.scores.map(s => ({
           golferId: s.golferId,
           position: s.position ?? null,
-          scored36Plus: s.scored36Plus,
+          rawScore: s.rawScore ?? null,
           participated: s.participated,
         })),
       }), { scoreCount: data.scores.length });
@@ -44,7 +44,7 @@ export const handler = withAdmin(async (event) => {
       tournamentId: data.tournamentId,
       golferId: data.golferId,
       position: data.position ?? null,
-      scored36Plus: data.scored36Plus,
+      rawScore: data.rawScore ?? null,
       participated: data.participated,
     }));
 

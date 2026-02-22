@@ -168,7 +168,7 @@ export const handler: Handler = withAuth(async (event) => {
           basePoints: score.basePoints,
           bonusPoints: score.bonusPoints,
           multipliedPoints: score.multipliedPoints,
-          scored36Plus: score.scored36Plus,
+          rawScore: score.rawScore,
           participated: score.participated,
           tournamentDate: tournament?.startDate || new Date(),
         };

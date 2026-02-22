@@ -13,7 +13,7 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import './GolfersPage.css';
 
 interface GolferStats {
-  timesScored36Plus: number;
+  timesBonusScored: number;
   timesFinished1st: number;
   timesFinished2nd: number;
   timesFinished3rd: number;
@@ -140,7 +140,7 @@ const GolfersPage: React.FC = () => {
             case 'third':
               return getStats(golfer)?.timesFinished3rd || 0;
             case 'consistent':
-              return getStats(golfer)?.timesScored36Plus || 0;
+              return getStats(golfer)?.timesBonusScored || 0;
             case 'week-pts':
               return golfer.points?.week || 0;
             case 'month-pts':
@@ -300,10 +300,10 @@ const GolfersPage: React.FC = () => {
     },
     {
       key: `consistent-${seasonName}`,
-      header: '36+',
+      header: 'Bonus',
       sortable: true,
       align: 'center',
-      render: (golfer) => getStats(golfer)?.timesScored36Plus || 0,
+      render: (golfer) => getStats(golfer)?.timesBonusScored || 0,
     },
   ];
 

@@ -11,7 +11,7 @@ import { formatPrice, getMembershipLabel } from '../../utils/formatters';
 import './GolferProfilePage.css';
 
 interface GolferStats {
-  timesScored36Plus: number;
+  timesBonusScored: number;
   timesFinished1st: number;
   timesFinished2nd: number;
   timesFinished3rd: number;
@@ -33,7 +33,7 @@ interface SeasonStat {
   timesFinished1st: number;
   timesFinished2nd: number;
   timesFinished3rd: number;
-  timesScored36Plus: number;
+  timesBonusScored: number;
   totalPoints: number;
 }
 
@@ -133,7 +133,7 @@ const GolferProfilePage: React.FC = () => {
 
   const getConsistencyRate = (stats: GolferStats) => {
     if (!stats || stats.timesPlayed === 0) return 0;
-    return ((stats.timesScored36Plus / stats.timesPlayed) * 100).toFixed(1);
+    return ((stats.timesBonusScored / stats.timesPlayed) * 100).toFixed(1);
   };
 
   const formatDate = (dateString: string) => {
@@ -181,14 +181,14 @@ const GolferProfilePage: React.FC = () => {
         timesFinished1st: acc.timesFinished1st + ss.timesFinished1st,
         timesFinished2nd: acc.timesFinished2nd + ss.timesFinished2nd,
         timesFinished3rd: acc.timesFinished3rd + ss.timesFinished3rd,
-        timesScored36Plus: acc.timesScored36Plus + ss.timesScored36Plus,
+        timesBonusScored: acc.timesBonusScored + ss.timesBonusScored,
       }),
       {
         timesPlayed: 0,
         timesFinished1st: 0,
         timesFinished2nd: 0,
         timesFinished3rd: 0,
-        timesScored36Plus: 0,
+        timesBonusScored: 0,
       }
     ) ?? null;
 
@@ -236,8 +236,8 @@ const GolferProfilePage: React.FC = () => {
               <div className="quick-stat-label">🥇 Podiums</div>
             </div>
             <div className="quick-stat">
-              <div className="quick-stat-value">{totalStats?.timesScored36Plus || 0}</div>
-              <div className="quick-stat-label">⭐ 36+ Scores</div>
+              <div className="quick-stat-value">{totalStats?.timesBonusScored || 0}</div>
+              <div className="quick-stat-label">⭐ Bonus Scores</div>
             </div>
           </div>
 
@@ -324,8 +324,8 @@ const GolferProfilePage: React.FC = () => {
                               <div className="season-stat-label">🥉 3rd</div>
                             </div>
                             <div className="season-stat">
-                              <div className="season-stat-value">{ss.timesScored36Plus}</div>
-                              <div className="season-stat-label">⭐ 36+</div>
+                              <div className="season-stat-value">{ss.timesBonusScored}</div>
+                              <div className="season-stat-label">⭐ Bonus</div>
                             </div>
                           </div>
                           <div className="season-rates">
@@ -398,8 +398,8 @@ const GolferProfilePage: React.FC = () => {
               <div className="summary-item">
                 <div className="summary-icon">⭐</div>
                 <div className="summary-content">
-                  <span className="summary-value">{totalStats?.timesScored36Plus || 0}</span>
-                  <span className="summary-label">36+ Point Rounds</span>
+                  <span className="summary-value">{totalStats?.timesBonusScored || 0}</span>
+                  <span className="summary-label">Bonus Point Rounds</span>
                 </div>
               </div>
               <div className="summary-item">

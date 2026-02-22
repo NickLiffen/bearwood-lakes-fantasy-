@@ -22,7 +22,7 @@ interface TournamentScoreInfo {
   basePoints: number;
   bonusPoints: number;
   multipliedPoints: number;
-  scored36Plus: boolean;
+  rawScore: number | null;
   participated: boolean;
   tournamentDate: Date;
 }
@@ -200,7 +200,7 @@ export const handler: Handler = withAuth(async (event: AuthenticatedEvent) => {
           basePoints: score.basePoints,
           bonusPoints: score.bonusPoints,
           multipliedPoints: score.multipliedPoints,
-          scored36Plus: score.scored36Plus,
+          rawScore: score.rawScore,
           participated: score.participated,
           tournamentDate: tournament?.startDate || new Date(),
         };

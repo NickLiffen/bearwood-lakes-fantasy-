@@ -83,7 +83,7 @@ export interface TournamentScore {
   basePoints: number;
   bonusPoints: number;
   multipliedPoints: number;
-  scored36Plus: boolean;
+  rawScore: number | null;
   participated: boolean;
 }
 

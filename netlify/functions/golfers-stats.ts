@@ -55,7 +55,7 @@ export const handler: Handler = async (event) => {
       firstPlaceFinishes: relevantScores.filter(s => s.position === 1).length,
       secondPlaceFinishes: relevantScores.filter(s => s.position === 2).length,
       thirdPlaceFinishes: relevantScores.filter(s => s.position === 3).length,
-      times36Plus: relevantScores.filter(s => s.scored36Plus).length,
+      timesBonusScored: relevantScores.filter(s => s.bonusPoints > 0).length,
     };
 
     return {

@@ -21,7 +21,7 @@ interface GolferScore {
   golfer: Golfer;
   position: number | null;
   participated: boolean;
-  scored36Plus: boolean;
+  rawScore: number;
   basePoints: number;
   bonusPoints: number;
   multipliedPoints: number;
@@ -55,7 +55,7 @@ interface TournamentDetailData {
   scores: GolferScore[];
   stats: {
     totalParticipants: number;
-    scored36Plus: number;
+    bonusScorers: number;
     averagePoints: number;
   };
 }
@@ -245,16 +245,15 @@ const TournamentDetailPage: React.FC = () => {
         ),
       },
       {
-        key: 'scored36Plus',
-        header: '36+',
+        key: 'rawScore',
+        header: 'Score',
         width: '70px',
         align: 'center',
-        render: (score) =>
-          score.scored36Plus ? (
-            <span className="badge-36plus">Yes</span>
-          ) : (
-            <span className="dt-cell-muted">-</span>
-          ),
+        render: (score) => (
+          <span className={score.rawScore ? 'dt-cell-stat' : 'dt-cell-muted'}>
+            {score.rawScore ?? '-'}
+          </span>
+        ),
       },
     ],
     []
@@ -324,9 +323,9 @@ const TournamentDetailPage: React.FC = () => {
               <div className="stat-label">Participants</div>
             </div>
             <div className="stat-card">
-              <div className="stat-icon">36+ Pts</div>
-              <div className="stat-value">{stats.scored36Plus}</div>
-              <div className="stat-label">Scored 36+</div>
+              <div className="stat-icon">⭐</div>
+              <div className="stat-value">{stats.bonusScorers}</div>
+              <div className="stat-label">Bonus Scorers</div>
             </div>
             <div className="stat-card">
               <div className="stat-icon">{tournament.multiplier}x</div>

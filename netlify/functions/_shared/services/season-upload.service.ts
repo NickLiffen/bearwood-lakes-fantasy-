@@ -12,8 +12,7 @@ import {
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from '../models/Tournament';
 import { ScoreDocument, SCORES_COLLECTION } from '../models/Score';
 import { SeasonDocument, SEASONS_COLLECTION } from '../models/Season';
-import { getBasePointsForPosition } from '../../../../shared/types/tournament.types';
-import type { GolferCountTier } from '../../../../shared/types/tournament.types';
+import { getBasePointsForPosition, getBonusPoints } from '../../../../shared/types/tournament.types';
 
 export interface SeasonUploadResult {
   golfersCreated: number;
@@ -217,9 +216,10 @@ export async function processSeasonUpload(csvText: string): Promise<SeasonUpload
       affectedGolferIds.add(golferId.toString());
 
       // Calculate points
-      const basePoints = getBasePointsForPosition(row.position, tier);
-      const scored36Plus = row.stablefordPoints >= 36;
-      const bonusPoints = scored36Plus ? 1 : 0;
+      const basePoints = getBasePointsForPosition(row.position);
+      const rawScore = row.stablefordPoints || null;
+      const scoringFormat = 'stableford' as const;
+      const bonusPoints = getBonusPoints(rawScore, scoringFormat);
       const multipliedPoints = (basePoints + bonusPoints) * multiplier;
 
       // Upsert score
@@ -230,7 +230,7 @@ export async function processSeasonUpload(csvText: string): Promise<SeasonUpload
           $set: {
             participated: true,
             position: row.position,
-            scored36Plus,
+            rawScore,
             basePoints,
             bonusPoints,
             multipliedPoints,
@@ -280,7 +280,7 @@ export async function processSeasonUpload(csvText: string): Promise<SeasonUpload
 
       const stats = {
         timesPlayed: scores.length,
-        timesScored36Plus: scores.filter((s) => s.scored36Plus).length,
+        timesBonusScored: scores.filter((s) => s.bonusPoints > 0).length,
         timesFinished1st: scores.filter((s) => s.position === 1).length,
         timesFinished2nd: scores.filter((s) => s.position === 2).length,
         timesFinished3rd: scores.filter((s) => s.position === 3).length,

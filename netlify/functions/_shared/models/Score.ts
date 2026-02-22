@@ -9,7 +9,7 @@ export interface ScoreDocument {
   golferId: ObjectId;
   participated: boolean;
   position: number | null;
-  scored36Plus: boolean;
+  rawScore: number | null;
   basePoints: number;
   bonusPoints: number;
   multipliedPoints: number;
@@ -24,7 +24,7 @@ export function toScore(doc: ScoreDocument): Score {
     golferId: doc.golferId?.toString() || '',
     participated: doc.participated ?? true,
     position: doc.position,
-    scored36Plus: doc.scored36Plus ?? false,
+    rawScore: doc.rawScore ?? null,
     basePoints: doc.basePoints ?? 0,
     bonusPoints: doc.bonusPoints ?? 0,
     multipliedPoints: doc.multipliedPoints ?? 0,

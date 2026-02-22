@@ -51,6 +51,16 @@ const HomePage: React.FC = () => {
 
       {/* Hero Section */}
       <header className="hero">
+        <video
+          className="hero-video"
+          autoPlay
+          muted
+          loop
+          playsInline
+          poster="/bearwood_lakes_logo.png"
+        >
+          <source src="/video.mp4" type="video/mp4" />
+        </video>
         <div className="hero-overlay" />
         <div className="hero-content">
           <div className="logo-badge animate-fade-in">

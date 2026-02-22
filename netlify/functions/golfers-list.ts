@@ -74,7 +74,7 @@ export const handler = withAuth(async (event: AuthenticatedEvent) => {
                 tournamentId: 1,
                 position: 1,
                 multipliedPoints: 1,
-                scored36Plus: 1
+                bonusPoints: 1
               }
             }
           ],
@@ -116,7 +116,7 @@ export const handler = withAuth(async (event: AuthenticatedEvent) => {
         tournamentId: ObjectId;
         position: number | null;
         multipliedPoints: number;
-        scored36Plus: boolean;
+        bonusPoints: number;
       }> };
 
       const golfer = toGolfer(golferDoc);
@@ -136,7 +136,7 @@ export const handler = withAuth(async (event: AuthenticatedEvent) => {
         timesFinished1st: scores2026.filter(s => s.position === 1).length,
         timesFinished2nd: scores2026.filter(s => s.position === 2).length,
         timesFinished3rd: scores2026.filter(s => s.position === 3).length,
-        timesScored36Plus: scores2026.filter(s => s.scored36Plus).length,
+        timesBonusScored: scores2026.filter(s => s.bonusPoints > 0).length,
       };
 
       // Calculate points by period
@@ -174,7 +174,7 @@ export const handler = withAuth(async (event: AuthenticatedEvent) => {
           timesFinished1st: seasonGolferScores.filter(s => s.position === 1).length,
           timesFinished2nd: seasonGolferScores.filter(s => s.position === 2).length,
           timesFinished3rd: seasonGolferScores.filter(s => s.position === 3).length,
-          timesScored36Plus: seasonGolferScores.filter(s => s.scored36Plus).length,
+          timesBonusScored: seasonGolferScores.filter(s => s.bonusPoints > 0).length,
           totalPoints,
         });
       }

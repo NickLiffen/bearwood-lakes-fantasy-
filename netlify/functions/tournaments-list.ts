@@ -22,7 +22,7 @@ interface TournamentWithResults extends Tournament {
     first: PodiumGolfer | null;
     second: PodiumGolfer | null;
     third: PodiumGolfer | null;
-    scored36PlusCount: number;
+    bonusScorerCount: number;
     participantCount: number;
   };
 }
@@ -145,15 +145,15 @@ const handler: Handler = async (event: HandlerEvent) => {
         let first: PodiumGolfer | null = null;
         let second: PodiumGolfer | null = null;
         let third: PodiumGolfer | null = null;
-        let scored36PlusCount = 0;
+        let bonusScorerCount = 0;
         let participantCount = 0;
 
         for (const score of tournamentScores) {
           if (score.participated) {
             participantCount++;
           }
-          if (score.scored36Plus) {
-            scored36PlusCount++;
+          if (score.bonusPoints > 0) {
+            bonusScorerCount++;
           }
           if (score.position === 1) {
             first = golferMap.get(score.golferId.toString()) || null;
@@ -170,7 +170,7 @@ const handler: Handler = async (event: HandlerEvent) => {
             first,
             second,
             third,
-            scored36PlusCount,
+            bonusScorerCount,
             participantCount,
           },
         };
