@@ -992,9 +992,11 @@ const ScoresAdminPage: React.FC = () => {
                 <thead>
                   <tr>
                     <th>Position</th>
-                    <th>golfer</th>
-                    <th>36+ Bonus</th>
-                    <th>Points</th>
+                    <th>Golfer</th>
+                    <th>Score</th>
+                    <th>Score Bonus Points</th>
+                    <th>Position Points</th>
+                    <th>Final</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1017,13 +1019,23 @@ const ScoresAdminPage: React.FC = () => {
                         </td>
                         <td style={{ fontWeight: 500 }}>{getGolferName(score.golferId)}</td>
                         <td>
+                          {score.rawScore != null ? (
+                            <span>{score.rawScore}</span>
+                          ) : (
+                            <span style={{ color: '#9ca3af' }}>-</span>
+                          )}
+                        </td>
+                        <td>
                           {score.bonusPoints > 0 ? (
                             <span style={{ color: 'var(--primary-green)', fontWeight: 600 }}>
                               +{score.bonusPoints}
                             </span>
                           ) : (
-                            <span style={{ color: '#9ca3af' }}>-</span>
+                            <span style={{ color: '#9ca3af' }}>0</span>
                           )}
+                        </td>
+                        <td>
+                          <span>{score.basePoints}</span>
                         </td>
                         <td>
                           <strong

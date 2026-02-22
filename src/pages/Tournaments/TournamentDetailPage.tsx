@@ -213,30 +213,19 @@ const TournamentDetailPage: React.FC = () => {
         ),
       },
       {
-        key: 'multipliedPoints',
-        header: 'Points',
-        width: '100px',
+        key: 'rawScore',
+        header: 'Score',
+        width: '70px',
         align: 'center',
         render: (score) => (
-          <span
-            className={
-              score.multipliedPoints > 0 ? 'dt-cell-stat dt-cell-stat-highlight' : 'dt-cell-muted'
-            }
-          >
-            {score.multipliedPoints}
+          <span className={score.rawScore ? 'dt-cell-stat' : 'dt-cell-muted'}>
+            {score.rawScore ?? '-'}
           </span>
         ),
       },
       {
-        key: 'basePoints',
-        header: 'Base',
-        width: '80px',
-        align: 'center',
-        render: (score) => <span className="dt-cell-stat">{score.basePoints}</span>,
-      },
-      {
         key: 'bonusPoints',
-        header: 'Bonus',
+        header: 'Score Bonus Points',
         width: '80px',
         align: 'center',
         render: (score) => (
@@ -246,13 +235,24 @@ const TournamentDetailPage: React.FC = () => {
         ),
       },
       {
-        key: 'rawScore',
-        header: 'Score',
-        width: '70px',
+        key: 'basePoints',
+        header: 'Position Points',
+        width: '80px',
+        align: 'center',
+        render: (score) => <span className="dt-cell-stat">{score.basePoints}</span>,
+      },
+      {
+        key: 'multipliedPoints',
+        header: 'Final',
+        width: '100px',
         align: 'center',
         render: (score) => (
-          <span className={score.rawScore ? 'dt-cell-stat' : 'dt-cell-muted'}>
-            {score.rawScore ?? '-'}
+          <span
+            className={
+              score.multipliedPoints > 0 ? 'dt-cell-stat dt-cell-stat-highlight' : 'dt-cell-muted'
+            }
+          >
+            {score.multipliedPoints}
           </span>
         ),
       },
