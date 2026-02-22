@@ -7,6 +7,7 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { useAuth } from '../../hooks/useAuth';
 import { useApiClient } from '../../hooks/useApiClient';
 import { useActiveSeason } from '../../hooks/useActiveSeason';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import './DashboardPage.css';
 
 // Get the next Saturday at 8am (weekly deadline)
@@ -168,6 +169,7 @@ const DashboardPage: React.FC = () => {
   const { season } = useActiveSeason();
   const navigate = useNavigate();
   const seasonName = season?.name || '2026';
+  useDocumentTitle('Dashboard');
 
   // Individual loading states for each section
   const [statsLoading, setStatsLoading] = useState(true);

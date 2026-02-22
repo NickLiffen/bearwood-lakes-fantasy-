@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import AdminLayout from '../../components/AdminLayout/AdminLayout';
 import { useApiClient } from '../../hooks/useApiClient';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 
 interface UploadResult {
   golfersCreated: number;
@@ -20,6 +21,7 @@ interface CsvPreview {
 
 const SeasonUploadPage: React.FC = () => {
   const { post, isAuthReady } = useApiClient();
+  useDocumentTitle('Admin: Season Upload');
   const [csvText, setCsvText] = useState<string>('');
   const [fileName, setFileName] = useState<string>('');
   const [preview, setPreview] = useState<CsvPreview | null>(null);

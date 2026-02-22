@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '../../components/AdminLayout/AdminLayout';
 import { useApiClient } from '../../hooks/useApiClient';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 
 interface AppSettings {
   transfersOpen: boolean;
@@ -14,6 +15,7 @@ interface AppSettings {
 
 const SettingsAdminPage: React.FC = () => {
   const { get, put, request, isAuthReady } = useApiClient();
+  useDocumentTitle('Admin: Settings');
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');

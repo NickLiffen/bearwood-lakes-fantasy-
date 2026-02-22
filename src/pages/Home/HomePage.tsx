@@ -3,14 +3,16 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import './HomePage.css';
 
 const HomePage: React.FC = () => {
   const currentYear = new Date().getFullYear();
   const { user, isAuthenticated } = useAuth();
+  useDocumentTitle('Home');
 
   return (
-    <div className="home-page">
+    <main className="home-page">
       {/* Top Navigation */}
       <nav className="top-nav">
         <div className="nav-brand">
@@ -241,7 +243,7 @@ const HomePage: React.FC = () => {
           </div>
         </div>
       </footer>
-    </div>
+    </main>
   );
 };
 

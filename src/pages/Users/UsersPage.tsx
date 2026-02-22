@@ -8,6 +8,7 @@ import DataTable, { Column } from '../../components/ui/DataTable';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { useAuth } from '../../hooks/useAuth';
 import { useAsyncData } from '../../hooks/useAsyncData';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import './UsersPage.css';
 
 interface FantasyUser {
@@ -34,6 +35,7 @@ type QuickFilter = 'all' | 'hasTeam' | 'noTeam' | 'top10Week' | 'top10Month' | '
 const UsersPage: React.FC = () => {
   // Use the useAsyncData hook for data fetching with proper loading/error handling
   const { data: users, loading, error } = useAsyncData<FantasyUser[]>('users-fantasy');
+  useDocumentTitle('Members');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortColumn, setSortColumn] = useState<SortColumn>('seasonPoints');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');

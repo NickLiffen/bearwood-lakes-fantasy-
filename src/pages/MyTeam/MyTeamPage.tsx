@@ -7,6 +7,7 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import DataTable, { Column } from '../../components/ui/DataTable';
 import { useApiClient } from '../../hooks/useApiClient';
 import { useActiveSeason } from '../../hooks/useActiveSeason';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { formatPrice } from '../../utils/formatters';
 import type {
   GolferSeasonStats,
@@ -114,6 +115,7 @@ const MyTeamPage: React.FC = () => {
   const { get, post, isAuthReady } = useApiClient();
   const { season } = useActiveSeason();
   const seasonName = season?.name || '2026';
+  useDocumentTitle('My Team');
 
   // Generate week options from team effective start to current week
   // Only shows weeks where the team could have earned points

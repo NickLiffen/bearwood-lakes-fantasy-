@@ -8,6 +8,7 @@ import DataTable, { Column } from '../../components/ui/DataTable';
 import TeamCompareModal from '../../components/ui/TeamCompareModal';
 import { useAuth } from '../../hooks/useAuth';
 import { useApiClient } from '../../hooks/useApiClient';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { formatDate, formatDateTime, formatPrice } from '../../utils/formatters';
 import './UserProfilePage.css';
 
@@ -158,6 +159,9 @@ const UserProfilePage: React.FC = () => {
   const currentUserId = currentUser?.id ?? null;
   const isOwnProfile = currentUserId === userId;
   const { get, isAuthReady } = useApiClient();
+  useDocumentTitle(
+    profileData ? `${profileData.user.firstName} ${profileData.user.lastName}` : 'User Profile'
+  );
   
   // Track request ID to ignore stale responses
   const requestIdRef = useRef(0);

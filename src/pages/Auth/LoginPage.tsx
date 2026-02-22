@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { useFormValidation, validators, sanitizers, getInputClassName } from '../../utils/validation';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import './LoginPage.css';
 
 interface LoginFormData {
@@ -33,6 +34,7 @@ const LoginPage: React.FC = () => {
       ],
     }
   );
+  useDocumentTitle('Log In');
 
   const handleChange = (field: keyof LoginFormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value;

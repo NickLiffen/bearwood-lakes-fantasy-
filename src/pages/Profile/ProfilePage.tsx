@@ -6,6 +6,7 @@ import { validators, sanitizers, getInputClassName } from '../../utils/validatio
 import PageLayout from '../../components/layout/PageLayout';
 import { useAuth } from '../../hooks/useAuth';
 import { useApiClient } from '../../hooks/useApiClient';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import './ProfilePage.css';
 
 interface User {
@@ -177,6 +178,7 @@ const ProfilePage: React.FC = () => {
 
   const { user: authUser, logout: authLogout } = useAuth();
   const { put, del } = useApiClient();
+  useDocumentTitle('My Profile');
 
   useEffect(() => {
     if (authUser) {

@@ -8,6 +8,7 @@ import TeamCompareModal from '../../components/ui/TeamCompareModal';
 import DataTable, { Column } from '../../components/ui/DataTable';
 import { useAuth } from '../../hooks/useAuth';
 import { useApiClient } from '../../hooks/useApiClient';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { formatPrice } from '../../utils/formatters';
 import './LeaderboardPage.css';
 
@@ -87,6 +88,7 @@ const LeaderboardPage: React.FC = () => {
   const { user } = useAuth();
   const userId = user?.id; // Use primitive value for dependency
   const { get, isAuthReady } = useApiClient();
+  useDocumentTitle('Leaderboard');
 
   // Leaders state
   const [leaders, setLeaders] = useState<LeadersResponse | null>(null);

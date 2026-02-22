@@ -7,6 +7,7 @@ import SearchBar from '../../components/ui/SearchBar';
 import DataTable, { Column } from '../../components/ui/DataTable';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { useAsyncData } from '../../hooks/useAsyncData';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import './TournamentsPage.css';
 
 interface PodiumGolfer {
@@ -44,6 +45,7 @@ const TournamentsPage: React.FC = () => {
   const { data: tournaments, loading, error } = useAsyncData<Tournament[]>(
     'tournaments-list?includeResults=true'
   );
+  useDocumentTitle('Tournaments');
   const [searchTerm, setSearchTerm] = useState('');
   const [sortColumn, setSortColumn] = useState<SortColumn>('startDate');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');

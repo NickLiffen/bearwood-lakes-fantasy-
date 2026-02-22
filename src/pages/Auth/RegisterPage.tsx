@@ -3,6 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useFormValidation, validators, sanitizers, getInputClassName } from '../../utils/validation';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import './LoginPage.css'; // Reuse same styles
 
 interface RegisterFormData {
@@ -61,6 +62,7 @@ const RegisterPage: React.FC = () => {
       ],
     }
   );
+  useDocumentTitle('Register');
 
   const handleChange = (field: keyof RegisterFormData) => (e: React.ChangeEvent<HTMLInputElement>) => {
     let value = e.target.value;

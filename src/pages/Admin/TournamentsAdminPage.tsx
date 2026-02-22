@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '../../components/AdminLayout/AdminLayout';
 import { validators, sanitizers, getInputClassName } from '../../utils/validation';
 import { useApiClient } from '../../hooks/useApiClient';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 
 interface Tournament {
   id: string;
@@ -55,6 +56,7 @@ const initialFormData: TournamentFormData = {
 
 const TournamentsAdminPage: React.FC = () => {
   const { get, post, put, request, isAuthReady } = useApiClient();
+  useDocumentTitle('Admin: Tournaments');
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);

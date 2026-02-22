@@ -6,6 +6,7 @@ import PageLayout from '../../components/layout/PageLayout';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { useApiClient } from '../../hooks/useApiClient';
 import { useActiveSeason } from '../../hooks/useActiveSeason';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { formatPrice, getMembershipLabel } from '../../utils/formatters';
 import './GolferProfilePage.css';
 
@@ -60,6 +61,7 @@ const GolferProfilePage: React.FC = () => {
   const { get, isAuthReady } = useApiClient();
   const { season } = useActiveSeason();
   const seasonName = season?.name || '2026';
+  useDocumentTitle(golfer ? `${golfer.firstName} ${golfer.lastName}` : 'Golfer Profile');
   const [expandedSeasons, setExpandedSeasons] = useState<Set<string>>(new Set());
   
   // Track request ID to ignore stale responses

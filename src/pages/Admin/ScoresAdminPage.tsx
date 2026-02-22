@@ -3,6 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '../../components/AdminLayout/AdminLayout';
 import { useApiClient } from '../../hooks/useApiClient';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 
 interface Tournament {
   id: string;
@@ -51,6 +52,7 @@ interface TournamentWithScores {
 
 const ScoresAdminPage: React.FC = () => {
   const { get, post, put, request, isAuthReady } = useApiClient();
+  useDocumentTitle('Admin: Scores');
   const [golfers, setGolfers] = useState<Golfer[]>([]);
   const [tournamentsWithScores, setTournamentsWithScores] = useState<TournamentWithScores[]>([]);
   const [tournamentsWithoutScores, setTournamentsWithoutScores] = useState<Tournament[]>([]);

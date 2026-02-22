@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import PageLayout from '../../components/layout/PageLayout';
 import { useApiClient } from '../../hooks/useApiClient';
 import { useActiveSeason } from '../../hooks/useActiveSeason';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import './TeamBuilderPage.css';
 
 interface GolferStats {
@@ -97,6 +98,7 @@ const TeamBuilderPage: React.FC = () => {
   const { get, post, isAuthReady } = useApiClient();
   const { season } = useActiveSeason();
   const seasonName = season?.name || '2026';
+  useDocumentTitle('Team Builder');
 
   const fetchData = useCallback(async () => {
     try {

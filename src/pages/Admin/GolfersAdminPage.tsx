@@ -5,6 +5,7 @@ import AdminLayout from '../../components/AdminLayout/AdminLayout';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { validators, sanitizers, getInputClassName } from '../../utils/validation';
 import { useApiClient } from '../../hooks/useApiClient';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 
 interface Golfer2025Stats {
   timesScored36Plus: number;
@@ -67,6 +68,7 @@ const initialFormData: GolferFormData = {
 
 const GolfersAdminPage: React.FC = () => {
   const { get, post, put, request, isAuthReady } = useApiClient();
+  useDocumentTitle('Admin: Golfers');
   const [Golfers, setGolfers] = useState<Golfer[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);

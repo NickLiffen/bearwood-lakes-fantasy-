@@ -6,6 +6,7 @@ import PageLayout from '../../components/layout/PageLayout';
 import DataTable, { Column } from '../../components/ui/DataTable';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { useApiClient } from '../../hooks/useApiClient';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import './TournamentDetailPage.css';
 
 interface Golfer {
@@ -65,6 +66,7 @@ const TournamentDetailPage: React.FC = () => {
   const [data, setData] = useState<TournamentDetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  useDocumentTitle(data ? data.tournament.name : 'Tournament');
 
   // Track request ID to ignore stale responses
   const requestIdRef = useRef(0);

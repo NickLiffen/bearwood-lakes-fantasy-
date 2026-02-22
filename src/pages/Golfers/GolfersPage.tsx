@@ -9,6 +9,7 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { useAsyncData } from '../../hooks/useAsyncData';
 import { formatPrice, getMembershipLabel } from '../../utils/formatters';
 import { useActiveSeason } from '../../hooks/useActiveSeason';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import './GolfersPage.css';
 
 interface GolferStats {
@@ -57,6 +58,7 @@ const GolfersPage: React.FC = () => {
   const { data: golfers, loading, error } = useAsyncData<Golfer[]>('golfers-list');
   const { season } = useActiveSeason();
   const seasonName = season?.name || '2026';
+  useDocumentTitle('Golfers');
 
   const getStats = useCallback((golfer: Golfer) => {
     if (seasonName === '2025') return golfer.stats2025;

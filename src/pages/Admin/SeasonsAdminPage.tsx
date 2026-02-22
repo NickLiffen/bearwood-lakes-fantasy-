@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '../../components/AdminLayout/AdminLayout';
 import { validators, sanitizers, getInputClassName } from '../../utils/validation';
 import { useApiClient } from '../../hooks/useApiClient';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 
 interface Season {
   id: string;
@@ -28,6 +29,7 @@ const initialFormData: SeasonFormData = {
 
 const SeasonsAdminPage: React.FC = () => {
   const { get, post, put, del, isAuthReady } = useApiClient();
+  useDocumentTitle('Admin: Seasons');
   const [seasons, setSeasons] = useState<Season[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);

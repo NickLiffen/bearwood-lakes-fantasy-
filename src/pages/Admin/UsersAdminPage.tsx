@@ -5,6 +5,7 @@ import AdminLayout from '../../components/AdminLayout/AdminLayout';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { useAuth } from '../../hooks/useAuth';
 import { useApiClient } from '../../hooks/useApiClient';
+import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 
 interface User {
   id: string;
@@ -19,6 +20,7 @@ interface User {
 const UsersAdminPage: React.FC = () => {
   const { user } = useAuth();
   const { get, put, post, request, isAuthReady } = useApiClient();
+  useDocumentTitle('Admin: Users');
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
