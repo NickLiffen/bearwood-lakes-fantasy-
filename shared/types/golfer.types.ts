@@ -5,7 +5,7 @@ export type MembershipType = 'men' | 'junior' | 'female' | 'senior';
 
 // Performance stats structure (used for both 2025 and 2026)
 export interface GolferSeasonStats {
-  timesScored36Plus: number;      // Times shot 36 points or above
+  timesBonusScored: number;
   timesFinished1st: number;        // Times finished 1st place
   timesFinished2nd: number;        // Times finished 2nd place
   timesFinished3rd: number;        // Times finished 3rd place

@@ -12,6 +12,7 @@ interface Tournament {
   startDate: string;
   endDate: string;
   tournamentType: 'regular' | 'elevated' | 'signature';
+  scoringFormat: 'stableford' | 'medal';
   multiplier: number;
   season: number;
   status: 'draft' | 'published' | 'complete';
@@ -24,7 +25,7 @@ interface Score {
   golferId: string;
   participated: boolean;
   position: number | null;
-  scored36Plus: boolean;
+  rawScore: number | null;
   basePoints: number;
   bonusPoints: number;
   multipliedPoints: number;
@@ -45,6 +46,7 @@ interface TournamentFormData {
   startDate: string;
   endDate: string;
   tournamentType: 'regular' | 'elevated' | 'signature';
+  scoringFormat: 'stableford' | 'medal';
 }
 
 const initialFormData: TournamentFormData = {
@@ -52,6 +54,7 @@ const initialFormData: TournamentFormData = {
   startDate: '',
   endDate: '',
   tournamentType: 'regular',
+  scoringFormat: 'stableford',
 };
 
 const TournamentsAdminPage: React.FC = () => {
@@ -203,6 +206,7 @@ const TournamentsAdminPage: React.FC = () => {
         startDate: tournament.startDate.split('T')[0],
         endDate: tournament.endDate.split('T')[0],
         tournamentType: tournament.tournamentType || 'regular',
+        scoringFormat: tournament.scoringFormat || 'stableford',
       });
     } else {
       setEditingTournament(null);
@@ -788,8 +792,8 @@ const TournamentsAdminPage: React.FC = () => {
                               </td>
                               <td style={{ fontWeight: 500 }}>{score.golferName}</td>
                               <td>
-                                {score.scored36Plus ? (
-                                  <span style={{ color: 'var(--primary-green)' }}>✓</span>
+                                {score.bonusPoints > 0 ? (
+                                  <span style={{ color: 'var(--primary-green)' }}>+{score.bonusPoints}</span>
                                 ) : (
                                   <span style={{ color: '#9ca3af' }}>—</span>
                                 )}

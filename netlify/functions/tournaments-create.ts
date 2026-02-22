@@ -13,7 +13,7 @@ const handler = withAdmin(async (event: AuthenticatedEvent) => {
 
   try {
     const body = JSON.parse(event.body || '{}');
-    const { name, startDate, endDate, tournamentType, playerCountTier, season } = body;
+    const { name, startDate, endDate, tournamentType, scoringFormat, playerCountTier, season } = body;
 
     if (!name || !startDate || !endDate) {
       return {
@@ -30,6 +30,7 @@ const handler = withAdmin(async (event: AuthenticatedEvent) => {
       startDate,
       endDate,
       tournamentType: tournamentType || 'regular',
+      scoringFormat: scoringFormat || 'stableford',
       golferCountTier: playerCountTier || '20+',
       season,
     });

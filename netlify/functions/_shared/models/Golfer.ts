@@ -19,7 +19,7 @@ export interface GolferDocument {
 }
 
 const defaultStats2024: Golfer2024Stats = {
-  timesScored36Plus: 0,
+  timesBonusScored: 0,
   timesFinished1st: 0,
   timesFinished2nd: 0,
   timesFinished3rd: 0,
@@ -27,7 +27,7 @@ const defaultStats2024: Golfer2024Stats = {
 };
 
 const defaultStats2025: Golfer2025Stats = {
-  timesScored36Plus: 0,
+  timesBonusScored: 0,
   timesFinished1st: 0,
   timesFinished2nd: 0,
   timesFinished3rd: 0,
@@ -35,7 +35,7 @@ const defaultStats2025: Golfer2025Stats = {
 };
 
 const defaultStats2026: Golfer2026Stats = {
-  timesScored36Plus: 0,
+  timesBonusScored: 0,
   timesFinished1st: 0,
   timesFinished2nd: 0,
   timesFinished3rd: 0,

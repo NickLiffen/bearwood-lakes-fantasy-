@@ -72,6 +72,7 @@ export async function createTournament(data: CreateTournamentDTO): Promise<Tourn
     startDate: new Date(data.startDate),
     endDate: new Date(data.endDate),
     tournamentType,
+    scoringFormat: data.scoringFormat ?? 'stableford',
     multiplier,
     golferCountTier: data.golferCountTier ?? '20+',
     season: data.season ?? currentSeason,
@@ -107,6 +108,7 @@ export async function updateTournament(
     updateData.multiplier = getMultiplierForType(data.tournamentType);
   }
   if (data.golferCountTier !== undefined) updateData.golferCountTier = data.golferCountTier;
+  if (data.scoringFormat !== undefined) updateData.scoringFormat = data.scoringFormat;
   if (data.status !== undefined) updateData.status = data.status;
   if (data.participatingGolferIds !== undefined) {
     updateData.participatingGolferIds = data.participatingGolferIds.map((id) => new ObjectId(id));

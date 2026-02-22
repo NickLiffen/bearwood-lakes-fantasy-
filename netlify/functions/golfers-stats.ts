@@ -10,7 +10,7 @@ export interface GolferStats {
   firstPlaceFinishes: number;
   secondPlaceFinishes: number;
   thirdPlaceFinishes: number;
-  times36Plus: number;
+  timesBonusScored: number;
 }
 
 export const handler: Handler = async (event) => {

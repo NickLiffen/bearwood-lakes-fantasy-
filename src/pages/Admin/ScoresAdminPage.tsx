@@ -11,6 +11,7 @@ interface Tournament {
   startDate: string;
   endDate: string;
   tournamentType: 'regular' | 'elevated' | 'signature';
+  scoringFormat: 'stableford' | 'medal';
   multiplier: number;
   status: 'draft' | 'published' | 'complete';
   participatingGolferIds: string[];
@@ -31,7 +32,7 @@ interface Score {
   golferId: string;
   participated: boolean;
   position: number | null;
-  scored36Plus: boolean;
+  rawScore: number | null;
   basePoints: number;
   bonusPoints: number;
   multipliedPoints: number;
@@ -41,7 +42,7 @@ interface ScoreEntry {
   golferId: string;
   participated: boolean;
   position: number | null;
-  scored36Plus: boolean;
+  rawScore: number | null;
 }
 
 interface TournamentWithScores {
@@ -177,7 +178,7 @@ const ScoresAdminPage: React.FC = () => {
           golferId: golfer.id,
           participated: false,
           position: null,
-          scored36Plus: false,
+          rawScore: null,
         };
       });
 
@@ -208,7 +209,7 @@ const ScoresAdminPage: React.FC = () => {
           golferId: golfer.id,
           participated: false,
           position: null,
-          scored36Plus: false,
+          rawScore: null,
         };
       });
 
@@ -219,7 +220,7 @@ const ScoresAdminPage: React.FC = () => {
           golferId: score.golferId,
           participated: score.participated,
           position: score.position,
-          scored36Plus: score.scored36Plus,
+          rawScore: score.rawScore,
         };
       }
     });
@@ -247,7 +248,7 @@ const ScoresAdminPage: React.FC = () => {
 
   const handleScoreChange = (
     golferId: string,
-    field: 'participated' | 'position' | 'scored36Plus',
+    field: 'participated' | 'position' | 'rawScore',
     value: string | boolean
   ) => {
     setScores((prev) => {
@@ -260,7 +261,7 @@ const ScoresAdminPage: React.FC = () => {
       // If unchecking participated, reset position and bonus
       if (field === 'participated' && value === false) {
         newScore.position = null;
-        newScore.scored36Plus = false;
+        newScore.rawScore = null;
       }
 
       return {
@@ -372,7 +373,7 @@ const ScoresAdminPage: React.FC = () => {
         golferId: s.golferId,
         participated: s.participated,
         position: s.participated ? s.position : null,
-        scored36Plus: s.participated ? s.scored36Plus : false,
+        rawScore: s.participated ? s.rawScore : null,
       }));
 
       if (scoresToSave.length > 0) {
@@ -736,25 +737,28 @@ const ScoresAdminPage: React.FC = () => {
                         const score = scores[golfer.id];
                         const isParticipant = score?.participated || false;
 
-                        // Calculate points based on dynamic tier
+                        // Calculate points based on new scoring system
                         const getBasePoints = () => {
                           if (!score?.position) return 0;
-                          if (currentTier === '0-10') {
-                            return score.position === 1 ? 5 : 0;
-                          } else if (currentTier === '10-20') {
-                            if (score.position === 1) return 5;
-                            if (score.position === 2) return 2;
-                            return 0;
-                          } else {
-                            if (score.position === 1) return 5;
-                            if (score.position === 2) return 3;
-                            if (score.position === 3) return 1;
+                          const positionPoints: Record<number, number> = { 1: 10, 2: 7, 3: 5 };
+                          return positionPoints[score.position] ?? 0;
+                        };
+
+                        const scoringFormat = editingTournament.scoringFormat || 'stableford';
+                        const getBonus = () => {
+                          if (score?.rawScore === null || score?.rawScore === undefined) return 0;
+                          if (scoringFormat === 'stableford') {
+                            if (score.rawScore >= 36) return 3;
+                            if (score.rawScore >= 32) return 1;
                             return 0;
                           }
+                          if (score.rawScore <= 72) return 3;
+                          if (score.rawScore <= 76) return 1;
+                          return 0;
                         };
 
                         const basePoints = getBasePoints();
-                        const bonusPoints = score?.scored36Plus ? 1 : 0;
+                        const bonusPoints = getBonus();
                         const finalPoints =
                           (basePoints + bonusPoints) * editingTournament.multiplier;
 
@@ -822,10 +826,8 @@ const ScoresAdminPage: React.FC = () => {
                                 >
                                   <option value="">-</option>
                                   <option value="1">🥇 1st</option>
-                                  {(currentTier === '10-20' || currentTier === '20+') && (
-                                    <option value="2">🥈 2nd</option>
-                                  )}
-                                  {currentTier === '20+' && <option value="3">🥉 3rd</option>}
+                                  <option value="2">🥈 2nd</option>
+                                  <option value="3">🥉 3rd</option>
                                 </select>
                               ) : (
                                 <span style={{ color: '#9ca3af' }}>-</span>
@@ -833,35 +835,30 @@ const ScoresAdminPage: React.FC = () => {
                             </td>
                             <td>
                               {isParticipant ? (
-                                <label
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.5rem',
-                                    cursor: 'pointer',
-                                  }}
-                                >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                   <input
-                                    id={`scored-36-plus-${golfer.id}`}
-                                    name={`scored-36-plus-${golfer.id}`}
-                                    type="checkbox"
-                                    checked={score?.scored36Plus || false}
+                                    id={`raw-score-${golfer.id}`}
+                                    name={`raw-score-${golfer.id}`}
+                                    type="number"
+                                    value={score?.rawScore ?? ''}
                                     onChange={(e) =>
-                                      handleScoreChange(golfer.id, 'scored36Plus', e.target.checked)
+                                      handleScoreChange(golfer.id, 'rawScore', e.target.value)
                                     }
-                                    style={{ width: '18px', height: '18px' }}
+                                    placeholder={scoringFormat === 'stableford' ? '36' : '72'}
+                                    style={{ width: '70px' }}
                                   />
-                                  <span
-                                    style={{
-                                      fontSize: '0.85rem',
-                                      color: score?.scored36Plus
-                                        ? 'var(--primary-green)'
-                                        : '#6b7280',
-                                    }}
-                                  >
-                                    {score?.scored36Plus ? '+1' : ''}
-                                  </span>
-                                </label>
+                                  {bonusPoints > 0 && (
+                                    <span
+                                      style={{
+                                        fontSize: '0.85rem',
+                                        color: 'var(--primary-green)',
+                                        fontWeight: 600,
+                                      }}
+                                    >
+                                      +{bonusPoints}
+                                    </span>
+                                  )}
+                                </div>
                               ) : (
                                 <span style={{ color: '#9ca3af' }}>-</span>
                               )}
@@ -1020,9 +1017,9 @@ const ScoresAdminPage: React.FC = () => {
                         </td>
                         <td style={{ fontWeight: 500 }}>{getGolferName(score.golferId)}</td>
                         <td>
-                          {score.scored36Plus ? (
+                          {score.bonusPoints > 0 ? (
                             <span style={{ color: 'var(--primary-green)', fontWeight: 600 }}>
-                              +1
+                              +{score.bonusPoints}
                             </span>
                           ) : (
                             <span style={{ color: '#9ca3af' }}>-</span>

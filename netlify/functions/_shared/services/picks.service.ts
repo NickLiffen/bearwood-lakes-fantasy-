@@ -103,14 +103,14 @@ export async function getUserPicksWithGolfers(userId: string): Promise<PickWithG
     membershipType: g.membershipType || 'men',
     isActive: g.isActive,
     stats2025: g.stats2025 || {
-      timesScored36Plus: 0,
+      timesBonusScored: 0,
       timesFinished1st: 0,
       timesFinished2nd: 0,
       timesFinished3rd: 0,
       timesPlayed: 0,
     },
     stats2026: g.stats2026 || {
-      timesScored36Plus: 0,
+      timesBonusScored: 0,
       timesFinished1st: 0,
       timesFinished2nd: 0,
       timesFinished3rd: 0,

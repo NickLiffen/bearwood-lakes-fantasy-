@@ -36,7 +36,7 @@ interface GolferSeasonStats {
   firstPlaceFinishes: number;
   secondPlaceFinishes: number;
   thirdPlaceFinishes: number;
-  times36Plus: number;
+  timesBonusScored: number;
 }
 
 interface GolferFormData {
@@ -1533,7 +1533,7 @@ Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
                       }}
                     >
                       <div style={{ fontSize: '2rem', fontWeight: 700, color: '#92400e' }}>
-                        {GolferSeasonStats.times36Plus}
+                        {GolferSeasonStats.timesBonusScored}
                       </div>
                       <div style={{ fontSize: '0.75rem', color: '#92400e' }}>Times 36+ Points</div>
                     </div>

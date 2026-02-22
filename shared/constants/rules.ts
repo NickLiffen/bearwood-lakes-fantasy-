@@ -16,3 +16,9 @@ export const ROLES = {
 export const PASSWORD_MIN_LENGTH = 8;
 export const USERNAME_MIN_LENGTH = 3;
 export const USERNAME_MAX_LENGTH = 20;
+
+// Scoring constants
+export const POSITION_POINTS: Record<number, number> = { 1: 10, 2: 7, 3: 5 };
+export const STABLEFORD_THRESHOLDS = { HIGH: 36, LOW: 32 } as const;
+export const MEDAL_THRESHOLDS = { HIGH: 72, LOW: 76 } as const;
+export const BONUS_POINTS = { HIGH: 3, LOW: 1 } as const;

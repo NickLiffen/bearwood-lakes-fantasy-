@@ -2,6 +2,7 @@
 
 export type TournamentStatus = 'draft' | 'published' | 'complete';
 export type TournamentType = 'regular' | 'elevated' | 'signature';
+export type ScoringFormat = 'stableford' | 'medal';
 export type GolferCountTier = '0-10' | '10-20' | '20+';
 
 // Backwards compatibility alias
@@ -13,6 +14,7 @@ export interface Tournament {
   startDate: Date;
   endDate: Date;
   tournamentType: TournamentType;
+  scoringFormat: ScoringFormat;
   multiplier: number; // 1 for regular, 2 for elevated, 3 for signature
   golferCountTier: GolferCountTier;
   season: number;
@@ -27,6 +29,7 @@ export interface CreateTournamentDTO {
   startDate: Date;
   endDate: Date;
   tournamentType?: TournamentType;
+  scoringFormat?: ScoringFormat;
   golferCountTier?: GolferCountTier;
   season?: number;
 }
@@ -36,6 +39,7 @@ export interface UpdateTournamentDTO {
   startDate?: Date;
   endDate?: Date;
   tournamentType?: TournamentType;
+  scoringFormat?: ScoringFormat;
   golferCountTier?: GolferCountTier;
   status?: TournamentStatus;
   participatingGolferIds?: string[];
@@ -62,26 +66,27 @@ export function getMultiplierForType(type: TournamentType): number {
   }
 }
 
-// Helper to calculate base points from position and golfer count tier
-export function getBasePointsForPosition(position: number | null, tier: GolferCountTier): number {
+// Position-based points (same for all field sizes)
+const POSITION_POINTS: Record<number, number> = { 1: 10, 2: 7, 3: 5 };
+
+// Helper to calculate base points from position (field size no longer matters)
+export function getBasePointsForPosition(position: number | null): number {
   if (position === null) return 0;
-  
-  switch (tier) {
-    case '0-10':
-      // Only 1st place gets points
-      return position === 1 ? 5 : 0;
-    case '10-20':
-      // 1st and 2nd get points
-      if (position === 1) return 5;
-      if (position === 2) return 2;
-      return 0;
-    case '20+':
-      // 1st, 2nd, 3rd get points
-      if (position === 1) return 5;
-      if (position === 2) return 3;
-      if (position === 3) return 1;
-      return 0;
-    default:
-      return 0;
+  return POSITION_POINTS[position] ?? 0;
+}
+
+// Helper to calculate bonus points from raw score and scoring format
+export function getBonusPoints(rawScore: number | null, scoringFormat: ScoringFormat): number {
+  if (rawScore === null) return 0;
+
+  if (scoringFormat === 'stableford') {
+    if (rawScore >= 36) return 3;
+    if (rawScore >= 32) return 1;
+    return 0;
   }
+
+  // Medal: lower is better
+  if (rawScore <= 72) return 3;
+  if (rawScore <= 76) return 1;
+  return 0;
 }

@@ -38,6 +38,7 @@ interface Tournament {
   startDate: string;
   endDate: string;
   tournamentType: 'regular' | 'elevated' | 'signature';
+  scoringFormat: 'stableford' | 'medal';
   multiplier: number;
   golferCountTier: '0-10' | '10-20' | '20+';
   status: 'draft' | 'published' | 'complete';

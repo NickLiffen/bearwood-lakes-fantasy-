@@ -14,7 +14,7 @@ const handler = withAdmin(async (event: AuthenticatedEvent) => {
 
   try {
     const body = JSON.parse(event.body || '{}');
-    const { id, name, startDate, endDate, tournamentType, golferCountTier, status, participatingGolferIds } = body;
+    const { id, name, startDate, endDate, tournamentType, scoringFormat, golferCountTier, status, participatingGolferIds } = body;
 
     if (!id) {
       return {
@@ -28,6 +28,7 @@ const handler = withAdmin(async (event: AuthenticatedEvent) => {
       startDate,
       endDate,
       tournamentType,
+      scoringFormat,
       golferCountTier,
       status,
       participatingGolferIds,
@@ -40,8 +41,8 @@ const handler = withAdmin(async (event: AuthenticatedEvent) => {
       };
     }
 
-    // Recalculate scores if tournament type changed (multiplier affects points)
-    if (tournamentType !== undefined) {
+    // Recalculate scores if tournament type or scoring format changed (affects points)
+    if (tournamentType !== undefined || scoringFormat !== undefined) {
       await recalculateScoresForTournament(id);
     }
 
