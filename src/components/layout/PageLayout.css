@@ -383,9 +383,19 @@
 
 /* Responsive (no-JS fallback and footer) */
 @media (max-width: 768px) {
+  /* Mobile header: logo on left, burger on right — single row */
+  .header-container {
+    display: flex;
+    height: 56px;
+    padding: 0 1rem;
+    align-items: center;
+    justify-content: space-between;
+  }
+
   /* Show mobile menu button */
   .mobile-menu-btn {
-    display: block;
+    display: block !important;
+    justify-self: end;
   }
 
   .mobile-menu,
@@ -393,21 +403,13 @@
     display: flex;
   }
 
-  /* Hide desktop nav elements */
+  /* Hide desktop nav and user section on mobile — always */
   .header-nav {
-    display: none;
+    display: none !important;
   }
 
   .header-user {
-    display: none;
-  }
-
-  /* Reduced header height for mobile */
-  .header-container {
-    display: flex;
-    height: 56px;
-    padding: 0 1rem;
-    justify-content: space-between;
+    display: none !important;
   }
 
   .header-brand {
