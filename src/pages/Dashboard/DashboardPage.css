@@ -276,7 +276,7 @@
   padding: 1.5rem 2rem;
   margin-bottom: 2rem;
   text-align: center;
-  box-shadow: 0 4px 15px rgba(26, 71, 42, 0.2);
+  box-shadow: 0 4px 15px rgba(0, 21, 60, 0.2);
 }
 
 .countdown-header {
@@ -457,11 +457,11 @@
 }
 
 .data-table tbody tr.current-user-row {
-  background: rgba(26, 71, 42, 0.08);
+  background: rgba(0, 21, 60, 0.08);
 }
 
 .data-table tbody tr.current-user-row:hover {
-  background: rgba(26, 71, 42, 0.12);
+  background: rgba(0, 21, 60, 0.12);
 }
 
 .rank {
@@ -520,7 +520,7 @@
 }
 
 .tournament-item-link:hover {
-  background: rgba(26, 71, 42, 0.05);
+  background: rgba(0, 21, 60, 0.05);
 }
 
 .tournament-item-link:hover .tournament-name {
@@ -704,7 +704,7 @@
 }
 
 .team-golfer-row:hover {
-  background: rgba(26, 71, 42, 0.05);
+  background: rgba(0, 21, 60, 0.05);
   border-color: var(--primary-green);
 }
 

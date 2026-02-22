@@ -15,7 +15,7 @@ html, body {
   align-items: center;
   justify-content: space-between;
   padding: 1rem 2rem;
-  background: rgba(26, 71, 42, 0.95);
+  background: rgba(0, 21, 60, 0.95);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }

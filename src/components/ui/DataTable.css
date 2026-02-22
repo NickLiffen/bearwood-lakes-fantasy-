@@ -5,7 +5,7 @@
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  border: 1px solid rgba(26, 71, 42, 0.1);
+  border: 1px solid rgba(0, 21, 60, 0.1);
   overflow-x: auto;
 }
 
@@ -17,7 +17,7 @@
 
 /* Header Styles */
 .dt-table thead {
-  background: var(--primary-green, #2d5a27);
+  background: var(--primary-green, #00153c);
 }
 
 .dt-th {
@@ -114,11 +114,11 @@
    ============================================ */
 
 .dt-row-highlighted {
-  background: rgba(26, 71, 42, 0.05) !important;
+  background: rgba(0, 21, 60, 0.05) !important;
 }
 
 .dt-row-highlighted:hover {
-  background: rgba(26, 71, 42, 0.08) !important;
+  background: rgba(0, 21, 60, 0.08) !important;
 }
 
 .dt-row-muted,
@@ -138,14 +138,14 @@
 }
 
 .dt-text-link {
-  color: var(--primary-green, #2d5a27);
+  color: var(--primary-green, #00153c);
   text-decoration: none;
   font-weight: 500;
   transition: color 0.2s;
 }
 
 .dt-text-link:hover {
-  color: var(--dark-green, #1a472a);
+  color: var(--dark-green, #00153c);
   text-decoration: underline;
 }
 
@@ -156,7 +156,7 @@
 
 .dt-text-price {
   font-weight: 600;
-  color: var(--primary-green, #2d5a27);
+  color: var(--primary-green, #00153c);
   white-space: nowrap;
 }
 
@@ -328,7 +328,7 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary-green, #2d5a27), var(--secondary-green, #3d7a3d));
+  background: linear-gradient(135deg, var(--primary-green, #00153c), var(--secondary-green, #0a2a5c));
   color: white;
   display: flex;
   align-items: center;
@@ -414,12 +414,12 @@
 }
 
 .dt-btn-primary {
-  background: var(--primary-green, #2d5a27);
+  background: var(--primary-green, #00153c);
   color: white;
 }
 
 .dt-btn-primary:hover {
-  background: var(--dark-green, #1a472a);
+  background: var(--dark-green, #00153c);
 }
 
 .dt-btn-secondary {

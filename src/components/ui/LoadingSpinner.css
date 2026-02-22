@@ -51,7 +51,7 @@
 }
 
 .spinner-ring:nth-child(1) {
-  border-top-color: var(--primary-green, #2d5a27);
+  border-top-color: var(--primary-green, #00153c);
   animation-delay: -0.45s;
 }
 

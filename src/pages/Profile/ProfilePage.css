@@ -141,7 +141,7 @@
   outline: none;
   border-color: var(--primary-green);
   background: white;
-  box-shadow: 0 0 0 3px rgba(26, 71, 42, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 21, 60, 0.1);
 }
 
 /* Form Validation Styles */
@@ -217,12 +217,12 @@
 .btn-primary {
   background: linear-gradient(135deg, var(--primary-green) 0%, var(--secondary-green) 100%);
   color: white;
-  box-shadow: 0 2px 4px rgba(26, 71, 42, 0.2);
+  box-shadow: 0 2px 4px rgba(0, 21, 60, 0.2);
 }
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(26, 71, 42, 0.3);
+  box-shadow: 0 4px 8px rgba(0, 21, 60, 0.3);
 }
 
 .btn-primary:disabled {

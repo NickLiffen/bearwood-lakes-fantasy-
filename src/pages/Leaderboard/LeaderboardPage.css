@@ -46,7 +46,7 @@
   border-radius: 12px;
   padding: 1.25rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  border: 1px solid rgba(26, 71, 42, 0.1);
+  border: 1px solid rgba(0, 21, 60, 0.1);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -60,7 +60,7 @@
 
 .leader-card.is-you {
   border: 2px solid var(--primary-green);
-  box-shadow: 0 4px 12px rgba(26, 71, 42, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 21, 60, 0.15);
 }
 
 .leader-card.empty {
@@ -119,14 +119,14 @@
   background: white;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  border: 1px solid rgba(26, 71, 42, 0.1);
+  border: 1px solid rgba(0, 21, 60, 0.1);
   margin-bottom: 1.5rem;
   overflow: hidden;
 }
 
 .section-header {
   padding: 1.25rem;
-  border-bottom: 1px solid rgba(26, 71, 42, 0.1);
+  border-bottom: 1px solid rgba(0, 21, 60, 0.1);
   background: #fafafa;
 }
 
@@ -169,7 +169,7 @@
   width: 44px;
   height: 44px;
   border-radius: 6px;
-  border: 1px solid rgba(26, 71, 42, 0.2);
+  border: 1px solid rgba(0, 21, 60, 0.2);
   background: white;
   color: var(--primary-green);
   font-size: 1rem;
@@ -194,7 +194,7 @@
 .period-select {
   padding: 0.5rem 0.75rem;
   border-radius: 6px;
-  border: 1px solid rgba(26, 71, 42, 0.2);
+  border: 1px solid rgba(0, 21, 60, 0.2);
   background: white;
   color: var(--dark-text);
   font-size: 0.85rem;
@@ -206,7 +206,7 @@
 .period-select:focus {
   outline: none;
   border-color: var(--primary-green);
-  box-shadow: 0 0 0 2px rgba(26, 71, 42, 0.1);
+  box-shadow: 0 0 0 2px rgba(0, 21, 60, 0.1);
 }
 
 /* Empty Table State */
@@ -360,7 +360,7 @@
 }
 
 .brand-text {
-  font-family: 'Georgia', serif;
+  font-family: var(--font-heading);
   font-size: 1.25rem;
   font-weight: 600;
 }
@@ -539,13 +539,13 @@
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  border-top: 1px solid rgba(26, 71, 42, 0.1);
+  border-top: 1px solid rgba(0, 21, 60, 0.1);
   background: #fafafa;
 }
 
 .pagination-btn {
   padding: 0.5rem 1rem;
-  border: 1px solid rgba(26, 71, 42, 0.2);
+  border: 1px solid rgba(0, 21, 60, 0.2);
   background: white;
   border-radius: 6px;
   cursor: pointer;
