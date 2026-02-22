@@ -57,7 +57,7 @@ const HomePage: React.FC = () => {
           muted
           loop
           playsInline
-          poster="/bearwood_lakes_logo.png"
+          preload="auto"
         >
           <source src="/video.mp4" type="video/mp4" />
         </video>
