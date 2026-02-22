@@ -117,7 +117,6 @@ const LoginPage: React.FC = () => {
                 placeholder="Enter your username"
                 className={getFieldClassName('username')}
                 autoComplete="username"
-                autoFocus
               />
               {getFieldState('username').touched && getFieldState('username').error && (
                 <span className="field-error">{getFieldState('username').error}</span>

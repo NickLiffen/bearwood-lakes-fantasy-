@@ -181,7 +181,6 @@ const RegisterPage: React.FC = () => {
                   onBlur={handleBlur('firstName')}
                   placeholder="First name"
                   className={getFieldClassName('firstName')}
-                  autoFocus
                 />
                 {getFieldState('firstName').touched && getFieldState('firstName').error && (
                   <span className="field-error">{getFieldState('firstName').error}</span>
