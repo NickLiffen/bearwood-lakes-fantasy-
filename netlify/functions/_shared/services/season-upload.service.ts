@@ -5,6 +5,7 @@ import { connectToDatabase } from '../db';
 import {
   GolferDocument,
   GOLFERS_COLLECTION,
+  defaultStats2024,
   defaultStats2025,
   defaultStats2026,
 } from '../models/Golfer';
@@ -103,11 +104,12 @@ function parsePlayerName(player: string): { firstName: string; lastName: string 
   };
 }
 
-// NOTE: This only handles 2025 and 2026 because the golfer model currently only has
-// stats2025 and stats2026 fields. When a new season field is added to the model
-// (e.g., stats2027), this function must be updated to include it.
-function getStatsKey(season: number): 'stats2025' | 'stats2026' {
-  return season === 2026 ? 'stats2026' : 'stats2025';
+// NOTE: This handles 2024, 2025, and 2026 seasons. When a new season field is added
+// to the model (e.g., stats2027), this function must be updated to include it.
+function getStatsKey(season: number): 'stats2024' | 'stats2025' | 'stats2026' {
+  if (season === 2026) return 'stats2026';
+  if (season === 2025) return 'stats2025';
+  return 'stats2024';
 }
 
 export async function processSeasonUpload(csvText: string): Promise<SeasonUploadResult> {
@@ -201,6 +203,7 @@ export async function processSeasonUpload(csvText: string): Promise<SeasonUpload
           price: 1,
           membershipType: 'men',
           isActive: true,
+          stats2024: { ...defaultStats2024 },
           stats2025: { ...defaultStats2025 },
           stats2026: { ...defaultStats2026 },
           createdAt: now,

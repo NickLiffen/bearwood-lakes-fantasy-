@@ -13,6 +13,7 @@ export interface GolferSeasonStats {
 }
 
 // Alias for backwards compatibility
+export type Golfer2024Stats = GolferSeasonStats;
 export type Golfer2025Stats = GolferSeasonStats;
 export type Golfer2026Stats = GolferSeasonStats;
 
@@ -24,6 +25,7 @@ export interface Golfer {
   price: number;
   membershipType: MembershipType;
   isActive: boolean;
+  stats2024: Golfer2024Stats;
   stats2025: Golfer2025Stats;
   stats2026: Golfer2026Stats;
   createdAt: Date;
@@ -37,6 +39,7 @@ export interface CreateGolferDTO {
   price: number;
   membershipType: MembershipType;
   isActive?: boolean;
+  stats2024?: Golfer2024Stats;
   stats2025?: Golfer2025Stats;
   stats2026?: Golfer2026Stats;
 }
@@ -48,6 +51,7 @@ export interface UpdateGolferDTO {
   price?: number;
   membershipType?: MembershipType;
   isActive?: boolean;
+  stats2024?: Golfer2024Stats;
   stats2025?: Golfer2025Stats;
   stats2026?: Golfer2026Stats;
 }

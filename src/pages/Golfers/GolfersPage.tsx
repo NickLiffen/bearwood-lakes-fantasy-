@@ -34,6 +34,7 @@ interface Golfer {
   price: number;
   membershipType: 'men' | 'junior' | 'female' | 'senior';
   isActive: boolean;
+  stats2024: GolferStats;
   stats2025: GolferStats;
   stats2026: GolferStats;
   points: GolferPoints;
@@ -56,6 +57,7 @@ const GolfersPage: React.FC = () => {
 
   const getStats = useCallback(
     (golfer: Golfer) => {
+      if (seasonName === '2024') return golfer.stats2024;
       if (seasonName === '2025') return golfer.stats2025;
       return golfer.stats2026;
     },

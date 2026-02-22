@@ -23,6 +23,7 @@ interface GolferWithScores {
     price: number;
     membershipType: MembershipType;
     isActive: boolean;
+    stats2024: GolferSeasonStats;
     stats2025: GolferSeasonStats;
     stats2026: GolferSeasonStats;
   };

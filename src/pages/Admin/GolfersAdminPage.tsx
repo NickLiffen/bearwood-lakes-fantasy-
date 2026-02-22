@@ -25,6 +25,7 @@ interface Golfer {
   price: number;
   membershipType: MembershipType;
   isActive: boolean;
+  stats2024: Golfer2025Stats;
   stats2025: Golfer2025Stats;
 }
 
