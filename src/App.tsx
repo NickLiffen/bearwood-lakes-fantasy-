@@ -3,6 +3,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
+import { usePageTracking } from './hooks/usePageTracking';
 import LoadingSpinner from './components/ui/LoadingSpinner';
 import HomePage from './pages/Home/HomePage';
 import LoginPage from './pages/Auth/LoginPage';
@@ -81,7 +82,16 @@ const HomeRoute: React.FC = () => {
 const App: React.FC = () => {
   return (
     <BrowserRouter>
-      <Routes>
+      <AppRoutes />
+    </BrowserRouter>
+  );
+};
+
+const AppRoutes: React.FC = () => {
+  usePageTracking();
+
+  return (
+    <Routes>
         {/* Public routes */}
         <Route path="/" element={<HomeRoute />} />
         <Route path="/login" element={<LoginPage />} />
@@ -243,7 +253,6 @@ const App: React.FC = () => {
           }
         />
       </Routes>
-    </BrowserRouter>
   );
 };
 
