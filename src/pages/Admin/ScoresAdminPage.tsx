@@ -726,7 +726,8 @@ const ScoresAdminPage: React.FC = () => {
                                 {golfer.picture ? (
                                   <img
                                     src={golfer.picture}
-                                    alt=""
+                                    alt={`${golfer.firstName} ${golfer.lastName}`}
+                                    loading="lazy"
                                     style={{
                                       width: '32px',
                                       height: '32px',

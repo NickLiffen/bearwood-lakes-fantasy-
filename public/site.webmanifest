@@ -1,0 +1,19 @@
+{
+  "name": "Bearwood Lakes Fantasy Golf League",
+  "short_name": "BL Fantasy",
+  "description": "Pick your team, manage your budget, and compete against friends in a fantasy golf league for Bearwood Lakes Golf Club members.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f1923",
+  "theme_color": "#1a472a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/bearwood_lakes_logo.png",
+      "sizes": "320x166",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["games", "sports"]
+}

@@ -171,7 +171,7 @@ const TournamentDetailPage: React.FC = () => {
           <div className="dt-info-cell">
             <div className="dt-avatar">
               {score.golfer.picture ? (
-                <img src={score.golfer.picture} alt={`${score.golfer.firstName} ${score.golfer.lastName}`} />
+                <img src={score.golfer.picture} alt={`${score.golfer.firstName} ${score.golfer.lastName}`} loading="lazy" />
               ) : (
                 <span className="dt-avatar-placeholder">
                   {score.golfer.firstName[0]}{score.golfer.lastName[0]}
@@ -321,7 +321,7 @@ const TournamentDetailPage: React.FC = () => {
                     <>
                       <div className="podium-avatar">
                         {podium.second.golfer.picture ? (
-                          <img src={podium.second.golfer.picture} alt={`${podium.second.golfer.firstName} ${podium.second.golfer.lastName}`} />
+                          <img src={podium.second.golfer.picture} alt={`${podium.second.golfer.firstName} ${podium.second.golfer.lastName}`} loading="lazy" />
                         ) : (
                           <span>{podium.second.golfer.firstName[0]}{podium.second.golfer.lastName[0]}</span>
                         )}
@@ -344,7 +344,7 @@ const TournamentDetailPage: React.FC = () => {
                       <div className="podium-trophy">Winner</div>
                       <div className="podium-avatar">
                         {podium.first.golfer.picture ? (
-                          <img src={podium.first.golfer.picture} alt={`${podium.first.golfer.firstName} ${podium.first.golfer.lastName}`} />
+                          <img src={podium.first.golfer.picture} alt={`${podium.first.golfer.firstName} ${podium.first.golfer.lastName}`} loading="lazy" />
                         ) : (
                           <span>{podium.first.golfer.firstName[0]}{podium.first.golfer.lastName[0]}</span>
                         )}
@@ -366,7 +366,7 @@ const TournamentDetailPage: React.FC = () => {
                     <>
                       <div className="podium-avatar">
                         {podium.third.golfer.picture ? (
-                          <img src={podium.third.golfer.picture} alt={`${podium.third.golfer.firstName} ${podium.third.golfer.lastName}`} />
+                          <img src={podium.third.golfer.picture} alt={`${podium.third.golfer.firstName} ${podium.third.golfer.lastName}`} loading="lazy" />
                         ) : (
                           <span>{podium.third.golfer.firstName[0]}{podium.third.golfer.lastName[0]}</span>
                         )}

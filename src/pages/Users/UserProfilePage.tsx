@@ -296,7 +296,7 @@ const UserProfilePage: React.FC = () => {
         <div className="dt-info-cell">
           <div className="dt-avatar">
             {golferData.golfer.picture ? (
-              <img src={golferData.golfer.picture} alt={`${golferData.golfer.firstName} ${golferData.golfer.lastName}`} />
+              <img src={golferData.golfer.picture} alt={`${golferData.golfer.firstName} ${golferData.golfer.lastName}`} loading="lazy" />
             ) : (
               <span className="dt-avatar-placeholder">
                 {golferData.golfer.firstName[0]}{golferData.golfer.lastName[0]}

@@ -25,6 +25,7 @@
     <!-- Favicon & Icons -->
     <link rel="icon" type="image/png" href="/bearwood_lakes_logo.png" />
     <link rel="apple-touch-icon" href="/bearwood_lakes_logo.png" />
+    <link rel="manifest" href="/site.webmanifest" />
 
     <!-- Preconnect hints -->
     <link rel="preconnect" href="https://www.googletagmanager.com" />
@@ -37,6 +38,31 @@
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
       gtag('config', 'G-MBTHTLZ65J', { send_page_view: false });
+    </script>
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Bearwood Lakes Fantasy Golf League",
+      "url": "https://bearwoodlakes.netlify.app",
+      "description": "Pick your team, manage your budget, and compete against friends in a fantasy golf league for Bearwood Lakes Golf Club members.",
+      "applicationCategory": "GameApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "GBP"
+      },
+      "provider": {
+        "@type": "SportsOrganization",
+        "name": "Bearwood Lakes Golf Club",
+        "url": "https://bearwoodlakes.netlify.app",
+        "logo": "https://bearwoodlakes.netlify.app/bearwood_lakes_logo.png",
+        "sport": "Golf"
+      }
+    }
     </script>
   </head>
   <body>

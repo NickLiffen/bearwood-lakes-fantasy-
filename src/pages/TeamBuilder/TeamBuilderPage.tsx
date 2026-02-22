@@ -690,7 +690,7 @@ const TeamBuilderPage: React.FC = () => {
                   >
                     <div className="compact-photo">
                       {golfer.picture ? (
-                        <img src={golfer.picture} alt={`${golfer.firstName} ${golfer.lastName}`} />
+                        <img src={golfer.picture} alt={`${golfer.firstName} ${golfer.lastName}`} loading="lazy" />
                       ) : (
                         <div className="compact-initials">
                           {golfer.firstName[0]}{golfer.lastName[0]}
@@ -777,7 +777,7 @@ const TeamBuilderPage: React.FC = () => {
             <div className="modal-header">
               <div className="modal-photo">
                 {selectedGolferDetail.picture ? (
-                  <img src={selectedGolferDetail.picture} alt={`${selectedGolferDetail.firstName} ${selectedGolferDetail.lastName}`} />
+                  <img src={selectedGolferDetail.picture} alt={`${selectedGolferDetail.firstName} ${selectedGolferDetail.lastName}`} loading="lazy" />
                 ) : (
                   <div className="modal-initials">
                     {selectedGolferDetail.firstName[0]}{selectedGolferDetail.lastName[0]}

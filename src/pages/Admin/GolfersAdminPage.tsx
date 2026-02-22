@@ -728,6 +728,7 @@ const GolfersAdminPage: React.FC = () => {
                         <img
                           src={Golfer.picture}
                           alt={`${Golfer.firstName} ${Golfer.lastName}`}
+                          loading="lazy"
                           style={{
                             width: '40px',
                             height: '40px',
@@ -1220,6 +1221,7 @@ Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
                   <img
                     src={viewingGolfer.picture}
                     alt={`${viewingGolfer.firstName} ${viewingGolfer.lastName}`}
+                    loading="lazy"
                     style={{
                       width: '100px',
                       height: '100px',
