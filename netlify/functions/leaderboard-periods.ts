@@ -8,7 +8,7 @@ import { PickDocument, PICKS_COLLECTION } from './_shared/models/Pick';
 import { UserDocument, USERS_COLLECTION } from './_shared/models/User';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
-import { getActiveSeason } from './_shared/services/seasons.service';
+import { getActiveSeason, getSeasonByName } from './_shared/services/seasons.service';
 import { getWeekStart, getMonthStart, getTeamEffectiveStartDate } from './_shared/utils/dates';
 
 interface LeaderboardEntry {
@@ -217,9 +217,12 @@ export const handler: Handler = withAuth(async (event) => {
     const period = event.queryStringParameters?.period || 'week'; // week, month, season
     const dateParam = event.queryStringParameters?.date; // ISO date string
     const action = event.queryStringParameters?.action; // 'leaders' for top 3 summary
+    const seasonParam = event.queryStringParameters?.season;
     
-    // Get active season
-    const activeSeason = await getActiveSeason();
+    // Get season — use explicit season param or fall back to active season
+    const activeSeason = seasonParam
+      ? await getSeasonByName(seasonParam)
+      : await getActiveSeason();
     const fallbackYear = new Date().getFullYear();
     const seasonStartDate = activeSeason ? new Date(activeSeason.startDate) : new Date(`${fallbackYear}-01-01`);
     const seasonEndDate = activeSeason ? new Date(activeSeason.endDate) : new Date(`${fallbackYear}-12-31`);

@@ -280,7 +280,8 @@ export async function processSeasonUpload(csvText: string): Promise<SeasonUpload
 
       const stats = {
         timesPlayed: scores.length,
-        timesBonusScored: scores.filter((s) => s.bonusPoints > 0).length,
+        timesScored36Plus: scores.filter((s) => (s.rawScore ?? 0) >= 36).length,
+        timesScored32Plus: scores.filter((s) => (s.rawScore ?? 0) >= 32).length,
         timesFinished1st: scores.filter((s) => s.position === 1).length,
         timesFinished2nd: scores.filter((s) => s.position === 2).length,
         timesFinished3rd: scores.filter((s) => s.position === 3).length,

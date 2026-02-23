@@ -15,6 +15,14 @@
   margin-bottom: 2rem;
 }
 
+.page-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
 .tournaments-page-header h1 {
   font-family: var(--font-serif);
   font-size: 2rem;

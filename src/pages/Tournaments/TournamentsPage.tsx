@@ -1,12 +1,14 @@
 // Tournaments Page - View all tournaments and results
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import PageLayout from '../../components/layout/PageLayout';
 import SearchBar from '../../components/ui/SearchBar';
+import SeasonSelector from '../../components/ui/SeasonSelector';
 import DataTable, { Column } from '../../components/ui/DataTable';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import { useAsyncData } from '../../hooks/useAsyncData';
+import { useApiClient } from '../../hooks/useApiClient';
+import { useActiveSeason } from '../../hooks/useActiveSeason';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import './TournamentsPage.css';
 
@@ -43,16 +45,51 @@ type SortDirection = 'asc' | 'desc';
 type TypeFilter = 'all' | 'regular' | 'elevated' | 'signature';
 
 const TournamentsPage: React.FC = () => {
-  const {
-    data: tournaments,
-    loading,
-    error,
-  } = useAsyncData<Tournament[]>('tournaments-list?includeResults=true');
+  const { season } = useActiveSeason();
+  const { get, isAuthReady } = useApiClient();
   useDocumentTitle('Tournaments');
+
+  const [selectedSeason, setSelectedSeason] = useState<string>('');
+  const [tournaments, setTournaments] = useState<Tournament[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortColumn, setSortColumn] = useState<SortColumn>('startDate');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [typeFilter, setTypeFilter] = useState<TypeFilter>('all');
+
+  // Initialize selectedSeason from active season
+  useEffect(() => {
+    if (season?.name && !selectedSeason) {
+      setSelectedSeason(season.name);
+    }
+  }, [season?.name, selectedSeason]);
+
+  // Fetch tournaments when selectedSeason changes
+  const fetchTournaments = useCallback(async () => {
+    if (!isAuthReady || !selectedSeason) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await get<Tournament[]>(
+        `tournaments-list?includeResults=true&season=${selectedSeason}`
+      );
+      if (response.cancelled) return;
+      if (response.success && response.data) {
+        setTournaments(response.data);
+      } else {
+        setError(response.error || 'Failed to load tournaments');
+      }
+    } catch {
+      setError('Failed to load tournaments. Please refresh the page.');
+    } finally {
+      setLoading(false);
+    }
+  }, [get, isAuthReady, selectedSeason]);
+
+  useEffect(() => {
+    fetchTournaments();
+  }, [fetchTournaments]);
 
   // Format date for display
   const formatDate = (dateString: string) => {
@@ -258,9 +295,12 @@ const TournamentsPage: React.FC = () => {
         <div className="tournaments-container">
           {/* Page Title */}
           <div className="tournaments-page-header">
-            <h1>Tournaments</h1>
+            <div className="page-header-row">
+              <h1>Tournaments</h1>
+              <SeasonSelector value={selectedSeason} onChange={setSelectedSeason} />
+            </div>
             <p className="tournaments-page-subtitle">
-              View all tournaments and results for the 2026 season
+              View all tournaments and results for the {selectedSeason || '2026'} season
             </p>
           </div>
 

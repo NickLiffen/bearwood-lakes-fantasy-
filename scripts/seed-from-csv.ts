@@ -28,6 +28,7 @@ interface CsvRow {
 
 interface GolferSeasonStats {
   timesScored36Plus: number;
+  timesScored32Plus: number;
   timesFinished1st: number;
   timesFinished2nd: number;
   timesFinished3rd: number;
@@ -41,6 +42,7 @@ type GolferCountTier = '0-10' | '10-20' | '20+';
 function defaultStats(): GolferSeasonStats {
   return {
     timesScored36Plus: 0,
+    timesScored32Plus: 0,
     timesFinished1st: 0,
     timesFinished2nd: 0,
     timesFinished3rd: 0,
@@ -339,6 +341,7 @@ async function seedFromCsv() {
           participated: true,
           position: row.position,
           scored36Plus,
+          rawScore: row.stablefordPoints,
           basePoints,
           bonusPoints,
           multipliedPoints,
@@ -353,7 +356,8 @@ async function seedFromCsv() {
         const gs = golferStats.get(golferId.toString());
         if (gs) {
           gs[key].timesPlayed++;
-          if (scored36Plus) gs[key].timesScored36Plus++;
+          if (row.stablefordPoints >= 36) gs[key].timesScored36Plus++;
+          if (row.stablefordPoints >= 32) gs[key].timesScored32Plus++;
           if (row.position === 1) gs[key].timesFinished1st++;
           if (row.position === 2) gs[key].timesFinished2nd++;
           if (row.position === 3) gs[key].timesFinished3rd++;

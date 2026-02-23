@@ -5,7 +5,7 @@ import type { Handler, HandlerEvent } from '@netlify/functions';
 import { ObjectId } from 'mongodb';
 import { connectToDatabase } from './_shared/db';
 import { getAllTournaments, getTournamentsByStatus } from './_shared/services/tournaments.service';
-import { getActiveSeason } from './_shared/services/seasons.service';
+import { getActiveSeason, getSeasonByName } from './_shared/services/seasons.service';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { GolferDocument, GOLFERS_COLLECTION } from './_shared/models/Golfer';
 import { verifyToken } from './_shared/auth';
@@ -78,18 +78,21 @@ const handler: Handler = async (event: HandlerEvent) => {
       );
     }
 
-    // Filter by active season date range (unless admin explicitly requests all seasons)
+    // Filter by season date range (unless admin explicitly requests all seasons)
     if (!allSeasons) {
-      const activeSeason = await getActiveSeason();
-      if (activeSeason) {
-        const seasonStart = new Date(activeSeason.startDate);
-        const seasonEnd = new Date(activeSeason.endDate);
+      const seasonParam = event.queryStringParameters?.season;
+      const season = seasonParam
+        ? await getSeasonByName(seasonParam)
+        : await getActiveSeason();
+      if (season) {
+        const seasonStart = new Date(season.startDate);
+        const seasonEnd = new Date(season.endDate);
         tournaments = tournaments.filter(t => {
           const tStart = new Date(t.startDate);
           return tStart >= seasonStart && tStart <= seasonEnd;
         });
       } else {
-        // No active season configured — show nothing to prevent data leakage
+        // No matching season found — show nothing to prevent data leakage
         tournaments = [];
       }
     }

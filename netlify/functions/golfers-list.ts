@@ -24,6 +24,7 @@ export const handler = withAuth(async (event: AuthenticatedEvent) => {
     const page = parseInt(queryParams.page || '0', 10);
     const limit = parseInt(queryParams.limit || '0', 10);
     const isPaginated = page > 0 && limit > 0;
+    const seasonParam = queryParams.season; // e.g., "2025"
 
     // Time boundaries
     const weekStart = getWeekStart();
@@ -74,7 +75,8 @@ export const handler = withAuth(async (event: AuthenticatedEvent) => {
                 tournamentId: 1,
                 position: 1,
                 multipliedPoints: 1,
-                bonusPoints: 1
+                bonusPoints: 1,
+                rawScore: 1
               }
             }
           ],
@@ -117,6 +119,7 @@ export const handler = withAuth(async (event: AuthenticatedEvent) => {
         position: number | null;
         multipliedPoints: number;
         bonusPoints: number;
+        rawScore: number | null;
       }> };
 
       const golfer = toGolfer(golferDoc);
@@ -128,6 +131,7 @@ export const handler = withAuth(async (event: AuthenticatedEvent) => {
       // Add tournament dates to 2026 scores for period filtering
       const scoresWithDates = scores2026.map(s => ({
         ...s,
+        rawScore: s.rawScore,
         tournamentDate: tournamentDateMap.get(s.tournamentId.toString()) || new Date(0)
       }));
 
@@ -136,13 +140,38 @@ export const handler = withAuth(async (event: AuthenticatedEvent) => {
         timesFinished1st: scores2026.filter(s => s.position === 1).length,
         timesFinished2nd: scores2026.filter(s => s.position === 2).length,
         timesFinished3rd: scores2026.filter(s => s.position === 3).length,
-        timesBonusScored: scores2026.filter(s => s.bonusPoints > 0).length,
+        timesScored36Plus: scores2026.filter(s => (s.rawScore ?? 0) >= 36).length,
+        timesScored32Plus: scores2026.filter(s => (s.rawScore ?? 0) >= 32).length,
       };
 
       // Calculate points by period
-      const weekScores = scoresWithDates.filter(s => s.tournamentDate >= weekStart);
-      const monthScores = scoresWithDates.filter(s => s.tournamentDate >= monthStart);
-      const seasonScores = scoresWithDates.filter(s => s.tournamentDate >= seasonStart);
+      let weekScores, monthScores, seasonScores;
+
+      if (seasonParam) {
+        const matchedSeason = allSeasons.find(s => s.name === seasonParam);
+        if (matchedSeason) {
+          const sStart = new Date(matchedSeason.startDate);
+          const sEnd = new Date(matchedSeason.endDate);
+          const seasonFilteredScores = scoresWithDates.filter(
+            s => s.tournamentDate >= sStart && s.tournamentDate <= sEnd
+          );
+          // Use the season's end date as the reference for week/month boundaries
+          const refDate = sEnd;
+          const seasonWeekStart = getWeekStart(refDate);
+          const seasonMonthStart = getMonthStart(refDate);
+          weekScores = seasonFilteredScores.filter(s => s.tournamentDate >= seasonWeekStart);
+          monthScores = seasonFilteredScores.filter(s => s.tournamentDate >= seasonMonthStart);
+          seasonScores = seasonFilteredScores;
+        } else {
+          weekScores = scoresWithDates.filter(s => s.tournamentDate >= weekStart);
+          monthScores = scoresWithDates.filter(s => s.tournamentDate >= monthStart);
+          seasonScores = scoresWithDates.filter(s => s.tournamentDate >= seasonStart);
+        }
+      } else {
+        weekScores = scoresWithDates.filter(s => s.tournamentDate >= weekStart);
+        monthScores = scoresWithDates.filter(s => s.tournamentDate >= monthStart);
+        seasonScores = scoresWithDates.filter(s => s.tournamentDate >= seasonStart);
+      }
 
       const points = {
         week: weekScores.reduce((sum, s) => sum + (s.multipliedPoints || 0), 0),
@@ -174,7 +203,8 @@ export const handler = withAuth(async (event: AuthenticatedEvent) => {
           timesFinished1st: seasonGolferScores.filter(s => s.position === 1).length,
           timesFinished2nd: seasonGolferScores.filter(s => s.position === 2).length,
           timesFinished3rd: seasonGolferScores.filter(s => s.position === 3).length,
-          timesBonusScored: seasonGolferScores.filter(s => s.bonusPoints > 0).length,
+          timesScored36Plus: seasonGolferScores.filter(s => (s.rawScore ?? 0) >= 36).length,
+          timesScored32Plus: seasonGolferScores.filter(s => (s.rawScore ?? 0) >= 32).length,
           totalPoints,
         });
       }

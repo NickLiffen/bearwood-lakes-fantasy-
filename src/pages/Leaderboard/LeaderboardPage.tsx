@@ -4,10 +4,12 @@ import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import PageLayout from '../../components/layout/PageLayout';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
+import SeasonSelector from '../../components/ui/SeasonSelector';
 import TeamCompareModal from '../../components/ui/TeamCompareModal';
 import DataTable, { Column } from '../../components/ui/DataTable';
 import { useAuth } from '../../hooks/useAuth';
 import { useApiClient } from '../../hooks/useApiClient';
+import { useActiveSeason } from '../../hooks/useActiveSeason';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { formatPrice } from '../../utils/formatters';
 import './LeaderboardPage.css';
@@ -83,12 +85,21 @@ const LeaderboardPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [compareUserId, setCompareUserId] = useState<string | null>(null);
+  const [selectedSeason, setSelectedSeason] = useState<string>('');
 
   // Get user from useAuth hook for current user check
   const { user } = useAuth();
   const userId = user?.id; // Use primitive value for dependency
   const { get, isAuthReady } = useApiClient();
+  const { season } = useActiveSeason();
   useDocumentTitle('Leaderboard');
+
+  // Initialize selectedSeason from active season
+  useEffect(() => {
+    if (season?.name && !selectedSeason) {
+      setSelectedSeason(season.name);
+    }
+  }, [season?.name, selectedSeason]);
 
   // Leaders state
   const [leaders, setLeaders] = useState<LeadersResponse | null>(null);
@@ -181,8 +192,11 @@ const LeaderboardPage: React.FC = () => {
   }, []);
 
   const fetchLeaders = useCallback(async () => {
+    if (!selectedSeason) return;
     try {
-      const response = await get<LeadersResponse>('leaderboard-periods?action=leaders');
+      const response = await get<LeadersResponse>(
+        `leaderboard-periods?action=leaders&season=${selectedSeason}`
+      );
 
       // Ignore cancelled requests
       if (response.cancelled) return;
@@ -210,15 +224,17 @@ const LeaderboardPage: React.FC = () => {
     } catch (err) {
       console.error('Failed to fetch leaders:', err);
     }
-  }, [get, generateWeekOptions, generateMonthOptions]);
+  }, [get, generateWeekOptions, generateMonthOptions, selectedSeason]);
 
   const fetchPeriodData = useCallback(
     async (period: 'week' | 'month' | 'season', date?: string) => {
+      if (!selectedSeason) return null;
       try {
         let url = `leaderboard-periods?period=${period}`;
         if (date) {
           url += `&date=${date}`;
         }
+        url += `&season=${selectedSeason}`;
 
         const response = await get<LeaderboardResponse>(url);
 
@@ -234,12 +250,21 @@ const LeaderboardPage: React.FC = () => {
         return null;
       }
     },
-    [get]
+    [get, selectedSeason]
   );
 
-  // Initial data fetch
+  // Reset and re-fetch when selectedSeason changes
   useEffect(() => {
-    if (!isAuthReady || !userId) return;
+    if (!isAuthReady || !userId || !selectedSeason) return;
+
+    // Reset selections when season changes
+    setWeeklyDate('');
+    setMonthlyDate('');
+    setWeekOptions([]);
+    setMonthOptions([]);
+    setWeeklyPage(1);
+    setMonthlyPage(1);
+    setSeasonPage(1);
 
     const loadInitialData = async () => {
       setLoading(true);
@@ -264,7 +289,7 @@ const LeaderboardPage: React.FC = () => {
     };
 
     loadInitialData();
-  }, [isAuthReady, userId, fetchLeaders, fetchPeriodData]);
+  }, [isAuthReady, userId, selectedSeason, fetchLeaders, fetchPeriodData]);
 
   // Navigation handlers
   const handleWeekNavigation = async (direction: 'prev' | 'next') => {
@@ -595,12 +620,28 @@ const LeaderboardPage: React.FC = () => {
         <div className="leaderboard-container">
           {/* Page Header */}
           <div className="users-page-header">
-            <h1>👥 Fantasy Leaderboard</h1>
+            <div className="page-header-row">
+              <h1>👥 Fantasy Leaderboard</h1>
+              <SeasonSelector value={selectedSeason} onChange={setSelectedSeason} />
+            </div>
             <p className="users-page-subtitle">View the weekly/monthly and season standings</p>
           </div>
 
           {/* Error State */}
           {error && <div className="error-message">{error}</div>}
+
+          {/* Empty season message */}
+          {!loading &&
+            !error &&
+            !seasonData?.entries?.length &&
+            !weeklyData?.entries?.length &&
+            !monthlyData?.entries?.length && (
+              <div className="empty-state">
+                <div className="empty-icon">📊</div>
+                <h3>No leaderboard data available</h3>
+                <p>No leaderboard data available for the {selectedSeason} season.</p>
+              </div>
+            )}
 
           {/* Leader Cards */}
           <div className="leaders-section">

@@ -1,12 +1,13 @@
 // All Golfers Page - View all golfers with stats
 
-import React, { useCallback, useState, useMemo } from 'react';
+import React, { useCallback, useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import PageLayout from '../../components/layout/PageLayout';
 import SearchBar from '../../components/ui/SearchBar';
+import SeasonSelector from '../../components/ui/SeasonSelector';
 import DataTable, { Column } from '../../components/ui/DataTable';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import { useAsyncData } from '../../hooks/useAsyncData';
+import { useApiClient } from '../../hooks/useApiClient';
 import { formatPrice, getMembershipLabel } from '../../utils/formatters';
 import { useActiveSeason } from '../../hooks/useActiveSeason';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
@@ -18,6 +19,8 @@ interface GolferStats {
   timesFinished2nd: number;
   timesFinished3rd: number;
   timesPlayed: number;
+  timesScored36Plus: number;
+  timesScored32Plus: number;
 }
 
 interface GolferPoints {
@@ -49,11 +52,49 @@ type SortDirection = 'asc' | 'desc';
 type QuickFilter = 'all' | 'active' | 'inactive' | 'premium' | 'budget' | string;
 
 const GolfersPage: React.FC = () => {
-  // Use the useAsyncData hook for data fetching with proper loading/error handling
-  const { data: golfers, loading, error } = useAsyncData<Golfer[]>('golfers-list');
   const { season } = useActiveSeason();
-  const seasonName = season?.name || '2026';
+  const { get, isAuthReady } = useApiClient();
   useDocumentTitle('Golfers');
+
+  const [selectedSeason, setSelectedSeason] = useState<string>('');
+  const [golfers, setGolfers] = useState<Golfer[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const seasonName = selectedSeason || '2026';
+
+  // Initialize selectedSeason from active season
+  useEffect(() => {
+    if (season?.name && !selectedSeason) {
+      setSelectedSeason(season.name);
+    }
+  }, [season?.name, selectedSeason]);
+
+  // Fetch golfers when selectedSeason changes
+  useEffect(() => {
+    if (!isAuthReady || !selectedSeason) return;
+    let cancelled = false;
+
+    const fetchGolfers = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await get<Golfer[]>(`golfers-list?season=${selectedSeason}`);
+        if (response.cancelled || cancelled) return;
+        if (response.success && response.data) {
+          setGolfers(response.data);
+        } else {
+          setError(response.error || 'Failed to load golfers');
+        }
+      } catch {
+        if (!cancelled) setError('Failed to load golfers. Please refresh the page.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    fetchGolfers();
+    return () => { cancelled = true; };
+  }, [get, isAuthReady, selectedSeason]);
 
   const getStats = useCallback(
     (golfer: Golfer) => {
@@ -65,8 +106,8 @@ const GolfersPage: React.FC = () => {
   );
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortColumn, setSortColumn] = useState<SortColumn>('name');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [sortColumn, setSortColumn] = useState<SortColumn>('season-pts');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [quickFilter, setQuickFilter] = useState<QuickFilter>('all');
 
   // Helper functions
@@ -141,6 +182,10 @@ const GolfersPage: React.FC = () => {
               return getStats(golfer)?.timesFinished3rd || 0;
             case 'consistent':
               return getStats(golfer)?.timesBonusScored || 0;
+            case 'scored36plus':
+              return getStats(golfer)?.timesScored36Plus || 0;
+            case 'scored32plus':
+              return getStats(golfer)?.timesScored32Plus || 0;
             case 'week-pts':
               return golfer.points?.week || 0;
             case 'month-pts':
@@ -166,8 +211,8 @@ const GolfersPage: React.FC = () => {
   const resetFilters = () => {
     setSearchTerm('');
     setQuickFilter('all');
-    setSortColumn('name');
-    setSortDirection('asc');
+    setSortColumn('season-pts');
+    setSortDirection('desc');
   };
 
   const hasActiveFilters = searchTerm !== '' || quickFilter !== 'all';
@@ -249,13 +294,6 @@ const GolfersPage: React.FC = () => {
       render: (golfer) => golfer.points?.month || 0,
     },
     {
-      key: 'season-pts',
-      header: 'Season',
-      sortable: true,
-      align: 'center',
-      render: (golfer) => golfer.points?.season || 0,
-    },
-    {
       key: `played-${seasonName}`,
       header: 'Played',
       sortable: true,
@@ -299,11 +337,18 @@ const GolfersPage: React.FC = () => {
         ),
     },
     {
-      key: `consistent-${seasonName}`,
-      header: 'Bonus',
+      key: `scored36plus-${seasonName}`,
+      header: '36+',
       sortable: true,
       align: 'center',
-      render: (golfer) => getStats(golfer)?.timesBonusScored || 0,
+      render: (golfer) => getStats(golfer)?.timesScored36Plus || 0,
+    },
+    {
+      key: `scored32plus-${seasonName}`,
+      header: '32+',
+      sortable: true,
+      align: 'center',
+      render: (golfer) => getStats(golfer)?.timesScored32Plus || 0,
     },
   ];
 
@@ -325,7 +370,10 @@ const GolfersPage: React.FC = () => {
         <div className="golfers-container">
           {/* Page Title */}
           <div className="users-page-header">
-            <h1>👥 Bearwood Lakes Golfers</h1>
+            <div className="page-header-row">
+              <h1>👥 Bearwood Lakes Golfers</h1>
+              <SeasonSelector value={selectedSeason} onChange={setSelectedSeason} />
+            </div>
             <p className="users-page-subtitle">View all golfers with their points/scores </p>
           </div>
 
