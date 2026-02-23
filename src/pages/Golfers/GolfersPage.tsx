@@ -9,6 +9,7 @@ import DataTable, { Column } from '../../components/ui/DataTable';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { useApiClient } from '../../hooks/useApiClient';
 import { formatPrice } from '../../utils/formatters';
+import { matchesSearch } from '../../utils/search';
 import { useActiveSeason } from '../../hooks/useActiveSeason';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import './GolfersPage.css';
@@ -157,10 +158,10 @@ const GolfersPage: React.FC = () => {
 
     return golfers
       .filter((golfer) => {
-        const fullName = `${golfer.firstName} ${golfer.lastName}`.toLowerCase();
-        const matchesSearch = fullName.includes(searchTerm.toLowerCase());
+        const fullName = `${golfer.firstName} ${golfer.lastName}`;
+        const matches = matchesSearch(fullName, searchTerm);
         const matchesQuickFilter = filterByQuickFilter(golfer);
-        return matchesSearch && matchesQuickFilter;
+        return matches && matchesQuickFilter;
       })
       .sort((a, b) => {
         const dir = sortDirection === 'asc' ? 1 : -1;

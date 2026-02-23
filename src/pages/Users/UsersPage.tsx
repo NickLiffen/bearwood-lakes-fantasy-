@@ -9,6 +9,7 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { useAuth } from '../../hooks/useAuth';
 import { useAsyncData } from '../../hooks/useAsyncData';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
+import { matchesSearch as matchesSearchUtil } from '../../utils/search';
 import './UsersPage.css';
 
 interface FantasyUser {
@@ -89,10 +90,10 @@ const UsersPage: React.FC = () => {
 
     return users
       .filter((user) => {
-        const fullName = `${user.firstName} ${user.lastName}`.toLowerCase();
+        const fullName = `${user.firstName} ${user.lastName}`;
         const matchesSearch =
-          fullName.includes(searchTerm.toLowerCase()) ||
-          user.username.toLowerCase().includes(searchTerm.toLowerCase());
+          matchesSearchUtil(fullName, searchTerm) ||
+          matchesSearchUtil(user.username, searchTerm);
         const matchesQuickFilter = applyQuickFilter(user);
         return matchesSearch && matchesQuickFilter;
       })

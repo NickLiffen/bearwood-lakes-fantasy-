@@ -6,6 +6,7 @@ import PageLayout from '../../components/layout/PageLayout';
 import { useApiClient } from '../../hooks/useApiClient';
 import { useActiveSeason } from '../../hooks/useActiveSeason';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
+import { matchesSearch } from '../../utils/search';
 import './TeamBuilderPage.css';
 
 interface GolferStats {
@@ -322,15 +323,15 @@ const TeamBuilderPage: React.FC = () => {
   // Filter and sort golfers
   const filteredGolfers = golfers
     .filter((golfer) => {
-      const fullName = `${golfer.firstName} ${golfer.lastName}`.toLowerCase();
-      const matchesSearch = fullName.includes(searchTerm.toLowerCase());
+      const fullName = `${golfer.firstName} ${golfer.lastName}`;
+      const matches = matchesSearch(fullName, searchTerm);
       const matchesMembership =
         membershipFilter === 'all' || golfer.membershipType === membershipFilter;
       const matchesQuickFilter = applyQuickFilter(golfer);
       const matchesMinRounds = getCombinedStats(golfer).timesPlayed >= minRoundsPlayed;
       const matchesAffordable = !showAffordableOnly || canAfford(golfer);
       return (
-        matchesSearch &&
+        matches &&
         matchesMembership &&
         matchesQuickFilter &&
         matchesMinRounds &&
