@@ -41,6 +41,7 @@ interface Golfer {
   stats2025: GolferStats;
   stats2026: GolferStats;
   points: GolferPoints;
+  selectedPercentage: number;
 }
 
 // Sort column and direction
@@ -171,6 +172,8 @@ const GolfersPage: React.FC = () => {
               return `${golfer.firstName} ${golfer.lastName}`;
             case 'price':
               return golfer.price;
+            case 'selected':
+              return golfer.selectedPercentage || 0;
             case 'week-pts':
               return golfer.points?.week || 0;
             case 'month-pts':
@@ -227,6 +230,17 @@ const GolfersPage: React.FC = () => {
       sortable: true,
       align: 'right',
       render: (golfer) => <span className="dt-text-price">{formatPrice(golfer.price)}</span>,
+    },
+    {
+      key: 'selected',
+      header: 'Selected',
+      sortable: true,
+      align: 'center',
+      render: (golfer) => (
+        <span style={{ color: golfer.selectedPercentage > 0 ? 'var(--primary-green)' : '#9ca3af' }}>
+          {golfer.selectedPercentage}%
+        </span>
+      ),
     },
     {
       key: 'week-pts',

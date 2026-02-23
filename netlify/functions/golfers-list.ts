@@ -8,6 +8,7 @@ import { connectToDatabase } from './_shared/db';
 import { GolferDocument, GOLFERS_COLLECTION, toGolfer } from './_shared/models/Golfer';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
 import { SCORES_COLLECTION } from './_shared/models/Score';
+import { PICKS_COLLECTION } from './_shared/models/Pick';
 import { SeasonDocument, SEASONS_COLLECTION } from './_shared/models/Season';
 import { getWeekStart, getMonthStart, getSeasonStart } from './_shared/utils/dates';
 import { createPerfTimer } from './_shared/utils/perf';
@@ -110,6 +111,29 @@ export const handler = withAuth(async (event: AuthenticatedEvent) => {
           .map(t => t._id.toString())
       );
       seasonTournamentMap.set(season.name, ids);
+    }
+
+    // Calculate ownership percentages from active season picks
+    const activeSeason = allSeasons.find(s => s.isActive);
+    const activeSeasonNumber = activeSeason ? parseInt(activeSeason.name) || 0 : 0;
+    const useOwnership = !seasonParam || seasonParam === 'overall' || seasonParam === activeSeason?.name;
+
+    const ownershipMap = new Map<string, number>();
+    let totalPicks = 0;
+
+    if (useOwnership && activeSeasonNumber > 0) {
+      const picks = await db.collection(PICKS_COLLECTION)
+        .find({ season: activeSeasonNumber })
+        .toArray();
+      totalPicks = picks.length;
+
+      for (const pick of picks) {
+        const golferIds: ObjectId[] = (pick.golferIds as ObjectId[]) || [];
+        for (const gId of golferIds) {
+          const key = gId.toString();
+          ownershipMap.set(key, (ownershipMap.get(key) || 0) + 1);
+        }
+      }
     }
 
     // Process results and calculate stats
@@ -223,11 +247,18 @@ export const handler = withAuth(async (event: AuthenticatedEvent) => {
         });
       }
 
+      // Calculate ownership percentage
+      const pickCount = ownershipMap.get(golfer.id) || 0;
+      const selectedPercentage = totalPicks > 0
+        ? Math.round((pickCount / totalPicks) * 100)
+        : 0;
+
       return {
         ...golfer,
         stats2026,
         points,
         seasonStats,
+        selectedPercentage,
       };
     });
 
