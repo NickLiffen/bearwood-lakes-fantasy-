@@ -793,9 +793,23 @@ const ScoresAdminPage: React.FC = () => {
                                   style={{ width: '100%' }}
                                 >
                                   <option value="">-</option>
-                                  <option value="1">🥇 1st</option>
-                                  <option value="2">🥈 2nd</option>
-                                  <option value="3">🥉 3rd</option>
+                                  {Array.from(
+                                    {
+                                      length: Object.values(scores).filter((s) => s.participated)
+                                        .length,
+                                    },
+                                    (_, i) => i + 1,
+                                  ).map((pos) => (
+                                    <option key={pos} value={pos}>
+                                      {pos === 1
+                                        ? '🥇 1st'
+                                        : pos === 2
+                                          ? '🥈 2nd'
+                                          : pos === 3
+                                            ? '🥉 3rd'
+                                            : `${pos}th`}
+                                    </option>
+                                  ))}
                                 </select>
                               ) : (
                                 <span style={{ color: '#9ca3af' }}>-</span>
