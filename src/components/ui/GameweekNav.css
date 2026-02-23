@@ -1,0 +1,59 @@
+.gameweek-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+}
+
+.gameweek-nav-btn {
+  padding: 0.5rem 1rem;
+  background: var(--primary-green);
+  color: var(--light-text);
+  border: none;
+  border-radius: 8px;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, opacity 0.2s ease;
+}
+
+.gameweek-nav-btn:hover:not(:disabled) {
+  background: var(--secondary-green);
+}
+
+.gameweek-nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.gameweek-select {
+  padding: 0.5rem 0.75rem;
+  background: var(--cream);
+  color: var(--dark-text);
+  border: 1px solid var(--sand);
+  border-radius: 8px;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  min-width: 180px;
+  transition: border-color 0.2s ease;
+}
+
+.gameweek-select:focus {
+  outline: none;
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 0 2px rgba(201, 162, 39, 0.2);
+}
+
+@media (max-width: 768px) {
+  .gameweek-nav {
+    width: 100%;
+  }
+
+  .gameweek-select {
+    flex: 1;
+    min-width: 0;
+  }
+}

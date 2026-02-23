@@ -1,0 +1,52 @@
+.team-stats-bar {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--spacing-md);
+}
+
+.team-stat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+  background: var(--cream);
+  border-radius: 12px;
+  padding: 1.25rem 1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.team-stat-value {
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--primary-green);
+}
+
+.team-stat-label {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--muted-text);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.team-stat-rank {
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--accent-gold);
+  background: rgba(201, 162, 39, 0.12);
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+}
+
+@media (max-width: 768px) {
+  .team-stat-card {
+    padding: 0.75rem 0.5rem;
+  }
+
+  .team-stat-value {
+    font-size: 1.25rem;
+  }
+}

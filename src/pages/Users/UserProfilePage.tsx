@@ -4,7 +4,10 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import PageLayout from '../../components/layout/PageLayout';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import DataTable, { Column } from '../../components/ui/DataTable';
+import GameweekNav from '../../components/ui/GameweekNav';
+import type { WeekOption } from '../../components/ui/GameweekNav';
+import TeamStatsBar from '../../components/ui/TeamStatsBar';
+import TeamGolferTable from '../../components/ui/TeamGolferTable';
 import TeamCompareModal from '../../components/ui/TeamCompareModal';
 import { useAuth } from '../../hooks/useAuth';
 import { useApiClient } from '../../hooks/useApiClient';
@@ -72,11 +75,6 @@ interface PeriodInfo {
   hasNext: boolean;
 }
 
-interface WeekOption {
-  value: string;
-  label: string;
-}
-
 interface UserProfileData {
   user: {
     id: string;
@@ -112,37 +110,12 @@ interface UserProfileData {
   history: HistoryEntry[];
 }
 
-// Helper to get Saturday of the week containing a date
-const getSaturdayOfWeek = (date: Date): Date => {
-  const d = new Date(date);
-  const dayOfWeek = d.getDay(); // 0 = Sunday, 6 = Saturday
-  let daysSinceSaturday: number;
-  if (dayOfWeek === 6) {
-    daysSinceSaturday = 0;
-  } else {
-    daysSinceSaturday = dayOfWeek + 1;
-  }
-  d.setDate(d.getDate() - daysSinceSaturday);
-  d.setHours(0, 0, 0, 0);
-  return d;
-};
-
 // Helper to format date as YYYY-MM-DD
 const formatDateString = (date: Date): string => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
-};
-
-// Helper to format week label like "Sat, Feb 1, 2026"
-const formatWeekLabel = (weekStart: Date): string => {
-  return weekStart.toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
 };
 
 const UserProfilePage: React.FC = () => {
@@ -166,36 +139,35 @@ const UserProfilePage: React.FC = () => {
   // Track request ID to ignore stale responses
   const requestIdRef = useRef(0);
 
-  // Generate week options from team effective start to current week
-  // teamEffectiveStart is already a Saturday (from backend)
-  const generateWeekOptions = useCallback((teamEffectiveStart: string) => {
+  // Generate week options from team effective start to current week (gameweek-aware)
+  const generateWeekOptions = useCallback((teamStart: string): WeekOption[] => {
     const options: WeekOption[] = [];
-    const effectiveStart = new Date(teamEffectiveStart);
-    // Normalize to midnight for consistent comparison with getSaturdayOfWeek
-    effectiveStart.setHours(0, 0, 0, 0);
+    const start = new Date(teamStart);
     const now = new Date();
-    let current = getSaturdayOfWeek(now);
+    // Find first Saturday on or after team start
+    const firstSaturday = new Date(start);
+    while (firstSaturday.getDay() !== 6) firstSaturday.setDate(firstSaturday.getDate() + 1);
+    firstSaturday.setHours(0, 0, 0, 0);
 
-    // Go back through weeks, stopping at team effective start
-    while (current >= effectiveStart) {
+    let current = new Date(firstSaturday);
+    let gameweek = 1;
+    while (current <= now || options.length === 0) {
+      const weekEnd = new Date(current);
+      weekEnd.setDate(current.getDate() + 6);
+      const fmt: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+      const dateRange = `${current.toLocaleDateString('en-GB', fmt)} - ${weekEnd.toLocaleDateString('en-GB', fmt)}`;
+      const year = current.getFullYear();
+      const month = String(current.getMonth() + 1).padStart(2, '0');
+      const day = String(current.getDate()).padStart(2, '0');
       options.push({
-        value: formatDateString(current),
-        label: formatWeekLabel(current),
+        value: `${year}-${month}-${day}`,
+        label: `Gameweek ${gameweek}: ${dateRange}`,
       });
-      current = new Date(current);
-      current.setDate(current.getDate() - 7);
+      current.setDate(current.getDate() + 7);
+      gameweek++;
+      if (current > now && options.length > 0) break;
     }
-
-    // Always include at least current week
-    if (options.length === 0) {
-      const currentWeek = getSaturdayOfWeek(now);
-      options.push({
-        value: formatDateString(currentWeek),
-        label: formatWeekLabel(currentWeek),
-      });
-    }
-
-    return options;
+    return options.reverse();
   }, []);
 
   const fetchUserProfile = useCallback(
@@ -265,72 +237,6 @@ const UserProfilePage: React.FC = () => {
     fetchUserProfile(newDate);
   };
 
-  const handleWeekSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newDate = e.target.value;
-    setSelectedDate(newDate);
-    fetchUserProfile(newDate);
-  };
-
-  // Helper functions
-  const getRankDisplay = (rank: number | null) => {
-    if (rank === null) return '-';
-    if (rank === 1) return '🥇 1st';
-    if (rank === 2) return '🥈 2nd';
-    if (rank === 3) return '🥉 3rd';
-    return `#${rank}`;
-  };
-
-  // Column definitions for DataTable
-  const getColumns = (): Column<GolferWithScores>[] => [
-    {
-      key: 'captain',
-      header: 'C',
-      align: 'center',
-      render: (golferData) =>
-        golferData.isCaptain ? (
-          <span className="captain-indicator" title="Captain (2x points)">
-            C
-          </span>
-        ) : null,
-    },
-    {
-      key: 'golfer',
-      header: 'Golfer',
-      render: (golferData) => (
-        <div className="dt-info-cell">
-          <div className="dt-avatar">
-            {golferData.golfer.picture ? (
-              <img
-                src={golferData.golfer.picture}
-                alt={`${golferData.golfer.firstName} ${golferData.golfer.lastName}`}
-                loading="lazy"
-              />
-            ) : (
-              <span className="dt-avatar-placeholder">
-                {golferData.golfer.firstName[0]}
-                {golferData.golfer.lastName[0]}
-              </span>
-            )}
-          </div>
-          <Link to={`/golfers/${golferData.golfer.id}`} className="dt-text-link">
-            {golferData.golfer.firstName} {golferData.golfer.lastName}
-          </Link>
-        </div>
-      ),
-    },
-    {
-      key: 'week-pts',
-      header: 'Week Pts',
-      align: 'right',
-      render: (golferData) => (
-        <span className="dt-text-primary">
-          {golferData.weekPoints}
-          {golferData.isCaptain && <span className="captain-multiplier">(2x)</span>}
-        </span>
-      ),
-    },
-  ];
-
   if (loading) {
     return (
       <PageLayout activeNav="users">
@@ -395,25 +301,15 @@ const UserProfilePage: React.FC = () => {
             )}
           </div>
 
-          {/* Stats Cards */}
-          {hasTeam && stats && (
-            <div className="stats-cards">
-              <div className="stat-card">
-                <span className="stat-period">📅 This Week</span>
-                <span className="stat-points">{stats.weekPoints} pts</span>
-                <span className="stat-rank">{getRankDisplay(stats.weekRank)}</span>
-              </div>
-              <div className="stat-card">
-                <span className="stat-period">📆 This Month</span>
-                <span className="stat-points">{stats.monthPoints} pts</span>
-                <span className="stat-rank">{getRankDisplay(stats.monthRank)}</span>
-              </div>
-              <div className="stat-card">
-                <span className="stat-period">🏆 2026 Season</span>
-                <span className="stat-points">{stats.seasonPoints} pts</span>
-                <span className="stat-rank">{getRankDisplay(stats.seasonRank)}</span>
-              </div>
-            </div>
+          {/* Stats */}
+          {hasTeam && stats && team && (
+            <TeamStatsBar
+              weekPoints={stats.weekPoints}
+              seasonPoints={stats.seasonPoints}
+              teamValue={team.totals.totalSpent}
+              weekRank={stats.weekRank}
+              seasonRank={stats.seasonRank}
+            />
           )}
 
           {/* No Team State */}
@@ -438,37 +334,14 @@ const UserProfilePage: React.FC = () => {
                 </div>
 
                 {/* Week Navigation */}
-                <div className="period-navigation">
-                  <button
-                    className="nav-btn"
-                    onClick={() => handleWeekNavigation('prev')}
-                    disabled={!profileData?.period?.hasPrevious}
-                    title="Previous week"
-                  >
-                    ←
-                  </button>
-                  <select
-                    id="profile-period"
-                    name="profile-period"
-                    className="period-select"
-                    value={selectedDate}
-                    onChange={handleWeekSelect}
-                  >
-                    {weekOptions.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    className="nav-btn"
-                    onClick={() => handleWeekNavigation('next')}
-                    disabled={!profileData?.period?.hasNext}
-                    title="Next week"
-                  >
-                    →
-                  </button>
-                </div>
+                <GameweekNav
+                  weekOptions={weekOptions}
+                  selectedDate={selectedDate || ''}
+                  hasPrevious={profileData?.period?.hasPrevious ?? false}
+                  hasNext={profileData?.period?.hasNext ?? false}
+                  onNavigate={handleWeekNavigation}
+                  onSelect={(date) => fetchUserProfile(date)}
+                />
 
                 {/* Team Total */}
                 <div className="team-total">
@@ -476,12 +349,10 @@ const UserProfilePage: React.FC = () => {
                   <span className="total-value">{team.totals.weekPoints} pts</span>
                 </div>
 
-                {/* Golfers Table - Using DataTable */}
-                <DataTable
-                  data={team.golfers}
-                  columns={getColumns()}
-                  rowKey={(golferData) => golferData.golfer.id}
-                  emptyMessage="No golfers in this team."
+                {/* Golfers Table */}
+                <TeamGolferTable
+                  golfers={team.golfers}
+                  isOwnTeam={false}
                 />
               </div>
 

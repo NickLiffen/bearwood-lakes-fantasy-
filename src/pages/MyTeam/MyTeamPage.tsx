@@ -4,13 +4,15 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import PageLayout from '../../components/layout/PageLayout';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import DataTable, { Column } from '../../components/ui/DataTable';
+import GameweekNav from '../../components/ui/GameweekNav';
+import type { WeekOption } from '../../components/ui/GameweekNav';
+import TeamStatsBar from '../../components/ui/TeamStatsBar';
+import TeamGolferTable from '../../components/ui/TeamGolferTable';
 import { useApiClient } from '../../hooks/useApiClient';
 import { useActiveSeason } from '../../hooks/useActiveSeason';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
-import { formatPrice } from '../../utils/formatters';
 import type { GolferSeasonStats, MembershipType } from '@shared/types';
-import type { TournamentScore, WeekOption } from '@shared/types';
+import type { TournamentScore } from '@shared/types';
 import './MyTeamPage.css';
 
 // Local interface for golfer with scores - matches API response structure
@@ -247,12 +249,6 @@ const MyTeamPage: React.FC = () => {
     fetchTeam(newDate);
   };
 
-  const handleWeekSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newDate = e.target.value;
-    setSelectedDate(newDate);
-    fetchTeam(newDate);
-  };
-
   // Handle setting a golfer as captain
   const handleSetCaptain = async (golferId: string) => {
     if (!teamData?.team || savingCaptain) return;
@@ -276,61 +272,6 @@ const MyTeamPage: React.FC = () => {
       setSavingCaptain(false);
     }
   };
-
-  // Column definitions for DataTable
-  const getColumns = (): Column<GolferWithScores>[] => [
-    {
-      key: 'captain',
-      header: 'C',
-      align: 'center',
-      render: (golferData) => (
-        <button
-          onClick={() => handleSetCaptain(golferData.golfer.id)}
-          className={`captain-badge ${golferData.isCaptain ? 'active' : ''}`}
-          disabled={savingCaptain}
-          title={golferData.isCaptain ? 'Captain (2x points)' : 'Set as captain'}
-        >
-          C
-        </button>
-      ),
-    },
-    {
-      key: 'golfer',
-      header: 'Golfer',
-      render: (golferData) => (
-        <div className="dt-info-cell">
-          <div className="dt-avatar">
-            {golferData.golfer.picture ? (
-              <img
-                src={golferData.golfer.picture}
-                alt={`${golferData.golfer.firstName} ${golferData.golfer.lastName}`}
-                loading="lazy"
-              />
-            ) : (
-              <span className="dt-avatar-placeholder">
-                {golferData.golfer.firstName[0]}
-                {golferData.golfer.lastName[0]}
-              </span>
-            )}
-          </div>
-          <Link to={`/golfers/${golferData.golfer.id}`} className="dt-text-link">
-            {golferData.golfer.firstName} {golferData.golfer.lastName}
-          </Link>
-        </div>
-      ),
-    },
-    {
-      key: 'week-pts',
-      header: 'Week Pts',
-      align: 'right',
-      render: (golferData) => (
-        <span className="dt-text-primary">
-          {golferData.weekPoints}
-          {golferData.isCaptain && <span className="captain-multiplier">(2x)</span>}
-        </span>
-      ),
-    },
-  ];
 
   // Loading state
   if (loading) {
@@ -464,78 +405,36 @@ const MyTeamPage: React.FC = () => {
           )}
 
 
-          {/* Stats Grid - 3 cards */}
-          <section className="team-stats-grid">
-            <div className="stat-card stat-card-active">
-              <div className="stat-icon">📅</div>
-              <div className="stat-content">
-                <span className="stat-value">{team.totals.weekPoints}</span>
-                <span className="stat-label">Week Points</span>
-              </div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-icon">🏆</div>
-              <div className="stat-content">
-                <span className="stat-value">{team.totals.seasonPoints}</span>
-                <span className="stat-label">{seasonName} Season</span>
-              </div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-icon">💰</div>
-              <div className="stat-content">
-                <span className="stat-value">{formatPrice(team.totals.totalSpent)}</span>
-                <span className="stat-label">Team Value</span>
-              </div>
-            </div>
-          </section>
+          {/* Stats Grid */}
+          <TeamStatsBar
+            weekPoints={team.totals.weekPoints}
+            seasonPoints={team.totals.seasonPoints}
+            teamValue={team.totals.totalSpent}
+          />
 
           {/* Week Navigation */}
-          <div className="period-navigation">
-            <button
-              className="nav-btn"
-              onClick={() => handleWeekNavigation('prev')}
-              disabled={!team.period.hasPrevious}
-              title="Previous week"
-            >
-              ←
-            </button>
-            <select
-              id="week-select"
-              name="week-select"
-              className="period-select"
-              value={selectedDate}
-              onChange={handleWeekSelect}
-            >
-              {weekOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-            <button
-              className="nav-btn"
-              onClick={() => handleWeekNavigation('next')}
-              disabled={!team.period.hasNext}
-              title="Next week"
-            >
-              →
-            </button>
-          </div>
+          <GameweekNav
+            weekOptions={weekOptions}
+            selectedDate={selectedDate || ''}
+            hasPrevious={teamData?.team?.period?.hasPrevious ?? false}
+            hasNext={teamData?.team?.period?.hasNext ?? false}
+            onNavigate={handleWeekNavigation}
+            onSelect={(date) => fetchTeam(date)}
+          />
 
           {/* Error State */}
           {error && <div className="error-message">{error}</div>}
 
-          {/* Golfers Section - Using DataTable */}
+          {/* Golfers Section */}
           <section className="dashboard-card">
             <div className="card-header">
               <h2>Your 6 Golfers</h2>
               <span className="card-header-subtitle">Sorted by week points</span>
             </div>
-            <DataTable
-              data={sortedGolfers}
-              columns={getColumns()}
-              rowKey={(golferData) => golferData.golfer.id}
-              emptyMessage="No golfers in your team yet."
+            <TeamGolferTable
+              golfers={sortedGolfers}
+              isOwnTeam={true}
+              onSetCaptain={handleSetCaptain}
             />
           </section>
 
