@@ -493,16 +493,19 @@ const SettingsAdminPage: React.FC = () => {
               }}
             >
               <div>
-                🥇 1st Place: <strong>5 pts</strong>
+                🥇 1st Place: <strong>10 pts</strong>
               </div>
               <div>
-                🥈 2nd Place: <strong>2-3 pts</strong> (tier)
+                🥈 2nd Place: <strong>7 pts</strong>
               </div>
               <div>
-                🥉 3rd Place: <strong>1 pt</strong> (20+ tier)
+                🥉 3rd Place: <strong>5 pts</strong>
               </div>
               <div>
-                ⭐ 36+ Bonus: <strong>+1 pt</strong>
+                ⭐ 36+ Bonus: <strong>+3 pts</strong>
+              </div>
+              <div>
+                ⭐ 32+ Bonus: <strong>+1 pt</strong>
               </div>
             </div>
             <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#047857' }}>

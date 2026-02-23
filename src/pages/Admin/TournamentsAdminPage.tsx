@@ -700,8 +700,6 @@ const TournamentsAdminPage: React.FC = () => {
               {/* Points Info Box - Dynamic based on participants */}
               {(() => {
                 const participantCount = tournamentScores.filter((s) => s.participated).length;
-                const tier =
-                  participantCount <= 10 ? '0-10' : participantCount < 20 ? '10-20' : '20+';
                 return (
                   <div
                     style={{
@@ -713,11 +711,9 @@ const TournamentsAdminPage: React.FC = () => {
                     }}
                   >
                     <div style={{ fontSize: '0.85rem', color: '#92400e' }}>
-                      <strong>golfers:</strong> {participantCount} ({tier} tier){' | '}
-                      <strong>Points:</strong> {tier === '0-10' && '1st = 5pts'}
-                      {tier === '10-20' && '1st = 5pts, 2nd = 2pts'}
-                      {tier === '20+' && '1st = 5pts, 2nd = 3pts, 3rd = 1pt'}
-                      {' | '}36+ bonus = +1pt{' | '}
+                      <strong>golfers:</strong> {participantCount}{' | '}
+                      <strong>Points:</strong> 1st = 10pts, 2nd = 7pts, 3rd = 5pts | 36+ = +3pts,
+                      32+ = +1pt{' | '}
                       Multiplier = {viewingTournament.multiplier}x
                     </div>
                   </div>

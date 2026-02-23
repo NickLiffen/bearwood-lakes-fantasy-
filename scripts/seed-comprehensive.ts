@@ -232,24 +232,16 @@ function shuffleArray<T>(array: T[]): T[] {
   return shuffled;
 }
 
-function getBasePointsForPosition(position: number | null, tier: GolferCountTier): number {
-  if (position === null) return 0;
+// New scoring model: flat position points for all field sizes
+const POSITION_POINTS: Record<number, number> = { 1: 10, 2: 7, 3: 5 };
 
-  switch (tier) {
-    case '0-10':
-      return position === 1 ? 5 : 0;
-    case '10-20':
-      if (position === 1) return 5;
-      if (position === 2) return 2;
-      return 0;
-    case '20+':
-      if (position === 1) return 5;
-      if (position === 2) return 3;
-      if (position === 3) return 1;
-      return 0;
-    default:
-      return 0;
-  }
+function getBasePointsForPosition(position: number | null): number {
+  if (position === null) return 0;
+  return POSITION_POINTS[position] ?? 0;
+}
+
+function getBonusPointsFromScore(scored36Plus: boolean): number {
+  return scored36Plus ? 3 : 0;
 }
 
 function getTournamentType(): TournamentType {
@@ -605,8 +597,8 @@ async function seedComprehensive() {
             ? Math.random() < 0.6 // 60% for podium
             : Math.random() < 0.25; // 25% for others
 
-        const basePoints = getBasePointsForPosition(position, tournament.golferCountTier);
-        const bonusPoints = scored36Plus ? 1 : 0;
+        const basePoints = getBasePointsForPosition(position);
+        const bonusPoints = getBonusPointsFromScore(scored36Plus);
         const multipliedPoints = (basePoints + bonusPoints) * tournament.multiplier;
 
         const score: ScoreDoc = {

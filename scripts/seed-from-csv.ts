@@ -61,22 +61,17 @@ function getGolferCountTier(count: number): GolferCountTier {
   return '20+';
 }
 
-function getBasePointsForPosition(position: number, tier: GolferCountTier): number {
-  switch (tier) {
-    case '0-10':
-      return position === 1 ? 5 : 0;
-    case '10-20':
-      if (position === 1) return 5;
-      if (position === 2) return 2;
-      return 0;
-    case '20+':
-      if (position === 1) return 5;
-      if (position === 2) return 3;
-      if (position === 3) return 1;
-      return 0;
-    default:
-      return 0;
-  }
+// New scoring model: flat position points for all field sizes
+const POSITION_POINTS: Record<number, number> = { 1: 10, 2: 7, 3: 5 };
+
+function getBasePointsForPosition(position: number): number {
+  return POSITION_POINTS[position] ?? 0;
+}
+
+function getBonusPoints(stablefordPoints: number): number {
+  if (stablefordPoints >= 36) return 3;
+  if (stablefordPoints >= 32) return 1;
+  return 0;
 }
 
 function getSeasonForDate(date: Date): number {
@@ -330,9 +325,9 @@ async function seedFromCsv() {
 
         participatingGolferIds.push(golferId);
 
-        const basePoints = getBasePointsForPosition(row.position, tier);
+        const basePoints = getBasePointsForPosition(row.position);
         const scored36Plus = row.stablefordPoints >= 36;
-        const bonusPoints = scored36Plus ? 1 : 0;
+        const bonusPoints = getBonusPoints(row.stablefordPoints);
         const multipliedPoints = (basePoints + bonusPoints) * multiplier;
 
         await db.collection('scores').insertOne({

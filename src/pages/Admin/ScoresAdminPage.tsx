@@ -271,14 +271,8 @@ const ScoresAdminPage: React.FC = () => {
     });
   };
 
-  // Calculate participant count and tier dynamically
+  // Calculate participant count dynamically
   const participantCount = Object.values(scores).filter((s) => s.participated).length;
-  const getTier = (count: number): '0-10' | '10-20' | '20+' => {
-    if (count <= 10) return '0-10';
-    if (count < 20) return '10-20';
-    return '20+';
-  };
-  const currentTier = getTier(participantCount);
 
   // Validation function for scores
   const validateScores = (): { valid: boolean; error: string } => {
@@ -289,38 +283,16 @@ const ScoresAdminPage: React.FC = () => {
       return { valid: false, error: 'At least one golfer must have participated' };
     }
 
-    const tier = getTier(participatingPlayers.length);
-
-    // Check for required positions
+    // Rule 2: Must have 1st, 2nd, and 3rd place
     const hasFirst = participatingPlayers.some((s) => s.position === 1);
     const hasSecond = participatingPlayers.some((s) => s.position === 2);
     const hasThird = participatingPlayers.some((s) => s.position === 3);
 
-    // Rule 2: 0-10 golfers → must have 1st place
-    if (tier === '0-10') {
-      if (!hasFirst) {
-        return { valid: false, error: 'With 1-10 golfers, you must assign a 1st place finish' };
-      }
-    }
-
-    // Rule 3: 10-20 golfers → must have 1st and 2nd place
-    if (tier === '10-20') {
-      if (!hasFirst || !hasSecond) {
-        return {
-          valid: false,
-          error: 'With 10-20 golfers, you must assign both 1st and 2nd place finishes',
-        };
-      }
-    }
-
-    // Rule 4: 20+ golfers → must have 1st, 2nd, and 3rd place
-    if (tier === '20+') {
-      if (!hasFirst || !hasSecond || !hasThird) {
-        return {
-          valid: false,
-          error: 'With 20+ golfers, you must assign 1st, 2nd, and 3rd place finishes',
-        };
-      }
+    if (!hasFirst || !hasSecond || !hasThird) {
+      return {
+        valid: false,
+        error: 'You must assign 1st, 2nd, and 3rd place finishes',
+      };
     }
 
     // Check for duplicate positions (only for positions 1, 2, 3)
@@ -688,11 +660,9 @@ const ScoresAdminPage: React.FC = () => {
                   </span>
                 </div>
                 <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>
-                  <strong>Participants:</strong> {participantCount} golfers | <strong>Tier:</strong>{' '}
-                  {currentTier} | <strong>Points:</strong> {currentTier === '0-10' && '1st = 5pts'}
-                  {currentTier === '10-20' && '1st = 5pts, 2nd = 2pts'}
-                  {currentTier === '20+' && '1st = 5pts, 2nd = 3pts, 3rd = 1pt'}
-                  {' + 36+ bonus = +1pt'}
+                  <strong>Participants:</strong> {participantCount} golfers |{' '}
+                  <strong>Points:</strong> 1st = 10pts, 2nd = 7pts, 3rd = 5pts | 36+ = +3pts, 32+ =
+                  +1pt
                 </div>
                 {/* Required positions indicator */}
                 {participantCount > 0 && (
@@ -704,9 +674,7 @@ const ScoresAdminPage: React.FC = () => {
                       fontWeight: 500,
                     }}
                   >
-                    ✓ Required: {currentTier === '0-10' && '1st place'}
-                    {currentTier === '10-20' && '1st & 2nd place'}
-                    {currentTier === '20+' && '1st, 2nd & 3rd place'}
+                    ✓ Required: 1st, 2nd & 3rd place
                     {validationResult.valid && ' ✅'}
                   </div>
                 )}
