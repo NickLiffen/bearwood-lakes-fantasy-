@@ -11,7 +11,7 @@ import { GolferDocument, GOLFERS_COLLECTION, toGolfer } from './_shared/models/G
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
 import { SettingDocument, SETTINGS_COLLECTION } from './_shared/models/Settings';
-import { getWeekStart, getWeekEnd, getSeasonStart, getTeamEffectiveStartDate } from './_shared/utils/dates';
+import { getWeekStart, getWeekEnd, getSeasonStart, getTeamEffectiveStartDate, getGameweekNumber, getSeasonFirstSaturday } from './_shared/utils/dates';
 import { getTransfersThisWeek } from './_shared/services/picks.service';
 import { getActiveSeason } from './_shared/services/seasons.service';
 
@@ -39,7 +39,7 @@ interface GolferWithScores {
 /**
  * Format week label like "Jan 4 - Jan 10"
  */
-function formatWeekLabel(weekStart: Date): string {
+function formatWeekLabel(weekStart: Date, gameweek?: number | null): string {
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekEnd.getDate() + 6); // Friday (6 days after Saturday)
 
@@ -48,10 +48,14 @@ function formatWeekLabel(weekStart: Date): string {
   const endMonth = weekEnd.toLocaleDateString('en-US', { month: 'short' });
   const endDay = weekEnd.getDate();
 
-  if (startMonth === endMonth) {
-    return `${startMonth} ${startDay} - ${endDay}`;
+  const dateRange = startMonth === endMonth
+    ? `${startMonth} ${startDay} - ${endDay}`
+    : `${startMonth} ${startDay} - ${endMonth} ${endDay}`;
+
+  if (gameweek && gameweek > 0) {
+    return `Gameweek ${gameweek}: ${dateRange}`;
   }
-  return `${startMonth} ${startDay} - ${endMonth} ${endDay}`;
+  return dateRange;
 }
 
 export const handler: Handler = withAuth(async (event: AuthenticatedEvent) => {
@@ -60,7 +64,7 @@ export const handler: Handler = withAuth(async (event: AuthenticatedEvent) => {
 
     // Parse date parameter - if not provided, use current date
     const dateParam = event.queryStringParameters?.date;
-    const targetDate = dateParam ? new Date(dateParam) : new Date();
+    let targetDate = dateParam ? new Date(dateParam) : new Date();
 
     // Validate date if provided
     if (dateParam && isNaN(targetDate.getTime())) {
@@ -79,6 +83,15 @@ export const handler: Handler = withAuth(async (event: AuthenticatedEvent) => {
     ]);
 
     const currentSeason = activeSeason ? (parseInt(activeSeason.name, 10) || new Date().getFullYear()) : new Date().getFullYear();
+
+    // If season hasn't started yet and no specific date requested, default to GW1
+    if (!dateParam && activeSeason) {
+      const seasonFirstSat = getSeasonFirstSaturday(new Date(activeSeason.startDate));
+      if (new Date() < seasonFirstSat) {
+        targetDate = seasonFirstSat;
+      }
+    }
+
     const transfersOpen = (transfersSetting?.value as boolean) || false;
     const allowNewTeamCreation = (newTeamSetting?.value as boolean) ?? true;
     const maxTransfersPerWeek = (maxTransfersSetting?.value as number) || 1;
@@ -259,7 +272,8 @@ export const handler: Handler = withAuth(async (event: AuthenticatedEvent) => {
             period: {
               weekStart: selectedWeekStart.toISOString(),
               weekEnd: selectedWeekEnd.toISOString(),
-              label: formatWeekLabel(selectedWeekStart),
+              label: formatWeekLabel(selectedWeekStart, activeSeason ? getGameweekNumber(selectedWeekStart, new Date(activeSeason.startDate)) : null),
+              gameweek: activeSeason ? getGameweekNumber(selectedWeekStart, new Date(activeSeason.startDate)) : null,
               hasPrevious,
               hasNext,
             },

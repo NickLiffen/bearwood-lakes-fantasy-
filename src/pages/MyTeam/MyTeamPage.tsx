@@ -47,6 +47,7 @@ interface TeamData {
     weekStart: string;
     weekEnd: string;
     label: string;
+    gameweek: number | null;
     hasPrevious: boolean;
     hasNext: boolean;
   };
@@ -90,14 +91,36 @@ const formatDateString = (date: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
-// Helper to format week label like "Sat, Feb 1, 2026"
-const formatWeekLabel = (weekStart: Date): string => {
-  return weekStart.toLocaleDateString('en-US', {
+// Helper to get the first Saturday on or after a given date
+const getSeasonFirstSaturday = (seasonStartDate: Date): Date => {
+  const d = new Date(seasonStartDate);
+  while (d.getDay() !== 6) {
+    d.setDate(d.getDate() + 1);
+  }
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+// Helper to calculate gameweek number from a week start date and season start
+const getGameweekNumber = (weekStart: Date, seasonStartDate: Date): number => {
+  const firstSaturday = getSeasonFirstSaturday(seasonStartDate);
+  const diffMs = weekStart.getTime() - firstSaturday.getTime();
+  const diffWeeks = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000));
+  return diffWeeks + 1;
+};
+
+// Helper to format week label like "Gameweek 3: Sat, Feb 1, 2026"
+const formatWeekLabel = (weekStart: Date, gameweek?: number | null): string => {
+  const dateStr = weekStart.toLocaleDateString('en-US', {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
     year: 'numeric',
   });
+  if (gameweek && gameweek > 0) {
+    return `Gameweek ${gameweek}: ${dateStr}`;
+  }
+  return dateStr;
 };
 
 const MyTeamPage: React.FC = () => {
@@ -112,32 +135,56 @@ const MyTeamPage: React.FC = () => {
   const seasonName = season?.name || '2026';
   useDocumentTitle('My Team');
 
-  // Generate week options from team effective start to current week
-  // Only shows weeks where the team could have earned points
-  const generateWeekOptions = useCallback((teamEffectiveStart: string) => {
+  // Generate week options from season first Saturday forward to current week
+  // Labels each with "Gameweek X: Sat, Apr 4, 2026"
+  const generateWeekOptions = useCallback((teamEffectiveStart: string, seasonStartDate?: string) => {
     const options: WeekOption[] = [];
-    const effectiveStart = new Date(teamEffectiveStart);
-    // Normalize to midnight for consistent comparison with getSaturdayOfWeek
-    effectiveStart.setHours(0, 0, 0, 0);
     const now = new Date();
-    let current = getSaturdayOfWeek(now);
+    const currentWeekSat = getSaturdayOfWeek(now);
 
-    // Go back through weeks, stopping at team effective start
-    while (current >= effectiveStart) {
-      options.push({
-        value: formatDateString(current),
-        label: formatWeekLabel(current),
-      });
-      current = new Date(current);
-      current.setDate(current.getDate() - 7);
+    if (seasonStartDate) {
+      const firstSaturday = getSeasonFirstSaturday(new Date(seasonStartDate));
+      const effectiveStart = new Date(teamEffectiveStart);
+      effectiveStart.setHours(0, 0, 0, 0);
+
+      // Start from whichever is later: first Saturday of season or team effective start
+      let start = firstSaturday >= effectiveStart ? firstSaturday : getSaturdayOfWeek(effectiveStart);
+
+      // Generate forward from start to current week (or first Saturday if pre-season)
+      const endWeek = now < firstSaturday ? firstSaturday : currentWeekSat;
+      let current = new Date(start);
+      while (current <= endWeek) {
+        const gw = getGameweekNumber(current, new Date(seasonStartDate));
+        options.push({
+          value: formatDateString(current),
+          label: formatWeekLabel(current, gw),
+        });
+        current = new Date(current);
+        current.setDate(current.getDate() + 7);
+      }
+
+      // Reverse so most recent is first
+      options.reverse();
+    } else {
+      // Fallback: generate backwards from current week to team effective start
+      const effectiveStart = new Date(teamEffectiveStart);
+      effectiveStart.setHours(0, 0, 0, 0);
+      let current = currentWeekSat;
+      while (current >= effectiveStart) {
+        options.push({
+          value: formatDateString(current),
+          label: formatWeekLabel(current),
+        });
+        current = new Date(current);
+        current.setDate(current.getDate() - 7);
+      }
     }
 
     // Always include at least current week even if team just created
     if (options.length === 0) {
-      const currentWeek = getSaturdayOfWeek(now);
       options.push({
-        value: formatDateString(currentWeek),
-        label: formatWeekLabel(currentWeek),
+        value: formatDateString(currentWeekSat),
+        label: formatWeekLabel(currentWeekSat),
       });
     }
 
@@ -165,7 +212,10 @@ const MyTeamPage: React.FC = () => {
 
             // Generate week options if not already set
             if (weekOptions.length === 0) {
-              const options = generateWeekOptions(response.data.team.teamEffectiveStart);
+              const options = generateWeekOptions(
+                response.data.team.teamEffectiveStart,
+                season?.startDate
+              );
               setWeekOptions(options);
             }
           }
@@ -410,6 +460,19 @@ const MyTeamPage: React.FC = () => {
                   make them captain. Your captain earns <strong>2× points</strong> every week!
                 </p>
               </div>
+            </div>
+          )}
+
+          {/* Season Start Banner */}
+          {season?.startDate && new Date() < new Date(season.startDate) && (
+            <div className="season-banner">
+              ⛳ The {seasonName} season starts on Gameweek 1:{' '}
+              {getSeasonFirstSaturday(new Date(season.startDate)).toLocaleDateString('en-US', {
+                weekday: 'long',
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric',
+              })}
             </div>
           )}
 
