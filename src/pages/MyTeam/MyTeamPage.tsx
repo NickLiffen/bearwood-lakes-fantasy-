@@ -463,18 +463,6 @@ const MyTeamPage: React.FC = () => {
             </div>
           )}
 
-          {/* Season Start Banner */}
-          {season?.startDate && new Date() < new Date(season.startDate) && (
-            <div className="season-banner">
-              ⛳ The {seasonName} season starts on Gameweek 1:{' '}
-              {getSeasonFirstSaturday(new Date(season.startDate)).toLocaleDateString('en-US', {
-                weekday: 'long',
-                month: 'long',
-                day: 'numeric',
-                year: 'numeric',
-              })}
-            </div>
-          )}
 
           {/* Stats Grid - 3 cards */}
           <section className="team-stats-grid">
