@@ -12,7 +12,7 @@
     "paths": {
       "@shared/*": ["shared/*"]
     },
-    "ignoreDeprecations": "6.0"
+    "ignoreDeprecations": "5.0"
   },
   "include": ["netlify/functions/**/*.ts", "shared/**/*.ts"],
   "exclude": ["node_modules", "**/*.test.ts"]
