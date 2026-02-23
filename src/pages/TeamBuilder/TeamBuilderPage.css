@@ -1423,6 +1423,7 @@
   font-weight: 700;
   margin: 0 0 0.5rem 0;
   color: white;
+  color: white;
 }
 
 .modal-meta {
@@ -1575,19 +1576,15 @@
   
   .golfer-detail-modal {
     max-width: none;
-    margin: 0;
-    border-radius: 16px 16px 0 0;
+    margin: 1rem;
+    border-radius: 16px;
     max-height: 85vh;
-    position: fixed;
-    bottom: 0;
-    left: 0.5rem;
-    right: 0.5rem;
     padding-bottom: env(safe-area-inset-bottom, 0);
   }
   
   .golfer-detail-overlay {
-    align-items: flex-end;
-    padding: 0;
+    align-items: center;
+    padding: 1rem;
   }
 
   .modal-stats {

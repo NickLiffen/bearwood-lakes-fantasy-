@@ -27,6 +27,8 @@ interface SeasonStat {
   timesFinished2nd: number;
   timesFinished3rd: number;
   timesBonusScored: number;
+  timesScored36Plus: number;
+  timesScored32Plus: number;
   totalPoints: number;
 }
 
@@ -42,6 +44,7 @@ interface Golfer {
   stats2025: GolferStats;
   stats2026?: GolferStats;
   seasonStats?: SeasonStat[];
+  selectedPercentage?: number;
 }
 
 interface Settings {
@@ -810,8 +813,10 @@ const TeamBuilderPage: React.FC = () => {
                     points: acc.points + ss.totalPoints,
                     wins: acc.wins + ss.timesFinished1st,
                     podiums: acc.podiums + ss.timesFinished1st + ss.timesFinished2nd + ss.timesFinished3rd,
+                    scored36Plus: acc.scored36Plus + (ss.timesScored36Plus || 0),
+                    scored32Plus: acc.scored32Plus + (ss.timesScored32Plus || 0),
                   }),
-                  { played: 0, points: 0, wins: 0, podiums: 0 }
+                  { played: 0, points: 0, wins: 0, podiums: 0, scored36Plus: 0, scored32Plus: 0 }
                 );
                 return (
                   <>
@@ -834,6 +839,18 @@ const TeamBuilderPage: React.FC = () => {
                           <div className="modal-stat-item">
                             <span className="modal-stat-value">{totals.podiums}</span>
                             <span className="modal-stat-label">Podiums</span>
+                          </div>
+                          <div className="modal-stat-item">
+                            <span className="modal-stat-value">{totals.scored36Plus}</span>
+                            <span className="modal-stat-label">36+</span>
+                          </div>
+                          <div className="modal-stat-item">
+                            <span className="modal-stat-value">{totals.scored32Plus}</span>
+                            <span className="modal-stat-label">32+</span>
+                          </div>
+                          <div className="modal-stat-item" style={{ gridColumn: 'span 2' }}>
+                            <span className="modal-stat-value">{selectedGolferDetail.selectedPercentage ?? 0}%</span>
+                            <span className="modal-stat-label">Selected</span>
                           </div>
                         </div>
                       </div>
