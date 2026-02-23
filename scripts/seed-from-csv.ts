@@ -295,7 +295,9 @@ async function seedFromCsv() {
       const date = parseDate(dateStr);
       const seasonNumber = getSeasonForDate(date);
       const tier = getGolferCountTier(group.length);
-      const multiplier = 1; // All regular tournaments
+      const isSunday = date.getDay() === 0;
+      const tournamentType = isSunday ? ('elevated' as const) : ('regular' as const);
+      const multiplier = isSunday ? 2 : 1;
       const tournamentName = `${dateStr} Tournament`;
 
       // Create tournament
@@ -304,7 +306,7 @@ async function seedFromCsv() {
         name: tournamentName,
         startDate: date,
         endDate: date,
-        tournamentType: 'regular' as const,
+        tournamentType,
         multiplier,
         golferCountTier: tier,
         season: seasonNumber,
