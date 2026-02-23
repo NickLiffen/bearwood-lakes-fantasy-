@@ -8,7 +8,7 @@ import SeasonSelector from '../../components/ui/SeasonSelector';
 import DataTable, { Column } from '../../components/ui/DataTable';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { useApiClient } from '../../hooks/useApiClient';
-import { formatPrice, getMembershipLabel } from '../../utils/formatters';
+import { formatPrice } from '../../utils/formatters';
 import { useActiveSeason } from '../../hooks/useActiveSeason';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import './GolfersPage.css';
@@ -172,25 +172,11 @@ const GolfersPage: React.FC = () => {
               return `${golfer.firstName} ${golfer.lastName}`;
             case 'price':
               return golfer.price;
-            case 'played':
-              return getStats(golfer)?.timesPlayed || 0;
-            case 'first':
-              return getStats(golfer)?.timesFinished1st || 0;
-            case 'second':
-              return getStats(golfer)?.timesFinished2nd || 0;
-            case 'third':
-              return getStats(golfer)?.timesFinished3rd || 0;
-            case 'consistent':
-              return getStats(golfer)?.timesBonusScored || 0;
-            case 'scored36plus':
-              return getStats(golfer)?.timesScored36Plus || 0;
-            case 'scored32plus':
-              return getStats(golfer)?.timesScored32Plus || 0;
-            case 'week-pts':
+            case 'week':
               return golfer.points?.week || 0;
-            case 'month-pts':
+            case 'month':
               return golfer.points?.month || 0;
-            case 'season-pts':
+            case 'season':
               return golfer.points?.season || 0;
             default:
               return 0;
@@ -222,22 +208,6 @@ const GolfersPage: React.FC = () => {
     return !golfer.isActive ? 'dt-row-inactive' : '';
   };
 
-  // Helper to get membership class
-  const getDtMembershipClass = (type: string) => {
-    switch (type) {
-      case 'men':
-        return 'dt-membership dt-membership-men';
-      case 'female':
-        return 'dt-membership dt-membership-female';
-      case 'junior':
-        return 'dt-membership dt-membership-junior';
-      case 'senior':
-        return 'dt-membership dt-membership-senior';
-      default:
-        return 'dt-membership';
-    }
-  };
-
   // Column definitions for DataTable
   const columns: Column<Golfer>[] = [
     {
@@ -253,15 +223,6 @@ const GolfersPage: React.FC = () => {
       ),
     },
     {
-      key: 'membership',
-      header: 'Type',
-      render: (golfer) => (
-        <span className={getDtMembershipClass(golfer.membershipType)}>
-          {getMembershipLabel(golfer.membershipType)}
-        </span>
-      ),
-    },
-    {
       key: 'price',
       header: 'Price',
       sortable: true,
@@ -269,86 +230,27 @@ const GolfersPage: React.FC = () => {
       render: (golfer) => <span className="dt-text-price">{formatPrice(golfer.price)}</span>,
     },
     {
-      key: 'status',
-      header: 'Status',
-      render: (golfer) => (
-        <span
-          className={`dt-status ${golfer.isActive ? 'dt-status-active' : 'dt-status-inactive'}`}
-        >
-          {golfer.isActive ? 'Active' : 'Inactive'}
-        </span>
-      ),
-    },
-    {
       key: 'week-pts',
-      header: 'Week',
+      header: 'Week Pts',
       sortable: true,
       align: 'center',
       render: (golfer) => golfer.points?.week || 0,
     },
     {
       key: 'month-pts',
-      header: 'Month',
+      header: 'Month Pts',
       sortable: true,
       align: 'center',
       render: (golfer) => golfer.points?.month || 0,
     },
     {
-      key: `played-${seasonName}`,
-      header: 'Played',
+      key: 'season-pts',
+      header: 'Season Pts',
       sortable: true,
       align: 'center',
-      render: (golfer) => getStats(golfer)?.timesPlayed || 0,
-    },
-    {
-      key: `first-${seasonName}`,
-      header: '1st',
-      sortable: true,
-      align: 'center',
-      render: (golfer) =>
-        getStats(golfer)?.timesFinished1st > 0 ? (
-          <span className="dt-gold">{getStats(golfer).timesFinished1st}</span>
-        ) : (
-          '0'
-        ),
-    },
-    {
-      key: `second-${seasonName}`,
-      header: '2nd',
-      sortable: true,
-      align: 'center',
-      render: (golfer) =>
-        getStats(golfer)?.timesFinished2nd > 0 ? (
-          <span className="dt-silver">{getStats(golfer).timesFinished2nd}</span>
-        ) : (
-          '0'
-        ),
-    },
-    {
-      key: `third-${seasonName}`,
-      header: '3rd',
-      sortable: true,
-      align: 'center',
-      render: (golfer) =>
-        getStats(golfer)?.timesFinished3rd > 0 ? (
-          <span className="dt-bronze">{getStats(golfer).timesFinished3rd}</span>
-        ) : (
-          '0'
-        ),
-    },
-    {
-      key: `scored36plus-${seasonName}`,
-      header: '36+',
-      sortable: true,
-      align: 'center',
-      render: (golfer) => getStats(golfer)?.timesScored36Plus || 0,
-    },
-    {
-      key: `scored32plus-${seasonName}`,
-      header: '32+',
-      sortable: true,
-      align: 'center',
-      render: (golfer) => getStats(golfer)?.timesScored32Plus || 0,
+      render: (golfer) => (
+        <span style={{ fontWeight: 600 }}>{golfer.points?.season || 0}</span>
+      ),
     },
   ];
 
