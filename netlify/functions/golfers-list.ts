@@ -125,15 +125,15 @@ export const handler = withAuth(async (event: AuthenticatedEvent) => {
       const golfer = toGolfer(golferDoc);
       const scores = golferDoc.scores || [];
 
-      // Filter to 2026 scores for existing stats
-      const scores2026 = scores.filter(s => tournament2026IdSet.has(s.tournamentId.toString()));
-
-      // Add tournament dates to 2026 scores for period filtering
-      const scoresWithDates = scores2026.map(s => ({
+      // Add tournament dates to ALL scores for period filtering
+      const scoresWithDates = scores.map(s => ({
         ...s,
         rawScore: s.rawScore,
         tournamentDate: tournamentDateMap.get(s.tournamentId.toString()) || new Date(0)
       }));
+
+      // Filter to 2026 scores for existing stats
+      const scores2026 = scoresWithDates.filter(s => tournament2026IdSet.has(s.tournamentId.toString()));
 
       const stats2026 = {
         timesPlayed: scores2026.length,
