@@ -22,6 +22,7 @@
     "db:seed-golfers": "npx tsx scripts/seed-golfers.ts",
     "db:seed-comprehensive": "npx tsx scripts/seed-comprehensive.ts",
     "db:seed-csv": "npx tsx scripts/seed-from-csv.ts",
+    "db:update-prices": "npx tsx scripts/update-prices.ts",
     "db:delete": "npx tsx scripts/delete.ts"
   },
   "dependencies": {
