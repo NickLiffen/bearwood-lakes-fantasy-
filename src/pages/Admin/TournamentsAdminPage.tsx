@@ -757,10 +757,11 @@ const TournamentsAdminPage: React.FC = () => {
                     <table className="admin-table" style={{ margin: 0 }}>
                       <thead>
                         <tr>
-                          <th>Pos</th>
-                          <th>golfer</th>
-                          <th>36+</th>
-                          <th>Base</th>
+                          <th>Position</th>
+                          <th>Golfer</th>
+                          <th>Score</th>
+                          <th>Score Bonus</th>
+                          <th>Position Points</th>
                           <th>Final</th>
                         </tr>
                       </thead>
@@ -780,7 +781,7 @@ const TournamentsAdminPage: React.FC = () => {
                                   <span style={{ fontSize: '1.1rem' }}>🥉</span>
                                 )}
                                 {score.position !== null && score.position > 3 && (
-                                  <span style={{ color: '#6b7280' }}>{score.position}</span>
+                                  <span style={{ color: '#6b7280' }}>{score.position}th</span>
                                 )}
                                 {score.position === null && (
                                   <span style={{ color: '#9ca3af' }}>—</span>
@@ -788,19 +789,26 @@ const TournamentsAdminPage: React.FC = () => {
                               </td>
                               <td style={{ fontWeight: 500 }}>{score.golferName}</td>
                               <td>
-                                {score.bonusPoints > 0 ? (
-                                  <span style={{ color: 'var(--primary-green)' }}>+{score.bonusPoints}</span>
+                                {score.rawScore !== null ? (
+                                  <span>{score.rawScore}</span>
                                 ) : (
                                   <span style={{ color: '#9ca3af' }}>—</span>
                                 )}
                               </td>
-                              <td style={{ color: '#6b7280' }}>
-                                {score.basePoints}
-                                {score.bonusPoints > 0 && (
-                                  <span style={{ color: 'var(--primary-green)' }}>
-                                    {' '}
+                              <td>
+                                {score.bonusPoints > 0 ? (
+                                  <span style={{ color: 'var(--primary-green)', fontWeight: 600 }}>
                                     +{score.bonusPoints}
                                   </span>
+                                ) : (
+                                  <span style={{ color: '#9ca3af' }}>0</span>
+                                )}
+                              </td>
+                              <td>
+                                {score.basePoints > 0 ? (
+                                  <span style={{ fontWeight: 500 }}>{score.basePoints}</span>
+                                ) : (
+                                  <span style={{ color: '#9ca3af' }}>0</span>
                                 )}
                               </td>
                               <td style={{ fontWeight: 600, color: 'var(--primary-green)' }}>
