@@ -1503,9 +1503,9 @@
   cursor: not-allowed;
 }
 
-/* Show career summary on all devices, full breakdown on desktop only */
+/* Show career summary on all devices, hide per-season breakdown */
 .modal-stats-mobile { display: block; }
-.modal-stats-full { display: block; }
+.modal-stats-full { display: none; }
 
 /* =============================================
    RESPONSIVE - COMPACT GRID
@@ -1550,9 +1550,6 @@
   .modal-action {
     padding: 0.75rem 1rem;
   }
-
-  .modal-stats-mobile { display: block; }
-  .modal-stats-full { display: none; }
 }
 
 @media (max-width: 480px) {
