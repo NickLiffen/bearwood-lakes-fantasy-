@@ -93,9 +93,7 @@ const TeamBuilderPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('price-high');
   const [quickFilter, setQuickFilter] = useState<QuickFilter>('all');
-  const [minRoundsPlayed, setMinRoundsPlayed] = useState<number>(0);
   const [settings, setSettings] = useState<Settings | null>(null);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedGolferDetail, setSelectedGolferDetail] = useState<Golfer | null>(null);
   const { get, post, isAuthReady } = useApiClient();
@@ -302,15 +300,13 @@ const TeamBuilderPage: React.FC = () => {
   const resetFilters = () => {
     setSearchTerm('');
     setQuickFilter('all');
-    setMinRoundsPlayed(0);
     setSortBy('price-high');
   };
 
   // Check if any filters are active
   const hasActiveFilters =
     searchTerm !== '' ||
-    quickFilter !== 'all' ||
-    minRoundsPlayed > 0;
+    quickFilter !== 'all';
 
   // Filter and sort golfers
   const filteredGolfers = golfers
@@ -318,11 +314,9 @@ const TeamBuilderPage: React.FC = () => {
       const fullName = `${golfer.firstName} ${golfer.lastName}`;
       const matches = matchesSearch(fullName, searchTerm);
       const matchesQuickFilter = applyQuickFilter(golfer);
-      const matchesMinRounds = getCombinedStats(golfer).timesPlayed >= minRoundsPlayed;
       return (
         matches &&
-        matchesQuickFilter &&
-        matchesMinRounds
+        matchesQuickFilter
       );
     })
     .sort((a, b) => {
@@ -362,7 +356,7 @@ const TeamBuilderPage: React.FC = () => {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, quickFilter, minRoundsPlayed, sortBy]);
+  }, [searchTerm, quickFilter, sortBy]);
 
   // Generate page numbers for pagination
   const getPageNumbers = () => {
@@ -592,14 +586,6 @@ const TeamBuilderPage: React.FC = () => {
                 </select>
               </div>
 
-              <button
-                className={`filter-toggle-btn ${showAdvancedFilters ? 'active' : ''}`}
-                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-              >
-                <span>⚙️</span>
-                <span>Advanced</span>
-              </button>
-
               {hasActiveFilters && (
                 <button className="reset-filters-btn" onClick={resetFilters}>
                   <span>✕</span>
@@ -608,28 +594,6 @@ const TeamBuilderPage: React.FC = () => {
               )}
             </div>
 
-            {/* Advanced Filters Panel */}
-            {showAdvancedFilters && (
-              <div className="advanced-filters">
-                <div className="advanced-filter-item">
-                  <label htmlFor="min-rounds">Min. Rounds Played ({seasonName}):</label>
-                  <div className="range-input-group">
-                    <input
-                      id="min-rounds"
-                      name="min-rounds"
-                      type="range"
-                      min="0"
-                      max="10"
-                      value={minRoundsPlayed}
-                      onChange={(e) => setMinRoundsPlayed(Number(e.target.value))}
-                    />
-                    <span className="range-value">{minRoundsPlayed}+</span>
-                  </div>
-                </div>
-
-              </div>
-            )}
-
             {/* Active Filters Summary */}
             {hasActiveFilters && (
               <div className="active-filters-summary">
@@ -637,9 +601,6 @@ const TeamBuilderPage: React.FC = () => {
                 {searchTerm && <span className="filter-tag">Search: &quot;{searchTerm}&quot;</span>}
                 {quickFilter !== 'all' && (
                   <span className="filter-tag">Quick: {quickFilter.replace('-', ' ')}</span>
-                )}
-                {minRoundsPlayed > 0 && (
-                  <span className="filter-tag">Min rounds: {minRoundsPlayed}+</span>
                 )}
               </div>
             )}
