@@ -56,7 +56,7 @@ const GolfersPage: React.FC = () => {
   const { get, isAuthReady } = useApiClient();
   useDocumentTitle('Golfers');
 
-  const [selectedSeason, setSelectedSeason] = useState<string>('');
+  const [selectedSeason, setSelectedSeason] = useState<string>('overall');
   const [golfers, setGolfers] = useState<Golfer[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

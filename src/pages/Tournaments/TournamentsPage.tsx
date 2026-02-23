@@ -49,7 +49,7 @@ const TournamentsPage: React.FC = () => {
   const { get, isAuthReady } = useApiClient();
   useDocumentTitle('Tournaments');
 
-  const [selectedSeason, setSelectedSeason] = useState<string>('');
+  const [selectedSeason, setSelectedSeason] = useState<string>('overall');
   const [tournaments, setTournaments] = useState<Tournament[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
