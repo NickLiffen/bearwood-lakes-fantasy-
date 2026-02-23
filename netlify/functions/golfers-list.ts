@@ -10,7 +10,7 @@ import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tou
 import { SCORES_COLLECTION } from './_shared/models/Score';
 import { PICKS_COLLECTION } from './_shared/models/Pick';
 import { SeasonDocument, SEASONS_COLLECTION } from './_shared/models/Season';
-import { getWeekStart, getMonthStart, getSeasonStart } from './_shared/utils/dates';
+import { getSeasonStart } from './_shared/utils/dates';
 import { createPerfTimer } from './_shared/utils/perf';
 import { successResponse, successResponseWithMeta, internalError } from './_shared/utils/response';
 
@@ -28,8 +28,6 @@ export const handler = withAuth(async (event: AuthenticatedEvent) => {
     const seasonParam = queryParams.season; // e.g., "2025"
 
     // Time boundaries
-    const weekStart = getWeekStart();
-    const monthStart = getMonthStart();
     const seasonStart = getSeasonStart();
 
     // First, get published tournaments and seasons
@@ -168,19 +166,14 @@ export const handler = withAuth(async (event: AuthenticatedEvent) => {
         timesScored32Plus: scores2026.filter(s => (s.rawScore ?? 0) >= 32).length,
       };
 
-      // Calculate points by period
-      let weekScores, monthScores, seasonScores;
+      // Calculate form (avg pts over last 5 events) and season total
+      const FORM_EVENTS = 5;
+      let formScores: typeof scoresWithDates;
+      let seasonScores: typeof scoresWithDates;
 
       if (seasonParam === 'overall') {
-        // Overall: all scores, week/month relative to latest tournament date globally
-        const globalLatest = scoresWithDates.length > 0
-          ? scoresWithDates.reduce((latest, s) =>
-              s.tournamentDate > latest ? s.tournamentDate : latest, scoresWithDates[0].tournamentDate)
-          : new Date();
-        const overallWeekStart = getWeekStart(globalLatest);
-        const overallMonthStart = getMonthStart(globalLatest);
-        weekScores = scoresWithDates.filter(s => s.tournamentDate >= overallWeekStart);
-        monthScores = scoresWithDates.filter(s => s.tournamentDate >= overallMonthStart);
+        // Overall: form from last 5 events across all seasons
+        formScores = [...scoresWithDates].sort((a, b) => b.tournamentDate.getTime() - a.tournamentDate.getTime()).slice(0, FORM_EVENTS);
         seasonScores = scoresWithDates;
       } else if (seasonParam) {
         const matchedSeason = allSeasons.find(s => s.name === seasonParam);
@@ -190,30 +183,24 @@ export const handler = withAuth(async (event: AuthenticatedEvent) => {
           const seasonFilteredScores = scoresWithDates.filter(
             s => s.tournamentDate >= sStart && s.tournamentDate <= sEnd
           );
-          // Use the latest tournament date in this season as reference for week/month
-          const latestDate = seasonFilteredScores.length > 0
-            ? seasonFilteredScores.reduce((latest, s) =>
-                s.tournamentDate > latest ? s.tournamentDate : latest, seasonFilteredScores[0].tournamentDate)
-            : sEnd;
-          const seasonWeekStart = getWeekStart(latestDate);
-          const seasonMonthStart = getMonthStart(latestDate);
-          weekScores = seasonFilteredScores.filter(s => s.tournamentDate >= seasonWeekStart);
-          monthScores = seasonFilteredScores.filter(s => s.tournamentDate >= seasonMonthStart);
+          formScores = [...seasonFilteredScores].sort((a, b) => b.tournamentDate.getTime() - a.tournamentDate.getTime()).slice(0, FORM_EVENTS);
           seasonScores = seasonFilteredScores;
         } else {
-          weekScores = scoresWithDates.filter(s => s.tournamentDate >= weekStart);
-          monthScores = scoresWithDates.filter(s => s.tournamentDate >= monthStart);
+          formScores = [];
           seasonScores = scoresWithDates.filter(s => s.tournamentDate >= seasonStart);
         }
       } else {
-        weekScores = scoresWithDates.filter(s => s.tournamentDate >= weekStart);
-        monthScores = scoresWithDates.filter(s => s.tournamentDate >= monthStart);
-        seasonScores = scoresWithDates.filter(s => s.tournamentDate >= seasonStart);
+        // Default: current season
+        const currentSeasonScores = scoresWithDates.filter(s => s.tournamentDate >= seasonStart);
+        formScores = [...currentSeasonScores].sort((a, b) => b.tournamentDate.getTime() - a.tournamentDate.getTime()).slice(0, FORM_EVENTS);
+        seasonScores = currentSeasonScores;
       }
 
+      const formTotal = formScores.reduce((sum, s) => sum + (s.multipliedPoints || 0), 0);
+      const form = formScores.length > 0 ? Math.round((formTotal / formScores.length) * 10) / 10 : 0;
+
       const points = {
-        week: weekScores.reduce((sum, s) => sum + (s.multipliedPoints || 0), 0),
-        month: monthScores.reduce((sum, s) => sum + (s.multipliedPoints || 0), 0),
+        form,
         season: seasonScores.reduce((sum, s) => sum + (s.multipliedPoints || 0), 0),
       };
 

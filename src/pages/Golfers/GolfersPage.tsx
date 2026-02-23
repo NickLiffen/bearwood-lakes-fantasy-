@@ -24,8 +24,7 @@ interface GolferStats {
 }
 
 interface GolferPoints {
-  week: number;
-  month: number;
+  form: number;
   season: number;
 }
 
@@ -174,10 +173,8 @@ const GolfersPage: React.FC = () => {
               return golfer.price;
             case 'selected':
               return golfer.selectedPercentage || 0;
-            case 'week-pts':
-              return golfer.points?.week || 0;
-            case 'month-pts':
-              return golfer.points?.month || 0;
+            case 'form':
+              return golfer.points?.form || 0;
             case 'season-pts':
               return golfer.points?.season || 0;
             default:
@@ -243,18 +240,15 @@ const GolfersPage: React.FC = () => {
       ),
     },
     {
-      key: 'week-pts',
-      header: 'Week Pts',
+      key: 'form',
+      header: 'Form',
       sortable: true,
       align: 'center',
-      render: (golfer) => golfer.points?.week || 0,
-    },
-    {
-      key: 'month-pts',
-      header: 'Month Pts',
-      sortable: true,
-      align: 'center',
-      render: (golfer) => golfer.points?.month || 0,
+      render: (golfer) => (
+        <span style={{ fontWeight: golfer.points?.form > 0 ? 600 : 400, color: golfer.points?.form > 0 ? 'var(--primary-green)' : '#9ca3af' }}>
+          {golfer.points?.form?.toFixed(1) || '0.0'}
+        </span>
+      ),
     },
     {
       key: 'season-pts',
