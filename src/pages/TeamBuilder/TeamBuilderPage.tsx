@@ -220,7 +220,6 @@ const TeamBuilderPage: React.FC = () => {
   // Combine stats from all seasons for filtering/sorting
   const getCombinedStats = (golfer: Golfer) => {
     if (!golfer.seasonStats || golfer.seasonStats.length === 0) {
-      // Fall back to static stats fields if seasonStats not available
       const s = golfer.stats2025;
       return {
         timesPlayed: s?.timesPlayed ?? 0,
@@ -228,6 +227,7 @@ const TeamBuilderPage: React.FC = () => {
         timesFinished2nd: s?.timesFinished2nd ?? 0,
         timesFinished3rd: s?.timesFinished3rd ?? 0,
         timesBonusScored: s?.timesBonusScored ?? 0,
+        timesScored32Plus: 0,
         totalPoints: 0,
       };
     }
@@ -238,6 +238,7 @@ const TeamBuilderPage: React.FC = () => {
         timesFinished2nd: acc.timesFinished2nd + ss.timesFinished2nd,
         timesFinished3rd: acc.timesFinished3rd + ss.timesFinished3rd,
         timesBonusScored: acc.timesBonusScored + ss.timesBonusScored,
+        timesScored32Plus: acc.timesScored32Plus + (ss.timesScored32Plus || 0),
         totalPoints: acc.totalPoints + ss.totalPoints,
       }),
       {
@@ -246,9 +247,17 @@ const TeamBuilderPage: React.FC = () => {
         timesFinished2nd: 0,
         timesFinished3rd: 0,
         timesBonusScored: 0,
+        timesScored32Plus: 0,
         totalPoints: 0,
       }
     );
+  };
+
+  // Consistency = % of events where golfer scored 32+ points
+  const getConsistencyPct = (golfer: Golfer): number => {
+    const stats = getCombinedStats(golfer);
+    if (stats.timesPlayed < 1) return 0;
+    return Math.round((stats.timesScored32Plus / stats.timesPlayed) * 100);
   };
 
   // Helper functions for calculated stats
@@ -285,7 +294,7 @@ const TeamBuilderPage: React.FC = () => {
       case 'podium-finishers':
         return getPodiums(golfer) > 0;
       case 'consistent':
-        return stats.timesBonusScored >= 3;
+        return stats.timesPlayed >= 3 && (stats.timesScored32Plus / stats.timesPlayed) >= 0.7;
       case 'value-picks':
         return golfer.price <= 8000000; // $8M or less
       case 'premium':
@@ -333,7 +342,7 @@ const TeamBuilderPage: React.FC = () => {
         case 'most-played':
           return getCombinedStats(b).timesPlayed - getCombinedStats(a).timesPlayed;
         case 'most-consistent':
-          return getCombinedStats(b).timesBonusScored - getCombinedStats(a).timesBonusScored;
+          return getConsistencyPct(b) - getConsistencyPct(a);
         case 'best-value':
           return getValueScore(b) - getValueScore(a);
         case 'win-rate':
@@ -541,7 +550,7 @@ const TeamBuilderPage: React.FC = () => {
                   { value: 'all', label: 'All', icon: '👥', desc: '' },
                   { value: 'winners', label: 'Winners', icon: '🏆', desc: 'Won 1st place' },
                   { value: 'podium-finishers', label: 'Podium', icon: '🥇', desc: 'Finished top 3' },
-                  { value: 'consistent', label: 'Consistent', icon: '📈', desc: '2nd or 3rd regularly' },
+                  { value: 'consistent', label: 'Consistent', icon: '📈', desc: 'Score 32+ in 70%+ of events' },
                   { value: 'value-picks', label: 'Value', icon: '💎', desc: 'Great podiums for price' },
                   { value: 'premium', label: 'Premium', icon: '⭐', desc: 'Highest priced' },
                 ].map((filter) => (
@@ -575,7 +584,7 @@ const TeamBuilderPage: React.FC = () => {
                     <option value="most-wins">🏆 Most Wins</option>
                     <option value="most-podiums">🥇 Most Podiums</option>
                     <option value="most-played">⛳ Most Rounds Played</option>
-                    <option value="most-consistent">📊 Most 36+ Rounds</option>
+                    <option value="most-consistent">📊 Most Consistent (%)</option>
                   </optgroup>
                   <optgroup label="Advanced Stats">
                     <option value="win-rate">📈 Best Win Rate</option>
