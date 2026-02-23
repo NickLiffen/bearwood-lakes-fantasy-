@@ -47,11 +47,30 @@ interface TimeRemaining {
   seconds: number;
 }
 
+// Get the first Saturday on or after a date (season GW1 start)
+const getSeasonFirstSaturday = (date: Date): Date => {
+  const d = new Date(date);
+  while (d.getDay() !== 6) d.setDate(d.getDate() + 1);
+  d.setHours(8, 0, 0, 0);
+  return d;
+};
+
 // Memoized countdown timer component to prevent parent re-renders
-const CountdownTimer = memo(() => {
+const CountdownTimer = memo(({ seasonStartDate }: { seasonStartDate?: string }) => {
+  const getDeadline = useCallback((): { date: Date; isSeasonCountdown: boolean } => {
+    // Check if season hasn't started yet
+    if (seasonStartDate) {
+      const seasonStart = getSeasonFirstSaturday(new Date(seasonStartDate));
+      if (new Date() < seasonStart) {
+        return { date: seasonStart, isSeasonCountdown: true };
+      }
+    }
+    return { date: getNextSaturdayDeadline(), isSeasonCountdown: false };
+  }, [seasonStartDate]);
+
+  const [deadlineInfo, setDeadlineInfo] = useState(() => getDeadline());
   const [timeRemaining, setTimeRemaining] = useState<TimeRemaining>(() => {
-    const deadline = getNextSaturdayDeadline();
-    const total = deadline.getTime() - Date.now();
+    const total = deadlineInfo.date.getTime() - Date.now();
     return {
       days: Math.floor(total / (1000 * 60 * 60 * 24)),
       hours: Math.floor((total / (1000 * 60 * 60)) % 24),
@@ -62,13 +81,14 @@ const CountdownTimer = memo(() => {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      const deadline = getNextSaturdayDeadline();
-      const total = deadline.getTime() - Date.now();
+      const info = getDeadline();
+      setDeadlineInfo(info);
+      const total = info.date.getTime() - Date.now();
 
       if (total <= 0) {
-        // Deadline passed, recalculate for next week
-        const newDeadline = getNextSaturdayDeadline();
-        const newTotal = newDeadline.getTime() - Date.now();
+        const newInfo = getDeadline();
+        setDeadlineInfo(newInfo);
+        const newTotal = newInfo.date.getTime() - Date.now();
         setTimeRemaining({
           days: Math.floor(newTotal / (1000 * 60 * 60 * 24)),
           hours: Math.floor((newTotal / (1000 * 60 * 60)) % 24),
@@ -86,15 +106,23 @@ const CountdownTimer = memo(() => {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, []);
+  }, [getDeadline]);
+
+  const seasonStartFormatted = deadlineInfo.isSeasonCountdown
+    ? deadlineInfo.date.toLocaleDateString('en-GB', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+    : null;
 
   return (
     <section className="countdown-section">
       <div className="countdown-header">
         <span className="countdown-icon">&#9200;</span>
-        <h2>Weekly Deadline</h2>
+        <h2>{deadlineInfo.isSeasonCountdown ? 'Season Countdown' : 'Weekly Deadline'}</h2>
       </div>
-      <p className="countdown-subtitle">Get your team in before Saturday 8am</p>
+      <p className="countdown-subtitle">
+        {deadlineInfo.isSeasonCountdown
+          ? `Get your team in before ${seasonStartFormatted} at 8am`
+          : 'Get your team in before Saturday 8am'}
+      </p>
       <div className="countdown-timer">
         <div className="countdown-unit">
           <span className="countdown-value">{timeRemaining.days}</span>
@@ -282,7 +310,7 @@ const DashboardPage: React.FC = () => {
           )}
 
           {/* Weekly Deadline Countdown */}
-          <CountdownTimer />
+          <CountdownTimer seasonStartDate={season?.startDate?.toString()} />
 
           {/* Incomplete Team Banner - only show if has team but less than 6 golfers */}
           {!statsLoading && hasTeam && golferCount < 6 && (
