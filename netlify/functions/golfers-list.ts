@@ -155,10 +155,13 @@ export const handler = withAuth(async (event: AuthenticatedEvent) => {
           const seasonFilteredScores = scoresWithDates.filter(
             s => s.tournamentDate >= sStart && s.tournamentDate <= sEnd
           );
-          // Use the season's end date as the reference for week/month boundaries
-          const refDate = sEnd;
-          const seasonWeekStart = getWeekStart(refDate);
-          const seasonMonthStart = getMonthStart(refDate);
+          // Use the latest tournament date in this season as reference for week/month
+          const latestDate = seasonFilteredScores.length > 0
+            ? seasonFilteredScores.reduce((latest, s) =>
+                s.tournamentDate > latest ? s.tournamentDate : latest, seasonFilteredScores[0].tournamentDate)
+            : sEnd;
+          const seasonWeekStart = getWeekStart(latestDate);
+          const seasonMonthStart = getMonthStart(latestDate);
           weekScores = seasonFilteredScores.filter(s => s.tournamentDate >= seasonWeekStart);
           monthScores = seasonFilteredScores.filter(s => s.tournamentDate >= seasonMonthStart);
           seasonScores = seasonFilteredScores;

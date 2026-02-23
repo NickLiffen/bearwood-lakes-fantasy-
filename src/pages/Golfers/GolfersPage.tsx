@@ -166,17 +166,16 @@ const GolfersPage: React.FC = () => {
         const dir = sortDirection === 'asc' ? 1 : -1;
 
         const getValue = (golfer: Golfer): number | string => {
-          const sortKey = sortColumn.replace(/-\d+$/, '');
-          switch (sortKey) {
+          switch (sortColumn) {
             case 'name':
               return `${golfer.firstName} ${golfer.lastName}`;
             case 'price':
               return golfer.price;
-            case 'week':
+            case 'week-pts':
               return golfer.points?.week || 0;
-            case 'month':
+            case 'month-pts':
               return golfer.points?.month || 0;
-            case 'season':
+            case 'season-pts':
               return golfer.points?.season || 0;
             default:
               return 0;
