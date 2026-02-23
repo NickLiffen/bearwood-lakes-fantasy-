@@ -539,20 +539,19 @@ const TeamBuilderPage: React.FC = () => {
               <div className="quick-filter-chips">
                 {[
                   { value: 'all', label: 'All', icon: '👥', desc: '' },
-                  { value: 'winners', label: 'Winners', icon: '🏆', desc: '' },
-                  { value: 'podium-finishers', label: 'Podium', icon: '🥇', desc: '' },
-                  { value: 'consistent', label: 'Consistent', icon: '📈', desc: 'Scored 2nd or 3rd regularly' },
-                  { value: 'value-picks', label: 'Value', icon: '💎', desc: 'High podiums relative to price' },
-                  { value: 'premium', label: 'Premium', icon: '⭐', desc: 'Highest priced golfers' },
+                  { value: 'winners', label: 'Winners', icon: '🏆', desc: 'Won 1st place' },
+                  { value: 'podium-finishers', label: 'Podium', icon: '🥇', desc: 'Finished top 3' },
+                  { value: 'consistent', label: 'Consistent', icon: '📈', desc: '2nd or 3rd regularly' },
+                  { value: 'value-picks', label: 'Value', icon: '💎', desc: 'Great podiums for price' },
+                  { value: 'premium', label: 'Premium', icon: '⭐', desc: 'Highest priced' },
                 ].map((filter) => (
                   <button
                     key={filter.value}
                     className={`quick-filter-chip ${quickFilter === filter.value ? 'active' : ''}`}
                     onClick={() => setQuickFilter(filter.value as QuickFilter)}
-                    title={filter.desc || undefined}
                   >
-                    <span>{filter.icon}</span>
-                    <span>{filter.label}</span>
+                    <span>{filter.icon} {filter.label}</span>
+                    {filter.desc && <span className="filter-desc">{filter.desc}</span>}
                   </button>
                 ))}
               </div>
