@@ -21,8 +21,8 @@ function getRequiredEnv(name: string): string {
 
 // Access token: short-lived (15 minutes)
 const ACCESS_TOKEN_EXPIRES = '15m';
-// Refresh token: long-lived (7 days)
-const REFRESH_TOKEN_EXPIRES_DAYS = 7;
+// Refresh token: long-lived (30 days)
+const REFRESH_TOKEN_EXPIRES_DAYS = 30;
 
 export interface JwtPayload {
   userId: string;

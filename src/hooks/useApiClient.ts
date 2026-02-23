@@ -22,13 +22,18 @@ const DEFAULT_TIMEOUT = 30000; // 30 seconds (increased for slower connections)
 const ABORT_REASON_TIMEOUT = 'timeout';
 const ABORT_REASON_CLEANUP = 'cleanup';
 
+const TOKEN_KEY = 'token';
+
+// Module-level refresh mutex — shared across all useApiClient instances
+let refreshPromise: Promise<boolean> | null = null;
+
 /**
  * Hook for making authenticated API requests to Netlify Functions
  * Features:
  * - Automatic auth header injection
  * - Request timeout (default 30s)
  * - Abort controller for cleanup on unmount
- * - Auto-refresh on 401
+ * - Auto-refresh on 401 with mutex to prevent race conditions
  * - Credentials support for httpOnly cookies
  */
 export const useApiClient = () => {
@@ -44,6 +49,24 @@ export const useApiClient = () => {
       controllers.clear();
     };
   }, []);
+
+  /**
+   * Perform a token refresh with mutex protection.
+   * If a refresh is already in flight, wait for it instead of starting another.
+   */
+  const refreshWithMutex = useCallback(async (): Promise<boolean> => {
+    // If a refresh is already in progress, wait for it
+    if (refreshPromise) {
+      return refreshPromise;
+    }
+
+    // Start the refresh and store the promise so others can wait on it
+    refreshPromise = refreshToken().finally(() => {
+      refreshPromise = null;
+    });
+
+    return refreshPromise;
+  }, [refreshToken]);
 
   const request = useCallback(async <T>(
     endpoint: string,
@@ -71,9 +94,12 @@ export const useApiClient = () => {
         ...((fetchOptions.headers as Record<string, string>) || {}),
       };
 
+      // Read token from localStorage for retries (avoids stale closure)
+      const currentToken = isRetry ? localStorage.getItem(TOKEN_KEY) : token;
+
       // Add auth header if token exists and auth not skipped
-      if (token && !skipAuth) {
-        headers['Authorization'] = `Bearer ${token}`;
+      if (currentToken && !skipAuth) {
+        headers['Authorization'] = `Bearer ${currentToken}`;
       }
 
       const response = await fetch(`/.netlify/functions/${endpoint}`, {
@@ -85,12 +111,12 @@ export const useApiClient = () => {
 
       clearTimeout(timeoutId);
 
-      // Handle 401 - try to refresh token
+      // Handle 401 - try to refresh token (with mutex to prevent race conditions)
       if (response.status === 401 && !isRetry && !skipAuth) {
         activeControllersRef.current.delete(controller);
-        const refreshSuccess = await refreshToken();
+        const refreshSuccess = await refreshWithMutex();
         if (refreshSuccess) {
-          // Retry the request with new token
+          // Retry the request — isRetry=true forces reading fresh token from localStorage
           return request<T>(endpoint, options, true);
         } else {
           // Refresh failed, logout user
@@ -152,7 +178,7 @@ export const useApiClient = () => {
         error: 'Request failed',
       };
     }
-  }, [token, refreshToken, logout]);
+  }, [token, refreshWithMutex, logout]);
 
   const get = useCallback(<T>(endpoint: string, options?: RequestOptions) => {
     return request<T>(endpoint, { ...options, method: 'GET' });

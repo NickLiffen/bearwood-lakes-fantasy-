@@ -1,7 +1,7 @@
 // Cookie utilities for refresh token handling
 
 const REFRESH_TOKEN_COOKIE_NAME = 'refresh_token';
-const REFRESH_TOKEN_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
+const REFRESH_TOKEN_MAX_AGE = 30 * 24 * 60 * 60; // 30 days in seconds
 
 /**
  * Create Set-Cookie header for refresh token (httpOnly, secure, sameSite)
@@ -14,7 +14,7 @@ export function setRefreshTokenCookie(refreshToken: string): string {
     'HttpOnly',
     `Max-Age=${REFRESH_TOKEN_MAX_AGE}`,
     'Path=/',
-    'SameSite=Strict',
+    'SameSite=Lax',
   ];
 
   // Only add Secure flag in production (HTTPS)
@@ -29,7 +29,7 @@ export function setRefreshTokenCookie(refreshToken: string): string {
  * Create Set-Cookie header to clear refresh token
  */
 export function clearRefreshTokenCookie(): string {
-  return `${REFRESH_TOKEN_COOKIE_NAME}=; HttpOnly; Max-Age=0; Path=/; SameSite=Strict`;
+  return `${REFRESH_TOKEN_COOKIE_NAME}=; HttpOnly; Max-Age=0; Path=/; SameSite=Lax`;
 }
 
 /**
