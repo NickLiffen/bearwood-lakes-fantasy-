@@ -88,11 +88,9 @@ const TeamBuilderPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [membershipFilter, setMembershipFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<SortOption>('price-high');
   const [quickFilter, setQuickFilter] = useState<QuickFilter>('all');
   const [minRoundsPlayed, setMinRoundsPlayed] = useState<number>(0);
-  const [showAffordableOnly, setShowAffordableOnly] = useState(false);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
@@ -152,10 +150,6 @@ const TeamBuilderPage: React.FC = () => {
     return `$${(price / 1000000).toFixed(1)}M`;
   };
 
-  const canAfford = (golfer: Golfer) => {
-    return golfer.price <= budgetRemaining;
-  };
-
   const isSelected = (golfer: Golfer) => {
     return selectedGolfers.some((g) => g.id === golfer.id);
   };
@@ -177,7 +171,6 @@ const TeamBuilderPage: React.FC = () => {
     }
 
     // Otherwise, try to add them
-    if (!canAfford(golfer)) return;
     if (selectedGolfers.length >= TEAM_SIZE) return;
 
     setSelectedGolfers([...selectedGolfers, golfer]);
@@ -305,37 +298,28 @@ const TeamBuilderPage: React.FC = () => {
   // Reset all filters
   const resetFilters = () => {
     setSearchTerm('');
-    setMembershipFilter('all');
     setQuickFilter('all');
     setMinRoundsPlayed(0);
-    setShowAffordableOnly(false);
     setSortBy('price-high');
   };
 
   // Check if any filters are active
   const hasActiveFilters =
     searchTerm !== '' ||
-    membershipFilter !== 'all' ||
     quickFilter !== 'all' ||
-    minRoundsPlayed > 0 ||
-    showAffordableOnly;
+    minRoundsPlayed > 0;
 
   // Filter and sort golfers
   const filteredGolfers = golfers
     .filter((golfer) => {
       const fullName = `${golfer.firstName} ${golfer.lastName}`;
       const matches = matchesSearch(fullName, searchTerm);
-      const matchesMembership =
-        membershipFilter === 'all' || golfer.membershipType === membershipFilter;
       const matchesQuickFilter = applyQuickFilter(golfer);
       const matchesMinRounds = getCombinedStats(golfer).timesPlayed >= minRoundsPlayed;
-      const matchesAffordable = !showAffordableOnly || canAfford(golfer);
       return (
         matches &&
-        matchesMembership &&
         matchesQuickFilter &&
-        matchesMinRounds &&
-        matchesAffordable
+        matchesMinRounds
       );
     })
     .sort((a, b) => {
@@ -375,7 +359,7 @@ const TeamBuilderPage: React.FC = () => {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, membershipFilter, quickFilter, minRoundsPlayed, showAffordableOnly, sortBy]);
+  }, [searchTerm, quickFilter, minRoundsPlayed, sortBy]);
 
   // Generate page numbers for pagination
   const getPageNumbers = () => {
@@ -513,15 +497,17 @@ const TeamBuilderPage: React.FC = () => {
               </div>
               {canEditTeam && (
                 <button
-                  className={`btn btn-save-team ${selectedGolfers.length === TEAM_SIZE ? '' : 'btn-incomplete'}`}
+                  className={`btn btn-save-team ${selectedGolfers.length === TEAM_SIZE && budgetRemaining >= 0 ? '' : 'btn-incomplete'}`}
                   onClick={handleSaveTeam}
-                  disabled={saving || selectedGolfers.length !== TEAM_SIZE}
+                  disabled={saving || selectedGolfers.length !== TEAM_SIZE || budgetRemaining < 0}
                 >
                   {saving
                     ? 'Saving...'
-                    : selectedGolfers.length === TEAM_SIZE
-                      ? 'Save Team'
-                      : `Select ${TEAM_SIZE - selectedGolfers.length} more golfer${TEAM_SIZE - selectedGolfers.length !== 1 ? 's' : ''}`}
+                    : budgetRemaining < 0
+                      ? `Over budget by ${formatPrice(Math.abs(budgetRemaining))} — remove golfers to save`
+                      : selectedGolfers.length === TEAM_SIZE
+                        ? 'Save Team'
+                        : `Select ${TEAM_SIZE - selectedGolfers.length} more golfer${TEAM_SIZE - selectedGolfers.length !== 1 ? 's' : ''}`}
                 </button>
               )}
             </div>
@@ -552,12 +538,12 @@ const TeamBuilderPage: React.FC = () => {
               <span className="quick-filters-label">Quick Filters:</span>
               <div className="quick-filter-chips">
                 {[
-                  { value: 'all', label: 'All golfers', icon: '👥' },
+                  { value: 'all', label: 'All', icon: '👥' },
                   { value: 'winners', label: 'Winners', icon: '🏆' },
-                  { value: 'podium-finishers', label: 'Podium Finishers', icon: '🥇' },
+                  { value: 'podium-finishers', label: 'Podium', icon: '🥇' },
                   { value: 'consistent', label: 'Consistent', icon: '📈' },
-                  { value: 'experienced', label: 'Experienced', icon: '⛳' },
-                  { value: 'value-picks', label: 'Value Picks', icon: '💎' },
+                  { value: 'experienced', label: '5+ Games', icon: '⛳' },
+                  { value: 'value-picks', label: 'Value', icon: '💎' },
                   { value: 'premium', label: 'Premium', icon: '⭐' },
                 ].map((filter) => (
                   <button
@@ -603,22 +589,6 @@ const TeamBuilderPage: React.FC = () => {
                 </select>
               </div>
 
-              <div className="filter-group">
-                <label htmlFor="membership-filter">Category:</label>
-                <select
-                  id="membership-filter"
-                  name="membership-filter"
-                  value={membershipFilter}
-                  onChange={(e) => setMembershipFilter(e.target.value)}
-                >
-                  <option value="all">All Members</option>
-                  <option value="men">Men</option>
-                  <option value="junior">Junior</option>
-                  <option value="female">Female</option>
-                  <option value="senior">Senior</option>
-                </select>
-              </div>
-
               <button
                 className={`filter-toggle-btn ${showAdvancedFilters ? 'active' : ''}`}
                 onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
@@ -654,18 +624,6 @@ const TeamBuilderPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="advanced-filter-item">
-                  <label className="checkbox-label">
-                    <input
-                      id="show-affordable"
-                      name="show-affordable"
-                      type="checkbox"
-                      checked={showAffordableOnly}
-                      onChange={(e) => setShowAffordableOnly(e.target.checked)}
-                    />
-                    <span>Show only golfers I can afford</span>
-                  </label>
-                </div>
               </div>
             )}
 
@@ -673,17 +631,13 @@ const TeamBuilderPage: React.FC = () => {
             {hasActiveFilters && (
               <div className="active-filters-summary">
                 <span className="summary-label">Active filters:</span>
-                {searchTerm && <span className="filter-tag">Search: "{searchTerm}"</span>}
-                {membershipFilter !== 'all' && (
-                  <span className="filter-tag">Category: {membershipFilter}</span>
-                )}
+                {searchTerm && <span className="filter-tag">Search: &quot;{searchTerm}&quot;</span>}
                 {quickFilter !== 'all' && (
                   <span className="filter-tag">Quick: {quickFilter.replace('-', ' ')}</span>
                 )}
                 {minRoundsPlayed > 0 && (
                   <span className="filter-tag">Min rounds: {minRoundsPlayed}+</span>
                 )}
-                {showAffordableOnly && <span className="filter-tag">Affordable only</span>}
               </div>
             )}
           </section>
@@ -707,13 +661,12 @@ const TeamBuilderPage: React.FC = () => {
             <div className="golfers-grid-compact">
               {paginatedGolfers.map((golfer) => {
                 const selected = isSelected(golfer);
-                const affordable = canAfford(golfer);
                 const podiums = getPodiums(golfer);
 
                 return (
                   <div
                     key={golfer.id}
-                    className={`golfer-card-compact ${selected ? 'selected' : ''} ${!affordable && !selected ? 'unaffordable' : ''}`}
+                    className={`golfer-card-compact ${selected ? 'selected' : ''}`}
                     onClick={() => setSelectedGolferDetail(golfer)}
                     role="button"
                     tabIndex={0}
@@ -850,94 +803,134 @@ const TeamBuilderPage: React.FC = () => {
 
             {/* Dynamic Season Stats */}
             {selectedGolferDetail.seasonStats && selectedGolferDetail.seasonStats.length > 0 ? (
-              selectedGolferDetail.seasonStats.map((ss) => {
-                const podiums = ss.timesFinished1st + ss.timesFinished2nd + ss.timesFinished3rd;
-                const winRate =
-                  ss.timesPlayed > 0
-                    ? ((ss.timesFinished1st / ss.timesPlayed) * 100).toFixed(0)
-                    : '0';
-                const podiumRate =
-                  ss.timesPlayed > 0 ? ((podiums / ss.timesPlayed) * 100).toFixed(0) : '0';
-
-                return (
-                  <div
-                    key={ss.seasonName}
-                    className="modal-stats"
-                    style={
-                      ss.isActive
-                        ? {
-                            border: '2px solid var(--primary-green)',
-                            borderRadius: '12px',
-                            padding: '1rem',
-                            marginBottom: '1rem',
-                            background: 'rgba(22, 163, 74, 0.03)',
-                          }
-                        : {
-                            border: '1px solid #e5e7eb',
-                            borderRadius: '12px',
-                            padding: '1rem',
-                            marginBottom: '1rem',
-                          }
-                    }
-                  >
-                    <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      {ss.seasonName} Season
-                      {ss.isActive && (
-                        <span
-                          style={{
-                            background: 'rgba(22, 163, 74, 0.1)',
-                            color: '#16a34a',
-                            padding: '0.15rem 0.5rem',
-                            borderRadius: '12px',
-                            fontSize: '0.7rem',
-                            fontWeight: 500,
-                          }}
-                        >
-                          Active
-                        </span>
-                      )}
-                    </h3>
-                    <div className="modal-stats-grid">
-                      <div className="modal-stat-item">
-                        <div className="stat-value">{ss.timesPlayed}</div>
-                        <div className="stat-label">Played</div>
-                      </div>
-                      <div className="modal-stat-item">
-                        <div className="stat-value">{ss.totalPoints}</div>
-                        <div className="stat-label">Points</div>
-                      </div>
-                      <div className="modal-stat-item">
-                        <div className="stat-value gold">{ss.timesFinished1st}</div>
-                        <div className="stat-label">🥇 1st</div>
-                      </div>
-                      <div className="modal-stat-item">
-                        <div className="stat-value silver">{ss.timesFinished2nd}</div>
-                        <div className="stat-label">🥈 2nd</div>
-                      </div>
-                      <div className="modal-stat-item">
-                        <div className="stat-value bronze">{ss.timesFinished3rd}</div>
-                        <div className="stat-label">🥉 3rd</div>
-                      </div>
-                      <div className="modal-stat-item">
-                        <div className="stat-value">{ss.timesBonusScored}</div>
-                        <div className="stat-label">⭐ Bonus</div>
-                      </div>
-                    </div>
-                    <div
-                      style={{
-                        display: 'flex',
-                        gap: '1rem',
-                        marginTop: '0.75rem',
-                        fontSize: '0.85rem',
-                        color: '#6b7280',
-                      }}
-                    >
-                      <span>Win: {winRate}%</span>
-                      <span>Podium: {podiumRate}%</span>
-                    </div>
-                  </div>
+              (() => {
+                const totals = selectedGolferDetail.seasonStats.reduce(
+                  (acc, ss) => ({
+                    played: acc.played + ss.timesPlayed,
+                    points: acc.points + ss.totalPoints,
+                    wins: acc.wins + ss.timesFinished1st,
+                    podiums: acc.podiums + ss.timesFinished1st + ss.timesFinished2nd + ss.timesFinished3rd,
+                  }),
+                  { played: 0, points: 0, wins: 0, podiums: 0 }
                 );
-              })
+                return (
+                  <>
+                    <div className="modal-stats-mobile">
+                      <div className="modal-stats">
+                        <h3>Career Summary</h3>
+                        <div className="modal-stats-grid">
+                          <div className="modal-stat-item">
+                            <span className="modal-stat-value">{totals.played}</span>
+                            <span className="modal-stat-label">Played</span>
+                          </div>
+                          <div className="modal-stat-item">
+                            <span className="modal-stat-value">{totals.points}</span>
+                            <span className="modal-stat-label">Points</span>
+                          </div>
+                          <div className="modal-stat-item gold">
+                            <span className="modal-stat-value">{totals.wins}</span>
+                            <span className="modal-stat-label">1st</span>
+                          </div>
+                          <div className="modal-stat-item">
+                            <span className="modal-stat-value">{totals.podiums}</span>
+                            <span className="modal-stat-label">Podiums</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="modal-stats-full">
+                      {selectedGolferDetail.seasonStats.map((ss) => {
+                        const podiums = ss.timesFinished1st + ss.timesFinished2nd + ss.timesFinished3rd;
+                        const winRate =
+                          ss.timesPlayed > 0
+                            ? ((ss.timesFinished1st / ss.timesPlayed) * 100).toFixed(0)
+                            : '0';
+                        const podiumRate =
+                          ss.timesPlayed > 0 ? ((podiums / ss.timesPlayed) * 100).toFixed(0) : '0';
+
+                        return (
+                          <div
+                            key={ss.seasonName}
+                            className="modal-stats"
+                            style={
+                              ss.isActive
+                                ? {
+                                    border: '2px solid var(--primary-green)',
+                                    borderRadius: '12px',
+                                    padding: '1rem',
+                                    marginBottom: '1rem',
+                                    background: 'rgba(22, 163, 74, 0.03)',
+                                  }
+                                : {
+                                    border: '1px solid #e5e7eb',
+                                    borderRadius: '12px',
+                                    padding: '1rem',
+                                    marginBottom: '1rem',
+                                  }
+                            }
+                          >
+                            <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              {ss.seasonName} Season
+                              {ss.isActive && (
+                                <span
+                                  style={{
+                                    background: 'rgba(22, 163, 74, 0.1)',
+                                    color: '#16a34a',
+                                    padding: '0.15rem 0.5rem',
+                                    borderRadius: '12px',
+                                    fontSize: '0.7rem',
+                                    fontWeight: 500,
+                                  }}
+                                >
+                                  Active
+                                </span>
+                              )}
+                            </h3>
+                            <div className="modal-stats-grid">
+                              <div className="modal-stat-item">
+                                <div className="stat-value">{ss.timesPlayed}</div>
+                                <div className="stat-label">Played</div>
+                              </div>
+                              <div className="modal-stat-item">
+                                <div className="stat-value">{ss.totalPoints}</div>
+                                <div className="stat-label">Points</div>
+                              </div>
+                              <div className="modal-stat-item">
+                                <div className="stat-value gold">{ss.timesFinished1st}</div>
+                                <div className="stat-label">🥇 1st</div>
+                              </div>
+                              <div className="modal-stat-item">
+                                <div className="stat-value silver">{ss.timesFinished2nd}</div>
+                                <div className="stat-label">🥈 2nd</div>
+                              </div>
+                              <div className="modal-stat-item">
+                                <div className="stat-value bronze">{ss.timesFinished3rd}</div>
+                                <div className="stat-label">🥉 3rd</div>
+                              </div>
+                              <div className="modal-stat-item">
+                                <div className="stat-value">{ss.timesBonusScored}</div>
+                                <div className="stat-label">⭐ Bonus</div>
+                              </div>
+                            </div>
+                            <div
+                              style={{
+                                display: 'flex',
+                                gap: '1rem',
+                                marginTop: '0.75rem',
+                                fontSize: '0.85rem',
+                                color: '#6b7280',
+                              }}
+                            >
+                              <span>Win: {winRate}%</span>
+                              <span>Podium: {podiumRate}%</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                );
+              })()
             ) : (
               <div className="modal-stats">
                 <p style={{ color: '#6b7280' }}>No season data available.</p>
@@ -947,7 +940,6 @@ const TeamBuilderPage: React.FC = () => {
             <div className="modal-action">
               {(() => {
                 const selected = isSelected(selectedGolferDetail);
-                const affordable = canAfford(selectedGolferDetail);
                 const teamFull = selectedGolfers.length >= TEAM_SIZE;
 
                 if (!canEditTeam) {
@@ -968,15 +960,6 @@ const TeamBuilderPage: React.FC = () => {
                       }}
                     >
                       ✕ Remove from Team
-                    </button>
-                  );
-                }
-
-                if (!affordable) {
-                  return (
-                    <button className="modal-btn disabled" disabled>
-                      💰 Can't Afford ({formatPrice(selectedGolferDetail.price - budgetRemaining)}{' '}
-                      over budget)
                     </button>
                   );
                 }

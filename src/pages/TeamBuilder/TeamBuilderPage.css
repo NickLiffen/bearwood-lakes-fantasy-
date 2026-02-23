@@ -1034,16 +1034,16 @@
     flex-direction: column;
   }
   
-  .quick-filter-chip span:last-child {
-    display: none;
+  .quick-filter-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.25rem;
   }
   
   .quick-filter-chip {
-    padding: 0.5rem;
-    border-radius: 50%;
-    width: 36px;
-    height: 36px;
-    justify-content: center;
+    white-space: nowrap;
+    flex-shrink: 0;
   }
   
   .header-nav {
@@ -1555,6 +1555,10 @@
   cursor: not-allowed;
 }
 
+/* Desktop: show full stats, hide mobile summary */
+.modal-stats-mobile { display: none; }
+.modal-stats-full { display: block; }
+
 /* =============================================
    RESPONSIVE - COMPACT GRID
    ============================================= */
@@ -1600,8 +1604,16 @@
   }
 
   .modal-action {
-    padding: 0.75rem 1rem 1rem;
+    position: sticky;
+    bottom: 0;
+    background: white;
+    border-top: 1px solid #e5e7eb;
+    z-index: 10;
+    padding: 0.75rem 1rem;
   }
+
+  .modal-stats-mobile { display: block; }
+  .modal-stats-full { display: none; }
 }
 
 @media (max-width: 480px) {
