@@ -1418,11 +1418,10 @@
   justify-content: center;
 }
 
-.modal-title h2 {
+.modal-header .modal-title h2 {
   font-size: 1.5rem;
   font-weight: 700;
   margin: 0 0 0.5rem 0;
-  color: white;
   color: white;
 }
 
