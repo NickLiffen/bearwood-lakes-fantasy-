@@ -809,7 +809,7 @@ const TeamBuilderPage: React.FC = () => {
                             <span className="modal-stat-value">{totals.scored32Plus}</span>
                             <span className="modal-stat-label">32+</span>
                           </div>
-                          <div className="modal-stat-item" style={{ gridColumn: 'span 2' }}>
+                          <div className="modal-stat-item" style={{ gridColumn: '1 / -1' }}>
                             <span className="modal-stat-value">{selectedGolferDetail.selectedPercentage ?? 0}%</span>
                             <span className="modal-stat-label">Selected</span>
                           </div>
