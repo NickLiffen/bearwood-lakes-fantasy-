@@ -81,19 +81,23 @@ const handler: Handler = async (event: HandlerEvent) => {
     // Filter by season date range (unless admin explicitly requests all seasons)
     if (!allSeasons) {
       const seasonParam = event.queryStringParameters?.season;
-      const season = seasonParam
-        ? await getSeasonByName(seasonParam)
-        : await getActiveSeason();
-      if (season) {
-        const seasonStart = new Date(season.startDate);
-        const seasonEnd = new Date(season.endDate);
-        tournaments = tournaments.filter(t => {
-          const tStart = new Date(t.startDate);
-          return tStart >= seasonStart && tStart <= seasonEnd;
-        });
+      if (seasonParam === 'overall') {
+        // Show all tournaments across all seasons — no date filtering
       } else {
-        // No matching season found — show nothing to prevent data leakage
-        tournaments = [];
+        const season = seasonParam
+          ? await getSeasonByName(seasonParam)
+          : await getActiveSeason();
+        if (season) {
+          const seasonStart = new Date(season.startDate);
+          const seasonEnd = new Date(season.endDate);
+          tournaments = tournaments.filter(t => {
+            const tStart = new Date(t.startDate);
+            return tStart >= seasonStart && tStart <= seasonEnd;
+          });
+        } else {
+          // No matching season found — show nothing to prevent data leakage
+          tournaments = [];
+        }
       }
     }
 

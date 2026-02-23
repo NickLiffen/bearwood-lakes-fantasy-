@@ -24,12 +24,17 @@ export default function SeasonSelector({ value, onChange, className }: SeasonSel
       onChange={(e) => onChange(e.target.value)}
     >
       {sorted
-        ? sorted.map((s) => (
-            <option key={s.id} value={s.name}>
-              {s.name} Season
-            </option>
-          ))
-        : <option value={value}>{value} Season</option>}
+        ? (
+          <>
+            <option value="overall">Overall</option>
+            {sorted.map((s) => (
+              <option key={s.id} value={s.name}>
+                {s.name} Season
+              </option>
+            ))}
+          </>
+        )
+        : <option value={value}>{value === 'overall' ? 'Overall' : `${value} Season`}</option>}
     </select>
   );
 }

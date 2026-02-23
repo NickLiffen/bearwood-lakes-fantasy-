@@ -147,7 +147,18 @@ export const handler = withAuth(async (event: AuthenticatedEvent) => {
       // Calculate points by period
       let weekScores, monthScores, seasonScores;
 
-      if (seasonParam) {
+      if (seasonParam === 'overall') {
+        // Overall: all scores, week/month relative to latest tournament date globally
+        const globalLatest = scoresWithDates.length > 0
+          ? scoresWithDates.reduce((latest, s) =>
+              s.tournamentDate > latest ? s.tournamentDate : latest, scoresWithDates[0].tournamentDate)
+          : new Date();
+        const overallWeekStart = getWeekStart(globalLatest);
+        const overallMonthStart = getMonthStart(globalLatest);
+        weekScores = scoresWithDates.filter(s => s.tournamentDate >= overallWeekStart);
+        monthScores = scoresWithDates.filter(s => s.tournamentDate >= overallMonthStart);
+        seasonScores = scoresWithDates;
+      } else if (seasonParam) {
         const matchedSeason = allSeasons.find(s => s.name === seasonParam);
         if (matchedSeason) {
           const sStart = new Date(matchedSeason.startDate);
