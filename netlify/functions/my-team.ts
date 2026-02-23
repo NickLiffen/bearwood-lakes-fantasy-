@@ -11,7 +11,7 @@ import { GolferDocument, GOLFERS_COLLECTION, toGolfer } from './_shared/models/G
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
 import { SettingDocument, SETTINGS_COLLECTION } from './_shared/models/Settings';
-import { getWeekStart, getWeekEnd, getSeasonStart, getTeamEffectiveStartDate, getGameweekNumber, getSeasonFirstSaturday } from './_shared/utils/dates';
+import { getWeekStart, getWeekEnd, getTeamEffectiveStartDate, getGameweekNumber, getSeasonFirstSaturday } from './_shared/utils/dates';
 import { getTransfersThisWeek } from './_shared/services/picks.service';
 import { getActiveSeason } from './_shared/services/seasons.service';
 
@@ -176,21 +176,23 @@ export const handler: Handler = withAuth(async (event: AuthenticatedEvent) => {
     // Time boundaries
     const currentWeekStart = getWeekStart(now);
     const currentWeekEnd = getWeekEnd(currentWeekStart);
-    const seasonStart = getSeasonStart();
+
+    // Season's first gameweek (first Saturday of the season)
+    const seasonFirstSat = activeSeason?.startDate
+      ? getSeasonFirstSaturday(new Date(activeSeason.startDate))
+      : getWeekStart(new Date());
 
     // Selected week boundaries (based on date param or current)
     const selectedWeekStart = getWeekStart(targetDate);
     const selectedWeekEnd = getWeekEnd(selectedWeekStart);
 
-    // Team effective start date - teams only earn points from tournaments
-    // starting on or after the next Saturday 8am from when they were created
+    // Team effective start date
     const teamEffectiveStartDate = getTeamEffectiveStartDate(pick.createdAt);
 
-    // Navigation constraints
-    // Can go back if previous week is >= team effective start AND >= season start
+    // Navigation constraints — can't go before season's first Saturday
     const previousWeekStart = new Date(selectedWeekStart);
     previousWeekStart.setDate(previousWeekStart.getDate() - 7);
-    const earliestWeek = teamEffectiveStartDate > seasonStart ? teamEffectiveStartDate : seasonStart;
+    const earliestWeek = teamEffectiveStartDate > seasonFirstSat ? teamEffectiveStartDate : seasonFirstSat;
     const hasPrevious = previousWeekStart >= earliestWeek;
 
     // Can go forward if we're not already on or past the current week
@@ -227,7 +229,7 @@ export const handler: Handler = withAuth(async (event: AuthenticatedEvent) => {
 
       const seasonScores = formattedScores.filter((s) => {
         const date = new Date(s.tournamentDate);
-        return date >= seasonStart && date >= teamEffectiveStartDate;
+        return date >= seasonFirstSat && date >= teamEffectiveStartDate;
       });
 
       // Calculate totals with captain multiplier
@@ -277,7 +279,7 @@ export const handler: Handler = withAuth(async (event: AuthenticatedEvent) => {
               hasPrevious,
               hasNext,
             },
-            seasonStart: seasonStart.toISOString(),
+            seasonStart: seasonFirstSat.toISOString(),
             teamEffectiveStart: teamEffectiveStartDate.toISOString(),
             createdAt: pick.createdAt,
             updatedAt: pick.updatedAt,
