@@ -58,9 +58,10 @@
 }
 
 .profile-header-info h1 {
-  font-family: var(--font-serif);
+  font-family: var(--font-heading);
   font-size: 2rem;
   margin-bottom: 0.25rem;
+  color: white;
 }
 
 .profile-username {
