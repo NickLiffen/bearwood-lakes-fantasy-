@@ -32,15 +32,12 @@ const HomePage: React.FC = () => {
                 Dashboard
               </Link>
               <Link to="/scoring" className="nav-link">
-                Scoring
+                Rules
               </Link>
               <span className="nav-user">Hi, {user?.firstName}</span>
             </>
           ) : (
             <>
-              <Link to="/scoring" className="nav-link">
-                How It Works
-              </Link>
               <Link to="/login" className="nav-link">
                 Sign In
               </Link>

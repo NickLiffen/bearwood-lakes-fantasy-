@@ -4,7 +4,7 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import './ScoringPage.css';
 
 const ScoringPage: React.FC = () => {
-  useDocumentTitle('How Scoring Works');
+  useDocumentTitle('Rules');
 
   return (
     <div className="scoring-page">
@@ -21,7 +21,7 @@ const ScoringPage: React.FC = () => {
 
       <div className="scoring-container">
         <div className="scoring-header">
-          <h1>⛳ How Scoring Works</h1>
+          <h1>⛳ Rules & Scoring</h1>
           <p>
             Everything you need to know about the Bearwood Lakes Fantasy Golf League scoring system.
           </p>
@@ -224,7 +224,7 @@ const ScoringPage: React.FC = () => {
             <div className="rule-item">
               <span className="rule-icon">🔄</span>
               <p>
-                <strong>Transfer Windows</strong> — Swap golfers during open transfer periods.
+                <strong>Transfers</strong> — During pre-season, you have <strong>unlimited transfers</strong> to build your perfect squad. Once the season starts, you get <strong>1 transfer per week</strong>. Transfers must be made before <strong>8am on Saturday</strong> for them to take effect that gameweek. Any transfers made after 8am Saturday will apply to the following week's score.
               </p>
             </div>
           </div>

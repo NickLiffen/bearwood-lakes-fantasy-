@@ -154,7 +154,7 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children, activeNav }) => {
               to="/scoring"
               className={`nav-link ${activeNav === 'scoring' ? 'active' : ''}`}
             >
-              Scoring
+              Rules
             </Link>
           </nav>
 
@@ -237,7 +237,7 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children, activeNav }) => {
             to="/scoring"
             className={`mobile-nav-link ${activeNav === 'scoring' ? 'active' : ''}`}
           >
-            Scoring
+            Rules
           </Link>
           {user.role === 'admin' && (
             <Link to="/admin" className="mobile-nav-link mobile-nav-admin">
