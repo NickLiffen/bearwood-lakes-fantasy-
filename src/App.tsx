@@ -8,6 +8,7 @@ import LoadingSpinner from './components/ui/LoadingSpinner';
 import HomePage from './pages/Home/HomePage';
 import LoginPage from './pages/Auth/LoginPage';
 import RegisterPage from './pages/Auth/RegisterPage';
+import ScoringPage from './pages/Scoring/ScoringPage';
 import DashboardPage from './pages/Dashboard/DashboardPage';
 import ProfilePage from './pages/Profile/ProfilePage';
 import TeamBuilderPage from './pages/TeamBuilder/TeamBuilderPage';
@@ -96,6 +97,7 @@ const AppRoutes: React.FC = () => {
       <Route path="/" element={<HomeRoute />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/scoring" element={<ScoringPage />} />
 
       {/* Protected user routes */}
       <Route

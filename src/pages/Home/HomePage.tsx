@@ -31,13 +31,16 @@ const HomePage: React.FC = () => {
               <Link to="/dashboard" className="nav-link">
                 Dashboard
               </Link>
-              <Link to="/profile" className="nav-link">
-                Profile
+              <Link to="/scoring" className="nav-link">
+                Scoring
               </Link>
               <span className="nav-user">Hi, {user?.firstName}</span>
             </>
           ) : (
             <>
+              <Link to="/scoring" className="nav-link">
+                How It Works
+              </Link>
               <Link to="/login" className="nav-link">
                 Sign In
               </Link>

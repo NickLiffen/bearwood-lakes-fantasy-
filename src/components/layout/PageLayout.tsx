@@ -20,6 +20,7 @@ type NavItem =
   | 'leaderboard'
   | 'users'
   | 'tournaments'
+  | 'scoring'
   | 'profile';
 
 interface PageLayoutProps {
@@ -149,6 +150,12 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children, activeNav }) => {
             >
               Tournaments
             </Link>
+            <Link
+              to="/scoring"
+              className={`nav-link ${activeNav === 'scoring' ? 'active' : ''}`}
+            >
+              Scoring
+            </Link>
           </nav>
 
           <div className="header-user" ref={userRef}>
@@ -225,6 +232,12 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children, activeNav }) => {
           </Link>
           <Link to="/users" className={`mobile-nav-link ${activeNav === 'users' ? 'active' : ''}`}>
             Users
+          </Link>
+          <Link
+            to="/scoring"
+            className={`mobile-nav-link ${activeNav === 'scoring' ? 'active' : ''}`}
+          >
+            Scoring
           </Link>
           {user.role === 'admin' && (
             <Link to="/admin" className="mobile-nav-link mobile-nav-admin">
