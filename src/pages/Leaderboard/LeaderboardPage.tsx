@@ -128,28 +128,24 @@ const LeaderboardPage: React.FC = () => {
     const start = new Date(seasonStart);
     const now = new Date();
 
-    // Start from the Saturday of the first week (matches backend)
-    const dayOfWeek = start.getDay();
+    // Find the first Saturday on or after the season start
     const firstSaturday = new Date(start);
-    let daysSinceSaturday: number;
-    if (dayOfWeek === 6) {
-      daysSinceSaturday = 0;
-    } else {
-      daysSinceSaturday = dayOfWeek + 1;
+    while (firstSaturday.getDay() !== 6) {
+      firstSaturday.setDate(firstSaturday.getDate() + 1);
     }
-    firstSaturday.setDate(start.getDate() - daysSinceSaturday);
     firstSaturday.setHours(0, 0, 0, 0);
 
     // eslint-disable-next-line prefer-const
     let current = new Date(firstSaturday);
+    let gameweek = 1;
     while (current <= now) {
       const weekEnd = new Date(current);
       weekEnd.setDate(current.getDate() + 6);
 
       const formatOpts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
-      const label = `${current.toLocaleDateString('en-GB', formatOpts)} - ${weekEnd.toLocaleDateString('en-GB', formatOpts)}`;
+      const dateRange = `${current.toLocaleDateString('en-GB', formatOpts)} - ${weekEnd.toLocaleDateString('en-GB', formatOpts)}`;
+      const label = `Gameweek ${gameweek}: ${dateRange}`;
 
-      // Use consistent date format (YYYY-MM-DD in local time)
       const year = current.getFullYear();
       const month = String(current.getMonth() + 1).padStart(2, '0');
       const day = String(current.getDate()).padStart(2, '0');
@@ -160,6 +156,7 @@ const LeaderboardPage: React.FC = () => {
       });
 
       current.setDate(current.getDate() + 7);
+      gameweek++;
     }
 
     return options.reverse(); // Most recent first

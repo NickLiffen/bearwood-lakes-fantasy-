@@ -121,3 +121,27 @@ export const formatDateString = (date: Date): string => {
 export const isDateInPeriod = (date: Date, periodStart: Date, periodEnd: Date): boolean => {
   return date >= periodStart && date <= periodEnd;
 };
+
+/**
+ * Get the first Saturday on or after a given date
+ * Used to determine the start of Gameweek 1 for a season
+ */
+export const getSeasonFirstSaturday = (seasonStartDate: Date): Date => {
+  const d = new Date(seasonStartDate);
+  while (d.getDay() !== 6) {
+    d.setDate(d.getDate() + 1);
+  }
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+/**
+ * Calculate gameweek number from a week start date and season start
+ * GW1 = first Saturday of the season (first Saturday in April)
+ */
+export const getGameweekNumber = (weekStart: Date, seasonStartDate: Date): number => {
+  const firstSaturday = getSeasonFirstSaturday(seasonStartDate);
+  const diffMs = weekStart.getTime() - firstSaturday.getTime();
+  const diffWeeks = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000));
+  return diffWeeks + 1;
+};

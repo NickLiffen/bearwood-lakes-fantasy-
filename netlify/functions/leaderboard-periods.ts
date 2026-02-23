@@ -9,7 +9,7 @@ import { UserDocument, USERS_COLLECTION } from './_shared/models/User';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
 import { getActiveSeason, getSeasonByName } from './_shared/services/seasons.service';
-import { getWeekStart, getMonthStart, getTeamEffectiveStartDate } from './_shared/utils/dates';
+import { getWeekStart, getMonthStart, getTeamEffectiveStartDate, getGameweekNumber } from './_shared/utils/dates';
 
 interface LeaderboardEntry {
   rank: number;
@@ -30,6 +30,7 @@ interface PeriodInfo {
   startDate: string;
   endDate: string;
   label: string;
+  gameweek?: number;
   hasPrevious: boolean;
   hasNext: boolean;
 }
@@ -64,9 +65,13 @@ function getMonthEnd(date: Date): Date {
 }
 
 // Format week label
-function formatWeekLabel(start: Date, end: Date): string {
+function formatWeekLabel(start: Date, end: Date, gameweek?: number): string {
   const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
-  return `${start.toLocaleDateString('en-GB', options)} - ${end.toLocaleDateString('en-GB', options)}`;
+  const dateRange = `${start.toLocaleDateString('en-GB', options)} - ${end.toLocaleDateString('en-GB', options)}`;
+  if (gameweek && gameweek > 0) {
+    return `Gameweek ${gameweek}: ${dateRange}`;
+  }
+  return dateRange;
 }
 
 // Format month label
@@ -253,7 +258,8 @@ export const handler: Handler = withAuth(async (event) => {
                 type: 'week',
                 startDate: weekStart.toISOString(),
                 endDate: weekEnd.toISOString(),
-                label: formatWeekLabel(weekStart, weekEnd),
+                label: formatWeekLabel(weekStart, weekEnd, getGameweekNumber(weekStart, seasonStartDate)),
+                gameweek: getGameweekNumber(weekStart, seasonStartDate),
                 hasPrevious: weekStart > seasonStartDate,
                 hasNext: false,
               },
@@ -347,7 +353,8 @@ export const handler: Handler = withAuth(async (event) => {
           type: 'week',
           startDate: weekStart.toISOString(),
           endDate: weekEnd.toISOString(),
-          label: formatWeekLabel(weekStart, weekEnd),
+          label: formatWeekLabel(weekStart, weekEnd, getGameweekNumber(weekStart, seasonStartDate)),
+          gameweek: getGameweekNumber(weekStart, seasonStartDate),
           hasPrevious: weekStart > seasonStartDate,
           hasNext: weekEnd < now,
         },
@@ -390,7 +397,7 @@ export const handler: Handler = withAuth(async (event) => {
       prevPeriodStart.setDate(prevPeriodStart.getDate() - 7);
       prevPeriodEnd = new Date(periodEnd);
       prevPeriodEnd.setDate(prevPeriodEnd.getDate() - 7);
-      periodLabel = formatWeekLabel(periodStart, periodEnd);
+      periodLabel = formatWeekLabel(periodStart, periodEnd, getGameweekNumber(periodStart, seasonStartDate));
     } else if (period === 'month') {
       periodStart = getMonthStart(referenceDate);
       periodEnd = getMonthEnd(referenceDate);
@@ -433,6 +440,7 @@ export const handler: Handler = withAuth(async (event) => {
         startDate: periodStart.toISOString(),
         endDate: periodEnd.toISOString(),
         label: periodLabel,
+        gameweek: period === 'week' ? getGameweekNumber(periodStart, seasonStartDate) : undefined,
         hasPrevious,
         hasNext,
       },
