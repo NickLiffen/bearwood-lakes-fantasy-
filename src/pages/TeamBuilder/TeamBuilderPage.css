@@ -1518,6 +1518,11 @@
 
 .modal-action {
   padding: 1rem 1.5rem 1.5rem;
+  position: sticky;
+  bottom: 0;
+  background: white;
+  border-top: 1px solid #e5e7eb;
+  z-index: 10;
 }
 
 .modal-btn {
@@ -1555,8 +1560,8 @@
   cursor: not-allowed;
 }
 
-/* Desktop: show full stats, hide mobile summary */
-.modal-stats-mobile { display: none; }
+/* Show career summary on all devices, full breakdown on desktop only */
+.modal-stats-mobile { display: block; }
 .modal-stats-full { display: block; }
 
 /* =============================================
@@ -1600,11 +1605,6 @@
   }
 
   .modal-action {
-    position: sticky;
-    bottom: 0;
-    background: white;
-    border-top: 1px solid #e5e7eb;
-    z-index: 10;
     padding: 0.75rem 1rem;
   }
 
