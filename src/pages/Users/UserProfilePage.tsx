@@ -59,9 +59,9 @@ interface HistoryEntry {
   changedAt: string;
   reason: string;
   totalSpent: number;
-  playerCount: number;
-  addedPlayers: Array<{ id: string; name: string }>;
-  removedPlayers: Array<{ id: string; name: string }>;
+  golferCount: number;
+  addedGolfers: Array<{ id: string; name: string }>;
+  removedGolfers: Array<{ id: string; name: string }>;
 }
 
 interface PeriodInfo {
@@ -496,18 +496,18 @@ const UserProfilePage: React.FC = () => {
                         <div className="history-content">
                           <span className="history-reason">{entry.reason}</span>
                           <div className="history-changes">
-                            {entry.addedPlayers.length > 0 && (
+                            {entry.addedGolfers.length > 0 && (
                               <div className="golfers-added">
-                                {entry.addedPlayers.map((p) => (
+                                {entry.addedGolfers.map((p) => (
                                   <span key={p.id} className="golfer-change added">
                                     + {p.name}
                                   </span>
                                 ))}
                               </div>
                             )}
-                            {entry.removedPlayers.length > 0 && (
+                            {entry.removedGolfers.length > 0 && (
                               <div className="golfers-removed">
-                                {entry.removedPlayers.map((p) => (
+                                {entry.removedGolfers.map((p) => (
                                   <span key={p.id} className="golfer-change removed">
                                     - {p.name}
                                   </span>
