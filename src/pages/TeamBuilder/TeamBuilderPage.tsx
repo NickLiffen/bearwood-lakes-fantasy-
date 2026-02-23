@@ -69,7 +69,9 @@ type SortOption =
   | 'most-consistent'
   | 'best-value'
   | 'win-rate'
-  | 'podium-rate';
+  | 'podium-rate'
+  | 'selected-high'
+  | 'selected-low';
 
 // Quick filter presets
 type QuickFilter =
@@ -77,7 +79,6 @@ type QuickFilter =
   | 'winners'
   | 'podium-finishers'
   | 'consistent'
-  | 'experienced'
   | 'value-picks'
   | 'premium';
 
@@ -285,8 +286,6 @@ const TeamBuilderPage: React.FC = () => {
         return getPodiums(golfer) > 0;
       case 'consistent':
         return stats.timesBonusScored >= 3;
-      case 'experienced':
-        return stats.timesPlayed >= 5;
       case 'value-picks':
         return golfer.price <= 8000000; // $8M or less
       case 'premium':
@@ -341,6 +340,10 @@ const TeamBuilderPage: React.FC = () => {
           return getWinRate(b) - getWinRate(a);
         case 'podium-rate':
           return getPodiumRate(b) - getPodiumRate(a);
+        case 'selected-high':
+          return (b.selectedPercentage ?? 0) - (a.selectedPercentage ?? 0);
+        case 'selected-low':
+          return (a.selectedPercentage ?? 0) - (b.selectedPercentage ?? 0);
         default:
           return 0;
       }
@@ -535,18 +538,18 @@ const TeamBuilderPage: React.FC = () => {
               <span className="quick-filters-label">Quick Filters:</span>
               <div className="quick-filter-chips">
                 {[
-                  { value: 'all', label: 'All', icon: '👥' },
-                  { value: 'winners', label: 'Winners', icon: '🏆' },
-                  { value: 'podium-finishers', label: 'Podium', icon: '🥇' },
-                  { value: 'consistent', label: 'Consistent', icon: '📈' },
-                  { value: 'experienced', label: '5+ Games', icon: '⛳' },
-                  { value: 'value-picks', label: 'Value', icon: '💎' },
-                  { value: 'premium', label: 'Premium', icon: '⭐' },
+                  { value: 'all', label: 'All', icon: '👥', desc: '' },
+                  { value: 'winners', label: 'Winners', icon: '🏆', desc: '' },
+                  { value: 'podium-finishers', label: 'Podium', icon: '🥇', desc: '' },
+                  { value: 'consistent', label: 'Consistent', icon: '📈', desc: 'Scored 2nd or 3rd regularly' },
+                  { value: 'value-picks', label: 'Value', icon: '💎', desc: 'High podiums relative to price' },
+                  { value: 'premium', label: 'Premium', icon: '⭐', desc: 'Highest priced golfers' },
                 ].map((filter) => (
                   <button
                     key={filter.value}
                     className={`quick-filter-chip ${quickFilter === filter.value ? 'active' : ''}`}
                     onClick={() => setQuickFilter(filter.value as QuickFilter)}
+                    title={filter.desc || undefined}
                   >
                     <span>{filter.icon}</span>
                     <span>{filter.label}</span>
@@ -581,6 +584,8 @@ const TeamBuilderPage: React.FC = () => {
                     <option value="best-value">💎 Best Value (Podiums/$)</option>
                   </optgroup>
                   <optgroup label="Other">
+                    <option value="selected-high">👥 Selected: High to Low</option>
+                    <option value="selected-low">👥 Selected: Low to High</option>
                     <option value="name">🔤 Name: A-Z</option>
                   </optgroup>
                 </select>
