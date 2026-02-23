@@ -205,8 +205,15 @@ h1, h2, h3 {
   .tournaments-container,
   .user-profile-container,
   .users-container {
-    padding-left: 1.25rem !important;
-    padding-right: 1.25rem !important;
+    padding: 1rem 1rem !important;
+    overflow-x: hidden;
+  }
+
+  /* Stack page header (title + season selector) vertically on mobile */
+  .page-header-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 0.75rem !important;
   }
 }
 
@@ -223,7 +230,6 @@ h1, h2, h3 {
     font-size: 1rem; /* Maintain readable base size */
   }
 
-  /* Extra padding on small phones */
   .dashboard-container,
   .golfers-container,
   .leaderboard-container,
@@ -234,8 +240,7 @@ h1, h2, h3 {
   .tournaments-container,
   .user-profile-container,
   .users-container {
-    padding-left: 1rem !important;
-    padding-right: 1rem !important;
+    padding: 0.75rem 0.75rem !important;
   }
 }
 

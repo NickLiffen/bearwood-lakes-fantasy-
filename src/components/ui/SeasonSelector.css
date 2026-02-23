@@ -31,3 +31,12 @@
   color: var(--dark-text);
   background-color: #ffffff;
 }
+
+@media (max-width: 768px) {
+  .season-selector {
+    width: 100%;
+    font-size: 1rem;
+    padding: 0.625rem 2.5rem 0.625rem 0.875rem;
+    border-radius: 8px;
+  }
+}
