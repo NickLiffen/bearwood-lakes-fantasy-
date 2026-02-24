@@ -124,7 +124,7 @@ const ScoringPage: React.FC = () => {
                   <span className="points-value">+3 bonus</span>
                 </div>
                 <div className="points-row">
-                  <span className="position">32-35 stableford points</span>
+                  <span className="position">32-35 stableford points <em style={{ fontSize: '0.75em', color: '#9ca3af' }}>(aka a Sanjeev)</em></span>
                   <span className="points-value">+1 bonus</span>
                 </div>
                 <div className="points-row highlight">
