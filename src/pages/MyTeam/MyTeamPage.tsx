@@ -11,6 +11,7 @@ import TeamStatsBar from '../../components/ui/TeamStatsBar';
 import TeamGolferTable from '../../components/ui/TeamGolferTable';
 import { useApiClient } from '../../hooks/useApiClient';
 import { useActiveSeason } from '../../hooks/useActiveSeason';
+import { useAuth } from '../../hooks/useAuth';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import type { GolferSeasonStats, MembershipType } from '@shared/types';
 import type { TournamentScore } from '@shared/types';
@@ -80,6 +81,7 @@ const MyTeamPage: React.FC = () => {
   const [savingCaptain, setSavingCaptain] = useState(false);
   const { get, post, isAuthReady } = useApiClient();
   const { season } = useActiveSeason();
+  const { user: authUser } = useAuth();
   const seasonName = season?.name || '2026';
   useDocumentTitle('My Team');
 
@@ -301,6 +303,12 @@ const MyTeamPage: React.FC = () => {
             teamValue={team.totals.totalSpent}
           />
 
+          {/* Team Header */}
+          <div className="team-section-header">
+            <h2>🏌️ {authUser?.firstName || 'Your'}&apos;s Team</h2>
+            <span className="team-value-label">£{(team.totals.totalSpent / 1_000_000).toFixed(1)}M team value</span>
+          </div>
+
           {/* Week Navigation */}
           <GameweekNav
             weekOptions={weekOptions}
@@ -314,19 +322,13 @@ const MyTeamPage: React.FC = () => {
           {/* Error State */}
           {error && <div className="error-message">{error}</div>}
 
-          {/* Golfers Section */}
-          <section className="dashboard-card">
-            <div className="card-header">
-              <h2>Your 6 Golfers</h2>
-              <span className="card-header-subtitle">Sorted by week points</span>
-            </div>
-            <TeamGolferTable
-              golfers={sortedGolfers}
-              weekTotal={team.totals.weekPoints}
-              isOwnTeam={true}
-              onSetCaptain={handleSetCaptain}
-            />
-          </section>
+          {/* Golfers Table */}
+          <TeamGolferTable
+            golfers={sortedGolfers}
+            weekTotal={team.totals.weekPoints}
+            isOwnTeam={true}
+            onSetCaptain={handleSetCaptain}
+          />
 
           {/* Team Info Footer */}
           <div className="team-info-footer">
