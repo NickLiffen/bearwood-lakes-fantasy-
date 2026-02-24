@@ -5,12 +5,14 @@ import { Link, useParams } from 'react-router-dom';
 import PageLayout from '../../components/layout/PageLayout';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import GameweekNav from '../../components/ui/GameweekNav';
-import type { WeekOption } from '../../components/ui/GameweekNav';
+import { generateWeekOptions, formatDateString } from '../../utils/gameweek';
+import type { WeekOption } from '../../utils/gameweek';
 import TeamStatsBar from '../../components/ui/TeamStatsBar';
 import TeamGolferTable from '../../components/ui/TeamGolferTable';
 import TeamCompareModal from '../../components/ui/TeamCompareModal';
 import { useAuth } from '../../hooks/useAuth';
 import { useApiClient } from '../../hooks/useApiClient';
+import { useActiveSeason } from '../../hooks/useActiveSeason';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { formatDate, formatDateTime, formatPrice } from '../../utils/formatters';
 import './UserProfilePage.css';
@@ -110,14 +112,6 @@ interface UserProfileData {
   history: HistoryEntry[];
 }
 
-// Helper to format date as YYYY-MM-DD
-const formatDateString = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
-
 const UserProfilePage: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const [profileData, setProfileData] = useState<UserProfileData | null>(null);
@@ -132,43 +126,13 @@ const UserProfilePage: React.FC = () => {
   const currentUserId = currentUser?.id ?? null;
   const isOwnProfile = currentUserId === userId;
   const { get, isAuthReady } = useApiClient();
+  const { season } = useActiveSeason();
   useDocumentTitle(
     profileData ? `${profileData.user.firstName} ${profileData.user.lastName}` : 'User Profile'
   );
 
   // Track request ID to ignore stale responses
   const requestIdRef = useRef(0);
-
-  // Generate week options from team effective start to current week (gameweek-aware)
-  const generateWeekOptions = useCallback((teamStart: string): WeekOption[] => {
-    const options: WeekOption[] = [];
-    const start = new Date(teamStart);
-    const now = new Date();
-    // Find first Saturday on or after team start
-    const firstSaturday = new Date(start);
-    while (firstSaturday.getDay() !== 6) firstSaturday.setDate(firstSaturday.getDate() + 1);
-    firstSaturday.setHours(0, 0, 0, 0);
-
-    let current = new Date(firstSaturday);
-    let gameweek = 1;
-    while (current <= now || options.length === 0) {
-      const weekEnd = new Date(current);
-      weekEnd.setDate(current.getDate() + 6);
-      const fmt: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
-      const dateRange = `${current.toLocaleDateString('en-GB', fmt)} - ${weekEnd.toLocaleDateString('en-GB', fmt)}`;
-      const year = current.getFullYear();
-      const month = String(current.getMonth() + 1).padStart(2, '0');
-      const day = String(current.getDate()).padStart(2, '0');
-      options.push({
-        value: `${year}-${month}-${day}`,
-        label: `Gameweek ${gameweek}: ${dateRange}`,
-      });
-      current.setDate(current.getDate() + 7);
-      gameweek++;
-      if (current > now && options.length > 0) break;
-    }
-    return options.reverse();
-  }, []);
 
   const fetchUserProfile = useCallback(
     async (date?: string) => {
@@ -192,16 +156,10 @@ const UserProfilePage: React.FC = () => {
         if (response.success && response.data) {
           setProfileData(response.data);
 
-          // Set selected date and generate week options
+          // Set selected date
           if (response.data.period) {
             const weekStart = new Date(response.data.period.weekStart);
             setSelectedDate(formatDateString(weekStart));
-
-            // Generate week options if not already set
-            if (weekOptions.length === 0 && response.data.teamEffectiveStart) {
-              const options = generateWeekOptions(response.data.teamEffectiveStart);
-              setWeekOptions(options);
-            }
           }
         } else {
           setError(response.error || 'Failed to load profile');
@@ -218,7 +176,7 @@ const UserProfilePage: React.FC = () => {
         }
       }
     },
-    [userId, get, weekOptions.length, generateWeekOptions]
+    [userId, get]
   );
 
   useEffect(() => {
@@ -226,6 +184,14 @@ const UserProfilePage: React.FC = () => {
       fetchUserProfile();
     }
   }, [isAuthReady, userId, fetchUserProfile]);
+
+  // Generate week options when both profile data and season data are available
+  useEffect(() => {
+    if (profileData?.teamEffectiveStart && season?.startDate) {
+      const options = generateWeekOptions(profileData.teamEffectiveStart, season.startDate);
+      setWeekOptions(options);
+    }
+  }, [profileData?.teamEffectiveStart, season?.startDate]);
 
   // Navigation handlers
   const handleWeekNavigation = (direction: 'prev' | 'next') => {
