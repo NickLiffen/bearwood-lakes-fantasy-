@@ -285,6 +285,11 @@ export const handler: Handler = withAuth(async (event) => {
       };
     });
 
+    // Filter to only show entries where transfers actually happened
+    const filteredHistory = formattedHistory.filter(
+      (h) => h.addedGolfers.length > 0 || h.removedGolfers.length > 0,
+    );
+
     // Calculate period navigation info
     const currentWeek = getWeekStart(new Date());
     // Use teamEffectiveStart for navigation - can only go back to first week team could earn points
@@ -338,7 +343,7 @@ export const handler: Handler = withAuth(async (event) => {
           teamCreatedAt: pick.createdAt,
           teamEffectiveStart: teamEffectiveStart.toISOString(),
           captainId: pick.captainId?.toString() || null,
-          history: formattedHistory,
+          history: filteredHistory,
         },
       }),
     };

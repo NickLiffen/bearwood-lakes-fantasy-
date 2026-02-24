@@ -10,12 +10,13 @@ import type { WeekOption } from '../../utils/gameweek';
 import TeamStatsBar from '../../components/ui/TeamStatsBar';
 import TeamSection from '../../components/ui/TeamSection';
 import TeamGolferTable from '../../components/ui/TeamGolferTable';
+import TeamHistory from '../../components/ui/TeamHistory';
 import TeamCompareModal from '../../components/ui/TeamCompareModal';
 import { useAuth } from '../../hooks/useAuth';
 import { useApiClient } from '../../hooks/useApiClient';
 import { useActiveSeason } from '../../hooks/useActiveSeason';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
-import { formatDate, formatDateTime } from '../../utils/formatters';
+import { formatDate } from '../../utils/formatters';
 import './UserProfilePage.css';
 
 interface GolferStats {
@@ -315,41 +316,7 @@ const UserProfilePage: React.FC = () => {
               </TeamSection>
 
               {/* Team History */}
-              {history.length > 0 && (
-                <div className="history-section">
-                  <h2>📜 Team History</h2>
-                  <div className="history-timeline">
-                    {history.map((entry, index) => (
-                      <div key={index} className="history-entry">
-                        <div className="history-date">{formatDateTime(entry.changedAt)}</div>
-                        <div className="history-content">
-                          <span className="history-reason">{entry.reason}</span>
-                          <div className="history-changes">
-                            {entry.addedGolfers.length > 0 && (
-                              <div className="golfers-added">
-                                {entry.addedGolfers.map((p) => (
-                                  <span key={p.id} className="golfer-change added">
-                                    + {p.name}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                            {entry.removedGolfers.length > 0 && (
-                              <div className="golfers-removed">
-                                {entry.removedGolfers.map((p) => (
-                                  <span key={p.id} className="golfer-change removed">
-                                    - {p.name}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <TeamHistory history={history} />
             </>
           )}
         </div>

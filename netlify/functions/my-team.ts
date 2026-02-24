@@ -6,7 +6,7 @@ import type { Handler } from '@netlify/functions';
 import { ObjectId } from 'mongodb';
 import { withAuth, AuthenticatedEvent } from './_shared/middleware';
 import { connectToDatabase } from './_shared/db';
-import { PickDocument, PICKS_COLLECTION } from './_shared/models/Pick';
+import { PickDocument, PICKS_COLLECTION, PickHistoryDocument, PICK_HISTORY_COLLECTION } from './_shared/models/Pick';
 import { GolferDocument, GOLFERS_COLLECTION, toGolfer } from './_shared/models/Golfer';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
@@ -256,6 +256,67 @@ export const handler: Handler = withAuth(async (event: AuthenticatedEvent) => {
       totalSpent: pick.totalSpent,
     };
 
+    // Fetch pick history for transfer timeline
+    const userObjectId = new ObjectId(event.user.userId);
+    const pickHistory = await db
+      .collection<PickHistoryDocument>(PICK_HISTORY_COLLECTION)
+      .find({ userId: userObjectId, season: currentSeason })
+      .sort({ changedAt: -1 })
+      .toArray();
+
+    const allHistoryGolferIds = new Set<string>();
+    for (const h of pickHistory) {
+      for (const gid of h.golferIds) {
+        allHistoryGolferIds.add(gid.toString());
+      }
+    }
+    const historyGolfers = await db
+      .collection<GolferDocument>(GOLFERS_COLLECTION)
+      .find({ _id: { $in: Array.from(allHistoryGolferIds).map((id) => new ObjectId(id)) } })
+      .project({ _id: 1, firstName: 1, lastName: 1 })
+      .toArray();
+    const historyGolferMap = new Map(historyGolfers.map((g) => [g._id.toString(), g]));
+
+    const formattedHistory = pickHistory.map((h, index) => {
+      const previousHistory = pickHistory[index + 1];
+      const previousGolferIds = previousHistory
+        ? new Set(previousHistory.golferIds.map((id) => id.toString()))
+        : new Set<string>();
+      const currentGolferIds = new Set(h.golferIds.map((id) => id.toString()));
+
+      const addedGolfers: Array<{ id: string; name: string }> = [];
+      const removedGolfers: Array<{ id: string; name: string }> = [];
+
+      for (const pid of currentGolferIds) {
+        if (!previousGolferIds.has(pid)) {
+          const golfer = historyGolferMap.get(pid);
+          if (golfer) addedGolfers.push({ id: pid, name: `${golfer.firstName} ${golfer.lastName}` });
+        }
+      }
+      if (previousHistory) {
+        for (const pid of previousGolferIds) {
+          if (!currentGolferIds.has(pid)) {
+            const golfer = historyGolferMap.get(pid);
+            if (golfer)
+              removedGolfers.push({ id: pid, name: `${golfer.firstName} ${golfer.lastName}` });
+          }
+        }
+      }
+
+      return {
+        changedAt: h.changedAt,
+        reason: h.reason,
+        totalSpent: h.totalSpent,
+        golferCount: h.golferIds.length,
+        addedGolfers,
+        removedGolfers,
+      };
+    });
+
+    const filteredHistory = formattedHistory.filter(
+      (h) => h.addedGolfers.length > 0 || h.removedGolfers.length > 0,
+    );
+
     return {
       statusCode: 200,
       body: JSON.stringify({
@@ -284,6 +345,7 @@ export const handler: Handler = withAuth(async (event: AuthenticatedEvent) => {
             createdAt: pick.createdAt,
             updatedAt: pick.updatedAt,
           },
+          history: filteredHistory,
         },
       }),
     };

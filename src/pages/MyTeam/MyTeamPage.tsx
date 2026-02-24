@@ -9,6 +9,7 @@ import { generateWeekOptions, formatDateString } from '../../utils/gameweek';
 import type { WeekOption } from '../../utils/gameweek';
 import TeamStatsBar from '../../components/ui/TeamStatsBar';
 import TeamSection from '../../components/ui/TeamSection';
+import TeamHistory from '../../components/ui/TeamHistory';
 import TeamGolferTable from '../../components/ui/TeamGolferTable';
 import { useApiClient } from '../../hooks/useApiClient';
 import { useActiveSeason } from '../../hooks/useActiveSeason';
@@ -71,6 +72,14 @@ interface MyTeamApiResponse {
   transfersUsedThisWeek: number;
   unlimitedTransfers: boolean;
   team: TeamData | null;
+  history?: Array<{
+    changedAt: string;
+    reason: string;
+    totalSpent: number;
+    golferCount: number;
+    addedGolfers: Array<{ id: string; name: string }>;
+    removedGolfers: Array<{ id: string; name: string }>;
+  }>;
 }
 
 const MyTeamPage: React.FC = () => {
@@ -349,6 +358,10 @@ const MyTeamPage: React.FC = () => {
               onSetCaptain={handleSetCaptain}
             />
           </TeamSection>
+
+          {teamData?.history && teamData.history.length > 0 && (
+            <TeamHistory history={teamData.history} />
+          )}
 
           {/* Team Info Footer */}
           <div className="team-info-footer">
