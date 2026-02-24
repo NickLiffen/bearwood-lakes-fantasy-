@@ -9,7 +9,7 @@ import type {
   CreateTournamentDTO,
   UpdateTournamentDTO,
 } from '../../../../shared/types';
-import { getMultiplierForType } from '../../../../shared/types/tournament.types';
+import { getMultiplierForType, TOURNAMENT_TYPE_CONFIG } from '../../../../shared/types/tournament.types';
 import { getActiveSeason } from './seasons.service';
 
 async function getCurrentSeason(): Promise<number> {
@@ -64,7 +64,8 @@ export async function createTournament(data: CreateTournamentDTO): Promise<Tourn
   const currentSeason = await getCurrentSeason();
   const now = new Date();
   
-  const tournamentType = data.tournamentType ?? 'regular';
+  const tournamentType = data.tournamentType ?? 'rollup_stableford';
+  const config = TOURNAMENT_TYPE_CONFIG[tournamentType];
   const multiplier = getMultiplierForType(tournamentType);
 
   const tournamentData: Omit<TournamentDocument, '_id'> = {
@@ -72,7 +73,8 @@ export async function createTournament(data: CreateTournamentDTO): Promise<Tourn
     startDate: new Date(data.startDate),
     endDate: new Date(data.endDate),
     tournamentType,
-    scoringFormat: data.scoringFormat ?? 'stableford',
+    scoringFormat: data.scoringFormat ?? config.defaultScoringFormat,
+    isMultiDay: data.isMultiDay ?? config.defaultMultiDay,
     multiplier,
     golferCountTier: data.golferCountTier ?? '20+',
     season: data.season ?? currentSeason,
@@ -109,6 +111,7 @@ export async function updateTournament(
   }
   if (data.golferCountTier !== undefined) updateData.golferCountTier = data.golferCountTier;
   if (data.scoringFormat !== undefined) updateData.scoringFormat = data.scoringFormat;
+  if (data.isMultiDay !== undefined) updateData.isMultiDay = data.isMultiDay;
   if (data.status !== undefined) updateData.status = data.status;
   if (data.participatingGolferIds !== undefined) {
     updateData.participatingGolferIds = data.participatingGolferIds.map((id) => new ObjectId(id));

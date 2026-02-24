@@ -10,6 +10,7 @@ export interface TournamentDocument {
   endDate: Date;
   tournamentType: TournamentType;
   scoringFormat: ScoringFormat;
+  isMultiDay: boolean;
   multiplier: number;
   golferCountTier: GolferCountTier;
   season: number;
@@ -25,8 +26,9 @@ export function toTournament(doc: TournamentDocument): Tournament {
     name: doc.name,
     startDate: doc.startDate,
     endDate: doc.endDate,
-    tournamentType: doc.tournamentType || 'regular',
+    tournamentType: doc.tournamentType || 'rollup_stableford',
     scoringFormat: doc.scoringFormat || 'stableford',
+    isMultiDay: doc.isMultiDay ?? false,
     multiplier: doc.multiplier,
     golferCountTier: doc.golferCountTier || '20+',
     season: doc.season,

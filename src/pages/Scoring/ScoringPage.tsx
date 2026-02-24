@@ -31,31 +31,55 @@ const ScoringPage: React.FC = () => {
         <section className="scoring-section">
           <h2>🏆 Event Types</h2>
           <p>
-            Tournaments are categorised into three types, each with a different points multiplier:
+            Tournaments are categorised into six types, each with a different points multiplier:
           </p>
           <div className="event-types-grid">
             <div className="event-card regular">
               <div className="event-multiplier">1×</div>
-              <h3>Regular Events</h3>
-              <p className="event-example">Weekend Rollups</p>
+              <h3>Rollup Stableford</h3>
+              <p className="event-example">Saturday & Sunday Rollups</p>
               <p className="event-desc">
-                Standard scoring. Points are calculated at face value.
+                Standard stableford scoring. Points are calculated at face value.
+              </p>
+            </div>
+            <div className="event-card regular">
+              <div className="event-multiplier">1×</div>
+              <h3>Weekday Medal</h3>
+              <p className="event-example">Wednesday Medals</p>
+              <p className="event-desc">
+                Medal format at 1× multiplier. Nett score determines bonus points.
               </p>
             </div>
             <div className="event-card elevated">
               <div className="event-multiplier">2×</div>
-              <h3>Elevated Events</h3>
-              <p className="event-example">Sunday Medals, Black Swan Events</p>
+              <h3>Weekend Medal</h3>
+              <p className="event-example">Saturday & Sunday Medals</p>
               <p className="event-desc">
-                Double points! All points earned are multiplied by 2.
+                Double points! Medal format with all points multiplied by 2.
               </p>
             </div>
             <div className="event-card signature">
               <div className="event-multiplier">3×</div>
-              <h3>Signature Events</h3>
-              <p className="event-example">Club Champs, Presidents Cup, Founders Cup</p>
+              <h3>Presidents Cup</h3>
+              <p className="event-example">Annual Presidents Cup</p>
               <p className="event-desc">
-                Triple points! The biggest events of the season.
+                Triple points! One of the biggest events of the season.
+              </p>
+            </div>
+            <div className="event-card signature">
+              <div className="event-multiplier">4×</div>
+              <h3>Founders</h3>
+              <p className="event-example">Founders Cup (Multi-Day)</p>
+              <p className="event-desc">
+                Quadruple points! A multi-day event with doubled bonus thresholds.
+              </p>
+            </div>
+            <div className="event-card signature">
+              <div className="event-multiplier">5×</div>
+              <h3>Club Champs Nett</h3>
+              <p className="event-example">Club Championships (Multi-Day)</p>
+              <p className="event-desc">
+                5× points! The pinnacle event of the season, played over multiple days.
               </p>
             </div>
           </div>
@@ -89,9 +113,13 @@ const ScoringPage: React.FC = () => {
             </div>
             <div className="points-group">
               <h3>Bonus Points</h3>
-              <p className="points-subtitle">Awarded for high stableford scores</p>
+              <p className="points-subtitle">Awarded based on scoring format and event duration</p>
               <div className="points-table">
                 <div className="points-row highlight">
+                  <span className="position" style={{ fontWeight: 600 }}>Single-Day Stableford</span>
+                  <span className="points-value"></span>
+                </div>
+                <div className="points-row">
                   <span className="position">36+ stableford points</span>
                   <span className="points-value">+3 bonus</span>
                 </div>
@@ -99,9 +127,41 @@ const ScoringPage: React.FC = () => {
                   <span className="position">32-35 stableford points</span>
                   <span className="points-value">+1 bonus</span>
                 </div>
+                <div className="points-row highlight">
+                  <span className="position" style={{ fontWeight: 600 }}>Multi-Day Stableford</span>
+                  <span className="points-value"></span>
+                </div>
                 <div className="points-row">
-                  <span className="position">Below 32 points</span>
-                  <span className="points-value">+0 bonus</span>
+                  <span className="position">72+ stableford points</span>
+                  <span className="points-value">+3 bonus</span>
+                </div>
+                <div className="points-row">
+                  <span className="position">64-71 stableford points</span>
+                  <span className="points-value">+1 bonus</span>
+                </div>
+                <div className="points-row highlight">
+                  <span className="position" style={{ fontWeight: 600 }}>Single-Day Medal</span>
+                  <span className="points-value"></span>
+                </div>
+                <div className="points-row">
+                  <span className="position">Nett par or better (≤0)</span>
+                  <span className="points-value">+3 bonus</span>
+                </div>
+                <div className="points-row">
+                  <span className="position">Nett +1 to +4</span>
+                  <span className="points-value">+1 bonus</span>
+                </div>
+                <div className="points-row highlight">
+                  <span className="position" style={{ fontWeight: 600 }}>Multi-Day Medal</span>
+                  <span className="points-value"></span>
+                </div>
+                <div className="points-row">
+                  <span className="position">Nett par or better (≤0)</span>
+                  <span className="points-value">+3 bonus</span>
+                </div>
+                <div className="points-row">
+                  <span className="position">Nett +1 to +8</span>
+                  <span className="points-value">+1 bonus</span>
                 </div>
               </div>
             </div>
@@ -158,6 +218,16 @@ const ScoringPage: React.FC = () => {
                 </p>
               </div>
             </div>
+            <div className="gameweek-item">
+              <span className="gameweek-icon">📅</span>
+              <div>
+                <h3>Multi-Day Events</h3>
+                <p>
+                  Some events (Founders, Club Champs Nett) span multiple days. These use doubled
+                  bonus point thresholds to reflect the combined scoring across rounds.
+                </p>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -166,7 +236,7 @@ const ScoringPage: React.FC = () => {
           <h2>📝 Worked Example</h2>
           <div className="example-box">
             <p className="example-scenario">
-              <strong>Matthew Green</strong> plays in a <strong>Sunday Medal</strong> (Elevated, 2×
+              <strong>Matthew Green</strong> plays in a <strong>Weekend Medal</strong> (2×
               multiplier). He finishes <strong>1st</strong> with{' '}
               <strong>37 stableford points</strong>.
             </p>
@@ -184,7 +254,7 @@ const ScoringPage: React.FC = () => {
                 <span className="calc-value">13</span>
               </div>
               <div className="calc-row">
-                <span>Event Multiplier (Elevated)</span>
+                <span>Event Multiplier (Weekend Medal)</span>
                 <span className="calc-value">×2</span>
               </div>
               <div className="calc-row calc-total">

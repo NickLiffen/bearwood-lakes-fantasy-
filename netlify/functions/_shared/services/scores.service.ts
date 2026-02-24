@@ -42,6 +42,7 @@ export async function enterScore(data: EnterScoreRequest): Promise<Score> {
   }
 
   const scoringFormat = tournament.scoringFormat || 'stableford';
+  const isMultiDay = tournament.isMultiDay ?? false;
 
   // Calculate points - only if participated
   let basePoints = 0;
@@ -50,7 +51,7 @@ export async function enterScore(data: EnterScoreRequest): Promise<Score> {
   
   if (data.participated) {
     basePoints = getBasePointsForPosition(data.position);
-    bonusPoints = getBonusPoints(data.rawScore, scoringFormat);
+    bonusPoints = getBonusPoints(data.rawScore, scoringFormat, isMultiDay);
     multipliedPoints = (basePoints + bonusPoints) * tournament.multiplier;
   }
   
@@ -94,6 +95,7 @@ export async function bulkEnterScores(data: BulkEnterScoresRequest): Promise<Sco
   }
 
   const scoringFormat = tournament.scoringFormat || 'stableford';
+  const isMultiDay = tournament.isMultiDay ?? false;
   const now = new Date();
 
   // Build bulk operations for MongoDB bulkWrite
@@ -107,7 +109,7 @@ export async function bulkEnterScores(data: BulkEnterScoresRequest): Promise<Sco
     
     if (scoreData.participated) {
       basePoints = getBasePointsForPosition(scoreData.position);
-      bonusPoints = getBonusPoints(scoreData.rawScore, scoringFormat);
+      bonusPoints = getBonusPoints(scoreData.rawScore, scoringFormat, isMultiDay);
       multipliedPoints = (basePoints + bonusPoints) * tournament.multiplier;
     }
 
@@ -212,6 +214,7 @@ export async function recalculateScoresForTournament(tournamentId: string): Prom
   }
 
   const scoringFormat = tournament.scoringFormat || 'stableford';
+  const isMultiDay = tournament.isMultiDay ?? false;
 
   // Get all scores for this tournament
   const scores = await scoresCollection.find({ tournamentId: tournamentObjectId }).toArray();
@@ -229,7 +232,7 @@ export async function recalculateScoresForTournament(tournamentId: string): Prom
 
     if (score.participated) {
       basePoints = getBasePointsForPosition(score.position);
-      bonusPoints = getBonusPoints(score.rawScore, scoringFormat);
+      bonusPoints = getBonusPoints(score.rawScore, scoringFormat, isMultiDay);
       multipliedPoints = (basePoints + bonusPoints) * tournament.multiplier;
     }
 

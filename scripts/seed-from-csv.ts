@@ -68,7 +68,12 @@ function getBasePointsForPosition(position: number): number {
   return POSITION_POINTS[position] ?? 0;
 }
 
-function getBonusPoints(stablefordPoints: number): number {
+function getBonusPoints(stablefordPoints: number, isMultiDay: boolean = false): number {
+  if (isMultiDay) {
+    if (stablefordPoints >= 72) return 3;
+    if (stablefordPoints >= 64) return 1;
+    return 0;
+  }
   if (stablefordPoints >= 36) return 3;
   if (stablefordPoints >= 32) return 1;
   return 0;
@@ -296,7 +301,7 @@ async function seedFromCsv() {
       const seasonNumber = getSeasonForDate(date);
       const tier = getGolferCountTier(group.length);
       const isSunday = date.getDay() === 0;
-      const tournamentType = isSunday ? ('elevated' as const) : ('regular' as const);
+      const tournamentType = isSunday ? ('weekend_medal' as const) : ('rollup_stableford' as const);
       const multiplier = isSunday ? 2 : 1;
       const tournamentName = `${dateStr} Tournament`;
 
@@ -307,6 +312,8 @@ async function seedFromCsv() {
         startDate: date,
         endDate: date,
         tournamentType,
+        scoringFormat: 'stableford' as const,
+        isMultiDay: false,
         multiplier,
         golferCountTier: tier,
         season: seasonNumber,
@@ -329,7 +336,7 @@ async function seedFromCsv() {
 
         const basePoints = getBasePointsForPosition(row.position);
         const scored36Plus = row.stablefordPoints >= 36;
-        const bonusPoints = getBonusPoints(row.stablefordPoints);
+        const bonusPoints = getBonusPoints(row.stablefordPoints, false);
         const multipliedPoints = (basePoints + bonusPoints) * multiplier;
 
         await db.collection('scores').insertOne({

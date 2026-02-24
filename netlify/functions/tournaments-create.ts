@@ -2,6 +2,7 @@
 
 import { createTournament } from './_shared/services/tournaments.service';
 import { withAdmin, AuthenticatedEvent } from './_shared/middleware';
+import { TOURNAMENT_TYPE_CONFIG, type TournamentType } from '../../shared/types/tournament.types';
 
 const handler = withAdmin(async (event: AuthenticatedEvent) => {
   if (event.httpMethod !== 'POST') {
@@ -13,7 +14,7 @@ const handler = withAdmin(async (event: AuthenticatedEvent) => {
 
   try {
     const body = JSON.parse(event.body || '{}');
-    const { name, startDate, endDate, tournamentType, scoringFormat, playerCountTier, season } = body;
+    const { name, startDate, endDate, tournamentType, scoringFormat, isMultiDay, playerCountTier, season } = body;
 
     if (!name || !startDate || !endDate) {
       return {
@@ -25,12 +26,16 @@ const handler = withAdmin(async (event: AuthenticatedEvent) => {
       };
     }
 
+    const resolvedType: TournamentType = tournamentType || 'rollup_stableford';
+    const config = TOURNAMENT_TYPE_CONFIG[resolvedType];
+
     const tournament = await createTournament({
       name,
       startDate,
       endDate,
-      tournamentType: tournamentType || 'regular',
-      scoringFormat: scoringFormat || 'stableford',
+      tournamentType: resolvedType,
+      scoringFormat: config.forcedScoringFormat ?? scoringFormat ?? config.defaultScoringFormat,
+      isMultiDay: isMultiDay ?? config.defaultMultiDay,
       golferCountTier: playerCountTier || '20+',
       season,
     });

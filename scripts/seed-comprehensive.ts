@@ -21,13 +21,16 @@ const GOLFER_PARTICIPATION_RATE = 0.7; // 70% of golfers participate in each tou
 const DEFAULT_PASSWORD = 'password123';
 
 // Tournament types and their multipliers
-type TournamentType = 'regular' | 'elevated' | 'signature';
+type TournamentType = 'rollup_stableford' | 'weekday_medal' | 'weekend_medal' | 'presidents_cup' | 'founders' | 'club_champs_nett';
 type GolferCountTier = '0-10' | '10-20' | '20+';
 
 const tournamentTypeMultipliers: Record<TournamentType, number> = {
-  regular: 1,
-  elevated: 2,
-  signature: 3,
+  rollup_stableford: 1,
+  weekday_medal: 1,
+  weekend_medal: 2,
+  presidents_cup: 3,
+  founders: 4,
+  club_champs_nett: 5,
 };
 
 // Tournament name templates
@@ -246,9 +249,12 @@ function getBonusPointsFromScore(scored36Plus: boolean): number {
 
 function getTournamentType(): TournamentType {
   const rand = Math.random();
-  if (rand < 0.7) return 'regular'; // 70% regular
-  if (rand < 0.9) return 'elevated'; // 20% elevated
-  return 'signature'; // 10% signature
+  if (rand < 0.5) return 'rollup_stableford'; // 50% rollup stableford
+  if (rand < 0.7) return 'weekday_medal'; // 20% weekday medal
+  if (rand < 0.85) return 'weekend_medal'; // 15% weekend medal
+  if (rand < 0.95) return 'presidents_cup'; // 10% presidents cup
+  if (rand < 0.98) return 'founders'; // 3% founders
+  return 'club_champs_nett'; // 2% club champs nett
 }
 
 function getGolferCountTier(participantCount: number): GolferCountTier {
@@ -377,6 +383,8 @@ interface TournamentDoc {
   startDate: Date;
   endDate: Date;
   tournamentType: TournamentType;
+  scoringFormat: 'stableford' | 'medal';
+  isMultiDay: boolean;
   multiplier: number;
   golferCountTier: GolferCountTier;
   season: number;
@@ -530,6 +538,8 @@ async function seedComprehensive() {
           startDate: dates.start,
           endDate: dates.end,
           tournamentType,
+          scoringFormat: tournamentType === 'rollup_stableford' || tournamentType === 'presidents_cup' || tournamentType === 'founders' ? 'stableford' : 'medal',
+          isMultiDay: tournamentType === 'founders' || tournamentType === 'club_champs_nett',
           multiplier: tournamentTypeMultipliers[tournamentType],
           golferCountTier: tier,
           season: 2026,

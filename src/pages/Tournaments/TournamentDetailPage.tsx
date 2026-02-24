@@ -7,6 +7,7 @@ import DataTable, { Column } from '../../components/ui/DataTable';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { useApiClient } from '../../hooks/useApiClient';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
+import { getTournamentTypeLabel, TOURNAMENT_TYPE_CONFIG, TournamentType } from '@shared/types';
 import './TournamentDetailPage.css';
 
 interface Golfer {
@@ -37,8 +38,9 @@ interface Tournament {
   name: string;
   startDate: string;
   endDate: string;
-  tournamentType: 'regular' | 'elevated' | 'signature';
+  tournamentType: TournamentType;
   scoringFormat: 'stableford' | 'medal';
+  isMultiDay: boolean;
   multiplier: number;
   golferCountTier: '0-10' | '10-20' | '20+';
   status: 'draft' | 'published' | 'complete';
@@ -120,15 +122,11 @@ const TournamentDetailPage: React.FC = () => {
   };
 
   // Get tournament type badge class
-  const getTypeBadgeClass = (type: string) => {
-    switch (type) {
-      case 'signature':
-        return 'detail-type-badge detail-type-signature';
-      case 'elevated':
-        return 'detail-type-badge detail-type-elevated';
-      default:
-        return 'detail-type-badge detail-type-regular';
-    }
+  const getTypeBadgeClass = (type: TournamentType) => {
+    const config = TOURNAMENT_TYPE_CONFIG[type];
+    if (config.multiplier >= 4) return 'detail-type-badge detail-type-signature';
+    if (config.multiplier >= 2) return 'detail-type-badge detail-type-elevated';
+    return 'detail-type-badge detail-type-regular';
   };
 
   // Get membership badge class
@@ -306,8 +304,7 @@ const TournamentDetailPage: React.FC = () => {
             <div className="tournament-meta">
               <span className="tournament-date">{formatDate(tournament.startDate)}</span>
               <span className={getTypeBadgeClass(tournament.tournamentType)}>
-                {tournament.tournamentType.charAt(0).toUpperCase() +
-                  tournament.tournamentType.slice(1)}
+                {getTournamentTypeLabel(tournament.tournamentType)}
                 <span className="multiplier">{tournament.multiplier}x</span>
               </span>
               <span className={`status-badge status-${tournament.status}`}>

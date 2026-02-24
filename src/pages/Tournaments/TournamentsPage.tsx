@@ -10,6 +10,11 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { useApiClient } from '../../hooks/useApiClient';
 import { useActiveSeason } from '../../hooks/useActiveSeason';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
+import {
+  getTournamentTypeLabel,
+  TOURNAMENT_TYPE_CONFIG,
+  TournamentType,
+} from '@shared/types';
 import './TournamentsPage.css';
 
 interface PodiumGolfer {
@@ -31,8 +36,9 @@ interface Tournament {
   name: string;
   startDate: string;
   endDate: string;
-  tournamentType: 'regular' | 'elevated' | 'signature';
+  tournamentType: TournamentType;
   scoringFormat: 'stableford' | 'medal';
+  isMultiDay: boolean;
   multiplier: number;
   golferCountTier: '0-10' | '10-20' | '20+';
   status: 'draft' | 'published' | 'complete';
@@ -42,7 +48,7 @@ interface Tournament {
 
 type SortColumn = 'startDate' | 'name' | 'type' | 'participants';
 type SortDirection = 'asc' | 'desc';
-type TypeFilter = 'all' | 'regular' | 'elevated' | 'signature';
+type TypeFilter = 'all' | TournamentType;
 
 const TournamentsPage: React.FC = () => {
   const { season } = useActiveSeason();
@@ -101,15 +107,11 @@ const TournamentsPage: React.FC = () => {
   };
 
   // Get tournament type badge class
-  const getTypeBadgeClass = (type: string) => {
-    switch (type) {
-      case 'signature':
-        return 'tournament-type tournament-type-signature';
-      case 'elevated':
-        return 'tournament-type tournament-type-elevated';
-      default:
-        return 'tournament-type tournament-type-regular';
-    }
+  const getTypeBadgeClass = (type: TournamentType) => {
+    const config = TOURNAMENT_TYPE_CONFIG[type];
+    if (config.multiplier >= 4) return 'tournament-type tournament-type-signature';
+    if (config.multiplier >= 2) return 'tournament-type tournament-type-elevated';
+    return 'tournament-type tournament-type-regular';
   };
 
   // Handle column header click for sorting
@@ -192,7 +194,7 @@ const TournamentsPage: React.FC = () => {
         align: 'center',
         render: (tournament) => (
           <span className={getTypeBadgeClass(tournament.tournamentType)}>
-            {tournament.tournamentType.charAt(0).toUpperCase() + tournament.tournamentType.slice(1)}
+            {getTournamentTypeLabel(tournament.tournamentType)}
             <span className="multiplier-badge">{tournament.multiplier}x</span>
           </span>
         ),
@@ -286,8 +288,15 @@ const TournamentsPage: React.FC = () => {
 
   // Calculate stats - only from complete tournaments
   const completeTournaments = tournaments?.filter((t) => t.status === 'complete') || [];
-  const signatureCount = completeTournaments.filter((t) => t.tournamentType === 'signature').length;
-  const elevatedCount = completeTournaments.filter((t) => t.tournamentType === 'elevated').length;
+  const typeCounts = Object.keys(TOURNAMENT_TYPE_CONFIG).reduce(
+    (acc, key) => {
+      acc[key as TournamentType] = completeTournaments.filter(
+        (t) => t.tournamentType === key
+      ).length;
+      return acc;
+    },
+    {} as Record<TournamentType, number>
+  );
 
   return (
     <PageLayout activeNav="tournaments">
@@ -321,9 +330,9 @@ const TournamentsPage: React.FC = () => {
               className="filter-select"
             >
               <option value="all">All Types</option>
-              <option value="regular">Regular (1x)</option>
-              <option value="elevated">Elevated (2x)</option>
-              <option value="signature">Signature (3x)</option>
+              {(Object.entries(TOURNAMENT_TYPE_CONFIG) as [TournamentType, typeof TOURNAMENT_TYPE_CONFIG[TournamentType]][]).map(([key, config]) => (
+                <option key={key} value={key}>{config.label} ({config.multiplier}×)</option>
+              ))}
             </select>
             {hasActiveFilters && (
               <button className="reset-btn" onClick={resetFilters}>
@@ -356,20 +365,12 @@ const TournamentsPage: React.FC = () => {
               <span className="stat-value">{completeTournaments.length}</span>
               <span className="stat-label">Tournaments</span>
             </div>
-            <div className="stat-item">
-              <span className="stat-value">
-                {completeTournaments.length - signatureCount - elevatedCount}
-              </span>
-              <span className="stat-label">Regular (1x)</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-value">{elevatedCount}</span>
-              <span className="stat-label">Elevated (2x)</span>
-            </div>
-            <div className="stat-item">
-              <span className="stat-value">{signatureCount}</span>
-              <span className="stat-label">Signature (3x)</span>
-            </div>
+            {(Object.entries(TOURNAMENT_TYPE_CONFIG) as [TournamentType, typeof TOURNAMENT_TYPE_CONFIG[TournamentType]][]).map(([key, config]) => (
+              <div className="stat-item" key={key}>
+                <span className="stat-value">{typeCounts[key]}</span>
+                <span className="stat-label">{config.label} ({config.multiplier}×)</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>

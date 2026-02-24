@@ -5,18 +5,24 @@ import AdminLayout from '../../components/AdminLayout/AdminLayout';
 import { validators, sanitizers, getInputClassName } from '../../utils/validation';
 import { useApiClient } from '../../hooks/useApiClient';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
+import {
+  TOURNAMENT_TYPE_CONFIG,
+  TournamentType,
+  getTournamentTypeLabel,
+} from '@shared/types';
 
 interface Tournament {
   id: string;
   name: string;
   startDate: string;
   endDate: string;
-  tournamentType: 'regular' | 'elevated' | 'signature';
+  tournamentType: TournamentType;
   scoringFormat: 'stableford' | 'medal';
   multiplier: number;
   season: number;
   status: 'draft' | 'published' | 'complete';
   participatingGolferIds: string[];
+  isMultiDay: boolean;
 }
 
 interface Score {
@@ -45,16 +51,18 @@ interface TournamentFormData {
   name: string;
   startDate: string;
   endDate: string;
-  tournamentType: 'regular' | 'elevated' | 'signature';
+  tournamentType: TournamentType;
   scoringFormat: 'stableford' | 'medal';
+  isMultiDay: boolean;
 }
 
 const initialFormData: TournamentFormData = {
   name: '',
   startDate: '',
   endDate: '',
-  tournamentType: 'regular',
+  tournamentType: 'rollup_stableford',
   scoringFormat: 'stableford',
+  isMultiDay: false,
 };
 
 const TournamentsAdminPage: React.FC = () => {
@@ -131,7 +139,7 @@ const TournamentsAdminPage: React.FC = () => {
     setTouched({ ...touched, [field]: true });
     setFieldErrors({
       ...fieldErrors,
-      [field]: validateField(field, formData[field as keyof TournamentFormData]),
+      [field]: validateField(field, formData[field as keyof TournamentFormData] as string),
     });
   };
 
@@ -145,7 +153,7 @@ const TournamentsAdminPage: React.FC = () => {
     const fieldsToValidate = ['name', 'startDate', 'endDate'];
 
     fieldsToValidate.forEach((field) => {
-      const error = validateField(field, formData[field as keyof TournamentFormData]);
+      const error = validateField(field, formData[field as keyof TournamentFormData] as string);
       if (error) newErrors[field] = error;
     });
 
@@ -205,8 +213,9 @@ const TournamentsAdminPage: React.FC = () => {
         name: tournament.name,
         startDate: tournament.startDate.split('T')[0],
         endDate: tournament.endDate.split('T')[0],
-        tournamentType: tournament.tournamentType || 'regular',
+        tournamentType: tournament.tournamentType || 'rollup_stableford',
         scoringFormat: tournament.scoringFormat || 'stableford',
+        isMultiDay: tournament.isMultiDay ?? false,
       });
     } else {
       setEditingTournament(null);
@@ -285,6 +294,8 @@ const TournamentsAdminPage: React.FC = () => {
           startDate: formData.startDate,
           endDate: formData.endDate,
           tournamentType: formData.tournamentType,
+          scoringFormat: formData.scoringFormat,
+          isMultiDay: formData.isMultiDay,
         });
         if (!response.success) throw new Error(response.error || 'Failed to update tournament');
         setSuccess('Tournament updated successfully!');
@@ -295,6 +306,8 @@ const TournamentsAdminPage: React.FC = () => {
           startDate: formData.startDate,
           endDate: formData.endDate,
           tournamentType: formData.tournamentType,
+          scoringFormat: formData.scoringFormat,
+          isMultiDay: formData.isMultiDay,
         });
         if (!response.success) throw new Error(response.error || 'Failed to create tournament');
         setSuccess('Tournament created successfully!');
@@ -457,35 +470,22 @@ const TournamentsAdminPage: React.FC = () => {
                     {formatDate(tournament.startDate)} – {formatDate(tournament.endDate)}
                   </td>
                   <td>
-                    {tournament.tournamentType === 'signature' ? (
-                      <span
-                        style={{
-                          background: '#7c3aed',
-                          color: 'white',
-                          padding: '0.25rem 0.5rem',
-                          borderRadius: '4px',
-                          fontWeight: 600,
-                          fontSize: '0.8rem',
-                        }}
-                      >
-                        3x Signature
-                      </span>
-                    ) : tournament.tournamentType === 'elevated' ? (
-                      <span
-                        style={{
-                          background: 'var(--accent-gold)',
-                          color: '#1a1a1a',
-                          padding: '0.25rem 0.5rem',
-                          borderRadius: '4px',
-                          fontWeight: 600,
-                          fontSize: '0.8rem',
-                        }}
-                      >
-                        2x Elevated
-                      </span>
-                    ) : (
-                      <span style={{ color: '#6b7280' }}>1x Regular</span>
-                    )}
+                    <span
+                      style={{
+                        background: TOURNAMENT_TYPE_CONFIG[tournament.tournamentType].multiplier >= 4 ? '#7c3aed'
+                          : TOURNAMENT_TYPE_CONFIG[tournament.tournamentType].multiplier >= 2 ? 'var(--accent-gold)'
+                          : 'transparent',
+                        color: TOURNAMENT_TYPE_CONFIG[tournament.tournamentType].multiplier >= 4 ? 'white'
+                          : TOURNAMENT_TYPE_CONFIG[tournament.tournamentType].multiplier >= 2 ? '#1a1a1a'
+                          : '#6b7280',
+                        padding: '0.25rem 0.5rem',
+                        borderRadius: '4px',
+                        fontWeight: 600,
+                        fontSize: '0.8rem',
+                      }}
+                    >
+                      {tournament.multiplier}x {getTournamentTypeLabel(tournament.tournamentType)}
+                    </span>
                   </td>
                   <td>{getStatusBadge(tournament.status)}</td>
                   <td>
@@ -606,16 +606,20 @@ const TournamentsAdminPage: React.FC = () => {
                     id="tournamentType"
                     className="form-select"
                     value={formData.tournamentType}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      const newType = e.target.value as TournamentType;
+                      const config = TOURNAMENT_TYPE_CONFIG[newType];
                       setFormData({
                         ...formData,
-                        tournamentType: e.target.value as 'regular' | 'elevated' | 'signature',
-                      })
-                    }
+                        tournamentType: newType,
+                        scoringFormat: config.forcedScoringFormat ?? formData.scoringFormat,
+                        isMultiDay: config.defaultMultiDay,
+                      });
+                    }}
                   >
-                    <option value="regular">1x - Regular Tournament</option>
-                    <option value="elevated">2x - Elevated Tournament</option>
-                    <option value="signature">3x - Signature Event</option>
+                    {(Object.entries(TOURNAMENT_TYPE_CONFIG) as [TournamentType, typeof TOURNAMENT_TYPE_CONFIG[TournamentType]][]).map(([key, config]) => (
+                      <option key={key} value={key}>{config.label} ({config.multiplier}×)</option>
+                    ))}
                   </select>
                   <small
                     style={{
@@ -625,7 +629,31 @@ const TournamentsAdminPage: React.FC = () => {
                       display: 'block',
                     }}
                   >
-                    Regular = 1x, Elevated = 2x, Signature = 3x points multiplier
+                    Points multiplier is set automatically based on tournament type
+                  </small>
+                </div>
+
+                <div className="form-group">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={formData.isMultiDay}
+                      onChange={(e) =>
+                        setFormData({ ...formData, isMultiDay: e.target.checked })
+                      }
+                      style={{ marginRight: '0.5rem' }}
+                    />
+                    Multi-day event
+                  </label>
+                  <small
+                    style={{
+                      color: '#6b7280',
+                      fontSize: '0.8rem',
+                      marginTop: '0.25rem',
+                      display: 'block',
+                    }}
+                  >
+                    Multi-day events use doubled bonus point thresholds
                   </small>
                 </div>
               </div>
@@ -676,17 +704,15 @@ const TournamentsAdminPage: React.FC = () => {
                     ⚡ Type
                   </div>
                   <div style={{ fontWeight: 500 }}>
-                    {viewingTournament.tournamentType === 'signature' ? (
-                      <span style={{ color: '#7c3aed' }}>
-                        {viewingTournament.multiplier}x Signature
-                      </span>
-                    ) : viewingTournament.tournamentType === 'elevated' ? (
-                      <span style={{ color: 'var(--accent-gold)' }}>
-                        {viewingTournament.multiplier}x Elevated
-                      </span>
-                    ) : (
-                      '1x Regular'
-                    )}
+                    <span style={{
+                      color: TOURNAMENT_TYPE_CONFIG[viewingTournament.tournamentType].multiplier >= 4
+                        ? '#7c3aed'
+                        : TOURNAMENT_TYPE_CONFIG[viewingTournament.tournamentType].multiplier >= 2
+                          ? 'var(--accent-gold)'
+                          : 'inherit',
+                    }}>
+                      {viewingTournament.multiplier}x {getTournamentTypeLabel(viewingTournament.tournamentType)}
+                    </span>
                   </div>
                 </div>
                 <div style={{ background: '#f9fafb', padding: '1rem', borderRadius: '8px' }}>

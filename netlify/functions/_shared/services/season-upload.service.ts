@@ -12,7 +12,7 @@ import {
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from '../models/Tournament';
 import { ScoreDocument, SCORES_COLLECTION } from '../models/Score';
 import { SeasonDocument, SEASONS_COLLECTION } from '../models/Season';
-import { getBasePointsForPosition, getBonusPoints } from '../../../../shared/types/tournament.types';
+import { getBasePointsForPosition, getBonusPoints, type GolferCountTier } from '../../../../shared/types/tournament.types';
 
 export interface SeasonUploadResult {
   golfersCreated: number;
@@ -165,7 +165,9 @@ export async function processSeasonUpload(csvText: string): Promise<SeasonUpload
         name,
         startDate: date,
         endDate: date,
-        tournamentType: 'regular',
+        tournamentType: 'rollup_stableford',
+        scoringFormat: 'stableford',
+        isMultiDay: false,
         multiplier,
         golferCountTier: tier,
         season: seasonNumber,
@@ -219,7 +221,7 @@ export async function processSeasonUpload(csvText: string): Promise<SeasonUpload
       const basePoints = getBasePointsForPosition(row.position);
       const rawScore = row.stablefordPoints || null;
       const scoringFormat = 'stableford' as const;
-      const bonusPoints = getBonusPoints(rawScore, scoringFormat);
+      const bonusPoints = getBonusPoints(rawScore, scoringFormat, false);
       const multipliedPoints = (basePoints + bonusPoints) * multiplier;
 
       // Upsert score

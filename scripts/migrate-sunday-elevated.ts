@@ -72,7 +72,7 @@ async function main() {
   if (!isDryRun) {
     await tournamentsCol.updateMany(
       { _id: { $in: sundayIds } },
-      { $set: { tournamentType: 'elevated', multiplier: 2, updatedAt: new Date() } }
+      { $set: { tournamentType: 'weekend_medal', multiplier: 2, updatedAt: new Date() } }
     );
     console.log(`   ✅ Updated ${sundayIds.length} tournaments`);
   } else {

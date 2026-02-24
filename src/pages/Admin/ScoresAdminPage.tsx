@@ -4,14 +4,20 @@ import React, { useCallback, useEffect, useState } from 'react';
 import AdminLayout from '../../components/AdminLayout/AdminLayout';
 import { useApiClient } from '../../hooks/useApiClient';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
+import {
+  TOURNAMENT_TYPE_CONFIG,
+  TournamentType,
+  getTournamentTypeLabel,
+} from '@shared/types';
 
 interface Tournament {
   id: string;
   name: string;
   startDate: string;
   endDate: string;
-  tournamentType: 'regular' | 'elevated' | 'signature';
+  tournamentType: TournamentType;
   scoringFormat: 'stableford' | 'medal';
+  isMultiDay: boolean;
   multiplier: number;
   status: 'draft' | 'published' | 'complete';
   participatingGolferIds: string[];
@@ -394,38 +400,27 @@ const ScoresAdminPage: React.FC = () => {
   };
 
   const getTypeBadge = (tournament: Tournament) => {
-    if (tournament.tournamentType === 'signature') {
-      return (
-        <span
-          style={{
-            background: '#7c3aed',
-            color: 'white',
-            padding: '0.25rem 0.5rem',
-            borderRadius: '4px',
-            fontWeight: 600,
-            fontSize: '0.8rem',
-          }}
-        >
-          3x Signature
-        </span>
-      );
-    } else if (tournament.tournamentType === 'elevated') {
-      return (
-        <span
-          style={{
-            background: 'var(--accent-gold)',
-            color: '#1a1a1a',
-            padding: '0.25rem 0.5rem',
-            borderRadius: '4px',
-            fontWeight: 600,
-            fontSize: '0.8rem',
-          }}
-        >
-          2x Elevated
-        </span>
-      );
-    }
-    return <span style={{ color: '#6b7280' }}>1x Regular</span>;
+    const config = TOURNAMENT_TYPE_CONFIG[tournament.tournamentType];
+    const bg = config.multiplier >= 4 ? '#7c3aed'
+      : config.multiplier >= 2 ? 'var(--accent-gold)'
+      : '#e5e7eb';
+    const color = config.multiplier >= 4 ? 'white'
+      : config.multiplier >= 2 ? '#1a1a1a'
+      : '#6b7280';
+    return (
+      <span
+        style={{
+          background: bg,
+          color,
+          padding: '0.25rem 0.5rem',
+          borderRadius: '4px',
+          fontWeight: 600,
+          fontSize: '0.8rem',
+        }}
+      >
+        {tournament.multiplier}x {getTournamentTypeLabel(tournament.tournamentType)}
+      </span>
+    );
   };
 
   // Calculate stats for summary boxes
@@ -639,15 +634,15 @@ const ScoresAdminPage: React.FC = () => {
                     style={{
                       marginLeft: '0.5rem',
                       background:
-                        editingTournament.tournamentType === 'signature'
+                        TOURNAMENT_TYPE_CONFIG[editingTournament.tournamentType].multiplier >= 4
                           ? '#7c3aed'
-                          : editingTournament.tournamentType === 'elevated'
+                          : TOURNAMENT_TYPE_CONFIG[editingTournament.tournamentType].multiplier >= 2
                             ? 'var(--accent-gold)'
                             : '#e5e7eb',
                       color:
-                        editingTournament.tournamentType === 'signature'
+                        TOURNAMENT_TYPE_CONFIG[editingTournament.tournamentType].multiplier >= 4
                           ? 'white'
-                          : editingTournament.tournamentType === 'elevated'
+                          : TOURNAMENT_TYPE_CONFIG[editingTournament.tournamentType].multiplier >= 2
                             ? '#1a1a1a'
                             : '#6b7280',
                       padding: '0.2rem 0.5rem',
@@ -656,7 +651,7 @@ const ScoresAdminPage: React.FC = () => {
                       fontWeight: 600,
                     }}
                   >
-                    {editingTournament.multiplier}x {editingTournament.tournamentType}
+                    {editingTournament.multiplier}x {getTournamentTypeLabel(editingTournament.tournamentType)}
                   </span>
                 </div>
                 <div style={{ fontSize: '0.85rem', color: '#6b7280' }}>
@@ -932,15 +927,15 @@ const ScoresAdminPage: React.FC = () => {
                       style={{
                         marginLeft: '0.5rem',
                         background:
-                          viewingTournament.tournament.tournamentType === 'signature'
+                          TOURNAMENT_TYPE_CONFIG[viewingTournament.tournament.tournamentType].multiplier >= 4
                             ? '#7c3aed'
-                            : viewingTournament.tournament.tournamentType === 'elevated'
+                            : TOURNAMENT_TYPE_CONFIG[viewingTournament.tournament.tournamentType].multiplier >= 2
                               ? 'var(--accent-gold)'
                               : '#e5e7eb',
                         color:
-                          viewingTournament.tournament.tournamentType === 'signature'
+                          TOURNAMENT_TYPE_CONFIG[viewingTournament.tournament.tournamentType].multiplier >= 4
                             ? 'white'
-                            : viewingTournament.tournament.tournamentType === 'elevated'
+                            : TOURNAMENT_TYPE_CONFIG[viewingTournament.tournament.tournamentType].multiplier >= 2
                               ? '#1a1a1a'
                               : '#6b7280',
                         padding: '0.2rem 0.5rem',
@@ -950,7 +945,7 @@ const ScoresAdminPage: React.FC = () => {
                       }}
                     >
                       {viewingTournament.tournament.multiplier}x{' '}
-                      {viewingTournament.tournament.tournamentType}
+                      {getTournamentTypeLabel(viewingTournament.tournament.tournamentType)}
                     </span>
                   </div>
                   <div style={{ textAlign: 'right' }}>
