@@ -87,6 +87,7 @@ const TeamBuilderPage: React.FC = () => {
   const [golfers, setGolfers] = useState<Golfer[]>([]);
   const [selectedGolfers, setSelectedGolfers] = useState<Golfer[]>([]);
   const [hasExistingTeam, setHasExistingTeam] = useState(false);
+  const [existingCaptainId, setExistingCaptainId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -110,7 +111,7 @@ const TeamBuilderPage: React.FC = () => {
       // Fetch golfers, user's picks, and settings in parallel
       const [playersRes, picksRes, settingsRes] = await Promise.all([
         get<Golfer[]>('golfers-list'),
-        get<{ golfers: Golfer[] }>('picks-get'),
+        get<{ golfers: Golfer[]; captainId?: string | null }>('picks-get'),
         get<Settings>('settings-public'),
       ]);
 
@@ -125,7 +126,10 @@ const TeamBuilderPage: React.FC = () => {
 
       if (picksRes.success && picksRes.data?.golfers) {
         setSelectedGolfers(picksRes.data.golfers);
-        setHasExistingTeam(true); // User has an existing team
+        setHasExistingTeam(true);
+        if (picksRes.data.captainId) {
+          setExistingCaptainId(picksRes.data.captainId);
+        }
       }
 
       if (settingsRes.success && settingsRes.data) {
@@ -200,8 +204,13 @@ const TeamBuilderPage: React.FC = () => {
       setSaving(true);
       setError(null);
 
+      // Preserve captain if they're still in the team
+      const selectedIds = selectedGolfers.map((p) => p.id);
+      const captainStillInTeam = existingCaptainId && selectedIds.includes(existingCaptainId);
+
       const response = await post('picks-save', {
-        golferIds: selectedGolfers.map((p) => p.id),
+        golferIds: selectedIds,
+        captainId: captainStillInTeam ? existingCaptainId : null,
       });
 
       if (!response.success) {

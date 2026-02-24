@@ -31,23 +31,25 @@ const TeamGolferTable: React.FC<TeamGolferTableProps> = ({
       key: 'captain',
       header: 'C',
       align: 'center',
-      render: (data) =>
-        data.isCaptain ? (
-          <span className="captain-indicator" title="Captain (2x points)">
-            👑
-          </span>
-        ) : isOwnTeam && onSetCaptain ? (
-          <button
-            className="captain-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              onSetCaptain(data.golfer.id);
-            }}
-            title="Make captain"
-          >
-            ○
-          </button>
-        ) : null,
+      render: (data) => {
+        if (isOwnTeam && onSetCaptain) {
+          return (
+            <button
+              className={`captain-toggle ${data.isCaptain ? 'active' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSetCaptain(data.golfer.id);
+              }}
+              title={data.isCaptain ? 'Remove captain' : 'Make captain'}
+            >
+              C
+            </button>
+          );
+        }
+        return data.isCaptain ? (
+          <span className="captain-indicator" title="Captain (2x points)">👑</span>
+        ) : null;
+      },
     },
     {
       key: 'golfer',

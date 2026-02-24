@@ -80,3 +80,36 @@
   font-size: 1.5rem;
   font-weight: 700;
 }
+
+/* Captain Toggle Button */
+.captain-toggle {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid #d1d5db;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.captain-toggle:hover {
+  border-color: var(--primary-green);
+  color: var(--primary-green);
+}
+
+.captain-toggle.active {
+  background: var(--primary-green);
+  border-color: var(--primary-green);
+  color: white;
+}
+
+.captain-toggle.active:hover {
+  background: var(--secondary-green);
+  border-color: var(--secondary-green);
+}

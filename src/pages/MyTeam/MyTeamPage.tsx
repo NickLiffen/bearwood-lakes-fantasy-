@@ -145,20 +145,40 @@ const MyTeamPage: React.FC = () => {
   const handleSetCaptain = async (golferId: string) => {
     if (!teamData?.team || savingCaptain) return;
 
+    // Determine new captain: toggle off if clicking current captain
+    const currentCaptainId = teamData.team.captainId;
+    const newCaptainId = golferId === currentCaptainId ? null : golferId;
+
+    // Optimistic update — instant UI feedback
+    setTeamData((prev) => {
+      if (!prev?.team) return prev;
+      return {
+        ...prev,
+        team: {
+          ...prev.team,
+          captainId: newCaptainId,
+          golfers: prev.team.golfers.map((g) => ({
+            ...g,
+            isCaptain: g.golfer.id === newCaptainId,
+          })),
+        },
+      };
+    });
+
     setSavingCaptain(true);
     try {
       const response = await post('picks-save', {
         golferIds: teamData.team.golfers.map((g) => g.golfer.id),
-        captainId: golferId,
+        captainId: newCaptainId,
       });
 
-      if (response.success) {
-        // Refresh team data to get updated points
+      if (!response.success) {
+        // Revert on failure
         fetchTeam(selectedDate);
-      } else {
         alert(response.error || 'Failed to set captain');
       }
     } catch {
+      fetchTeam(selectedDate);
       alert('Failed to set captain. Please try again.');
     } finally {
       setSavingCaptain(false);
