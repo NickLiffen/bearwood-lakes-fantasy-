@@ -194,7 +194,7 @@ interface Tournament {
 const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const { get, isAuthReady } = useApiClient();
-  const { season } = useActiveSeason();
+  const { season, loading: seasonLoading } = useActiveSeason();
   const navigate = useNavigate();
   const seasonName = season?.name || '2026';
   useDocumentTitle('Dashboard');
@@ -310,7 +310,9 @@ const DashboardPage: React.FC = () => {
           )}
 
           {/* Weekly Deadline Countdown */}
-          <CountdownTimer seasonStartDate={season?.startDate?.toString()} />
+          {!seasonLoading && (
+            <CountdownTimer seasonStartDate={season?.startDate?.toString()} />
+          )}
 
           {/* Incomplete Team Banner - only show if has team but less than 6 golfers */}
           {!statsLoading && hasTeam && golferCount < 6 && (

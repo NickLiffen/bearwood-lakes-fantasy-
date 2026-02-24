@@ -3,6 +3,7 @@
   align-items: center;
   justify-content: center;
   gap: var(--spacing-md);
+  margin: var(--spacing-md) 0;
 }
 
 .gameweek-nav-btn {

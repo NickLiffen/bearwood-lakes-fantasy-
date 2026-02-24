@@ -211,15 +211,6 @@ const MyTeamPage: React.FC = () => {
           if (response.data.team?.period) {
             const weekStart = new Date(response.data.team.period.weekStart);
             setSelectedDate(formatDateString(weekStart));
-
-            // Generate week options if not already set
-            if (weekOptions.length === 0) {
-              const options = generateWeekOptions(
-                response.data.team.teamEffectiveStart,
-                season?.startDate
-              );
-              setWeekOptions(options);
-            }
           }
         } else {
           setError(response.error || 'Failed to load team');
@@ -230,7 +221,7 @@ const MyTeamPage: React.FC = () => {
         setLoading(false);
       }
     },
-    [get, weekOptions.length, generateWeekOptions]
+    [get]
   );
 
   useEffect(() => {
@@ -238,6 +229,14 @@ const MyTeamPage: React.FC = () => {
       fetchTeam();
     }
   }, [isAuthReady, fetchTeam]);
+
+  // Generate week options when both team data and season data are available
+  useEffect(() => {
+    if (teamData?.team?.teamEffectiveStart && season?.startDate) {
+      const options = generateWeekOptions(teamData.team.teamEffectiveStart, season.startDate);
+      setWeekOptions(options);
+    }
+  }, [teamData?.team?.teamEffectiveStart, season?.startDate, generateWeekOptions]);
 
   // Navigation handlers
   const handleWeekNavigation = (direction: 'prev' | 'next') => {
