@@ -34,10 +34,10 @@
   border-bottom: 1px solid #e5e7eb;
 }
 
-.modal-header h2 {
-  font-family: var(--font-serif);
+.compare-modal .modal-header h2 {
+  font-family: var(--font-heading);
   font-size: 1.25rem;
-  color: var(--dark-text);
+  color: white;
   margin: 0;
 }
 
