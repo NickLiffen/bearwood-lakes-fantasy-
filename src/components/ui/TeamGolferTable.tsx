@@ -15,12 +15,14 @@ interface GolferData {
 
 interface TeamGolferTableProps {
   golfers: GolferData[];
+  weekTotal?: number;
   isOwnTeam?: boolean;
   onSetCaptain?: (golferId: string) => void;
 }
 
 const TeamGolferTable: React.FC<TeamGolferTableProps> = ({
   golfers,
+  weekTotal,
   isOwnTeam = false,
   onSetCaptain,
 }) => {
@@ -86,12 +88,20 @@ const TeamGolferTable: React.FC<TeamGolferTableProps> = ({
   ];
 
   return (
-    <DataTable
-      data={golfers}
-      columns={columns}
-      rowKey={(data) => data.golfer.id}
-      emptyMessage="No golfers in this team."
-    />
+    <>
+      {weekTotal != null && (
+        <div className="week-total-bar">
+          <span className="week-total-label">Week Total:</span>
+          <span className="week-total-value">{weekTotal} pts</span>
+        </div>
+      )}
+      <DataTable
+        data={golfers}
+        columns={columns}
+        rowKey={(data) => data.golfer.id}
+        emptyMessage="No golfers in this team."
+      />
+    </>
   );
 };
 

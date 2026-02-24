@@ -322,6 +322,7 @@ const MyTeamPage: React.FC = () => {
             </div>
             <TeamGolferTable
               golfers={sortedGolfers}
+              weekTotal={team.totals.weekPoints}
               isOwnTeam={true}
               onSetCaptain={handleSetCaptain}
             />

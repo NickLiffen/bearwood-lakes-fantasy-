@@ -309,15 +309,10 @@ const UserProfilePage: React.FC = () => {
                   onSelect={(date) => fetchUserProfile(date)}
                 />
 
-                {/* Team Total */}
-                <div className="team-total">
-                  <span className="total-label">Week Total:</span>
-                  <span className="total-value">{team.totals.weekPoints} pts</span>
-                </div>
-
                 {/* Golfers Table */}
                 <TeamGolferTable
                   golfers={team.golfers}
+                  weekTotal={team.totals.weekPoints}
                   isOwnTeam={false}
                 />
               </div>

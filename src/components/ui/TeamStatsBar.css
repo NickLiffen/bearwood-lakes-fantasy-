@@ -58,3 +58,25 @@
     font-size: 0.65rem;
   }
 }
+
+/* Week Total Bar — used inside TeamGolferTable */
+.week-total-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  background: linear-gradient(135deg, var(--primary-green), var(--secondary-green));
+  border-radius: 8px;
+  color: white;
+  margin-bottom: 0.75rem;
+}
+
+.week-total-label {
+  font-size: 0.9rem;
+  opacity: 0.9;
+}
+
+.week-total-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+}
