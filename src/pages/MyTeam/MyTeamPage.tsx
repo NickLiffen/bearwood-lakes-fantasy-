@@ -93,6 +93,9 @@ const MyTeamPage: React.FC = () => {
   const [weekOptions, setWeekOptions] = useState<WeekOption[]>([]);
   const [savingCaptain, setSavingCaptain] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'warning' } | null>(null);
+  const [captainBannerDismissed, setCaptainBannerDismissed] = useState(
+    () => localStorage.getItem('captainBannerDismissed') === 'true',
+  );
   const { get, post, isAuthReady } = useApiClient();
   const { season } = useActiveSeason();
   const { user: authUser } = useAuth();
@@ -182,9 +185,13 @@ const MyTeamPage: React.FC = () => {
       };
     });
 
-    // Show toast
+    // Show toast + dismiss banner permanently on first captain set
     if (newCaptainId) {
       setToast({ message: `👑 Captain Set: ${golferName}`, type: 'success' });
+      if (!captainBannerDismissed) {
+        setCaptainBannerDismissed(true);
+        localStorage.setItem('captainBannerDismissed', 'true');
+      }
     } else {
       setToast({ message: `👑 Captain Removed`, type: 'warning' });
     }
@@ -326,6 +333,19 @@ const MyTeamPage: React.FC = () => {
             </div>
           </div>
 
+          {/* Captain Prompt — one-time only, dismissed permanently after first captain set */}
+          {!captainBannerDismissed && !team.captainId && (
+            <div className="captain-prompt-banner">
+              <span className="banner-icon">⭐</span>
+              <div className="banner-text">
+                <h3>Pick Your Captain</h3>
+                <p>
+                  Tap the <span className="captain-badge-hint">C</span> next to a golfer&apos;s name
+                  to make them captain. Your captain earns <strong>2× points</strong> every week!
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Stats Grid */}
           <TeamStatsBar
