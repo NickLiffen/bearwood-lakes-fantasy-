@@ -1,4 +1,4 @@
-// Seed database from example-data.csv
+// Seed database from new-data.csv
 // Run with: npm run db:seed-csv
 
 import { MongoClient, ObjectId } from 'mongodb';
@@ -23,7 +23,10 @@ interface CsvRow {
   date: string;
   position: number;
   player: string;
-  stablefordPoints: number;
+  rawScore: number;
+  tournamentType: string;
+  scoringFormat: string;
+  isMultiDay: boolean;
 }
 
 interface GolferSeasonStats {
@@ -51,6 +54,10 @@ function defaultStats(): GolferSeasonStats {
 }
 
 function parseDate(dateStr: string): Date {
+  if (dateStr.includes('-')) {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }
   const [day, month, year] = dateStr.split('/').map(Number);
   return new Date(year, month - 1, day);
 }
@@ -68,14 +75,25 @@ function getBasePointsForPosition(position: number): number {
   return POSITION_POINTS[position] ?? 0;
 }
 
-function getBonusPoints(stablefordPoints: number, isMultiDay: boolean = false): number {
-  if (isMultiDay) {
-    if (stablefordPoints >= 72) return 3;
-    if (stablefordPoints >= 64) return 1;
+function getBonusPoints(rawScore: number, scoringFormat: string, isMultiDay: boolean): number {
+  if (scoringFormat === 'stableford' || scoringFormat === 'Stableford') {
+    if (isMultiDay) {
+      if (rawScore >= 72) return 3;
+      if (rawScore >= 64) return 1;
+      return 0;
+    }
+    if (rawScore >= 36) return 3;
+    if (rawScore >= 32) return 1;
     return 0;
   }
-  if (stablefordPoints >= 36) return 3;
-  if (stablefordPoints >= 32) return 1;
+  // Medal (nett score)
+  if (isMultiDay) {
+    if (rawScore <= 0) return 3;
+    if (rawScore <= 8) return 1;
+    return 0;
+  }
+  if (rawScore <= 0) return 3;
+  if (rawScore <= 4) return 1;
   return 0;
 }
 
@@ -97,23 +115,30 @@ function parseCsv(csvText: string): CsvRow[] {
   const lines = csvText.split('\n');
   const rows: CsvRow[] = [];
 
+  // Auto-detect delimiter from header line
+  const headerLine = lines[0] || '';
+  const delimiter = headerLine.includes('\t') ? '\t' : ',';
+
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
 
-    const parts = line.split(',');
-    if (parts.length < 4) continue;
+    const parts = line.split(delimiter);
+    if (parts.length < 7) continue;
 
-    const stablefordPoints = parseInt(parts[3].trim(), 10);
+    const rawScore = parseInt(parts[3].trim(), 10);
     const position = parseInt(parts[1].trim(), 10);
 
-    if (isNaN(position) || isNaN(stablefordPoints)) continue;
+    if (isNaN(position) || isNaN(rawScore)) continue;
 
     rows.push({
       date: parts[0].trim(),
       position,
       player: parts[2].trim(),
-      stablefordPoints,
+      rawScore,
+      tournamentType: parts[4].trim(),
+      scoringFormat: parts[5].trim(),
+      isMultiDay: parts[6].trim().toLowerCase() === 'yes',
     });
   }
 
@@ -166,9 +191,9 @@ async function seedFromCsv() {
   console.log('');
 
   // Read CSV
-  const csvPath = path.join(__dirname, 'example-data.csv');
+  const csvPath = path.join(__dirname, 'new-data.csv');
   if (!fs.existsSync(csvPath)) {
-    console.error('❌ scripts/example-data.csv not found');
+    console.error('❌ scripts/new-data.csv not found');
     process.exit(1);
   }
 
@@ -296,13 +321,20 @@ async function seedFromCsv() {
       golferStats.set(id.toString(), { stats2024: defaultStats(), stats2025: defaultStats() });
     }
 
+    const MULTIPLIERS: Record<string, number> = {
+      rollup_stableford: 1, weekday_medal: 1, weekend_medal: 2,
+      presidents_cup: 3, founders: 4, club_champs_nett: 5,
+    };
+
     for (const [dateStr, group] of dateGroups) {
       const date = parseDate(dateStr);
       const seasonNumber = getSeasonForDate(date);
       const tier = getGolferCountTier(group.length);
-      const isSunday = date.getDay() === 0;
-      const tournamentType = isSunday ? ('weekend_medal' as const) : ('rollup_stableford' as const);
-      const multiplier = isSunday ? 2 : 1;
+      const firstRow = group[0];
+      const tournamentType = firstRow.tournamentType.toLowerCase();
+      const scoringFormat = firstRow.scoringFormat.toLowerCase();
+      const isMultiDay = firstRow.isMultiDay;
+      const multiplier = MULTIPLIERS[tournamentType] ?? 1;
       const tournamentName = `${dateStr} Tournament`;
 
       // Create tournament
@@ -312,8 +344,8 @@ async function seedFromCsv() {
         startDate: date,
         endDate: date,
         tournamentType,
-        scoringFormat: 'stableford' as const,
-        isMultiDay: false,
+        scoringFormat,
+        isMultiDay,
         multiplier,
         golferCountTier: tier,
         season: seasonNumber,
@@ -335,8 +367,7 @@ async function seedFromCsv() {
         participatingGolferIds.push(golferId);
 
         const basePoints = getBasePointsForPosition(row.position);
-        const scored36Plus = row.stablefordPoints >= 36;
-        const bonusPoints = getBonusPoints(row.stablefordPoints, false);
+        const bonusPoints = getBonusPoints(row.rawScore, scoringFormat, isMultiDay);
         const multipliedPoints = (basePoints + bonusPoints) * multiplier;
 
         await db.collection('scores').insertOne({
@@ -344,8 +375,7 @@ async function seedFromCsv() {
           tournamentId,
           participated: true,
           position: row.position,
-          scored36Plus,
-          rawScore: row.stablefordPoints,
+          rawScore: row.rawScore,
           basePoints,
           bonusPoints,
           multipliedPoints,
@@ -360,8 +390,10 @@ async function seedFromCsv() {
         const gs = golferStats.get(golferId.toString());
         if (gs) {
           gs[key].timesPlayed++;
-          if (row.stablefordPoints >= 36) gs[key].timesScored36Plus++;
-          if (row.stablefordPoints >= 32) gs[key].timesScored32Plus++;
+          const earned3Bonus = getBonusPoints(row.rawScore, scoringFormat, isMultiDay) >= 3;
+          const earned1Bonus = getBonusPoints(row.rawScore, scoringFormat, isMultiDay) >= 1;
+          if (earned3Bonus) gs[key].timesScored36Plus++;
+          if (earned1Bonus) gs[key].timesScored32Plus++;
           if (row.position === 1) gs[key].timesFinished1st++;
           if (row.position === 2) gs[key].timesFinished2nd++;
           if (row.position === 3) gs[key].timesFinished3rd++;
