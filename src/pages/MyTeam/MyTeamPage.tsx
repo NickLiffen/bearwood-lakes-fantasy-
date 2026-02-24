@@ -11,6 +11,7 @@ import TeamStatsBar from '../../components/ui/TeamStatsBar';
 import TeamSection from '../../components/ui/TeamSection';
 import TeamHistory from '../../components/ui/TeamHistory';
 import TeamGolferTable from '../../components/ui/TeamGolferTable';
+import Toast from '../../components/ui/Toast';
 import { useApiClient } from '../../hooks/useApiClient';
 import { useActiveSeason } from '../../hooks/useActiveSeason';
 import { useAuth } from '../../hooks/useAuth';
@@ -91,6 +92,7 @@ const MyTeamPage: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [weekOptions, setWeekOptions] = useState<WeekOption[]>([]);
   const [savingCaptain, setSavingCaptain] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'warning' } | null>(null);
   const { get, post, isAuthReady } = useApiClient();
   const { season } = useActiveSeason();
   const { user: authUser } = useAuth();
@@ -160,6 +162,10 @@ const MyTeamPage: React.FC = () => {
     const currentCaptainId = teamData.team.captainId;
     const newCaptainId = golferId === currentCaptainId ? null : golferId;
 
+    // Find golfer name for toast
+    const golfer = teamData.team.golfers.find((g) => g.golfer.id === golferId);
+    const golferName = golfer ? `${golfer.golfer.firstName} ${golfer.golfer.lastName}` : '';
+
     // Optimistic update — instant UI feedback
     setTeamData((prev) => {
       if (!prev?.team) return prev;
@@ -176,6 +182,13 @@ const MyTeamPage: React.FC = () => {
       };
     });
 
+    // Show toast
+    if (newCaptainId) {
+      setToast({ message: `👑 Captain Set: ${golferName}`, type: 'success' });
+    } else {
+      setToast({ message: `👑 Captain Removed`, type: 'warning' });
+    }
+
     setSavingCaptain(true);
     try {
       const response = await post('picks-save', {
@@ -184,13 +197,12 @@ const MyTeamPage: React.FC = () => {
       });
 
       if (!response.success) {
-        // Revert on failure
         fetchTeam(selectedDate);
-        alert(response.error || 'Failed to set captain');
+        setToast({ message: 'Failed to set captain', type: 'warning' });
       }
     } catch {
       fetchTeam(selectedDate);
-      alert('Failed to set captain. Please try again.');
+      setToast({ message: 'Failed to set captain', type: 'warning' });
     } finally {
       setSavingCaptain(false);
     }
@@ -279,6 +291,7 @@ const MyTeamPage: React.FC = () => {
   const sortedGolfers = [...team.golfers].sort((a, b) => b.weekPoints - a.weekPoints);
 
   return (
+    <>
     <PageLayout activeNav="my-team">
       <div className="my-team-content">
         <div className="my-team-container">
@@ -396,6 +409,14 @@ const MyTeamPage: React.FC = () => {
         </div>
       </div>
     </PageLayout>
+    {toast && (
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast(null)}
+      />
+    )}
+    </>
   );
 };
 
