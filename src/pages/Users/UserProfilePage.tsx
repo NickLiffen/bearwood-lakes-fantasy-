@@ -273,9 +273,10 @@ const UserProfilePage: React.FC = () => {
           {hasTeam && stats && team && (
             <TeamStatsBar
               weekPoints={stats.weekPoints}
+              monthPoints={stats.monthPoints}
               seasonPoints={stats.seasonPoints}
-              teamValue={team.totals.totalSpent}
               weekRank={stats.weekRank}
+              monthRank={stats.monthRank}
               seasonRank={stats.seasonRank}
             />
           )}

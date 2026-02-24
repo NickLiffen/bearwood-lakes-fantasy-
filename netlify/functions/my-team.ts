@@ -11,7 +11,7 @@ import { GolferDocument, GOLFERS_COLLECTION, toGolfer } from './_shared/models/G
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
 import { SettingDocument, SETTINGS_COLLECTION } from './_shared/models/Settings';
-import { getWeekStart, getWeekEnd, getTeamEffectiveStartDate, getGameweekNumber, getSeasonFirstSaturday } from './_shared/utils/dates';
+import { getWeekStart, getWeekEnd, getMonthStart, getMonthEnd, getTeamEffectiveStartDate, getGameweekNumber, getSeasonFirstSaturday } from './_shared/utils/dates';
 import { getTransfersThisWeek } from './_shared/services/picks.service';
 import { getActiveSeason } from './_shared/services/seasons.service';
 
@@ -232,13 +232,23 @@ export const handler: Handler = withAuth(async (event: AuthenticatedEvent) => {
         return date >= seasonFirstSat && date >= teamEffectiveStartDate;
       });
 
+      // Month scores — current month of the selected week
+      const monthStart = getMonthStart(selectedWeekStart);
+      const monthEnd = getMonthEnd(selectedWeekStart);
+      const monthScores = formattedScores.filter((s) => {
+        const date = new Date(s.tournamentDate);
+        return date >= monthStart && date <= monthEnd && date >= teamEffectiveStartDate;
+      });
+
       // Calculate totals with captain multiplier
       const weekPoints = weekScores.reduce((sum, s) => sum + s.multipliedPoints, 0) * captainMultiplier;
+      const monthPoints = monthScores.reduce((sum, s) => sum + s.multipliedPoints, 0) * captainMultiplier;
       const seasonPoints = seasonScores.reduce((sum, s) => sum + s.multipliedPoints, 0) * captainMultiplier;
 
       return {
         golfer: toGolfer(golfer),
         weekPoints,
+        monthPoints,
         seasonPoints,
         weekScores,
         seasonScores,
@@ -252,6 +262,7 @@ export const handler: Handler = withAuth(async (event: AuthenticatedEvent) => {
     // Calculate team totals
     const teamTotals = {
       weekPoints: golfersWithScores.reduce((sum, g) => sum + g.weekPoints, 0),
+      monthPoints: golfersWithScores.reduce((sum, g) => sum + g.monthPoints, 0),
       seasonPoints: golfersWithScores.reduce((sum, g) => sum + g.seasonPoints, 0),
       totalSpent: pick.totalSpent,
     };

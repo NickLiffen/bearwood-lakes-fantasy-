@@ -34,6 +34,7 @@ interface GolferWithScores {
     stats2026: GolferSeasonStats;
   };
   weekPoints: number;
+  monthPoints: number;
   seasonPoints: number;
   weekScores: TournamentScore[];
   seasonScores: TournamentScore[];
@@ -45,6 +46,7 @@ interface TeamData {
   golfers: GolferWithScores[];
   totals: {
     weekPoints: number;
+    monthPoints: number;
     seasonPoints: number;
     totalSpent: number;
   };
@@ -329,8 +331,8 @@ const MyTeamPage: React.FC = () => {
           {/* Stats Grid */}
           <TeamStatsBar
             weekPoints={team.totals.weekPoints}
+            monthPoints={team.totals.monthPoints || 0}
             seasonPoints={team.totals.seasonPoints}
-            teamValue={team.totals.totalSpent}
           />
 
           {/* Team Section */}

@@ -3,21 +3,21 @@ import './TeamStatsBar.css';
 
 interface TeamStatsBarProps {
   weekPoints: number;
+  monthPoints: number;
   seasonPoints: number;
-  teamValue: number;
   weekRank?: number | null;
+  monthRank?: number | null;
   seasonRank?: number | null;
 }
 
 const TeamStatsBar: React.FC<TeamStatsBarProps> = ({
   weekPoints,
+  monthPoints,
   seasonPoints,
-  teamValue,
   weekRank,
+  monthRank,
   seasonRank,
 }) => {
-  const formatPrice = (price: number) => `£${(price / 1_000_000).toFixed(1)}M`;
-
   return (
     <div className="team-stats-bar">
       <div className="team-stat-card">
@@ -26,13 +26,14 @@ const TeamStatsBar: React.FC<TeamStatsBarProps> = ({
         {weekRank != null && <span className="team-stat-rank">#{weekRank}</span>}
       </div>
       <div className="team-stat-card">
+        <span className="team-stat-value">{monthPoints}</span>
+        <span className="team-stat-label">Month Points</span>
+        {monthRank != null && <span className="team-stat-rank">#{monthRank}</span>}
+      </div>
+      <div className="team-stat-card">
         <span className="team-stat-value">{seasonPoints}</span>
         <span className="team-stat-label">Season Points</span>
         {seasonRank != null && <span className="team-stat-rank">#{seasonRank}</span>}
-      </div>
-      <div className="team-stat-card">
-        <span className="team-stat-value">{formatPrice(teamValue)}</span>
-        <span className="team-stat-label">Team Value</span>
       </div>
     </div>
   );
