@@ -303,32 +303,34 @@ const MyTeamPage: React.FC = () => {
             teamValue={team.totals.totalSpent}
           />
 
-          {/* Team Header */}
-          <div className="team-section-header">
-            <h2>🏌️ {authUser?.firstName || 'Your'}&apos;s Team</h2>
-            <span className="team-value-label">£{(team.totals.totalSpent / 1_000_000).toFixed(1)}M team value</span>
+          {/* Team Section — white card container */}
+          <div className="team-section-card">
+            <div className="team-section-header">
+              <h2>🏌️ {authUser?.firstName || 'Your'}&apos;s Team</h2>
+              <span className="team-value-label">£{(team.totals.totalSpent / 1_000_000).toFixed(1)}M team value</span>
+            </div>
+
+            {/* Week Navigation */}
+            <GameweekNav
+              weekOptions={weekOptions}
+              selectedDate={selectedDate || ''}
+              hasPrevious={teamData?.team?.period?.hasPrevious ?? false}
+              hasNext={teamData?.team?.period?.hasNext ?? false}
+              onNavigate={handleWeekNavigation}
+              onSelect={(date) => fetchTeam(date)}
+            />
+
+            {/* Error State */}
+            {error && <div className="error-message">{error}</div>}
+
+            {/* Golfers Table */}
+            <TeamGolferTable
+              golfers={sortedGolfers}
+              weekTotal={team.totals.weekPoints}
+              isOwnTeam={true}
+              onSetCaptain={handleSetCaptain}
+            />
           </div>
-
-          {/* Week Navigation */}
-          <GameweekNav
-            weekOptions={weekOptions}
-            selectedDate={selectedDate || ''}
-            hasPrevious={teamData?.team?.period?.hasPrevious ?? false}
-            hasNext={teamData?.team?.period?.hasNext ?? false}
-            onNavigate={handleWeekNavigation}
-            onSelect={(date) => fetchTeam(date)}
-          />
-
-          {/* Error State */}
-          {error && <div className="error-message">{error}</div>}
-
-          {/* Golfers Table */}
-          <TeamGolferTable
-            golfers={sortedGolfers}
-            weekTotal={team.totals.weekPoints}
-            isOwnTeam={true}
-            onSetCaptain={handleSetCaptain}
-          />
 
           {/* Team Info Footer */}
           <div className="team-info-footer">
