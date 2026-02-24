@@ -1,12 +1,13 @@
 // Team Builder Page - Pick your fantasy golf team
 
-import React, { useCallback, useEffect, useState, useMemo } from 'react';
+import React, { useCallback, useEffect, useState, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PageLayout from '../../components/layout/PageLayout';
 import { useApiClient } from '../../hooks/useApiClient';
 import { useActiveSeason } from '../../hooks/useActiveSeason';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { matchesSearch } from '../../utils/search';
+import Toast from '../../components/ui/Toast';
 import './TeamBuilderPage.css';
 
 interface GolferStats {
@@ -91,7 +92,9 @@ const TeamBuilderPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'warning' } | null>(null);
+  const searchSectionRef = useRef<HTMLDivElement>(null);
+  const teamSlotsRef = useRef<HTMLDivElement>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('price-high');
   const [quickFilter, setQuickFilter] = useState<QuickFilter>('all');
@@ -180,13 +183,16 @@ const TeamBuilderPage: React.FC = () => {
     if (selectedGolfers.length >= TEAM_SIZE) return;
 
     setSelectedGolfers([...selectedGolfers, golfer]);
-    setSuccessMessage(`${golfer.firstName} ${golfer.lastName} added to your team!`);
-    setTimeout(() => setSuccessMessage(null), 2000);
+    setToast({ message: `✓ ${golfer.firstName} ${golfer.lastName} added`, type: 'success' });
+    setTimeout(() => {
+      teamSlotsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 300);
   };
 
   const handleRemoveGolfer = (golfer: Golfer) => {
     if (!canEditTeam) return;
     setSelectedGolfers(selectedGolfers.filter((g) => g.id !== golfer.id));
+    setToast({ message: `✕ ${golfer.firstName} ${golfer.lastName} removed`, type: 'warning' });
   };
 
   const handleSaveTeam = async () => {
@@ -453,11 +459,7 @@ const TeamBuilderPage: React.FC = () => {
               </button>
             </div>
           )}
-          {successMessage && (
-            <div className="alert alert-success">
-              <span>✓</span> {successMessage}
-            </div>
-          )}
+
 
           {/* Budget & Team Summary */}
           <section className="summary-section">
@@ -485,11 +487,30 @@ const TeamBuilderPage: React.FC = () => {
                   {selectedGolfers.length} / {TEAM_SIZE} golfers
                 </span>
               </div>
-              <div className="team-slots">
+              <div className="team-slots" ref={teamSlotsRef}>
                 {[...Array(TEAM_SIZE)].map((_, index) => {
                   const golfer = selectedGolfers[index];
                   return (
-                    <div key={index} className={`team-slot ${golfer ? 'filled' : 'empty'}`}>
+                    <div
+                      key={index}
+                      className={`team-slot ${golfer ? 'filled' : 'empty'}`}
+                      onClick={
+                        golfer
+                          ? () => handleRemoveGolfer(golfer)
+                          : () => {
+                              searchSectionRef.current?.scrollIntoView({
+                                behavior: 'smooth',
+                                block: 'start',
+                              });
+                              setTimeout(() => {
+                                const input = document.getElementById('golfer-search');
+                                if (input) input.focus();
+                              }, 500);
+                            }
+                      }
+                      style={{ cursor: 'pointer' }}
+                      title={golfer ? 'Tap to remove' : undefined}
+                    >
                       {golfer ? (
                         <>
                           <div className="slot-golfer">
@@ -499,7 +520,10 @@ const TeamBuilderPage: React.FC = () => {
                           {canEditTeam && (
                             <button
                               className="slot-remove"
-                              onClick={() => handleRemoveGolfer(golfer)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveGolfer(golfer);
+                              }}
                               title="Remove golfer"
                             >
                               ×
@@ -532,7 +556,7 @@ const TeamBuilderPage: React.FC = () => {
           </section>
 
           {/* Filters */}
-          <section className="filters-section">
+          <section className="filters-section" ref={searchSectionRef}>
             {/* Search */}
             <div className="search-box">
               <span className="search-icon">🔍</span>
@@ -987,6 +1011,13 @@ const TeamBuilderPage: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
       )}
     </PageLayout>
   );
