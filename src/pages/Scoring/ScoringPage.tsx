@@ -230,19 +230,6 @@ const ScoringPage: React.FC = () => {
           </div>
         </section>
 
-        {/* CTA */}
-        <div className="scoring-cta">
-          <h2>Ready to Play?</h2>
-          <p>Build your team and start competing!</p>
-          <div className="scoring-cta-buttons">
-            <Link to="/register" className="btn btn-primary btn-lg">
-              Join the League
-            </Link>
-            <Link to="/golfers" className="btn btn-secondary btn-lg">
-              Browse Golfers
-            </Link>
-          </div>
-        </div>
       </div>
     </div>
   );
