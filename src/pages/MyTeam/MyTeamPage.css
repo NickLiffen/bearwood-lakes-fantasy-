@@ -871,33 +871,4 @@
   font-weight: 600;
 }
 
-/* Team Section Header */
-.team-section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 0.5rem;
-}
 
-.team-section-header h2 {
-  font-family: var(--font-heading);
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--primary-green);
-  margin: 0;
-}
-
-.team-value-label {
-  font-size: 0.9rem;
-  color: var(--muted-text);
-  font-weight: 500;
-}
-
-/* Team Section Card — white container matching UserProfilePage */
-.team-section-card {
-  background: white;
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  margin-bottom: 1.5rem;
-}

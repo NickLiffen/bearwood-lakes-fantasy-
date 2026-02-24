@@ -8,13 +8,14 @@ import GameweekNav from '../../components/ui/GameweekNav';
 import { generateWeekOptions, formatDateString } from '../../utils/gameweek';
 import type { WeekOption } from '../../utils/gameweek';
 import TeamStatsBar from '../../components/ui/TeamStatsBar';
+import TeamSection from '../../components/ui/TeamSection';
 import TeamGolferTable from '../../components/ui/TeamGolferTable';
 import TeamCompareModal from '../../components/ui/TeamCompareModal';
 import { useAuth } from '../../hooks/useAuth';
 import { useApiClient } from '../../hooks/useApiClient';
 import { useActiveSeason } from '../../hooks/useActiveSeason';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
-import { formatDate, formatDateTime, formatPrice } from '../../utils/formatters';
+import { formatDate, formatDateTime } from '../../utils/formatters';
 import './UserProfilePage.css';
 
 interface GolferStats {
@@ -291,14 +292,10 @@ const UserProfilePage: React.FC = () => {
           {hasTeam && team && (
             <>
               {/* Team Summary */}
-              <div className="team-section">
-                <div className="section-header">
-                  <h2>🏌️ {user.firstName}'s Team</h2>
-                  <span className="team-value">
-                    {formatPrice(team.totals.totalSpent)} team value
-                  </span>
-                </div>
-
+              <TeamSection
+                firstName={user.firstName}
+                teamValue={team.totals.totalSpent}
+              >
                 {/* Week Navigation */}
                 <GameweekNav
                   weekOptions={weekOptions}
@@ -315,7 +312,7 @@ const UserProfilePage: React.FC = () => {
                   weekTotal={team.totals.weekPoints}
                   isOwnTeam={false}
                 />
-              </div>
+              </TeamSection>
 
               {/* Team History */}
               {history.length > 0 && (

@@ -187,33 +187,6 @@
   color: var(--muted-text);
 }
 
-/* Team Section */
-.team-section {
-  background: white;
-  border-radius: 12px;
-  padding: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  margin-bottom: 1.5rem;
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1rem;
-}
-
-.section-header h2 {
-  font-family: var(--font-serif);
-  font-size: 1.25rem;
-  color: var(--dark-text);
-}
-
-.team-value {
-  color: var(--muted-text);
-  font-size: 0.9rem;
-}
-
 /* View Toggle (legacy) */
 .view-toggle {
   display: flex;

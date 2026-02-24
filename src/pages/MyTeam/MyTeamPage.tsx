@@ -8,6 +8,7 @@ import GameweekNav from '../../components/ui/GameweekNav';
 import { generateWeekOptions, formatDateString } from '../../utils/gameweek';
 import type { WeekOption } from '../../utils/gameweek';
 import TeamStatsBar from '../../components/ui/TeamStatsBar';
+import TeamSection from '../../components/ui/TeamSection';
 import TeamGolferTable from '../../components/ui/TeamGolferTable';
 import { useApiClient } from '../../hooks/useApiClient';
 import { useActiveSeason } from '../../hooks/useActiveSeason';
@@ -303,14 +304,11 @@ const MyTeamPage: React.FC = () => {
             teamValue={team.totals.totalSpent}
           />
 
-          {/* Team Section — white card container */}
-          <div className="team-section-card">
-            <div className="team-section-header">
-              <h2>🏌️ {authUser?.firstName || 'Your'}&apos;s Team</h2>
-              <span className="team-value-label">£{(team.totals.totalSpent / 1_000_000).toFixed(1)}M team value</span>
-            </div>
-
-            {/* Week Navigation */}
+          {/* Team Section */}
+          <TeamSection
+            firstName={authUser?.firstName || 'Your'}
+            teamValue={team.totals.totalSpent}
+          >
             <GameweekNav
               weekOptions={weekOptions}
               selectedDate={selectedDate || ''}
@@ -330,7 +328,7 @@ const MyTeamPage: React.FC = () => {
               isOwnTeam={true}
               onSetCaptain={handleSetCaptain}
             />
-          </div>
+          </TeamSection>
 
           {/* Team Info Footer */}
           <div className="team-info-footer">
