@@ -326,20 +326,6 @@ const MyTeamPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Captain Prompt Banner */}
-          {!team.captainId && (
-            <div className="captain-prompt-banner">
-              <span className="banner-icon">⭐</span>
-              <div className="banner-text">
-                <h3>Pick Your Captain</h3>
-                <p>
-                  Tap the <span className="captain-badge-hint">C</span> next to a golfer's name to
-                  make them captain. Your captain earns <strong>2× points</strong> every week!
-                </p>
-              </div>
-            </div>
-          )}
-
 
           {/* Stats Grid */}
           <TeamStatsBar
