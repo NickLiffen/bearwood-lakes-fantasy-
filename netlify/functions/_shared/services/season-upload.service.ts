@@ -29,6 +29,7 @@ interface CsvRow {
   rawScore: number;
   tournamentType: string;
   scoringFormat: string;
+  isMultiDay: boolean;
 }
 
 function stripQuotes(value: string): string {
@@ -62,6 +63,9 @@ function parseCsv(csvText: string): CsvRow[] {
 
     if (isNaN(position) || isNaN(rawScore)) continue;
 
+    const multiDayStr = parts[6] ? stripQuotes(parts[6]).toLowerCase() : '';
+    const isMultiDay = multiDayStr === 'yes' || multiDayStr === 'true' || multiDayStr === '1';
+
     rows.push({
       date: stripQuotes(parts[0]),
       position,
@@ -69,6 +73,7 @@ function parseCsv(csvText: string): CsvRow[] {
       rawScore,
       tournamentType: parts[4] ? stripQuotes(parts[4]).toLowerCase() : 'rollup_stableford',
       scoringFormat: parts[5] ? stripQuotes(parts[5]).toLowerCase() : 'stableford',
+      isMultiDay,
     });
   }
 
@@ -170,12 +175,13 @@ export async function processSeasonUpload(csvText: string): Promise<SeasonUpload
     const name = formatTournamentName(dateStr);
     const tier = getGolferCountTier(group.length);
 
-    // Get tournament type and scoring format from the first row in the group
+    // Get tournament type, scoring format, and multi-day from the first row in the group
     const csvType = (group[0].tournamentType || 'rollup_stableford') as TournamentType;
     const csvScoringFormat = (group[0].scoringFormat || 'stableford') as ScoringFormat;
+    const csvMultiDay = group[0].isMultiDay;
     const typeConfig = TOURNAMENT_TYPE_CONFIG[csvType];
     const multiplier = typeConfig?.multiplier ?? 1;
-    const isMultiDay = typeConfig?.defaultMultiDay ?? false;
+    const isMultiDay = csvMultiDay; // Use CSV value directly (Yes/No from column 7)
     const scoringFormat = typeConfig?.forcedScoringFormat ?? csvScoringFormat;
 
     // Find or create tournament
