@@ -12,7 +12,7 @@ import {
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from '../models/Tournament';
 import { ScoreDocument, SCORES_COLLECTION } from '../models/Score';
 import { SeasonDocument, SEASONS_COLLECTION } from '../models/Season';
-import { getBasePointsForPosition, getBonusPoints, type GolferCountTier } from '../../../../shared/types/tournament.types';
+import { getBasePointsForPosition, getBonusPoints, TOURNAMENT_TYPE_CONFIG, type TournamentType, type ScoringFormat, type GolferCountTier } from '../../../../shared/types/tournament.types';
 
 export interface SeasonUploadResult {
   golfersCreated: number;
@@ -26,7 +26,9 @@ interface CsvRow {
   date: string;
   position: number;
   player: string;
-  stablefordPoints: number;
+  rawScore: number;
+  tournamentType: string;
+  scoringFormat: string;
 }
 
 function stripQuotes(value: string): string {
@@ -44,18 +46,29 @@ function parseCsv(csvText: string): CsvRow[] {
   const lines = csvText.split('\n');
   const rows: CsvRow[] = [];
 
+  // Detect delimiter from header (tab or comma)
+  const header = lines[0] || '';
+  const delimiter = header.includes('\t') ? '\t' : ',';
+
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
 
-    const parts = line.split(',');
+    const parts = line.split(delimiter);
     if (parts.length < 4) continue;
+
+    const rawScore = parseInt(stripQuotes(parts[3]), 10);
+    const position = parseInt(stripQuotes(parts[1]), 10);
+
+    if (isNaN(position) || isNaN(rawScore)) continue;
 
     rows.push({
       date: stripQuotes(parts[0]),
-      position: parseInt(stripQuotes(parts[1]), 10),
+      position,
       player: stripQuotes(parts[2]),
-      stablefordPoints: parseInt(stripQuotes(parts[3]), 10),
+      rawScore,
+      tournamentType: parts[4] ? stripQuotes(parts[4]).toLowerCase() : 'rollup_stableford',
+      scoringFormat: parts[5] ? stripQuotes(parts[5]).toLowerCase() : 'stableford',
     });
   }
 
@@ -63,6 +76,11 @@ function parseCsv(csvText: string): CsvRow[] {
 }
 
 function parseDate(dateStr: string): Date {
+  // Support both DD/MM/YYYY and YYYY-MM-DD formats
+  if (dateStr.includes('-')) {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  }
   const [day, month, year] = dateStr.split('/').map(Number);
   return new Date(year, month - 1, day);
 }
@@ -151,7 +169,14 @@ export async function processSeasonUpload(csvText: string): Promise<SeasonUpload
     seasonsAffected.add(matchedSeason.name);
     const name = formatTournamentName(dateStr);
     const tier = getGolferCountTier(group.length);
-    const multiplier = 1; // regular tournaments
+
+    // Get tournament type and scoring format from the first row in the group
+    const csvType = (group[0].tournamentType || 'rollup_stableford') as TournamentType;
+    const csvScoringFormat = (group[0].scoringFormat || 'stableford') as ScoringFormat;
+    const typeConfig = TOURNAMENT_TYPE_CONFIG[csvType];
+    const multiplier = typeConfig?.multiplier ?? 1;
+    const isMultiDay = typeConfig?.defaultMultiDay ?? false;
+    const scoringFormat = typeConfig?.forcedScoringFormat ?? csvScoringFormat;
 
     // Find or create tournament
     const tournament = await tournamentsCol.findOne({ name, season: seasonNumber });
@@ -165,9 +190,9 @@ export async function processSeasonUpload(csvText: string): Promise<SeasonUpload
         name,
         startDate: date,
         endDate: date,
-        tournamentType: 'rollup_stableford',
-        scoringFormat: 'stableford',
-        isMultiDay: false,
+        tournamentType: csvType,
+        scoringFormat,
+        isMultiDay,
         multiplier,
         golferCountTier: tier,
         season: seasonNumber,
@@ -217,11 +242,10 @@ export async function processSeasonUpload(csvText: string): Promise<SeasonUpload
 
       affectedGolferIds.add(golferId.toString());
 
-      // Calculate points
+      // Calculate points using tournament's scoring format and multi-day setting
       const basePoints = getBasePointsForPosition(row.position);
-      const rawScore = row.stablefordPoints || null;
-      const scoringFormat = 'stableford' as const;
-      const bonusPoints = getBonusPoints(rawScore, scoringFormat, false);
+      const rawScore = row.rawScore;
+      const bonusPoints = getBonusPoints(rawScore, scoringFormat, isMultiDay);
       const multipliedPoints = (basePoints + bonusPoints) * multiplier;
 
       // Upsert score
