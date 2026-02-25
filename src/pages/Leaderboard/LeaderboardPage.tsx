@@ -407,6 +407,9 @@ const LeaderboardPage: React.FC = () => {
         <div className="section-header">
           <div className="section-title-row">
             <h2>{title}</h2>
+            <span className="section-meta">
+              {tournamentCount} tournament{tournamentCount !== 1 ? 's' : ''} · {entries.length} participants
+            </span>
           </div>
           {showNavigation && period && (
             <PeriodNav
@@ -422,15 +425,6 @@ const LeaderboardPage: React.FC = () => {
               }
             />
           )}
-          <div className="section-subtitle">
-            <span className="period-label">{period?.label || ''}</span>
-            <span className="meta-separator">•</span>
-            <span className="tournament-count">
-              {tournamentCount} tournament{tournamentCount !== 1 ? 's' : ''}
-            </span>
-            <span className="meta-separator">•</span>
-            <span className="participant-count">{entries.length} participants</span>
-          </div>
         </div>
 
         <DataTable

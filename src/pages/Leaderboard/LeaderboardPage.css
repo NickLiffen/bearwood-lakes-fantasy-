@@ -133,7 +133,7 @@
 }
 
 .section-header {
-  padding: 1.25rem;
+  padding: 0.75rem 1.25rem;
   border-bottom: 1px solid rgba(0, 21, 60, 0.1);
   background: #fafafa;
 }
@@ -152,18 +152,11 @@
   color: var(--primary-green);
 }
 
-.section-subtitle {
-  margin-top: 0.5rem;
-  font-size: 0.85rem;
+.section-meta {
+  font-size: 0.8rem;
   color: var(--muted-text);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-
-.meta-separator {
-  opacity: 0.4;
+  font-weight: 400;
+  white-space: nowrap;
 }
 
 /* Period Navigation — now handled by PeriodNav component */

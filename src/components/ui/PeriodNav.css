@@ -6,6 +6,10 @@
   margin: var(--spacing-md) 0;
 }
 
+.section-header .period-nav {
+  margin: 0.5rem 0 0;
+}
+
 .period-nav-btn {
   padding: 0.5rem 1rem;
   background: var(--primary-green);
