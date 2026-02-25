@@ -133,8 +133,11 @@ export const generateMonthOptions = (seasonStartDate: string): PeriodOption[] =>
   const start = new Date(seasonStartDate);
   const now = new Date();
 
+  // If pre-season, use the season start month as the end; otherwise use the current month
+  const endMonth = now < start ? new Date(start.getFullYear(), start.getMonth(), 1) : now;
+
   const current = new Date(start.getFullYear(), start.getMonth(), 1);
-  while (current <= now) {
+  while (current <= endMonth) {
     const label = current.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
     const year = current.getFullYear();
     const month = String(current.getMonth() + 1).padStart(2, '0');
