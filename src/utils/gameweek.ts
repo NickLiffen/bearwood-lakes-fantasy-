@@ -1,6 +1,6 @@
-// Shared gameweek utilities — single source of truth for both MyTeamPage and UserProfilePage
+// Shared gameweek/period utilities — single source of truth for MyTeamPage, UserProfilePage, and LeaderboardPage
 
-export interface WeekOption {
+export interface PeriodOption {
   value: string;
   label: string;
 }
@@ -69,8 +69,8 @@ export const formatWeekLabel = (weekStart: Date, gameweek?: number | null): stri
 export const generateWeekOptions = (
   teamEffectiveStart: string,
   seasonStartDate?: string,
-): WeekOption[] => {
-  const options: WeekOption[] = [];
+): PeriodOption[] => {
+  const options: PeriodOption[] = [];
   const now = new Date();
   const currentWeekSat = getSaturdayOfWeek(now);
 
@@ -121,4 +121,31 @@ export const generateWeekOptions = (
   }
 
   return options;
+};
+
+/**
+ * Generate the full list of month dropdown options for a season.
+ * Starts from the season start month and goes to the current month.
+ * Returns most recent first.
+ */
+export const generateMonthOptions = (seasonStartDate: string): PeriodOption[] => {
+  const options: PeriodOption[] = [];
+  const start = new Date(seasonStartDate);
+  const now = new Date();
+
+  const current = new Date(start.getFullYear(), start.getMonth(), 1);
+  while (current <= now) {
+    const label = current.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+    const year = current.getFullYear();
+    const month = String(current.getMonth() + 1).padStart(2, '0');
+
+    options.push({
+      value: `${year}-${month}-01`,
+      label,
+    });
+
+    current.setMonth(current.getMonth() + 1);
+  }
+
+  return options.reverse();
 };

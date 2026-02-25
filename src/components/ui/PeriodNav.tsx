@@ -1,13 +1,13 @@
 import React from 'react';
-import './GameweekNav.css';
+import './PeriodNav.css';
 
-interface WeekOption {
+export interface PeriodOption {
   value: string;
   label: string;
 }
 
-interface GameweekNavProps {
-  weekOptions: WeekOption[];
+interface PeriodNavProps {
+  options: PeriodOption[];
   selectedDate: string;
   hasPrevious: boolean;
   hasNext: boolean;
@@ -15,8 +15,8 @@ interface GameweekNavProps {
   onSelect: (date: string) => void;
 }
 
-const GameweekNav: React.FC<GameweekNavProps> = ({
-  weekOptions,
+const PeriodNav: React.FC<PeriodNavProps> = ({
+  options,
   selectedDate,
   hasPrevious,
   hasNext,
@@ -24,33 +24,33 @@ const GameweekNav: React.FC<GameweekNavProps> = ({
   onSelect,
 }) => {
   return (
-    <div className="gameweek-nav">
+    <div className="period-nav">
       <button
-        className="gameweek-nav-btn"
+        className="period-nav-btn"
         onClick={() => onNavigate('prev')}
         disabled={!hasPrevious}
-        aria-label="Previous gameweek"
+        aria-label="Previous period"
       >
         ← Prev
       </button>
       <select
-        id="gameweek-select"
-        name="gameweek-select"
-        className="gameweek-select"
+        id="period-select"
+        name="period-select"
+        className="period-nav-select"
         value={selectedDate}
         onChange={(e) => onSelect(e.target.value)}
       >
-        {weekOptions.map((opt) => (
+        {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
             {opt.label}
           </option>
         ))}
       </select>
       <button
-        className="gameweek-nav-btn"
+        className="period-nav-btn"
         onClick={() => onNavigate('next')}
         disabled={!hasNext}
-        aria-label="Next gameweek"
+        aria-label="Next period"
       >
         Next →
       </button>
@@ -58,5 +58,4 @@ const GameweekNav: React.FC<GameweekNavProps> = ({
   );
 };
 
-export default GameweekNav;
-export type { WeekOption };
+export default PeriodNav;

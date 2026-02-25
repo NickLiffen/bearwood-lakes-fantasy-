@@ -4,9 +4,9 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import PageLayout from '../../components/layout/PageLayout';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import GameweekNav from '../../components/ui/GameweekNav';
+import PeriodNav from '../../components/ui/PeriodNav';
 import { generateWeekOptions, formatDateString } from '../../utils/gameweek';
-import type { WeekOption } from '../../utils/gameweek';
+import type { PeriodOption } from '../../utils/gameweek';
 import TeamStatsBar from '../../components/ui/TeamStatsBar';
 import TeamSection from '../../components/ui/TeamSection';
 import TeamHistory from '../../components/ui/TeamHistory';
@@ -90,7 +90,7 @@ const MyTeamPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>('');
-  const [weekOptions, setWeekOptions] = useState<WeekOption[]>([]);
+  const [weekOptions, setWeekOptions] = useState<PeriodOption[]>([]);
   const [savingCaptain, setSavingCaptain] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'warning' } | null>(null);
   const [captainBannerDismissed, setCaptainBannerDismissed] = useState(
@@ -359,8 +359,8 @@ const MyTeamPage: React.FC = () => {
             firstName={authUser?.firstName || 'Your'}
             teamValue={team.totals.totalSpent}
           >
-            <GameweekNav
-              weekOptions={weekOptions}
+            <PeriodNav
+              options={weekOptions}
               selectedDate={selectedDate || ''}
               hasPrevious={teamData?.team?.period?.hasPrevious ?? false}
               hasNext={teamData?.team?.period?.hasNext ?? false}

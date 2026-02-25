@@ -7,11 +7,19 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import SeasonSelector from '../../components/ui/SeasonSelector';
 import TeamCompareModal from '../../components/ui/TeamCompareModal';
 import DataTable, { Column } from '../../components/ui/DataTable';
+import PeriodNav from '../../components/ui/PeriodNav';
 import { useAuth } from '../../hooks/useAuth';
 import { useApiClient } from '../../hooks/useApiClient';
 import { useActiveSeason } from '../../hooks/useActiveSeason';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { formatPrice } from '../../utils/formatters';
+import {
+  getSaturdayOfWeek,
+  formatDateString,
+  generateWeekOptions,
+  generateMonthOptions,
+} from '../../utils/gameweek';
+import type { PeriodOption } from '../../utils/gameweek';
 import './LeaderboardPage.css';
 
 const ITEMS_PER_PAGE = 10;
@@ -54,33 +62,6 @@ interface LeadersResponse {
   seasonInfo: PeriodInfo;
 }
 
-interface WeekOption {
-  date: string;
-  label: string;
-}
-
-interface MonthOption {
-  date: string;
-  label: string;
-}
-
-// Helper to get Saturday of the week for any date (matches backend)
-const getSaturdayOfWeek = (dateStr: string): string => {
-  const d = new Date(dateStr);
-  const dayOfWeek = d.getDay(); // 0 = Sunday, 6 = Saturday
-  let daysSinceSaturday: number;
-  if (dayOfWeek === 6) {
-    daysSinceSaturday = 0;
-  } else {
-    daysSinceSaturday = dayOfWeek + 1;
-  }
-  d.setDate(d.getDate() - daysSinceSaturday);
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
-
 const LeaderboardPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -114,79 +95,13 @@ const LeaderboardPage: React.FC = () => {
   const [monthlyDate, setMonthlyDate] = useState<string>('');
 
   // Dropdown options
-  const [weekOptions, setWeekOptions] = useState<WeekOption[]>([]);
-  const [monthOptions, setMonthOptions] = useState<MonthOption[]>([]);
+  const [weekOptions, setWeekOptions] = useState<PeriodOption[]>([]);
+  const [monthOptions, setMonthOptions] = useState<PeriodOption[]>([]);
 
   // Pagination state
   const [weeklyPage, setWeeklyPage] = useState(1);
   const [monthlyPage, setMonthlyPage] = useState(1);
   const [seasonPage, setSeasonPage] = useState(1);
-
-  // Generate week options from season start to now
-  const generateWeekOptions = useCallback((seasonStart: string) => {
-    const options: WeekOption[] = [];
-    const start = new Date(seasonStart);
-    const now = new Date();
-
-    // Find the first Saturday on or after the season start
-    const firstSaturday = new Date(start);
-    while (firstSaturday.getDay() !== 6) {
-      firstSaturday.setDate(firstSaturday.getDate() + 1);
-    }
-    firstSaturday.setHours(0, 0, 0, 0);
-
-    // eslint-disable-next-line prefer-const
-    let current = new Date(firstSaturday);
-    let gameweek = 1;
-    while (current <= now) {
-      const weekEnd = new Date(current);
-      weekEnd.setDate(current.getDate() + 6);
-
-      const formatOpts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
-      const dateRange = `${current.toLocaleDateString('en-GB', formatOpts)} - ${weekEnd.toLocaleDateString('en-GB', formatOpts)}`;
-      const label = `Gameweek ${gameweek}: ${dateRange}`;
-
-      const year = current.getFullYear();
-      const month = String(current.getMonth() + 1).padStart(2, '0');
-      const day = String(current.getDate()).padStart(2, '0');
-
-      options.push({
-        date: `${year}-${month}-${day}`,
-        label,
-      });
-
-      current.setDate(current.getDate() + 7);
-      gameweek++;
-    }
-
-    return options.reverse(); // Most recent first
-  }, []);
-
-  // Generate month options from season start to now
-  const generateMonthOptions = useCallback((seasonStart: string) => {
-    const options: MonthOption[] = [];
-    const start = new Date(seasonStart);
-    const now = new Date();
-
-    // eslint-disable-next-line prefer-const
-    let current = new Date(start.getFullYear(), start.getMonth(), 1);
-    while (current <= now) {
-      const label = current.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
-
-      // Use consistent date format (YYYY-MM-DD in local time)
-      const year = current.getFullYear();
-      const month = String(current.getMonth() + 1).padStart(2, '0');
-
-      options.push({
-        date: `${year}-${month}-01`,
-        label,
-      });
-
-      current.setMonth(current.getMonth() + 1);
-    }
-
-    return options.reverse(); // Most recent first
-  }, []);
 
   const fetchLeaders = useCallback(async () => {
     if (!selectedSeason) return;
@@ -203,7 +118,7 @@ const LeaderboardPage: React.FC = () => {
 
         // Set initial dates - use getSaturdayOfWeek to ensure we match option values
         if (response.data.currentWeek) {
-          setWeeklyDate(getSaturdayOfWeek(response.data.currentWeek.startDate));
+          setWeeklyDate(formatDateString(getSaturdayOfWeek(new Date(response.data.currentWeek.startDate))));
         }
         if (response.data.currentMonth) {
           const d = new Date(response.data.currentMonth.startDate);
@@ -212,16 +127,16 @@ const LeaderboardPage: React.FC = () => {
           setMonthlyDate(`${year}-${month}-01`);
         }
 
-        // Generate dropdown options
+        // Generate dropdown options from shared utilities
         if (response.data.seasonInfo) {
-          setWeekOptions(generateWeekOptions(response.data.seasonInfo.startDate));
+          setWeekOptions(generateWeekOptions(response.data.seasonInfo.startDate, response.data.seasonInfo.startDate));
           setMonthOptions(generateMonthOptions(response.data.seasonInfo.startDate));
         }
       }
     } catch (err) {
       console.error('Failed to fetch leaders:', err);
     }
-  }, [get, generateWeekOptions, generateMonthOptions, selectedSeason]);
+  }, [get, selectedSeason]);
 
   const fetchPeriodData = useCallback(
     async (period: 'week' | 'month' | 'season', date?: string) => {
@@ -296,11 +211,10 @@ const LeaderboardPage: React.FC = () => {
     const offset = direction === 'prev' ? -7 : 7;
     currentDate.setDate(currentDate.getDate() + offset);
 
-    // Use consistent date format
-    const newDate = getSaturdayOfWeek(currentDate.toISOString());
+    const newDate = formatDateString(getSaturdayOfWeek(currentDate));
 
     setWeeklyDate(newDate);
-    setWeeklyPage(1); // Reset pagination when changing period
+    setWeeklyPage(1);
     const data = await fetchPeriodData('week', newDate);
     if (data) setWeeklyData(data);
   };
@@ -493,48 +407,21 @@ const LeaderboardPage: React.FC = () => {
         <div className="section-header">
           <div className="section-title-row">
             <h2>{title}</h2>
-            {showNavigation && period && (
-              <div className="period-navigation">
-                <button
-                  className="nav-btn"
-                  onClick={() =>
-                    type === 'week' ? handleWeekNavigation('prev') : handleMonthNavigation('prev')
-                  }
-                  disabled={!canGoPrev}
-                  aria-label="Previous"
-                >
-                  ←
-                </button>
-                <select
-                  id="leaderboard-period"
-                  name="leaderboard-period"
-                  className="period-select"
-                  value={type === 'week' ? weeklyDate : monthlyDate}
-                  onChange={(e) =>
-                    type === 'week'
-                      ? handleWeekSelect(e.target.value)
-                      : handleMonthSelect(e.target.value)
-                  }
-                >
-                  {(type === 'week' ? weekOptions : monthOptions).map((opt) => (
-                    <option key={opt.date} value={opt.date}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  className="nav-btn"
-                  onClick={() =>
-                    type === 'week' ? handleWeekNavigation('next') : handleMonthNavigation('next')
-                  }
-                  disabled={!canGoNext}
-                  aria-label="Next"
-                >
-                  →
-                </button>
-              </div>
-            )}
           </div>
+          {showNavigation && period && (
+            <PeriodNav
+              options={type === 'week' ? weekOptions : monthOptions}
+              selectedDate={type === 'week' ? weeklyDate : monthlyDate}
+              hasPrevious={canGoPrev}
+              hasNext={canGoNext}
+              onNavigate={(dir) =>
+                type === 'week' ? handleWeekNavigation(dir) : handleMonthNavigation(dir)
+              }
+              onSelect={(date) =>
+                type === 'week' ? handleWeekSelect(date) : handleMonthSelect(date)
+              }
+            />
+          )}
           <div className="section-subtitle">
             <span className="period-label">{period?.label || ''}</span>
             <span className="meta-separator">•</span>

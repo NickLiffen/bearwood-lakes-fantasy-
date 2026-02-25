@@ -1,4 +1,4 @@
-.gameweek-nav {
+.period-nav {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -6,7 +6,7 @@
   margin: var(--spacing-md) 0;
 }
 
-.gameweek-nav-btn {
+.period-nav-btn {
   padding: 0.5rem 1rem;
   background: var(--primary-green);
   color: var(--light-text);
@@ -19,16 +19,16 @@
   transition: background 0.2s ease, opacity 0.2s ease;
 }
 
-.gameweek-nav-btn:hover:not(:disabled) {
+.period-nav-btn:hover:not(:disabled) {
   background: var(--secondary-green);
 }
 
-.gameweek-nav-btn:disabled {
+.period-nav-btn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
 
-.gameweek-select {
+.period-nav-select {
   padding: 0.5rem 0.75rem;
   background: var(--cream);
   color: var(--dark-text);
@@ -42,18 +42,18 @@
   transition: border-color 0.2s ease;
 }
 
-.gameweek-select:focus {
+.period-nav-select:focus {
   outline: none;
   border-color: var(--accent-gold);
   box-shadow: 0 0 0 2px rgba(201, 162, 39, 0.2);
 }
 
 @media (max-width: 768px) {
-  .gameweek-nav {
+  .period-nav {
     width: 100%;
   }
 
-  .gameweek-select {
+  .period-nav-select {
     flex: 1;
     min-width: 0;
   }

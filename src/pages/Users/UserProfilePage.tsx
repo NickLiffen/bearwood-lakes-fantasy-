@@ -4,9 +4,9 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import PageLayout from '../../components/layout/PageLayout';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import GameweekNav from '../../components/ui/GameweekNav';
+import PeriodNav from '../../components/ui/PeriodNav';
 import { generateWeekOptions, formatDateString } from '../../utils/gameweek';
-import type { WeekOption } from '../../utils/gameweek';
+import type { PeriodOption } from '../../utils/gameweek';
 import TeamStatsBar from '../../components/ui/TeamStatsBar';
 import TeamSection from '../../components/ui/TeamSection';
 import TeamGolferTable from '../../components/ui/TeamGolferTable';
@@ -120,7 +120,7 @@ const UserProfilePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<string>('');
-  const [weekOptions, setWeekOptions] = useState<WeekOption[]>([]);
+  const [weekOptions, setWeekOptions] = useState<PeriodOption[]>([]);
   const [showCompareModal, setShowCompareModal] = useState(false);
 
   // Check if this is the current user's profile
@@ -299,8 +299,8 @@ const UserProfilePage: React.FC = () => {
                 teamValue={team.totals.totalSpent}
               >
                 {/* Week Navigation */}
-                <GameweekNav
-                  weekOptions={weekOptions}
+                <PeriodNav
+                  options={weekOptions}
                   selectedDate={selectedDate || ''}
                   hasPrevious={profileData?.period?.hasPrevious ?? false}
                   hasNext={profileData?.period?.hasNext ?? false}

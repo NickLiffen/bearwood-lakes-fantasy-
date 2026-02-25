@@ -166,56 +166,7 @@
   opacity: 0.4;
 }
 
-/* Period Navigation */
-.period-navigation {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.nav-btn {
-  width: 44px;
-  height: 44px;
-  border-radius: 6px;
-  border: 1px solid rgba(0, 21, 60, 0.2);
-  background: white;
-  color: var(--primary-green);
-  font-size: 1rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-}
-
-.nav-btn:hover:not(:disabled) {
-  background: var(--primary-green);
-  color: white;
-  border-color: var(--primary-green);
-}
-
-.nav-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.period-select {
-  padding: 0.5rem 0.75rem;
-  border-radius: 6px;
-  border: 1px solid rgba(0, 21, 60, 0.2);
-  background: white;
-  color: var(--dark-text);
-  font-size: 0.85rem;
-  cursor: pointer;
-  min-width: 160px;
-  min-height: 44px;
-}
-
-.period-select:focus {
-  outline: none;
-  border-color: var(--primary-green);
-  box-shadow: 0 0 0 2px rgba(0, 21, 60, 0.1);
-}
+/* Period Navigation — now handled by PeriodNav component */
 
 /* Empty Table State */
 .empty-table-state {
