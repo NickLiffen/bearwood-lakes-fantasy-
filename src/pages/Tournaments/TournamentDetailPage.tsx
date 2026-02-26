@@ -182,7 +182,7 @@ const TournamentDetailPage: React.FC = () => {
         align: 'center',
         render: (score) => (
           <span className={score.rawScore ? 'dt-cell-stat' : 'dt-cell-muted'}>
-            {formatRawScore(score.rawScore, data!.tournament.scoringFormat)}
+            {formatRawScore(score.rawScore, data?.tournament.scoringFormat ?? 'stableford')}
           </span>
         ),
       },
@@ -220,7 +220,7 @@ const TournamentDetailPage: React.FC = () => {
         ),
       },
     ],
-    []
+    [data]
   );
 
   if (loading) {
