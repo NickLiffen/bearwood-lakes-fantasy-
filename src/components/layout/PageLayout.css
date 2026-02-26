@@ -283,6 +283,7 @@
   right: 0;
   width: 280px;
   height: 100vh;
+  height: 100dvh;
   background: var(--primary-green);
   z-index: 1000;
   transform: translateX(100%);
@@ -333,6 +334,7 @@
 
 .mobile-menu-footer {
   padding: 1.5rem;
+  padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0.5rem));
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
