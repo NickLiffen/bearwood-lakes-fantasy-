@@ -11,7 +11,6 @@ interface Golfer {
   lastName: string;
   picture: string;
   price: number;
-  membershipType: 'men' | 'junior' | 'female' | 'senior';
 }
 
 interface GolferWithPoints {

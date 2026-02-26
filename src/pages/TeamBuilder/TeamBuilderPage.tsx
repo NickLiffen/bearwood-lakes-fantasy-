@@ -39,7 +39,6 @@ interface Golfer {
   lastName: string;
   picture: string;
   price: number;
-  membershipType: 'men' | 'junior' | 'female' | 'senior';
   isActive: boolean;
   stats2024: GolferStats;
   stats2025: GolferStats;
@@ -402,21 +401,6 @@ const TeamBuilderPage: React.FC = () => {
     return pages;
   };
 
-  const getMembershipLabel = (type: string) => {
-    switch (type) {
-      case 'men':
-        return 'Men';
-      case 'junior':
-        return 'Junior';
-      case 'female':
-        return 'Female';
-      case 'senior':
-        return 'Senior';
-      default:
-        return type;
-    }
-  };
-
   if (loading) {
     return (
       <PageLayout activeNav="my-team">
@@ -705,9 +689,6 @@ const TeamBuilderPage: React.FC = () => {
                         {golfer.firstName} {golfer.lastName}
                       </h4>
                       <div className="compact-meta">
-                        <span className={`compact-membership ${golfer.membershipType}`}>
-                          {getMembershipLabel(golfer.membershipType)}
-                        </span>
                         <span className="compact-price">{formatPrice(golfer.price)}</span>
                       </div>
                       <div className="compact-stat">
@@ -803,9 +784,6 @@ const TeamBuilderPage: React.FC = () => {
                   {selectedGolferDetail.firstName} {selectedGolferDetail.lastName}
                 </h2>
                 <div className="modal-meta">
-                  <span className={`membership-badge ${selectedGolferDetail.membershipType}`}>
-                    {getMembershipLabel(selectedGolferDetail.membershipType)}
-                  </span>
                   <span className="modal-price">{formatPrice(selectedGolferDetail.price)}</span>
                 </div>
               </div>

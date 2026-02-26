@@ -8,6 +8,7 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { useApiClient } from '../../hooks/useApiClient';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { getTournamentTypeLabel, TOURNAMENT_TYPE_CONFIG, TournamentType } from '@shared/types';
+import { formatRawScore } from '../../utils/formatters';
 import './TournamentDetailPage.css';
 
 interface Golfer {
@@ -15,7 +16,6 @@ interface Golfer {
   firstName: string;
   lastName: string;
   picture: string;
-  membershipType: string;
 }
 
 interface GolferScore {
@@ -129,38 +129,6 @@ const TournamentDetailPage: React.FC = () => {
     return 'detail-type-badge detail-type-regular';
   };
 
-  // Get membership badge class
-  const getMembershipClass = (type: string) => {
-    switch (type) {
-      case 'men':
-        return 'dt-membership dt-membership-men';
-      case 'female':
-        return 'dt-membership dt-membership-female';
-      case 'junior':
-        return 'dt-membership dt-membership-junior';
-      case 'senior':
-        return 'dt-membership dt-membership-senior';
-      default:
-        return 'dt-membership';
-    }
-  };
-
-  // Get membership label
-  const getMembershipLabel = (type: string) => {
-    switch (type) {
-      case 'men':
-        return 'Men';
-      case 'female':
-        return 'Ladies';
-      case 'junior':
-        return 'Junior';
-      case 'senior':
-        return 'Senior';
-      default:
-        return type;
-    }
-  };
-
   // Define table columns
   const columns: Column<GolferScore>[] = useMemo(
     () => [
@@ -202,9 +170,6 @@ const TournamentDetailPage: React.FC = () => {
                 <span className="dt-info-name">
                   {score.golfer.firstName} {score.golfer.lastName}
                 </span>
-                <span className={getMembershipClass(score.golfer.membershipType)}>
-                  {getMembershipLabel(score.golfer.membershipType)}
-                </span>
               </div>
             </div>
           </Link>
@@ -217,7 +182,7 @@ const TournamentDetailPage: React.FC = () => {
         align: 'center',
         render: (score) => (
           <span className={score.rawScore ? 'dt-cell-stat' : 'dt-cell-muted'}>
-            {score.rawScore ?? '-'}
+            {formatRawScore(score.rawScore, data!.tournament.scoringFormat)}
           </span>
         ),
       },

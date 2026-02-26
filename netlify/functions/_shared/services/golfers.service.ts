@@ -41,7 +41,6 @@ export async function createGolfer(data: CreateGolferDTO): Promise<Golfer> {
     lastName: data.lastName,
     picture: data.picture,
     price: data.price,
-    membershipType: data.membershipType,
     isActive: data.isActive ?? true,
     stats2025: data.stats2025 || defaultStats2025,
     stats2026: data.stats2026 || defaultStats2025,

@@ -8,7 +8,6 @@ import { TournamentDocument, TOURNAMENTS_COLLECTION, toTournament } from './_sha
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { GolferDocument, GOLFERS_COLLECTION } from './_shared/models/Golfer';
 import { verifyToken } from './_shared/auth';
-import type { MembershipType } from '../../shared/types';
 
 interface GolferScore {
   golfer: {
@@ -16,7 +15,6 @@ interface GolferScore {
     firstName: string;
     lastName: string;
     picture: string;
-    membershipType: MembershipType;
   };
   position: number | null;
   participated: boolean;
@@ -32,7 +30,6 @@ interface PodiumEntry {
     firstName: string;
     lastName: string;
     picture: string;
-    membershipType: MembershipType;
   };
   points: number;
 }
@@ -141,7 +138,6 @@ const handler: Handler = async (event: HandlerEvent) => {
           firstName: golfer.firstName,
           lastName: golfer.lastName,
           picture: golfer.picture || '',
-          membershipType: golfer.membershipType,
         },
         position: score.position,
         participated: score.participated,

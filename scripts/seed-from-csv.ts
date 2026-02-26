@@ -296,7 +296,6 @@ async function seedFromCsv() {
         lastName,
         picture: '',
         price: 1_000_000, // Placeholder, recalculated later
-        membershipType: 'men' as const,
         isActive: true,
         stats2024: defaultStats(),
         stats2025: defaultStats(),

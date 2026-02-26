@@ -7,7 +7,7 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { useApiClient } from '../../hooks/useApiClient';
 import { useActiveSeason } from '../../hooks/useActiveSeason';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
-import { formatPrice, getMembershipLabel } from '../../utils/formatters';
+import { formatPrice } from '../../utils/formatters';
 import './GolferProfilePage.css';
 
 interface GolferStats {
@@ -43,7 +43,6 @@ interface Golfer {
   lastName: string;
   picture: string;
   price: number;
-  membershipType: 'men' | 'junior' | 'female' | 'senior';
   isActive: boolean;
   stats2024: GolferStats;
   stats2025: GolferStats;
@@ -424,10 +423,6 @@ const GolferProfilePage: React.FC = () => {
               <div className="info-item">
                 <span className="info-label">Golfer ID</span>
                 <span className="info-value">{golfer.id}</span>
-              </div>
-              <div className="info-item">
-                <span className="info-label">Membership Type</span>
-                <span className="info-value">{getMembershipLabel(golfer.membershipType)}</span>
               </div>
               <div className="info-item">
                 <span className="info-label">Fantasy Value</span>

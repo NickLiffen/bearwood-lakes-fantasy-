@@ -45,7 +45,6 @@ interface Golfer {
   lastName: string;
   picture: string;
   price: number;
-  membershipType: 'men' | 'junior' | 'female' | 'senior';
   isActive: boolean;
   stats2025: GolferStats;
   stats2026: GolferStats;

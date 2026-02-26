@@ -15,15 +15,12 @@ interface Golfer2025Stats {
   timesPlayed: number;
 }
 
-type MembershipType = 'men' | 'junior' | 'female' | 'senior';
-
 interface Golfer {
   id: string;
   firstName: string;
   lastName: string;
   picture: string;
   price: number;
-  membershipType: MembershipType;
   isActive: boolean;
   stats2024: Golfer2025Stats;
   stats2025: Golfer2025Stats;
@@ -44,7 +41,6 @@ interface GolferFormData {
   lastName: string;
   picture: string;
   price: string;
-  membershipType: MembershipType;
   isActive: boolean;
   timesBonusScored: string;
   timesFinished1st: string;
@@ -58,7 +54,6 @@ const initialFormData: GolferFormData = {
   lastName: '',
   picture: '',
   price: '',
-  membershipType: 'men',
   isActive: true,
   timesBonusScored: '0',
   timesFinished1st: '0',
@@ -291,7 +286,6 @@ const GolfersAdminPage: React.FC = () => {
         lastName: Golfer.lastName,
         picture: Golfer.picture,
         price: (Golfer.price / 1_000_000).toString(),
-        membershipType: Golfer.membershipType || 'men',
         isActive: Golfer.isActive,
         timesBonusScored: (Golfer.stats2025?.timesBonusScored || 0).toString(),
         timesFinished1st: (Golfer.stats2025?.timesFinished1st || 0).toString(),
@@ -347,7 +341,6 @@ const GolfersAdminPage: React.FC = () => {
           lastName: formData.lastName,
           picture: formData.picture,
           price: priceInPounds,
-          membershipType: formData.membershipType,
           isActive: formData.isActive,
           stats2025,
         });
@@ -360,7 +353,6 @@ const GolfersAdminPage: React.FC = () => {
           lastName: formData.lastName,
           picture: formData.picture,
           price: priceInPounds,
-          membershipType: formData.membershipType,
           isActive: formData.isActive,
           stats2025,
         });
@@ -490,7 +482,6 @@ const GolfersAdminPage: React.FC = () => {
         lastName: headers.indexOf('lastname'),
         picture: headers.indexOf('picture'),
         price: headers.indexOf('price'),
-        membershipType: headers.indexOf('membershiptype'),
         isActive: headers.indexOf('isactive'),
         timesBonusScored: headers.indexOf('timesbonusscored'),
         timesFinished1st: headers.indexOf('timesfinished1st'),
@@ -532,20 +523,6 @@ const GolfersAdminPage: React.FC = () => {
           colIndex.isActive >= 0 ? row[colIndex.isActive]?.trim().toLowerCase() : 'true';
         const isActive = isActiveStr !== 'false' && isActiveStr !== '0' && isActiveStr !== 'no';
 
-        // Parse membershipType with validation
-        const validMembershipTypes = ['men', 'junior', 'female', 'senior'];
-        let membershipType: MembershipType = 'men';
-        if (colIndex.membershipType >= 0 && row[colIndex.membershipType]) {
-          const rawType = row[colIndex.membershipType].trim().toLowerCase();
-          if (validMembershipTypes.includes(rawType)) {
-            membershipType = rawType as MembershipType;
-          } else if (rawType) {
-            errors.push(
-              `Row ${rowNum}: Invalid membershipType "${rawType}" (must be men, junior, female, or senior)`
-            );
-          }
-        }
-
         // Parse stats with validation
         const parseStatField = (colName: keyof typeof colIndex, fieldName: string): string => {
           const idx = colIndex[colName];
@@ -565,7 +542,6 @@ const GolfersAdminPage: React.FC = () => {
           lastName,
           picture,
           price: price.toString(),
-          membershipType,
           isActive,
           timesBonusScored: parseStatField('timesBonusScored', 'Times Bonus Scored'),
           timesFinished1st: parseStatField('timesFinished1st', '1st Place Finishes'),
@@ -621,7 +597,6 @@ const GolfersAdminPage: React.FC = () => {
           lastName: Golfer.lastName,
           picture: Golfer.picture,
           price: priceInPounds,
-          membershipType: Golfer.membershipType,
           isActive: Golfer.isActive,
           stats2025: {
             timesBonusScored: parseInt(Golfer.timesBonusScored) || 0,
@@ -753,7 +728,6 @@ const GolfersAdminPage: React.FC = () => {
               <tr>
                 <th>Golfer</th>
                 <th>Price</th>
-                <th>Type</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -811,11 +785,6 @@ const GolfersAdminPage: React.FC = () => {
                   </td>
                   <td style={{ fontWeight: 600, color: 'var(--primary-green)' }}>
                     {formatPrice(Golfer.price)}
-                  </td>
-                  <td>
-                    <span className="badge badge-secondary" style={{ textTransform: 'capitalize' }}>
-                      {Golfer.membershipType || 'men'}
-                    </span>
                   </td>
                   <td>
                     <span className={`badge ${Golfer.isActive ? 'badge-success' : 'badge-gray'}`}>
@@ -931,27 +900,6 @@ const GolfersAdminPage: React.FC = () => {
                     {touched.price && fieldErrors.price && (
                       <span className="field-error">{fieldErrors.price}</span>
                     )}
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="membershipType">
-                      Membership Type<span className="required-indicator">*</span>
-                    </label>
-                    <select
-                      id="membershipType"
-                      className="form-select"
-                      value={formData.membershipType}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          membershipType: e.target.value as MembershipType,
-                        })
-                      }
-                    >
-                      <option value="men">Men</option>
-                      <option value="junior">Junior</option>
-                      <option value="female">Female</option>
-                      <option value="senior">Senior</option>
-                    </select>
                   </div>
                 </div>
 
@@ -1112,8 +1060,7 @@ const GolfersAdminPage: React.FC = () => {
                     >
                       <strong>Required columns:</strong> firstName, lastName, price (in millions)
                       <br />
-                      <strong>Optional columns:</strong> picture, membershipType
-                      (men/junior/female/senior), isActive, timesBonusScored, timesFinished1st,
+                      <strong>Optional columns:</strong> picture, isActive, timesBonusScored, timesFinished1st,
                       timesFinished2nd, timesFinished3rd, timesPlayed
                     </div>
                   </div>
@@ -1195,10 +1142,10 @@ const GolfersAdminPage: React.FC = () => {
                         overflow: 'auto',
                       }}
                     >
-                      {`firstName,lastName,price,membershipType,picture,isActive,timesPlayed,timesBonusScored,timesFinished1st,timesFinished2nd,timesFinished3rd
-John,Smith,8.5,men,,true,12,3,1,2,1
-Jane,Doe,7.0,female,,true,10,2,0,1,0
-Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
+                      {`firstName,lastName,price,picture,isActive,timesPlayed,timesBonusScored,timesFinished1st,timesFinished2nd,timesFinished3rd
+John,Smith,8.5,,true,12,3,1,2,1
+Jane,Doe,7.0,,true,10,2,0,1,0
+Tom,Junior,6.0,,true,8,1,0,0,1`}
                     </pre>
                   </div>
                 </>
@@ -1225,7 +1172,6 @@ Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
                           <th>#</th>
                           <th>Name</th>
                           <th>Price</th>
-                          <th>Type</th>
                           <th>Played</th>
                           <th>36+</th>
                           <th>🥇</th>
@@ -1247,14 +1193,6 @@ Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
                             </td>
                             <td style={{ color: 'var(--primary-green)', fontWeight: 600 }}>
                               ${parseFloat(Golfer.price).toFixed(1)}M
-                            </td>
-                            <td>
-                              <span
-                                className="badge badge-secondary"
-                                style={{ textTransform: 'capitalize' }}
-                              >
-                                {Golfer.membershipType}
-                              </span>
                             </td>
                             <td>{Golfer.timesPlayed}</td>
                             <td>{Golfer.timesBonusScored}</td>
@@ -1393,9 +1331,6 @@ Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
                     >
                       {viewingGolfer.isActive ? 'Active' : 'Inactive'}
                     </span>
-                    <span className="badge badge-secondary" style={{ textTransform: 'capitalize' }}>
-                      {viewingGolfer.membershipType || 'Men'}
-                    </span>
                     <span style={{ fontWeight: 600, color: 'var(--primary-green)' }}>
                       ${(viewingGolfer.price / 1_000_000).toFixed(1)}M
                     </span>
@@ -1436,14 +1371,6 @@ Tom,Junior,6.0,junior,,true,8,1,0,0,1`}
                     </div>
                     <div style={{ fontWeight: 500, color: 'var(--primary-green)' }}>
                       ${(viewingGolfer.price / 1_000_000).toFixed(1)}M
-                    </div>
-                  </div>
-                  <div style={{ background: '#f9fafb', padding: '1rem', borderRadius: '8px' }}>
-                    <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.25rem' }}>
-                      Membership Type
-                    </div>
-                    <div style={{ fontWeight: 500, textTransform: 'capitalize' }}>
-                      {viewingGolfer.membershipType || 'Men'}
                     </div>
                   </div>
                   <div style={{ background: '#f9fafb', padding: '1rem', borderRadius: '8px' }}>

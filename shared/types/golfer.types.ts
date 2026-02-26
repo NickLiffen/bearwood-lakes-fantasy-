@@ -1,8 +1,5 @@
 // Golfer domain types
 
-// Membership type options
-export type MembershipType = 'men' | 'junior' | 'female' | 'senior';
-
 // Performance stats structure (used for all seasons)
 export interface GolferSeasonStats {
   timesScored36Plus: number;         // Times shot 36 points or above
@@ -24,7 +21,6 @@ export interface Golfer {
   lastName: string;
   picture: string;
   price: number;
-  membershipType: MembershipType;
   isActive: boolean;
   stats2024: Golfer2024Stats;
   stats2025: Golfer2025Stats;
@@ -38,7 +34,6 @@ export interface CreateGolferDTO {
   lastName: string;
   picture: string;
   price: number;
-  membershipType: MembershipType;
   isActive?: boolean;
   stats2024?: Golfer2024Stats;
   stats2025?: Golfer2025Stats;
@@ -50,7 +45,6 @@ export interface UpdateGolferDTO {
   lastName?: string;
   picture?: string;
   price?: number;
-  membershipType?: MembershipType;
   isActive?: boolean;
   stats2024?: Golfer2024Stats;
   stats2025?: Golfer2025Stats;

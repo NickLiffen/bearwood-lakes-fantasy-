@@ -100,7 +100,6 @@ export async function getUserPicksWithGolfers(userId: string): Promise<PickWithG
     lastName: g.lastName,
     picture: g.picture,
     price: g.price,
-    membershipType: g.membershipType || 'men',
     isActive: g.isActive,
     stats2025: g.stats2025 || {
       timesBonusScored: 0,

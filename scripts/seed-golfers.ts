@@ -10,29 +10,21 @@ const MONGODB_URI = process.env.MONGODB_URI!;
 const MONGODB_DB_NAME = process.env.MONGODB_DB_NAME || 'bearwood-fantasy';
 
 // Realistic golf club member names - mix of British names
-const firstNames = {
-  men: [
-    'James', 'William', 'Oliver', 'Thomas', 'Harry', 'George', 'Charlie', 'Jack',
-    'Edward', 'Henry', 'Samuel', 'Daniel', 'David', 'Michael', 'Richard', 'Robert',
-    'Andrew', 'Peter', 'Christopher', 'Matthew', 'Stephen', 'Paul', 'Mark', 'Simon',
-    'Jonathan', 'Nicholas', 'Timothy', 'Patrick', 'Graham', 'Colin', 'Stuart', 'Alan',
-    'Brian', 'Keith', 'Derek', 'Malcolm', 'Trevor', 'Nigel', 'Clive', 'Roger',
-  ],
-  female: [
-    'Emma', 'Sophie', 'Charlotte', 'Victoria', 'Elizabeth', 'Sarah', 'Catherine',
-    'Rebecca', 'Rachel', 'Laura', 'Jessica', 'Hannah', 'Claire', 'Louise', 'Helen',
-    'Jennifer', 'Amanda', 'Susan', 'Patricia', 'Margaret', 'Caroline', 'Fiona',
-  ],
-  junior: [
-    'Oscar', 'Archie', 'Leo', 'Freddie', 'Alfie', 'Noah', 'Theo', 'Max', 'Lucas',
-    'Ethan', 'Jacob', 'Isaac', 'Lily', 'Grace', 'Ella', 'Mia', 'Chloe', 'Ava',
-  ],
-  senior: [
-    'Geoffrey', 'Bernard', 'Harold', 'Kenneth', 'Ronald', 'Norman', 'Douglas',
-    'Raymond', 'Stanley', 'Albert', 'Arthur', 'Ernest', 'Frederick', 'Walter',
-    'Leonard', 'Herbert', 'Reginald', 'Clifford', 'Gerald', 'Maurice',
-  ],
-};
+const firstNames = [
+  'James', 'William', 'Oliver', 'Thomas', 'Harry', 'George', 'Charlie', 'Jack',
+  'Edward', 'Henry', 'Samuel', 'Daniel', 'David', 'Michael', 'Richard', 'Robert',
+  'Andrew', 'Peter', 'Christopher', 'Matthew', 'Stephen', 'Paul', 'Mark', 'Simon',
+  'Jonathan', 'Nicholas', 'Timothy', 'Patrick', 'Graham', 'Colin', 'Stuart', 'Alan',
+  'Brian', 'Keith', 'Derek', 'Malcolm', 'Trevor', 'Nigel', 'Clive', 'Roger',
+  'Emma', 'Sophie', 'Charlotte', 'Victoria', 'Elizabeth', 'Sarah', 'Catherine',
+  'Rebecca', 'Rachel', 'Laura', 'Jessica', 'Hannah', 'Claire', 'Louise', 'Helen',
+  'Jennifer', 'Amanda', 'Susan', 'Patricia', 'Margaret', 'Caroline', 'Fiona',
+  'Oscar', 'Archie', 'Leo', 'Freddie', 'Alfie', 'Noah', 'Theo', 'Max', 'Lucas',
+  'Ethan', 'Jacob', 'Isaac', 'Lily', 'Grace', 'Ella', 'Mia', 'Chloe', 'Ava',
+  'Geoffrey', 'Bernard', 'Harold', 'Kenneth', 'Ronald', 'Norman', 'Douglas',
+  'Raymond', 'Stanley', 'Albert', 'Arthur', 'Ernest', 'Frederick', 'Walter',
+  'Leonard', 'Herbert', 'Reginald', 'Clifford', 'Gerald', 'Maurice',
+];
 
 const lastNames = [
   'Smith', 'Jones', 'Williams', 'Brown', 'Taylor', 'Davies', 'Wilson', 'Evans',
@@ -127,7 +119,7 @@ const generateStats = (tier: SkillTier, isCurrentSeason: boolean): GolferStats =
 };
 
 // Generate price based on tier (in pounds, stored as whole number)
-const generatePrice = (tier: SkillTier, membershipType: string): number => {
+const generatePrice = (tier: SkillTier): number => {
   let basePrice: number;
   
   switch (tier) {
@@ -149,13 +141,6 @@ const generatePrice = (tier: SkillTier, membershipType: string): number => {
       break;
   }
   
-  // Juniors are generally cheaper, seniors slightly discounted
-  if (membershipType === 'junior') {
-    basePrice = Math.floor(basePrice * 0.6);
-  } else if (membershipType === 'senior') {
-    basePrice = Math.floor(basePrice * 0.85);
-  }
-  
   // Round to nearest 100K
   return Math.round(basePrice / 100_000) * 100_000;
 };
@@ -170,23 +155,11 @@ const getSkillTier = (): SkillTier => {
   return 'casual';                       // 20% casual players
 };
 
-type MembershipType = 'men' | 'female' | 'junior' | 'senior';
-
-// Generate membership type distribution
-const getMembershipType = (): MembershipType => {
-  const rand = Math.random();
-  if (rand < 0.55) return 'men';     // 55% men
-  if (rand < 0.75) return 'senior';  // 20% seniors
-  if (rand < 0.90) return 'female';  // 15% female
-  return 'junior';                    // 10% juniors
-};
-
 interface GolferDocument {
   firstName: string;
   lastName: string;
   picture: string;
   price: number;
-  membershipType: MembershipType;
   isActive: boolean;
   stats2025: GolferStats;
   stats2026: GolferStats;
@@ -222,12 +195,10 @@ async function seedGolfers() {
     while (golfers.length < 100 && attempts < maxAttempts) {
       attempts++;
       
-      const membershipType = getMembershipType();
       const tier = getSkillTier();
       
-      // Get appropriate first name pool
-      const namePool = firstNames[membershipType];
-      const firstName = namePool[Math.floor(Math.random() * namePool.length)];
+      // Get random first name
+      const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
       const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
       
       const nameKey = `${firstName}-${lastName}`;
@@ -243,8 +214,7 @@ async function seedGolfers() {
         firstName,
         lastName,
         picture: getAvatarUrl(firstName, lastName),
-        price: generatePrice(tier, membershipType),
-        membershipType,
+        price: generatePrice(tier),
         isActive: Math.random() > 0.05, // 95% active
         stats2025: generateStats(tier, false),
         stats2026: generateStats(tier, true),
@@ -263,19 +233,6 @@ async function seedGolfers() {
       
       const result = await db.collection('golfers').insertMany(golfers);
       console.log(`✅ Inserted ${result.insertedCount} golfers\n`);
-
-      // Print summary statistics
-      const membershipCounts = golfers.reduce((acc, g) => {
-        acc[g.membershipType] = (acc[g.membershipType] || 0) + 1;
-        return acc;
-      }, {} as Record<string, number>);
-
-      console.log('📊 Membership breakdown:');
-      console.log(`   Men: ${membershipCounts.men || 0}`);
-      console.log(`   Female: ${membershipCounts.female || 0}`);
-      console.log(`   Junior: ${membershipCounts.junior || 0}`);
-      console.log(`   Senior: ${membershipCounts.senior || 0}`);
-      console.log('');
 
       // Price distribution
       const priceRanges = {
@@ -297,7 +254,7 @@ async function seedGolfers() {
       const samples = golfers.slice(0, 5);
       samples.forEach(g => {
         const priceStr = `£${(g.price / 1_000_000).toFixed(1)}M`;
-        console.log(`   ${g.firstName} ${g.lastName} (${g.membershipType}) - ${priceStr}`);
+        console.log(`   ${g.firstName} ${g.lastName} - ${priceStr}`);
         console.log(`      2025: ${g.stats2025.timesPlayed} played, ${g.stats2025.timesFinished1st} wins, ${g.stats2025.timesScored36Plus} x 36+`);
         console.log(`      2026: ${g.stats2026.timesPlayed} played, ${g.stats2026.timesFinished1st} wins, ${g.stats2026.timesScored36Plus} x 36+`);
       });

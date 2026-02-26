@@ -1,7 +1,7 @@
 // Golfer model (MongoDB)
 
 import { ObjectId } from 'mongodb';
-import type { Golfer, Golfer2024Stats, Golfer2025Stats, Golfer2026Stats, MembershipType } from '../../../../shared/types';
+import type { Golfer, Golfer2024Stats, Golfer2025Stats, Golfer2026Stats } from '../../../../shared/types';
 
 export interface GolferDocument {
   _id: ObjectId;
@@ -9,7 +9,6 @@ export interface GolferDocument {
   lastName: string;
   picture: string;
   price: number;
-  membershipType: MembershipType;
   isActive: boolean;
   stats2024: Golfer2024Stats;
   stats2025: Golfer2025Stats;
@@ -52,7 +51,6 @@ export function toGolfer(doc: GolferDocument): Golfer {
     lastName: doc.lastName,
     picture: doc.picture,
     price: doc.price,
-    membershipType: doc.membershipType || 'men',
     isActive: doc.isActive,
     stats2024: doc.stats2024 || defaultStats2024,
     stats2025: doc.stats2025 || defaultStats2025,

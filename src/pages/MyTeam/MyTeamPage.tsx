@@ -16,7 +16,7 @@ import { useApiClient } from '../../hooks/useApiClient';
 import { useActiveSeason } from '../../hooks/useActiveSeason';
 import { useAuth } from '../../hooks/useAuth';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
-import type { GolferSeasonStats, MembershipType } from '@shared/types';
+import type { GolferSeasonStats } from '@shared/types';
 import type { TournamentScore } from '@shared/types';
 import './MyTeamPage.css';
 
@@ -28,7 +28,6 @@ interface GolferWithScores {
     lastName: string;
     picture: string;
     price: number;
-    membershipType: MembershipType;
     isActive: boolean;
     stats2024: GolferSeasonStats;
     stats2025: GolferSeasonStats;

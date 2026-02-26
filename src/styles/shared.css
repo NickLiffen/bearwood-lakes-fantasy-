@@ -95,26 +95,6 @@
   letter-spacing: 0.5px;
 }
 
-.membership-men {
-  background: rgba(37, 99, 235, 0.1);
-  color: #2563eb;
-}
-
-.membership-junior {
-  background: rgba(234, 179, 8, 0.1);
-  color: #d97706;
-}
-
-.membership-female {
-  background: rgba(219, 39, 119, 0.1);
-  color: #db2777;
-}
-
-.membership-senior {
-  background: rgba(107, 114, 128, 0.1);
-  color: #4b5563;
-}
-
 /* Common Button Styles */
 .btn-back {
   display: inline-block;

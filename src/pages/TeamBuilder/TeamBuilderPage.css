@@ -718,37 +718,6 @@
   margin: 0;
 }
 
-.membership-badge {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  width: fit-content;
-}
-
-.membership-badge.men {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-.membership-badge.junior {
-  background: #fce7f3;
-  color: #be185d;
-}
-
-.membership-badge.female {
-  background: #f3e8ff;
-  color: #7c3aed;
-}
-
-.membership-badge.senior {
-  background: #fef3c7;
-  color: #92400e;
-}
-
 .golfer-price {
   font-size: 1.5rem;
   font-weight: 700;
@@ -1160,35 +1129,6 @@
   margin-bottom: 0.5rem;
 }
 
-.compact-membership {
-  font-size: 0.65rem;
-  font-weight: 600;
-  padding: 0.2rem 0.5rem;
-  border-radius: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.compact-membership.men {
-  background: #dbeafe;
-  color: #1e40af;
-}
-
-.compact-membership.junior {
-  background: #fce7f3;
-  color: #be185d;
-}
-
-.compact-membership.female {
-  background: #f3e8ff;
-  color: #7c3aed;
-}
-
-.compact-membership.senior {
-  background: #fef3c7;
-  color: #92400e;
-}
-
 .compact-price {
   font-size: 0.95rem;
   font-weight: 700;
@@ -1381,11 +1321,6 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-}
-
-.modal-meta .membership-badge {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
 }
 
 .modal-price {

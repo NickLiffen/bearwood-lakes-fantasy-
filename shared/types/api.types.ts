@@ -1,6 +1,6 @@
 // API request/response types
 
-import type { Golfer, GolferSeasonStats, MembershipType } from './golfer.types';
+import type { Golfer, GolferSeasonStats } from './golfer.types';
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -106,7 +106,6 @@ export interface GolferListItem {
   lastName: string;
   picture: string;
   price: number;
-  membershipType: MembershipType;
   isActive: boolean;
   stats2025: GolferStats;
   stats2026?: GolferStats;

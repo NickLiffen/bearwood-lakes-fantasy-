@@ -52,29 +52,17 @@ export const formatPlayerName = (firstName: string, lastName: string): string =>
 };
 
 /**
- * Get membership type label
+ * Format raw score for display.
+ * Medal scores are nett-to-par: positive gets a "+" prefix (e.g. +2), negative keeps "-", zero stays "0".
+ * Stableford scores are shown as-is (e.g. 36).
  */
-export const getMembershipLabel = (type: string): string => {
-  switch (type) {
-    case 'men': return "Men's Member";
-    case 'junior': return 'Junior Member';
-    case 'female': return 'Female Member';
-    case 'senior': return 'Senior Member';
-    default: return type;
-  }
-};
-
-/**
- * Get membership CSS class
- */
-export const getMembershipClass = (type: string): string => {
-  switch (type) {
-    case 'men': return 'membership-men';
-    case 'junior': return 'membership-junior';
-    case 'female': return 'membership-female';
-    case 'senior': return 'membership-senior';
-    default: return '';
-  }
+export const formatRawScore = (
+  rawScore: number | null,
+  scoringFormat: 'stableford' | 'medal'
+): string => {
+  if (rawScore === null || rawScore === undefined) return '-';
+  if (scoringFormat === 'medal' && rawScore > 0) return `+${rawScore}`;
+  return String(rawScore);
 };
 
 /**

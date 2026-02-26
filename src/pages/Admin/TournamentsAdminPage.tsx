@@ -10,6 +10,7 @@ import {
   TournamentType,
   getTournamentTypeLabel,
 } from '@shared/types';
+import { formatRawScore } from '../../utils/formatters';
 
 interface Tournament {
   id: string;
@@ -816,7 +817,7 @@ const TournamentsAdminPage: React.FC = () => {
                               <td style={{ fontWeight: 500 }}>{score.golferName}</td>
                               <td>
                                 {score.rawScore !== null ? (
-                                  <span>{score.rawScore}</span>
+                                  <span>{formatRawScore(score.rawScore, viewingTournament!.scoringFormat)}</span>
                                 ) : (
                                   <span style={{ color: '#9ca3af' }}>—</span>
                                 )}

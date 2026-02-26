@@ -233,7 +233,6 @@ export async function processSeasonUpload(csvText: string): Promise<SeasonUpload
           lastName,
           picture: '',
           price: 1,
-          membershipType: 'men',
           isActive: true,
           stats2024: { ...defaultStats2024 },
           stats2025: { ...defaultStats2025 },

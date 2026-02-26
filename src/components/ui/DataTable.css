@@ -286,26 +286,6 @@
   width: fit-content;
 }
 
-.dt-membership-men {
-  background: #dbeafe;
-  color: #1d4ed8;
-}
-
-.dt-membership-female {
-  background: #fce7f3;
-  color: #be185d;
-}
-
-.dt-membership-junior {
-  background: #d1fae5;
-  color: #059669;
-}
-
-.dt-membership-senior {
-  background: #fef3c7;
-  color: #d97706;
-}
-
 /* "You" badge for current user */
 .dt-you-badge {
   display: inline-flex;

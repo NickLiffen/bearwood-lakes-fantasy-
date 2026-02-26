@@ -380,11 +380,6 @@
   font-weight: 500;
 }
 
-.membership-men { background: #dbeafe; color: #1e40af; }
-.membership-junior { background: #dcfce7; color: #166534; }
-.membership-female { background: #fce7f3; color: #9d174d; }
-.membership-senior { background: #fef3c7; color: #92400e; }
-
 .golfer-price {
   color: var(--muted-text);
   font-size: 0.85rem;

@@ -12,6 +12,7 @@ import { formatPrice } from '../../utils/formatters';
 import { matchesSearch } from '../../utils/search';
 import { useActiveSeason } from '../../hooks/useActiveSeason';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
+import InfoTooltip from '../../components/ui/InfoTooltip';
 import './GolfersPage.css';
 
 interface GolferStats {
@@ -35,7 +36,6 @@ interface Golfer {
   lastName: string;
   picture: string;
   price: number;
-  membershipType: 'men' | 'junior' | 'female' | 'senior';
   isActive: boolean;
   stats2024: GolferStats;
   stats2025: GolferStats;
@@ -242,7 +242,15 @@ const GolfersPage: React.FC = () => {
     },
     {
       key: 'form',
-      header: 'Form',
+      header: (
+        <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+          Form
+          <InfoTooltip
+            text="Average points scored over a golfer's last 5 tournament events. Higher form = better recent performance."
+            label="What is Form?"
+          />
+        </span>
+      ),
       sortable: true,
       align: 'center',
       render: (golfer) => (
