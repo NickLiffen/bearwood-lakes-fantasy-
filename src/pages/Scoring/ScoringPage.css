@@ -308,6 +308,18 @@
 }
 
 /* ── Worked example ── */
+.examples-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-md);
+}
+
+@media (max-width: 768px) {
+  .examples-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .example-box {
   background: #fff;
   border-radius: 12px;

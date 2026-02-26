@@ -231,39 +231,77 @@ const ScoringPage: React.FC = () => {
           </div>
         </section>
 
-        {/* Section 5: Worked Example */}
+        {/* Section 5: Worked Examples */}
         <section className="scoring-section">
-          <h2>📝 Worked Example</h2>
-          <div className="example-box">
-            <p className="example-scenario">
-              <strong>Matthew Green</strong> plays in a <strong>Weekend Medal</strong> (2×
-              multiplier). He finishes <strong>1st</strong> with{' '}
-              <strong>37 stableford points</strong>.
-            </p>
-            <div className="example-calc">
-              <div className="calc-row">
-                <span>Position Points (1st)</span>
-                <span className="calc-value">10</span>
+          <h2>📝 Worked Examples</h2>
+          <div className="examples-grid">
+            <div className="example-box">
+              <h3 style={{ margin: '0 0 0.75rem', fontSize: '1rem', color: 'var(--primary-green)' }}>⛳ Medal Example</h3>
+              <p className="example-scenario">
+                <strong>Matthew Green</strong> plays in a <strong>Weekend Medal</strong> (2×
+                multiplier). He finishes <strong>1st</strong> with a nett score of{' '}
+                <strong>-4</strong> (4 under par).
+              </p>
+              <div className="example-calc">
+                <div className="calc-row">
+                  <span>Position Points (1st)</span>
+                  <span className="calc-value">10</span>
+                </div>
+                <div className="calc-row">
+                  <span>Bonus Points (nett -4 ≤ 0)</span>
+                  <span className="calc-value">+3</span>
+                </div>
+                <div className="calc-row calc-subtotal">
+                  <span>Subtotal</span>
+                  <span className="calc-value">13</span>
+                </div>
+                <div className="calc-row">
+                  <span>Event Multiplier (Weekend Medal)</span>
+                  <span className="calc-value">×2</span>
+                </div>
+                <div className="calc-row calc-total">
+                  <span>Total Points</span>
+                  <span className="calc-value">26 pts</span>
+                </div>
+                <div className="calc-row calc-captain">
+                  <span>If Captain (×2)</span>
+                  <span className="calc-value">52 pts 🔥</span>
+                </div>
               </div>
-              <div className="calc-row">
-                <span>Bonus Points (37 ≥ 36)</span>
-                <span className="calc-value">+3</span>
-              </div>
-              <div className="calc-row calc-subtotal">
-                <span>Subtotal</span>
-                <span className="calc-value">13</span>
-              </div>
-              <div className="calc-row">
-                <span>Event Multiplier (Weekend Medal)</span>
-                <span className="calc-value">×2</span>
-              </div>
-              <div className="calc-row calc-total">
-                <span>Total Points</span>
-                <span className="calc-value">26 pts</span>
-              </div>
-              <div className="calc-row calc-captain">
-                <span>If Captain (×2)</span>
-                <span className="calc-value">52 pts 🔥</span>
+            </div>
+
+            <div className="example-box">
+              <h3 style={{ margin: '0 0 0.75rem', fontSize: '1rem', color: 'var(--primary-green)' }}>🏌️ Stableford Example</h3>
+              <p className="example-scenario">
+                <strong>Nick Liffen</strong> plays in a <strong>Rollup Stableford</strong> (1×
+                multiplier). He finishes <strong>2nd</strong> with{' '}
+                <strong>39 stableford points</strong>.
+              </p>
+              <div className="example-calc">
+                <div className="calc-row">
+                  <span>Position Points (2nd)</span>
+                  <span className="calc-value">7</span>
+                </div>
+                <div className="calc-row">
+                  <span>Bonus Points (39 ≥ 36)</span>
+                  <span className="calc-value">+3</span>
+                </div>
+                <div className="calc-row calc-subtotal">
+                  <span>Subtotal</span>
+                  <span className="calc-value">10</span>
+                </div>
+                <div className="calc-row">
+                  <span>Event Multiplier (Rollup)</span>
+                  <span className="calc-value">×1</span>
+                </div>
+                <div className="calc-row calc-total">
+                  <span>Total Points</span>
+                  <span className="calc-value">10 pts</span>
+                </div>
+                <div className="calc-row calc-captain">
+                  <span>If Captain (×2)</span>
+                  <span className="calc-value">20 pts 🔥</span>
+                </div>
               </div>
             </div>
           </div>
