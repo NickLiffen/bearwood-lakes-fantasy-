@@ -359,6 +359,7 @@ const MyTeamPage: React.FC = () => {
             teamValue={team.totals.totalSpent}
           >
             <PeriodNav
+              id="my-team-period-select"
               options={weekOptions}
               selectedDate={selectedDate || ''}
               hasPrevious={teamData?.team?.period?.hasPrevious ?? false}

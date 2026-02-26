@@ -413,6 +413,7 @@ const LeaderboardPage: React.FC = () => {
           </div>
           {showNavigation && period && (
             <PeriodNav
+              id={`${type}-period-select`}
               options={type === 'week' ? weekOptions : monthOptions}
               selectedDate={type === 'week' ? weeklyDate : monthlyDate}
               hasPrevious={canGoPrev}

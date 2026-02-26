@@ -7,6 +7,7 @@ export interface PeriodOption {
 }
 
 interface PeriodNavProps {
+  id: string;
   options: PeriodOption[];
   selectedDate: string;
   hasPrevious: boolean;
@@ -16,6 +17,7 @@ interface PeriodNavProps {
 }
 
 const PeriodNav: React.FC<PeriodNavProps> = ({
+  id,
   options,
   selectedDate,
   hasPrevious,
@@ -34,8 +36,8 @@ const PeriodNav: React.FC<PeriodNavProps> = ({
         ← Prev
       </button>
       <select
-        id="period-select"
-        name="period-select"
+        id={id}
+        name={id}
         className="period-nav-select"
         value={selectedDate}
         onChange={(e) => onSelect(e.target.value)}

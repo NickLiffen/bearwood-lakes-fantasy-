@@ -299,6 +299,7 @@ const UserProfilePage: React.FC = () => {
               >
                 {/* Week Navigation */}
                 <PeriodNav
+                  id="user-profile-period-select"
                   options={weekOptions}
                   selectedDate={selectedDate || ''}
                   hasPrevious={profileData?.period?.hasPrevious ?? false}
