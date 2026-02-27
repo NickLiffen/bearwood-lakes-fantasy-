@@ -89,7 +89,7 @@ const RegisterPage: React.FC = () => {
       } else if (field === 'username') {
         value = sanitizers.trim(value).toLowerCase();
       } else if (field === 'phoneNumber') {
-        value = sanitizers.digitsOnly(value).slice(0, 9);
+        value = sanitizers.digitsOnly(value).slice(0, 11);
       }
       // Keep password ref in sync
       if (field === 'password') {
@@ -127,7 +127,7 @@ const RegisterPage: React.FC = () => {
           lastName: sanitizers.trim(values.lastName),
           username: sanitizers.trim(values.username),
           email: sanitizers.lowercase(sanitizers.trim(values.email)),
-          phoneNumber: `+447${sanitizers.digitsOnly(values.phoneNumber)}`,
+          phoneNumber: `+44${sanitizers.digitsOnly(values.phoneNumber).replace(/^0/, '')}`,
           password: values.password,
         }),
       });
@@ -270,7 +270,7 @@ const RegisterPage: React.FC = () => {
                     whiteSpace: 'nowrap',
                   }}
                 >
-                  +447
+                  +44
                 </span>
                 <input
                   type="tel"
@@ -278,8 +278,8 @@ const RegisterPage: React.FC = () => {
                   value={values.phoneNumber}
                   onChange={handleChange('phoneNumber')}
                   onBlur={handleBlur('phoneNumber')}
-                  placeholder="123456789"
-                  maxLength={9}
+                  placeholder="07900 165650"
+                  maxLength={11}
                   inputMode="numeric"
                   pattern="[0-9]*"
                   className={getFieldClassName('phoneNumber')}

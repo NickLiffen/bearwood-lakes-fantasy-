@@ -84,10 +84,13 @@ export const validators = {
     return null;
   },
 
-  ukPhone: (message = 'Please enter 9 digits for your UK mobile number'): ValidatorFn => (value: string) => {
+  ukPhone: (message = 'Please enter a valid UK mobile number'): ValidatorFn => (value: string) => {
     if (!value.trim()) return null;
-    const digitsOnly = value.replace(/\s/g, '');
-    return /^\d{9}$/.test(digitsOnly) ? null : message;
+    const digits = value.replace(/\s/g, '');
+    // Accept 07XXXXXXXXX (11 digits) or 7XXXXXXXXX (10 digits)
+    if (/^07\d{9}$/.test(digits)) return null;
+    if (/^7\d{9}$/.test(digits)) return null;
+    return message;
   },
 };
 
