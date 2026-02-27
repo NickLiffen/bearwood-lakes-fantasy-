@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import PageLayout from '../../components/layout/PageLayout';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import './ScoringPage.css';
 
@@ -7,18 +7,7 @@ const ScoringPage: React.FC = () => {
   useDocumentTitle('Rules');
 
   return (
-    <div className="scoring-page">
-      {/* Simple nav */}
-      <nav className="scoring-nav">
-        <Link to="/" className="scoring-nav-brand">
-          <img src="/bearwood_lakes_logo.png" alt="Bearwood Lakes" width="40" height="40" />
-          <span>Bearwood Lakes Fantasy</span>
-        </Link>
-        <Link to="/" className="scoring-back-link">
-          ← Back to Home
-        </Link>
-      </nav>
-
+    <PageLayout activeNav="scoring">
       <div className="scoring-container">
         <div className="scoring-header">
           <h1>⛳ Rules & Scoring</h1>
@@ -339,7 +328,7 @@ const ScoringPage: React.FC = () => {
         </section>
 
       </div>
-    </div>
+    </PageLayout>
   );
 };
 

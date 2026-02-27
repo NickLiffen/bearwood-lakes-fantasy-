@@ -97,7 +97,14 @@ const AppRoutes: React.FC = () => {
       <Route path="/" element={<HomeRoute />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
-      <Route path="/scoring" element={<ScoringPage />} />
+      <Route
+        path="/scoring"
+        element={
+          <ProtectedRoute>
+            <ScoringPage />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Protected user routes */}
       <Route
