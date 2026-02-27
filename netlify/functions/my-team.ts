@@ -4,7 +4,7 @@
 
 import type { Handler } from '@netlify/functions';
 import { ObjectId } from 'mongodb';
-import { withAuth, AuthenticatedEvent } from './_shared/middleware';
+import { withVerifiedAuth, AuthenticatedEvent } from './_shared/middleware';
 import { connectToDatabase } from './_shared/db';
 import { PickDocument, PICKS_COLLECTION, PickHistoryDocument, PICK_HISTORY_COLLECTION } from './_shared/models/Pick';
 import { GolferDocument, GOLFERS_COLLECTION, toGolfer } from './_shared/models/Golfer';
@@ -58,7 +58,7 @@ function formatWeekLabel(weekStart: Date, gameweek?: number | null): string {
   return dateRange;
 }
 
-export const handler: Handler = withAuth(async (event: AuthenticatedEvent) => {
+export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEvent) => {
   try {
     const { db } = await connectToDatabase();
 

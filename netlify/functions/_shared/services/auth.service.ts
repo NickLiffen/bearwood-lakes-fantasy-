@@ -117,30 +117,48 @@ export async function registerUser(
   const { db } = await connectToDatabase();
   const collection = db.collection<UserDocument>(USERS_COLLECTION);
 
-  // Check for existing email/username
+  // Check for existing email/username/phone
   const existing = await collection.findOne({
-    $or: [{ email: data.email }, { username: data.username }],
+    $or: [
+      { email: data.email },
+      { username: data.username },
+      { phoneNumber: data.phoneNumber },
+    ],
   });
 
   if (existing) {
-    throw new Error(
-      existing.email === data.email ? 'Email already exists' : 'Username already exists'
-    );
+    if (existing.email === data.email) throw new Error('Email already exists');
+    if (existing.username === data.username) throw new Error('Username already exists');
+    throw new Error('Phone number already exists');
   }
 
   const passwordHash = await hashPassword(data.password);
   const now = new Date();
 
-  const result = await collection.insertOne({
-    firstName: data.firstName,
-    lastName: data.lastName,
-    username: data.username,
-    email: data.email,
-    passwordHash,
-    role: 'user',
-    createdAt: now,
-    updatedAt: now,
-  } as UserDocument);
+  let result;
+  try {
+    result = await collection.insertOne({
+      firstName: data.firstName,
+      lastName: data.lastName,
+      username: data.username,
+      email: data.email,
+      passwordHash,
+      phoneNumber: data.phoneNumber,
+      phoneVerified: false,
+      role: 'user',
+      createdAt: now,
+      updatedAt: now,
+    } as UserDocument);
+  } catch (err: unknown) {
+    // Handle duplicate key errors from unique indexes (race condition safety net)
+    if (err instanceof Error && 'code' in err && (err as { code: number }).code === 11000) {
+      const message = err.message;
+      if (message.includes('phoneNumber')) throw new Error('Phone number already exists');
+      if (message.includes('email')) throw new Error('Email already exists');
+      if (message.includes('username')) throw new Error('Username already exists');
+    }
+    throw err;
+  }
 
   const user: User = {
     id: result.insertedId.toString(),
@@ -148,6 +166,8 @@ export async function registerUser(
     lastName: data.lastName,
     username: data.username,
     email: data.email,
+    phoneNumber: data.phoneNumber,
+    phoneVerified: false,
     role: 'user',
     createdAt: now,
     updatedAt: now,

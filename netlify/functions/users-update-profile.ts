@@ -3,9 +3,9 @@
 import { ObjectId } from 'mongodb';
 import { connectToDatabase } from './_shared/db';
 import { UserDocument, USERS_COLLECTION, toUser } from './_shared/models/User';
-import { withAuth, AuthenticatedEvent } from './_shared/middleware';
+import { withVerifiedAuth, AuthenticatedEvent } from './_shared/middleware';
 
-const handler = withAuth(async (event: AuthenticatedEvent) => {
+const handler = withVerifiedAuth(async (event: AuthenticatedEvent) => {
   if (event.httpMethod !== 'PUT') {
     return {
       statusCode: 405,

@@ -1,10 +1,10 @@
 // POST /.netlify/functions/picks-save
 
-import { withAuth, AuthenticatedEvent } from './_shared/middleware';
+import { withVerifiedAuth, AuthenticatedEvent } from './_shared/middleware';
 import { savePicks } from './_shared/services/picks.service';
 import { validateBody, savePicksSchema } from './_shared/validators/picks.validator';
 
-export const handler = withAuth(async (event: AuthenticatedEvent) => {
+export const handler = withVerifiedAuth(async (event: AuthenticatedEvent) => {
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
   }

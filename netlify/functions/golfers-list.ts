@@ -3,7 +3,7 @@
 // Returns all if no pagination params provided
 
 import { ObjectId } from 'mongodb';
-import { withAuth, AuthenticatedEvent } from './_shared/middleware';
+import { withVerifiedAuth, AuthenticatedEvent } from './_shared/middleware';
 import { connectToDatabase } from './_shared/db';
 import { GolferDocument, GOLFERS_COLLECTION, toGolfer } from './_shared/models/Golfer';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
@@ -14,7 +14,7 @@ import { getSeasonStart } from './_shared/utils/dates';
 import { createPerfTimer } from './_shared/utils/perf';
 import { successResponse, successResponseWithMeta, internalError } from './_shared/utils/response';
 
-export const handler = withAuth(async (event: AuthenticatedEvent) => {
+export const handler = withVerifiedAuth(async (event: AuthenticatedEvent) => {
   const timer = createPerfTimer('golfers-list');
 
   try {

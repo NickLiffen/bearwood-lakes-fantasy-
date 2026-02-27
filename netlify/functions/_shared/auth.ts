@@ -28,6 +28,7 @@ export interface JwtPayload {
   userId: string;
   username: string;
   role: string;
+  phoneVerified: boolean;
 }
 
 export interface RefreshTokenData {
@@ -61,6 +62,7 @@ export function generateAccessToken(user: User): string {
     userId: user.id,
     username: user.username,
     role: user.role,
+    phoneVerified: user.phoneVerified ?? false,
   };
   const options: SignOptions = { expiresIn: ACCESS_TOKEN_EXPIRES };
   return jwt.sign(payload, jwtSecret, options);

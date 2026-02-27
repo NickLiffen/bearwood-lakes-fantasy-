@@ -3,7 +3,7 @@
 
 import type { Handler } from '@netlify/functions';
 import { ObjectId } from 'mongodb';
-import { withAuth } from './_shared/middleware';
+import { withVerifiedAuth } from './_shared/middleware';
 import { connectToDatabase } from './_shared/db';
 import { UserDocument, USERS_COLLECTION } from './_shared/models/User';
 import { PickDocument, PICKS_COLLECTION } from './_shared/models/Pick';
@@ -29,7 +29,7 @@ interface FantasyUser {
   createdAt: Date;
 }
 
-export const handler: Handler = withAuth(async () => {
+export const handler: Handler = withVerifiedAuth(async () => {
   try {
     const { db } = await connectToDatabase();
 

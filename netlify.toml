@@ -46,4 +46,4 @@
 # Note: Environment variables are split between local and cloud:
 # - Local development: .env file (gitignored) with localhost defaults
 # - Production/Staging: Netlify UI → Site settings → Environment variables
-# Required variables: MONGODB_URI, JWT_SECRET, REDIS_URL
+# Required variables: MONGODB_URI, JWT_SECRET, REDIS_URL, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_VERIFY_SERVICE_SID

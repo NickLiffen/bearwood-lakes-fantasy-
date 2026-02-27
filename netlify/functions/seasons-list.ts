@@ -1,10 +1,10 @@
 // GET /.netlify/functions/seasons-list
 
 import type { Handler } from '@netlify/functions';
-import { withAuth } from './_shared/middleware';
+import { withVerifiedAuth } from './_shared/middleware';
 import { getAllSeasons } from './_shared/services/seasons.service';
 
-export const handler: Handler = withAuth(async (event) => {
+export const handler: Handler = withVerifiedAuth(async (event) => {
   if (event.httpMethod !== 'GET') {
     return {
       statusCode: 405,

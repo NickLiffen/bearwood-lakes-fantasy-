@@ -8,6 +8,7 @@ import LoadingSpinner from './components/ui/LoadingSpinner';
 import HomePage from './pages/Home/HomePage';
 import LoginPage from './pages/Auth/LoginPage';
 import RegisterPage from './pages/Auth/RegisterPage';
+import VerifyPhonePage from './pages/Auth/VerifyPhonePage';
 import ScoringPage from './pages/Scoring/ScoringPage';
 import DashboardPage from './pages/Dashboard/DashboardPage';
 import ProfilePage from './pages/Profile/ProfilePage';
@@ -33,7 +34,7 @@ import SeasonsAdminPage from './pages/Admin/SeasonsAdminPage';
 
 // Protected route wrapper for admin pages
 const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, isAdmin, loading } = useAuth();
+  const { isAuthenticated, isAdmin, user, loading } = useAuth();
 
   if (loading) {
     return <LoadingSpinner text="Loading..." />;
@@ -41,6 +42,10 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (user && user.phoneNumber && !user.phoneVerified) {
+    return <Navigate to="/verify-phone" replace />;
   }
 
   if (!isAdmin) {
@@ -60,6 +65,27 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+// Protected + verified route wrapper — requires phone verification
+const VerifiedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, user, loading } = useAuth();
+
+  if (loading) {
+    return <LoadingSpinner text="Loading..." />;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Redirect unverified users to the phone verification page
+  // Grandfathered users (phoneVerified undefined/true or phoneNumber null) pass through
+  if (user && user.phoneNumber && !user.phoneVerified) {
+    return <Navigate to="/verify-phone" replace />;
   }
 
   return <>{children}</>;
@@ -97,12 +123,23 @@ const AppRoutes: React.FC = () => {
       <Route path="/" element={<HomeRoute />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+
+      {/* Phone verification — requires auth but not verified phone */}
+      <Route
+        path="/verify-phone"
+        element={
+          <ProtectedRoute>
+            <VerifyPhonePage />
+          </ProtectedRoute>
+        }
+      />
+
       <Route
         path="/scoring"
         element={
-          <ProtectedRoute>
+          <VerifiedRoute>
             <ScoringPage />
-          </ProtectedRoute>
+          </VerifiedRoute>
         }
       />
 
@@ -110,89 +147,89 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/dashboard"
         element={
-          <ProtectedRoute>
+          <VerifiedRoute>
             <DashboardPage />
-          </ProtectedRoute>
+          </VerifiedRoute>
         }
       />
       <Route
         path="/profile"
         element={
-          <ProtectedRoute>
+          <VerifiedRoute>
             <ProfilePage />
-          </ProtectedRoute>
+          </VerifiedRoute>
         }
       />
       <Route
         path="/my-team"
         element={
-          <ProtectedRoute>
+          <VerifiedRoute>
             <MyTeamPage />
-          </ProtectedRoute>
+          </VerifiedRoute>
         }
       />
       <Route
         path="/team-builder"
         element={
-          <ProtectedRoute>
+          <VerifiedRoute>
             <TeamBuilderPage />
-          </ProtectedRoute>
+          </VerifiedRoute>
         }
       />
       <Route
         path="/golfers"
         element={
-          <ProtectedRoute>
+          <VerifiedRoute>
             <GolfersPage />
-          </ProtectedRoute>
+          </VerifiedRoute>
         }
       />
       <Route
         path="/golfers/:id"
         element={
-          <ProtectedRoute>
+          <VerifiedRoute>
             <GolferProfilePage />
-          </ProtectedRoute>
+          </VerifiedRoute>
         }
       />
       <Route
         path="/leaderboard"
         element={
-          <ProtectedRoute>
+          <VerifiedRoute>
             <LeaderboardPage />
-          </ProtectedRoute>
+          </VerifiedRoute>
         }
       />
       <Route
         path="/users"
         element={
-          <ProtectedRoute>
+          <VerifiedRoute>
             <UsersPage />
-          </ProtectedRoute>
+          </VerifiedRoute>
         }
       />
       <Route
         path="/users/:userId"
         element={
-          <ProtectedRoute>
+          <VerifiedRoute>
             <UserProfilePage />
-          </ProtectedRoute>
+          </VerifiedRoute>
         }
       />
       <Route
         path="/tournaments"
         element={
-          <ProtectedRoute>
+          <VerifiedRoute>
             <TournamentsPage />
-          </ProtectedRoute>
+          </VerifiedRoute>
         }
       />
       <Route
         path="/tournaments/:id"
         element={
-          <ProtectedRoute>
+          <VerifiedRoute>
             <TournamentDetailPage />
-          </ProtectedRoute>
+          </VerifiedRoute>
         }
       />
 

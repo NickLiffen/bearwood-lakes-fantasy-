@@ -8,6 +8,8 @@ export interface User {
   lastName: string;
   username: string;
   email: string;
+  phoneNumber: string | null;
+  phoneVerified: boolean;
   role: UserRole;
   createdAt: Date;
   updatedAt: Date;
@@ -19,6 +21,7 @@ export interface CreateUserDTO {
   username: string;
   email: string;
   password: string;
+  phoneNumber: string;
 }
 
 export interface LoginCredentials {

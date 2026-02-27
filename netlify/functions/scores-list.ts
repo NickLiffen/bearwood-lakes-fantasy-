@@ -1,14 +1,14 @@
 // GET /.netlify/functions/scores-list
 
 import type { Handler } from '@netlify/functions';
-import { withAuth } from './_shared/middleware';
+import { withVerifiedAuth } from './_shared/middleware';
 import {
   getScoresForTournament,
   getAllScores,
   getPublishedScores,
 } from './_shared/services/scores.service';
 
-export const handler: Handler = withAuth(async (event) => {
+export const handler: Handler = withVerifiedAuth(async (event) => {
   try {
     const tournamentId = event.queryStringParameters?.tournamentId;
     const publishedOnly = event.queryStringParameters?.publishedOnly === 'true';

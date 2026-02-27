@@ -3,7 +3,7 @@
 
 import type { Handler } from '@netlify/functions';
 import { ObjectId } from 'mongodb';
-import { withAuth, AuthenticatedEvent } from './_shared/middleware';
+import { withVerifiedAuth, AuthenticatedEvent } from './_shared/middleware';
 import { connectToDatabase } from './_shared/db';
 import { UserDocument, USERS_COLLECTION } from './_shared/models/User';
 import { PickDocument, PICKS_COLLECTION } from './_shared/models/Pick';
@@ -35,7 +35,7 @@ interface TeamSummary {
   };
 }
 
-export const handler: Handler = withAuth(async (event: AuthenticatedEvent) => {
+export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEvent) => {
   try {
     const targetUserId = event.queryStringParameters?.userId;
     const currentUserId = event.user.userId;

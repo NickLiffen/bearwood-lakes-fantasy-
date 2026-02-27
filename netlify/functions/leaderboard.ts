@@ -1,10 +1,10 @@
 // GET /.netlify/functions/leaderboard
 // Returns leaderboard data with season, monthly, and weekly rankings
 
-import { withAuth } from './_shared/middleware';
+import { withVerifiedAuth } from './_shared/middleware';
 import { getFullLeaderboard, getLeaderboard, getTournamentLeaderboard } from './_shared/services/leaderboard.service';
 
-export const handler = withAuth(async (event) => {
+export const handler = withVerifiedAuth(async (event) => {
   try {
     const tournamentId = event.queryStringParameters?.tournamentId;
     const view = event.queryStringParameters?.view; // 'full' for season/month/week breakdown

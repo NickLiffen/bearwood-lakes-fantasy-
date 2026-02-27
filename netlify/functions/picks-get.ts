@@ -1,10 +1,10 @@
 // GET /.netlify/functions/picks-get
 
 import type { Handler } from '@netlify/functions';
-import { withAuth, AuthenticatedEvent } from './_shared/middleware';
+import { withVerifiedAuth, AuthenticatedEvent } from './_shared/middleware';
 import { getUserPicksWithPlayers } from './_shared/services/picks.service';
 
-export const handler: Handler = withAuth(async (event: AuthenticatedEvent) => {
+export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEvent) => {
   try {
     const picks = await getUserPicksWithPlayers(event.user.userId);
 

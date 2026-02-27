@@ -3,7 +3,7 @@
 
 import type { Handler } from '@netlify/functions';
 import { ObjectId, Db } from 'mongodb';
-import { withAuth } from './_shared/middleware';
+import { withVerifiedAuth } from './_shared/middleware';
 import { connectToDatabase } from './_shared/db';
 import { UserDocument, USERS_COLLECTION } from './_shared/models/User';
 import { PickDocument, PICKS_COLLECTION, PickHistoryDocument, PICK_HISTORY_COLLECTION } from './_shared/models/Pick';
@@ -13,7 +13,7 @@ import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tou
 import { getWeekStart, getMonthStart, getSeasonStart, getTeamEffectiveStartDate } from './_shared/utils/dates';
 import { getActiveSeason } from './_shared/services/seasons.service';
 
-export const handler: Handler = withAuth(async (event) => {
+export const handler: Handler = withVerifiedAuth(async (event) => {
   try {
     const userId = event.queryStringParameters?.userId;
     const dateParam = event.queryStringParameters?.date;

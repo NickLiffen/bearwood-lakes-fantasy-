@@ -17,6 +17,7 @@ interface RegisterFormData {
   lastName: string;
   username: string;
   email: string;
+  phoneNumber: string;
   password: string;
   confirmPassword: string;
 }
@@ -34,6 +35,7 @@ const RegisterPage: React.FC = () => {
         lastName: '',
         username: '',
         email: '',
+        phoneNumber: '',
         password: '',
         confirmPassword: '',
       },
@@ -57,6 +59,10 @@ const RegisterPage: React.FC = () => {
         email: [
           validators.required('Email is required'),
           validators.email('Please enter a valid email address'),
+        ],
+        phoneNumber: [
+          validators.required('Phone number is required'),
+          validators.ukPhone('Please enter 9 digits for your UK mobile number'),
         ],
         password: [
           validators.required('Password is required'),
@@ -82,6 +88,8 @@ const RegisterPage: React.FC = () => {
         value = sanitizers.lowercase(sanitizers.trim(value));
       } else if (field === 'username') {
         value = sanitizers.trim(value).toLowerCase();
+      } else if (field === 'phoneNumber') {
+        value = sanitizers.digitsOnly(value).slice(0, 9);
       }
       // Keep password ref in sync
       if (field === 'password') {
@@ -119,6 +127,7 @@ const RegisterPage: React.FC = () => {
           lastName: sanitizers.trim(values.lastName),
           username: sanitizers.trim(values.username),
           email: sanitizers.lowercase(sanitizers.trim(values.email)),
+          phoneNumber: `+447${sanitizers.digitsOnly(values.phoneNumber)}`,
           password: values.password,
         }),
       });
@@ -129,10 +138,10 @@ const RegisterPage: React.FC = () => {
         throw new Error(data.error || 'Registration failed');
       }
 
-      // Store token and redirect to dashboard
+      // Store token and redirect to phone verification
       localStorage.setItem('token', data.data.token);
       localStorage.setItem('user', JSON.stringify(data.data.user));
-      navigate('/dashboard');
+      navigate('/verify-phone');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {
@@ -241,6 +250,48 @@ const RegisterPage: React.FC = () => {
               />
               {getFieldState('email').touched && getFieldState('email').error && (
                 <span className="field-error">{getFieldState('email').error}</span>
+              )}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="phoneNumber">
+                UK Mobile Number<span className="required-indicator">*</span>
+              </label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <span
+                  style={{
+                    padding: '0.625rem 0.75rem',
+                    background: 'var(--bg-tertiary, #2a2a2a)',
+                    border: '1px solid var(--border-color, #404040)',
+                    borderRadius: '0.5rem',
+                    color: 'var(--text-secondary, #a0a0a0)',
+                    fontSize: '0.95rem',
+                    fontFamily: 'monospace',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  +447
+                </span>
+                <input
+                  type="tel"
+                  id="phoneNumber"
+                  value={values.phoneNumber}
+                  onChange={handleChange('phoneNumber')}
+                  onBlur={handleBlur('phoneNumber')}
+                  placeholder="123456789"
+                  maxLength={9}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  className={getFieldClassName('phoneNumber')}
+                  autoComplete="tel"
+                  style={{ flex: 1 }}
+                />
+              </div>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-tertiary, #888)', marginTop: '0.25rem', display: 'block' }}>
+                We&apos;ll send a verification code to this number
+              </span>
+              {getFieldState('phoneNumber').touched && getFieldState('phoneNumber').error && (
+                <span className="field-error">{getFieldState('phoneNumber').error}</span>
               )}
             </div>
 

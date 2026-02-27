@@ -46,6 +46,11 @@ export const RateLimitConfig = {
     windowMs: 60 * 1000, // 1 minute
     maxRequests: 60, // 60 requests per minute
   },
+  // Phone verification - strict to prevent abuse
+  verification: {
+    windowMs: 60 * 1000, // 1 minute
+    maxRequests: 5, // 5 requests per minute
+  },
   // Default - general purpose
   default: {
     windowMs: 60 * 1000, // 1 minute

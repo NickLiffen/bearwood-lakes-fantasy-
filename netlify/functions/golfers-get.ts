@@ -1,13 +1,13 @@
 // GET /.netlify/functions/golfers-get?id=xxx
 
-import { withAuth } from './_shared/middleware';
+import { withVerifiedAuth } from './_shared/middleware';
 import { getGolferById } from './_shared/services/golfers.service';
 import { getAllTournaments } from './_shared/services/tournaments.service';
 import { getScoresForGolfer } from './_shared/services/scores.service';
 import { getWeekStart, getMonthStart, getSeasonStart } from './_shared/utils/dates';
 import { getActiveSeason, getAllSeasons } from './_shared/services/seasons.service';
 
-export const handler = withAuth(async (event) => {
+export const handler = withVerifiedAuth(async (event) => {
   try {
     const id = event.queryStringParameters?.id;
 

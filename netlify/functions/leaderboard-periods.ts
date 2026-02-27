@@ -2,7 +2,7 @@
 // Returns leaderboard data for specific periods (week/month/season) with navigation
 
 import type { Handler } from '@netlify/functions';
-import { withAuth } from './_shared/middleware';
+import { withVerifiedAuth } from './_shared/middleware';
 import { connectToDatabase } from './_shared/db';
 import { PickDocument, PICKS_COLLECTION } from './_shared/models/Pick';
 import { UserDocument, USERS_COLLECTION } from './_shared/models/User';
@@ -214,7 +214,7 @@ function rankEntries(
   });
 }
 
-export const handler: Handler = withAuth(async (event) => {
+export const handler: Handler = withVerifiedAuth(async (event) => {
   try {
     const { db } = await connectToDatabase();
     

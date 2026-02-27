@@ -10,6 +10,8 @@ export interface UserDocument {
   username: string;
   email: string;
   passwordHash: string;
+  phoneNumber: string | null;
+  phoneVerified: boolean;
   role: UserRole;
   createdAt: Date;
   updatedAt: Date;
@@ -22,6 +24,8 @@ export function toUser(doc: UserDocument): User {
     lastName: doc.lastName,
     username: doc.username,
     email: doc.email,
+    phoneNumber: doc.phoneNumber ?? null,
+    phoneVerified: doc.phoneVerified ?? false,
     role: doc.role,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,

@@ -1,7 +1,17 @@
 // Auth validation schemas (Zod)
 
 import { z } from 'zod';
-import { PASSWORD_MIN_LENGTH, USERNAME_MIN_LENGTH, USERNAME_MAX_LENGTH } from '../constants/rules';
+import {
+  PASSWORD_MIN_LENGTH,
+  USERNAME_MIN_LENGTH,
+  USERNAME_MAX_LENGTH,
+  PHONE_NUMBER_REGEX,
+  VERIFICATION_CODE_LENGTH,
+} from '../constants/rules';
+
+export const phoneNumberSchema = z
+  .string()
+  .regex(PHONE_NUMBER_REGEX, 'Must be a valid UK mobile number (+447 followed by 9 digits)');
 
 export const registerSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -15,6 +25,7 @@ export const registerSchema = z.object({
   password: z
     .string()
     .min(PASSWORD_MIN_LENGTH, `Password must be at least ${PASSWORD_MIN_LENGTH} characters`),
+  phoneNumber: phoneNumberSchema,
 });
 
 export const loginSchema = z.object({
@@ -22,5 +33,13 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
+export const verifyPhoneSchema = z.object({
+  code: z
+    .string()
+    .length(VERIFICATION_CODE_LENGTH, `Code must be ${VERIFICATION_CODE_LENGTH} digits`)
+    .regex(/^\d+$/, 'Code must contain only digits'),
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
+export type VerifyPhoneInput = z.infer<typeof verifyPhoneSchema>;

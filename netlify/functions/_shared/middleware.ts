@@ -217,13 +217,33 @@ export function withAuth(
 }
 
 /**
+ * Wrapper that requires authentication AND phone verification with rate limiting.
+ * Users with a valid JWT but phoneVerified=false get a 403.
+ * Grandfathered users (phoneVerified=true in JWT) pass through normally.
+ */
+export function withVerifiedAuth(
+  handler: AuthenticatedHandler,
+  rateLimitType: RateLimitType = 'default'
+): Handler {
+  return withAuth(async (event, context) => {
+    if (!event.user.phoneVerified) {
+      return {
+        statusCode: 403,
+        body: JSON.stringify({ success: false, error: 'Phone verification required' }),
+      };
+    }
+    return handler(event, context);
+  }, rateLimitType);
+}
+
+/**
  * Wrapper that requires admin role with rate limiting
  */
 export function withAdmin(
   handler: AuthenticatedHandler,
   rateLimitType: RateLimitType = 'admin'
 ): Handler {
-  return withAuth(async (event, context) => {
+  return withVerifiedAuth(async (event, context) => {
     if (event.user.role !== 'admin') {
       return {
         statusCode: 403,
@@ -343,8 +363,14 @@ export function createAuthHandler(config: {
   handler: AuthenticatedHandler;
   rateLimitType?: RateLimitType;
   requireAdmin?: boolean;
+  requireVerified?: boolean;
 }): Handler {
-  const wrapper = config.requireAdmin ? withAdmin : withAuth;
+  const requireVerified = config.requireVerified !== false;
+  const wrapper = config.requireAdmin
+    ? withAdmin
+    : requireVerified
+      ? withVerifiedAuth
+      : withAuth;
 
   return wrapper(async (event, context) => {
     const requestId = getRequestId(event.headers);

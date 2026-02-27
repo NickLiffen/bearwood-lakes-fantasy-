@@ -17,6 +17,10 @@ export const PASSWORD_MIN_LENGTH = 8;
 export const USERNAME_MIN_LENGTH = 3;
 export const USERNAME_MAX_LENGTH = 20;
 
+// Phone verification
+export const PHONE_NUMBER_REGEX = /^\+447\d{9}$/;
+export const VERIFICATION_CODE_LENGTH = 6;
+
 // Scoring constants
 export const POSITION_POINTS: Record<number, number> = { 1: 10, 2: 7, 3: 5 };
 export const STABLEFORD_THRESHOLDS = { HIGH: 36, LOW: 32 } as const;

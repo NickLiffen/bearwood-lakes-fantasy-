@@ -5,6 +5,7 @@ import { validateBody, registerSchema } from './_shared/validators/auth.validato
 import { getAppSettings } from './_shared/services/settings.service';
 import { withRateLimit } from './_shared/middleware';
 import { setRefreshTokenCookie, getClientInfo } from './_shared/utils/cookies';
+import { sendVerificationCode } from './_shared/twilio';
 
 export const handler = withRateLimit(async (event) => {
   if (event.httpMethod !== 'POST') {
@@ -27,6 +28,14 @@ export const handler = withRateLimit(async (event) => {
     const data = validateBody(registerSchema, event.body);
     const { userAgent, ipAddress } = getClientInfo(event.headers);
     const result = await registerUser(data, userAgent, ipAddress);
+
+    // Send phone verification OTP
+    try {
+      await sendVerificationCode(data.phoneNumber);
+    } catch (twilioError) {
+      console.error('Failed to send verification code:', twilioError);
+      // Still return success — user can resend from the verify page
+    }
 
     // Set refresh token as httpOnly cookie
     const cookieHeader = setRefreshTokenCookie(result.refreshToken);

@@ -83,6 +83,12 @@ export const validators = {
     if (value.length < 8) return message;
     return null;
   },
+
+  ukPhone: (message = 'Please enter 9 digits for your UK mobile number'): ValidatorFn => (value: string) => {
+    if (!value.trim()) return null;
+    const digitsOnly = value.replace(/\s/g, '');
+    return /^\d{9}$/.test(digitsOnly) ? null : message;
+  },
 };
 
 // Sanitizers
@@ -94,6 +100,7 @@ export const sanitizers = {
   },
   lowercase: (value: string) => value.trim().toLowerCase(),
   removeExtraSpaces: (value: string) => value.trim().replace(/\s+/g, ' '),
+  digitsOnly: (value: string) => value.replace(/\D/g, ''),
 };
 
 // Field state interface
