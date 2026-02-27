@@ -78,7 +78,11 @@ async function main() {
     } else {
       await usersCollection.createIndex(
         { phoneNumber: 1 },
-        { unique: true, sparse: true, name: 'phoneNumber_1' }
+        {
+          unique: true,
+          partialFilterExpression: { phoneNumber: { $type: 'string' } },
+          name: 'phoneNumber_1',
+        }
       );
       console.log('✅ Created sparse unique index on phoneNumber.');
     }
