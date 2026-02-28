@@ -2,6 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 import {
   useFormValidation,
   validators,
@@ -24,6 +25,7 @@ interface RegisterFormData {
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
+  const { register } = useAuth();
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const passwordRef = useRef('');
@@ -119,28 +121,15 @@ const RegisterPage: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('/.netlify/functions/auth-register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          firstName: sanitizers.trim(values.firstName),
-          lastName: sanitizers.trim(values.lastName),
-          username: sanitizers.trim(values.username),
-          email: sanitizers.lowercase(sanitizers.trim(values.email)),
-          phoneNumber: `+44${sanitizers.digitsOnly(values.phoneNumber).replace(/^0/, '')}`,
-          password: values.password,
-        }),
+      await register({
+        firstName: sanitizers.trim(values.firstName),
+        lastName: sanitizers.trim(values.lastName),
+        username: sanitizers.trim(values.username),
+        email: sanitizers.lowercase(sanitizers.trim(values.email)),
+        phoneNumber: `+44${sanitizers.digitsOnly(values.phoneNumber).replace(/^0/, '')}`,
+        password: values.password,
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Registration failed');
-      }
-
-      // Store token and redirect to phone verification
-      localStorage.setItem('token', data.data.token);
-      localStorage.setItem('user', JSON.stringify(data.data.user));
       navigate('/verify-phone');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');

@@ -16,6 +16,7 @@ interface AuthContextType {
     username: string;
     email: string;
     password: string;
+    phoneNumber: string;
   }) => Promise<void>;
   logout: () => void;
   refreshToken: () => Promise<boolean>;
@@ -207,6 +208,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     username: string;
     email: string;
     password: string;
+    phoneNumber: string;
   }): Promise<void> => {
     const response = await fetch('/.netlify/functions/auth-register', {
       method: 'POST',
