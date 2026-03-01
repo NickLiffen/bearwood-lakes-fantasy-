@@ -193,7 +193,7 @@ describe('bulkEnterScoresSchema', () => {
       expect(result.success).toBe(true);
     });
 
-    it('fails when duplicate podium positions exist', () => {
+    it('fails when duplicate podium positions exist without flag', () => {
       const result = bulkEnterScoresSchema.safeParse({
         tournamentId: 't1',
         scores: [
@@ -209,6 +209,20 @@ describe('bulkEnterScoresSchema', () => {
           true
         );
       }
+    });
+
+    it('allows duplicate podium positions when allowDuplicatePositions is true', () => {
+      const result = bulkEnterScoresSchema.safeParse({
+        tournamentId: 't1',
+        allowDuplicatePositions: true,
+        scores: [
+          validScore({ golferId: 'g1', position: 1 }),
+          validScore({ golferId: 'g2', position: 1 }),
+          validScore({ golferId: 'g3', position: 2 }),
+          validScore({ golferId: 'g4', position: 3 }),
+        ],
+      });
+      expect(result.success).toBe(true);
     });
 
     it('allows non-participating golfers without rawScore', () => {

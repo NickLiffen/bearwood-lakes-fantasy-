@@ -70,7 +70,7 @@ const ScoresAdminPage: React.FC = () => {
   const [scores, setScores] = useState<Record<string, ScoreEntry>>({});
   const [saving, setSaving] = useState(false);
   const [saveProgress, setSaveProgress] = useState<string>('');
-
+  const [allowDuplicates, setAllowDuplicates] = useState(false);
   // Details modal state
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [viewingTournament, setViewingTournament] = useState<TournamentWithScores | null>(null);
@@ -171,6 +171,7 @@ const ScoresAdminPage: React.FC = () => {
     setEditingTournament(tournament);
     setError('');
     setSuccess('');
+    setAllowDuplicates(false);
 
     // Initialize scores for all active golfers
     const initialScores: Record<string, ScoreEntry> = {};
@@ -202,6 +203,7 @@ const ScoresAdminPage: React.FC = () => {
     setEditingTournament(tournamentWithScores.tournament);
     setError('');
     setSuccess('');
+    setAllowDuplicates(false);
 
     // Initialize scores for all active golfers
     const initialScores: Record<string, ScoreEntry> = {};
@@ -237,6 +239,7 @@ const ScoresAdminPage: React.FC = () => {
     setEditingTournament(null);
     setScores({});
     setError('');
+    setAllowDuplicates(false);
   };
 
   const handleViewScores = (tournamentWithScores: TournamentWithScores) => {
@@ -303,16 +306,18 @@ const ScoresAdminPage: React.FC = () => {
       };
     }
 
-    // Check for duplicate positions (only for positions 1, 2, 3)
-    const positions = participatingPlayers
-      .filter((s) => s.position !== null && s.position >= 1 && s.position <= 3)
-      .map((s) => s.position);
-    const uniquePositions = new Set(positions);
-    if (positions.length !== uniquePositions.size) {
-      return {
-        valid: false,
-        error: 'Duplicate positions found. Each position (1st, 2nd, 3rd) can only be assigned once',
-      };
+    // Check for duplicate positions (only for positions 1, 2, 3) — skip if admin confirmed
+    if (!allowDuplicates) {
+      const positions = participatingPlayers
+        .filter((s) => s.position !== null && s.position >= 1 && s.position <= 3)
+        .map((s) => s.position);
+      const uniquePositions = new Set(positions);
+      if (positions.length !== uniquePositions.size) {
+        return {
+          valid: false,
+          error: 'Duplicate positions detected. Please confirm tied positions below.',
+        };
+      }
     }
 
     return { valid: true, error: '' };
@@ -320,6 +325,15 @@ const ScoresAdminPage: React.FC = () => {
 
   // Get validation state for UI feedback
   const validationResult = validateScores();
+
+  // Detect if duplicate podium positions exist
+  const hasDuplicatePositions = (() => {
+    const participatingPlayers = Object.values(scores).filter((s) => s.participated);
+    const positions = participatingPlayers
+      .filter((s) => s.position !== null && s.position !== undefined && s.position >= 1 && s.position <= 3)
+      .map((s) => s.position);
+    return positions.length !== new Set(positions).size;
+  })();
 
   const handleSaveScores = async () => {
     if (!editingTournament) {
@@ -361,6 +375,7 @@ const ScoresAdminPage: React.FC = () => {
         const response = await post<Score[]>('scores-enter', {
           tournamentId: editingTournament.id,
           scores: scoresToSave,
+          allowDuplicatePositions: allowDuplicates || undefined,
         });
 
         if (!response.success) throw new Error(response.error || 'Failed to save scores');
@@ -875,7 +890,7 @@ const ScoresAdminPage: React.FC = () => {
               )}
             </div>
             {/* Validation feedback */}
-            {participantCount > 0 && !validationResult.valid && (
+            {participantCount > 0 && !validationResult.valid && !hasDuplicatePositions && (
               <div style={{ padding: '0 1.5rem', marginBottom: '1rem' }}>
                 <div
                   style={{
@@ -888,6 +903,34 @@ const ScoresAdminPage: React.FC = () => {
                   }}
                 >
                   ⚠️ {validationResult.error}
+                </div>
+              </div>
+            )}
+            {/* Duplicate positions confirmation */}
+            {hasDuplicatePositions && (
+              <div style={{ padding: '0 1.5rem', marginBottom: '1rem' }}>
+                <div
+                  style={{
+                    background: '#fffbeb',
+                    border: '1px solid #fcd34d',
+                    borderRadius: '8px',
+                    padding: '0.75rem 1rem',
+                    fontSize: '0.9rem',
+                  }}
+                >
+                  <div style={{ color: '#92400e', marginBottom: '0.5rem' }}>
+                    ⚠️ <strong>Tied positions detected</strong> — multiple golfers share the same podium position.
+                    Each golfer will receive the full points for that position.
+                  </div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: '#78350f' }}>
+                    <input
+                      type="checkbox"
+                      checked={allowDuplicates}
+                      onChange={(e) => setAllowDuplicates(e.target.checked)}
+                      style={{ width: '16px', height: '16px' }}
+                    />
+                    I confirm these tied positions are intentional
+                  </label>
                 </div>
               </div>
             )}

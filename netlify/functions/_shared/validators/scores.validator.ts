@@ -24,6 +24,7 @@ export const bulkEnterScoresSchema = z
   .object({
     tournamentId: z.string().min(1, 'Tournament ID is required'),
     scores: z.array(bulkScoreEntrySchema).min(1, 'At least one score is required'),
+    allowDuplicatePositions: z.boolean().optional(),
   })
   .superRefine((data, ctx) => {
     const participatingScores = data.scores.filter((s) => s.participated);
@@ -88,21 +89,23 @@ export const bulkEnterScoresSchema = z
       }
     }
 
-    // Check for duplicate positions (only for positions 1, 2, 3)
-    const podiumPositions = participatingScores
-      .filter(
-        (s) => s.position !== null && s.position !== undefined && s.position >= 1 && s.position <= 3
-      )
-      .map((s) => s.position);
-    const uniquePositions = new Set(podiumPositions);
+    // Check for duplicate positions (only for positions 1, 2, 3) — skip if admin confirmed
+    if (!data.allowDuplicatePositions) {
+      const podiumPositions = participatingScores
+        .filter(
+          (s) => s.position !== null && s.position !== undefined && s.position >= 1 && s.position <= 3
+        )
+        .map((s) => s.position);
+      const uniquePositions = new Set(podiumPositions);
 
-    if (podiumPositions.length !== uniquePositions.size) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message:
-          'Duplicate positions found. Each position (1st, 2nd, 3rd) can only be assigned once',
-        path: ['scores'],
-      });
+      if (podiumPositions.length !== uniquePositions.size) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message:
+            'Duplicate positions found. Please confirm tied positions are intentional',
+          path: ['scores'],
+        });
+      }
     }
   });
 
