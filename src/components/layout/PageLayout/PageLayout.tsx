@@ -18,6 +18,7 @@ type NavItem =
   | 'my-team'
   | 'golfers'
   | 'leaderboard'
+  | 'leagues'
   | 'users'
   | 'tournaments'
   | 'scoring'
@@ -141,6 +142,9 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children, activeNav }) => {
             >
               Leaderboard
             </Link>
+            <Link to="/leagues" className={`nav-link ${activeNav === 'leagues' ? 'active' : ''}`}>
+              Leagues
+            </Link>
             <Link to="/users" className={`nav-link ${activeNav === 'users' ? 'active' : ''}`}>
               Users
             </Link>
@@ -220,6 +224,12 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children, activeNav }) => {
             className={`mobile-nav-link ${activeNav === 'leaderboard' ? 'active' : ''}`}
           >
             Leaderboard
+          </Link>
+          <Link
+            to="/leagues"
+            className={`mobile-nav-link ${activeNav === 'leagues' ? 'active' : ''}`}
+          >
+            Leagues
           </Link>
           <Link
             to="/tournaments"

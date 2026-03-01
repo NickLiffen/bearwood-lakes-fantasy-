@@ -21,6 +21,10 @@ import UsersPage from './pages/Users/UsersPage';
 import UserProfilePage from './pages/Users/UserProfilePage';
 import TournamentsPage from './pages/Tournaments/TournamentsPage';
 import TournamentDetailPage from './pages/Tournaments/TournamentDetailPage';
+import LeaguesPage from './pages/Leagues/LeaguesPage';
+import CreateLeaguePage from './pages/Leagues/CreateLeaguePage';
+import LeagueDetailPage from './pages/Leagues/LeagueDetailPage';
+import LeagueJoinPage from './pages/Leagues/LeagueJoinPage';
 
 // Admin pages
 import AdminOverviewPage from './pages/Admin/Overview';
@@ -229,6 +233,40 @@ const AppRoutes: React.FC = () => {
         element={
           <VerifiedRoute>
             <TournamentDetailPage />
+          </VerifiedRoute>
+        }
+      />
+
+      {/* League routes */}
+      <Route
+        path="/leagues"
+        element={
+          <VerifiedRoute>
+            <LeaguesPage />
+          </VerifiedRoute>
+        }
+      />
+      <Route
+        path="/leagues/create"
+        element={
+          <VerifiedRoute>
+            <CreateLeaguePage />
+          </VerifiedRoute>
+        }
+      />
+      <Route
+        path="/leagues/join/:code"
+        element={
+          <VerifiedRoute>
+            <LeagueJoinPage />
+          </VerifiedRoute>
+        }
+      />
+      <Route
+        path="/leagues/:id"
+        element={
+          <VerifiedRoute>
+            <LeagueDetailPage />
           </VerifiedRoute>
         }
       />

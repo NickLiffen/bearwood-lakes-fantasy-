@@ -8,3 +8,4 @@ export * from './tournament.types';
 export * from './settings.types';
 export * from './season.types';
 export * from './api.types';
+export * from './league.types';
