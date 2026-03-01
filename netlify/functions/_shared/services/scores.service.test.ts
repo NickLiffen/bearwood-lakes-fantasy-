@@ -1,4 +1,5 @@
 import { ObjectId } from 'mongodb';
+import type { Db, MongoClient } from 'mongodb';
 import { connectToDatabase } from '../db';
 import {
   enterScore,
@@ -10,9 +11,18 @@ import {
   getAllScores,
   recalculateScoresForTournament,
 } from './scores.service';
+import { invalidateLeaderboardCache } from './leaderboard.service';
 
 vi.mock('../db', () => ({
   connectToDatabase: vi.fn(),
+}));
+
+vi.mock('./leaderboard.service', () => ({
+  invalidateLeaderboardCache: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('./seasons.service', () => ({
+  getActiveSeason: vi.fn().mockResolvedValue({ id: '1', name: '2025', isActive: true }),
 }));
 
 const mockScoresCollection = {
@@ -29,7 +39,7 @@ const mockTournamentsCollection = {
   find: vi.fn(),
 };
 
-const toArrayHelper = (items: any[]) => ({
+const toArrayHelper = <T>(items: T[]) => ({
   toArray: vi.fn().mockResolvedValue(items),
 });
 
@@ -42,8 +52,8 @@ beforeEach(() => {
         if (name === 'tournaments') return mockTournamentsCollection;
         return {};
       }),
-    } as any,
-    client: {} as any,
+    } as unknown as Db,
+    client: {} as unknown as MongoClient,
   });
 });
 
@@ -206,8 +216,8 @@ describe('scores.service', () => {
         tournamentId: tournamentId.toString(),
         golferId: golferId.toString(),
         participated: false,
-        position: null as any,
-        rawScore: null as any,
+        position: null,
+        rawScore: null,
       });
 
       expect(mockScoresCollection.findOneAndUpdate).toHaveBeenCalledWith(
@@ -240,10 +250,17 @@ describe('scores.service', () => {
     it('gives bonus 1 for stableford score of 32', async () => {
       mockTournamentsCollection.findOne.mockResolvedValue(makeTournament());
       mockScoresCollection.findOneAndUpdate.mockResolvedValue({
-        _id: scoreId, tournamentId, golferId,
-        participated: true, position: 5, rawScore: 32,
-        basePoints: 0, bonusPoints: 1, multipliedPoints: 1,
-        createdAt: new Date(), updatedAt: new Date(),
+        _id: scoreId,
+        tournamentId,
+        golferId,
+        participated: true,
+        position: 5,
+        rawScore: 32,
+        basePoints: 0,
+        bonusPoints: 1,
+        multipliedPoints: 1,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       });
 
       await enterScore({
@@ -273,10 +290,17 @@ describe('scores.service', () => {
         makeTournament({ scoringFormat: 'medal', multiplier: 1 })
       );
       mockScoresCollection.findOneAndUpdate.mockResolvedValue({
-        _id: scoreId, tournamentId, golferId,
-        participated: true, position: 1, rawScore: 0,
-        basePoints: 10, bonusPoints: 3, multipliedPoints: 13,
-        createdAt: new Date(), updatedAt: new Date(),
+        _id: scoreId,
+        tournamentId,
+        golferId,
+        participated: true,
+        position: 1,
+        rawScore: 0,
+        basePoints: 10,
+        bonusPoints: 3,
+        multipliedPoints: 13,
+        createdAt: new Date(),
+        updatedAt: new Date(),
       });
 
       await enterScore({
@@ -308,8 +332,32 @@ describe('scores.service', () => {
       const g2 = new ObjectId();
       mockScoresCollection.find.mockReturnValue(
         toArrayHelper([
-          { _id: new ObjectId(), tournamentId, golferId: g1, participated: true, position: 1, rawScore: 36, basePoints: 10, bonusPoints: 3, multipliedPoints: 26, createdAt: new Date(), updatedAt: new Date() },
-          { _id: new ObjectId(), tournamentId, golferId: g2, participated: true, position: 2, rawScore: 30, basePoints: 7, bonusPoints: 0, multipliedPoints: 14, createdAt: new Date(), updatedAt: new Date() },
+          {
+            _id: new ObjectId(),
+            tournamentId,
+            golferId: g1,
+            participated: true,
+            position: 1,
+            rawScore: 36,
+            basePoints: 10,
+            bonusPoints: 3,
+            multipliedPoints: 26,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            _id: new ObjectId(),
+            tournamentId,
+            golferId: g2,
+            participated: true,
+            position: 2,
+            rawScore: 30,
+            basePoints: 7,
+            bonusPoints: 0,
+            multipliedPoints: 14,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
         ])
       );
 
@@ -341,7 +389,9 @@ describe('scores.service', () => {
       await expect(
         bulkEnterScores({
           tournamentId: tournamentId.toString(),
-          scores: [{ golferId: golferId.toString(), participated: true, position: 1, rawScore: 36 }],
+          scores: [
+            { golferId: golferId.toString(), participated: true, position: 1, rawScore: 36 },
+          ],
         })
       ).rejects.toThrow('Tournament not found');
     });
@@ -404,6 +454,37 @@ describe('scores.service', () => {
     });
   });
 
+  describe('getAllScores', () => {
+    it('applies skip and limit when provided', async () => {
+      const cursor = {
+        skip: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        toArray: vi.fn().mockResolvedValue([
+          {
+            _id: scoreId,
+            tournamentId,
+            golferId,
+            participated: true,
+            position: 1,
+            rawScore: 38,
+            basePoints: 10,
+            bonusPoints: 3,
+            multipliedPoints: 13,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ]),
+      };
+      mockScoresCollection.find.mockReturnValue(cursor);
+
+      const result = await getAllScores({ skip: 5, limit: 10 });
+
+      expect(cursor.skip).toHaveBeenCalledWith(5);
+      expect(cursor.limit).toHaveBeenCalledWith(10);
+      expect(result).toHaveLength(1);
+    });
+  });
+
   describe('recalculateScoresForTournament', () => {
     it('recalculates all scores for a tournament', async () => {
       mockTournamentsCollection.findOne.mockResolvedValue(makeTournament({ multiplier: 3 }));
@@ -424,22 +505,26 @@ describe('scores.service', () => {
           },
         ])
       );
-      mockScoresCollection.updateOne.mockResolvedValue({ modifiedCount: 1 });
+      mockScoresCollection.bulkWrite.mockResolvedValue({ modifiedCount: 1 });
 
       const count = await recalculateScoresForTournament(tournamentId.toString());
 
       expect(count).toBe(1);
       // With multiplier 3: (10+3)*3 = 39
-      expect(mockScoresCollection.updateOne).toHaveBeenCalledWith(
-        { _id: scoreId },
-        {
-          $set: expect.objectContaining({
-            basePoints: 10,
-            bonusPoints: 3,
-            multipliedPoints: 39,
+      expect(mockScoresCollection.bulkWrite).toHaveBeenCalledWith([
+        expect.objectContaining({
+          updateOne: expect.objectContaining({
+            filter: { _id: scoreId },
+            update: {
+              $set: expect.objectContaining({
+                basePoints: 10,
+                bonusPoints: 3,
+                multipliedPoints: 39,
+              }),
+            },
           }),
-        }
-      );
+        }),
+      ]);
     });
 
     it('returns 0 when no scores exist', async () => {
@@ -448,6 +533,115 @@ describe('scores.service', () => {
 
       const count = await recalculateScoresForTournament(tournamentId.toString());
       expect(count).toBe(0);
+    });
+  });
+
+  describe('leaderboard cache invalidation', () => {
+    it('invalidates leaderboard cache after enterScore', async () => {
+      mockTournamentsCollection.findOne.mockResolvedValue(makeTournament());
+      mockScoresCollection.findOneAndUpdate.mockResolvedValue({
+        _id: scoreId,
+        tournamentId,
+        golferId,
+        participated: true,
+        position: 1,
+        rawScore: 38,
+        basePoints: 10,
+        bonusPoints: 3,
+        multipliedPoints: 13,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      await enterScore({
+        tournamentId: tournamentId.toString(),
+        golferId: golferId.toString(),
+        participated: true,
+        position: 1,
+        rawScore: 38,
+      });
+
+      expect(invalidateLeaderboardCache).toHaveBeenCalledWith(2025);
+    });
+
+    it('invalidates leaderboard cache after bulkEnterScores', async () => {
+      mockTournamentsCollection.findOne.mockResolvedValue(makeTournament({ multiplier: 2 }));
+      mockScoresCollection.bulkWrite.mockResolvedValue({ modifiedCount: 1 });
+      const g1 = new ObjectId();
+      mockScoresCollection.find.mockReturnValue(
+        toArrayHelper([
+          {
+            _id: new ObjectId(),
+            tournamentId,
+            golferId: g1,
+            participated: true,
+            position: 1,
+            rawScore: 36,
+            basePoints: 10,
+            bonusPoints: 3,
+            multipliedPoints: 26,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ])
+      );
+
+      await bulkEnterScores({
+        tournamentId: tournamentId.toString(),
+        scores: [{ golferId: g1.toString(), participated: true, position: 1, rawScore: 36 }],
+      });
+
+      expect(invalidateLeaderboardCache).toHaveBeenCalledWith(2025);
+    });
+
+    it('invalidates leaderboard cache after deleteScore', async () => {
+      mockScoresCollection.deleteOne.mockResolvedValue({ deletedCount: 1 });
+
+      await deleteScore(scoreId.toString());
+
+      expect(invalidateLeaderboardCache).toHaveBeenCalledWith(2025);
+    });
+
+    it('does not invalidate leaderboard cache when deleteScore finds nothing', async () => {
+      mockScoresCollection.deleteOne.mockResolvedValue({ deletedCount: 0 });
+
+      await deleteScore(scoreId.toString());
+
+      expect(invalidateLeaderboardCache).not.toHaveBeenCalled();
+    });
+
+    it('invalidates leaderboard cache after deleteScoresForTournament', async () => {
+      mockScoresCollection.deleteMany.mockResolvedValue({ deletedCount: 5 });
+
+      await deleteScoresForTournament(tournamentId.toString());
+
+      expect(invalidateLeaderboardCache).toHaveBeenCalledWith(2025);
+    });
+
+    it('invalidates leaderboard cache after recalculateScoresForTournament', async () => {
+      mockTournamentsCollection.findOne.mockResolvedValue(makeTournament({ multiplier: 3 }));
+      mockScoresCollection.find.mockReturnValue(
+        toArrayHelper([
+          {
+            _id: scoreId,
+            tournamentId,
+            golferId,
+            participated: true,
+            position: 1,
+            rawScore: 36,
+            basePoints: 10,
+            bonusPoints: 3,
+            multipliedPoints: 13,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ])
+      );
+      mockScoresCollection.bulkWrite.mockResolvedValue({ modifiedCount: 1 });
+
+      await recalculateScoresForTournament(tournamentId.toString());
+
+      expect(invalidateLeaderboardCache).toHaveBeenCalledWith(2025);
     });
   });
 });

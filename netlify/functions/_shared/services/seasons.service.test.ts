@@ -1,3 +1,4 @@
+import type { Db, MongoClient } from 'mongodb';
 import { ObjectId } from 'mongodb';
 import { connectToDatabase } from '../db';
 import {
@@ -33,7 +34,7 @@ const mockSeasonsCollection = {
   deleteOne: vi.fn(),
 };
 
-const toArraySorted = (items: any[]) => ({
+const toArraySorted = <T>(items: T[]) => ({
   sort: vi.fn().mockReturnValue({ toArray: vi.fn().mockResolvedValue(items) }),
   toArray: vi.fn().mockResolvedValue(items),
 });
@@ -43,8 +44,8 @@ beforeEach(() => {
   vi.mocked(connectToDatabase).mockResolvedValue({
     db: {
       collection: vi.fn().mockReturnValue(mockSeasonsCollection),
-    } as any,
-    client: {} as any,
+    } as unknown as Db,
+    client: {} as unknown as MongoClient,
   });
 });
 

@@ -56,7 +56,9 @@
   box-shadow: var(--shadow-sm);
   border-left: 4px solid #ccc;
   text-align: center;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
 }
 
 .event-card:hover {
@@ -398,7 +400,9 @@
   font-weight: 600;
   font-size: 1rem;
   text-decoration: none;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
 }
 
 .scoring-cta .btn:hover {

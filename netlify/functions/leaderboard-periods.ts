@@ -235,7 +235,10 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
     
     const currentSeason = activeSeason ? parseInt(activeSeason.name) || fallbackYear : fallbackYear;
     
-    const picks = await db.collection<PickDocument>(PICKS_COLLECTION).find({ season: currentSeason }).toArray();
+    const picks = await db.collection<PickDocument>(PICKS_COLLECTION)
+      .find({ season: currentSeason })
+      .project({ userId: 1, golferIds: 1, captainId: 1, totalSpent: 1, createdAt: 1 })
+      .toArray();
     
     const now = new Date();
     
@@ -294,14 +297,17 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
     
     // Get user details
     const userIds = picks.map(p => p.userId);
-    const users = await db.collection<UserDocument>(USERS_COLLECTION).find({ _id: { $in: userIds } }).toArray();
+    const users = await db.collection<UserDocument>(USERS_COLLECTION).find({ _id: { $in: userIds } }).project({ passwordHash: 0 }).toArray();
     const userMap = new Map(users.map(u => [u._id.toString(), u]));
     
     // Get all published or complete tournaments within season
-    const publishedTournaments = await db.collection<TournamentDocument>(TOURNAMENTS_COLLECTION).find({
-      season: currentSeason,
-      status: { $in: ['published', 'complete'] },
-    }).toArray();
+    const publishedTournaments = await db.collection<TournamentDocument>(TOURNAMENTS_COLLECTION)
+      .find({
+        season: currentSeason,
+        status: { $in: ['published', 'complete'] },
+      })
+      .project({ _id: 1, startDate: 1, status: 1, season: 1, name: 1 })
+      .toArray();
     
     // Filter to only those within season dates
     const seasonTournaments = publishedTournaments.filter(t => {
@@ -313,9 +319,10 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
     
     // Get all scores
     const allScores = tournamentIds.length > 0 
-      ? await db.collection<ScoreDocument>(SCORES_COLLECTION).find({
-          tournamentId: { $in: tournamentIds },
-        }).toArray()
+      ? await db.collection<ScoreDocument>(SCORES_COLLECTION)
+          .find({ tournamentId: { $in: tournamentIds } })
+          .project({ golferId: 1, tournamentId: 1, multipliedPoints: 1, participated: 1 })
+          .toArray()
       : [];
     
     // If requesting leaders summary

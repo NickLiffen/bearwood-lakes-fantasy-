@@ -10,11 +10,7 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import { useApiClient } from '../../hooks/useApiClient';
 import { useActiveSeason } from '../../hooks/useActiveSeason';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
-import {
-  getTournamentTypeLabel,
-  TOURNAMENT_TYPE_CONFIG,
-  TournamentType,
-} from '@shared/types';
+import { getTournamentTypeLabel, TOURNAMENT_TYPE_CONFIG, TournamentType } from '@shared/types';
 import './TournamentsPage.css';
 
 interface PodiumGolfer {
@@ -253,9 +249,7 @@ const TournamentsPage: React.FC = () => {
         width: '70px',
         align: 'center',
         render: (tournament) => (
-          <span
-            className={tournament.results?.bonusScorerCount ? 'dt-cell-stat' : 'dt-cell-muted'}
-          >
+          <span className={tournament.results?.bonusScorerCount ? 'dt-cell-stat' : 'dt-cell-muted'}>
             {tournament.results?.bonusScorerCount || 0}
           </span>
         ),
@@ -330,8 +324,15 @@ const TournamentsPage: React.FC = () => {
               className="filter-select"
             >
               <option value="all">All Types</option>
-              {(Object.entries(TOURNAMENT_TYPE_CONFIG) as [TournamentType, typeof TOURNAMENT_TYPE_CONFIG[TournamentType]][]).map(([key, config]) => (
-                <option key={key} value={key}>{config.label} ({config.multiplier}×)</option>
+              {(
+                Object.entries(TOURNAMENT_TYPE_CONFIG) as [
+                  TournamentType,
+                  (typeof TOURNAMENT_TYPE_CONFIG)[TournamentType],
+                ][]
+              ).map(([key, config]) => (
+                <option key={key} value={key}>
+                  {config.label} ({config.multiplier}×)
+                </option>
               ))}
             </select>
             {hasActiveFilters && (
@@ -365,10 +366,17 @@ const TournamentsPage: React.FC = () => {
               <span className="stat-value">{completeTournaments.length}</span>
               <span className="stat-label">Tournaments</span>
             </div>
-            {(Object.entries(TOURNAMENT_TYPE_CONFIG) as [TournamentType, typeof TOURNAMENT_TYPE_CONFIG[TournamentType]][]).map(([key, config]) => (
+            {(
+              Object.entries(TOURNAMENT_TYPE_CONFIG) as [
+                TournamentType,
+                (typeof TOURNAMENT_TYPE_CONFIG)[TournamentType],
+              ][]
+            ).map(([key, config]) => (
               <div className="stat-item" key={key}>
                 <span className="stat-value">{typeCounts[key]}</span>
-                <span className="stat-label">{config.label} ({config.multiplier}×)</span>
+                <span className="stat-label">
+                  {config.label} ({config.multiplier}×)
+                </span>
               </div>
             ))}
           </div>

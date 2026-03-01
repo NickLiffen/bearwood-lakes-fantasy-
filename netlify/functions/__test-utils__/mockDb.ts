@@ -9,6 +9,8 @@
  *   vi.mocked(connectToDatabase).mockResolvedValue(mockDb);
  */
 
+import type { Db, MongoClient } from 'mongodb';
+
 type MockCollection = Record<string, ReturnType<typeof vi.fn>>;
 
 export function createMockDb(collectionMap: Record<string, MockCollection>) {
@@ -20,15 +22,15 @@ export function createMockDb(collectionMap: Record<string, MockCollection>) {
 
   return {
     collections: collectionMap,
-    mockDb: { db, client: {} } as any,
+    mockDb: { db: db as unknown as Db, client: {} as unknown as MongoClient },
   };
 }
 
 /**
  * Creates a chainable mock cursor (find → sort → skip → limit → toArray).
  */
-export function mockCursor(items: any[]) {
-  const cursor: any = {
+export function mockCursor<T>(items: T[]) {
+  const cursor = {
     sort: vi.fn().mockReturnThis(),
     skip: vi.fn().mockReturnThis(),
     limit: vi.fn().mockReturnThis(),
@@ -41,7 +43,7 @@ export function mockCursor(items: any[]) {
 /**
  * Creates a chainable mock aggregation cursor (aggregate → toArray).
  */
-export function mockAggregateCursor(items: any[]) {
+export function mockAggregateCursor<T>(items: T[]) {
   return {
     toArray: vi.fn().mockResolvedValue(items),
   };

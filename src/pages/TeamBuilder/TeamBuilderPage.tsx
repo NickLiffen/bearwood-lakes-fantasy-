@@ -308,7 +308,7 @@ const TeamBuilderPage: React.FC = () => {
       case 'podium-finishers':
         return getPodiums(golfer) > 0;
       case 'consistent':
-        return stats.timesPlayed >= 3 && (stats.timesScored32Plus / stats.timesPlayed) >= 0.7;
+        return stats.timesPlayed >= 3 && stats.timesScored32Plus / stats.timesPlayed >= 0.7;
       case 'value-picks':
         return golfer.price <= 8000000; // $8M or less
       case 'premium':
@@ -326,9 +326,7 @@ const TeamBuilderPage: React.FC = () => {
   };
 
   // Check if any filters are active
-  const hasActiveFilters =
-    searchTerm !== '' ||
-    quickFilter !== 'all';
+  const hasActiveFilters = searchTerm !== '' || quickFilter !== 'all';
 
   // Filter and sort golfers
   const filteredGolfers = golfers
@@ -336,10 +334,7 @@ const TeamBuilderPage: React.FC = () => {
       const fullName = `${golfer.firstName} ${golfer.lastName}`;
       const matches = matchesSearch(fullName, searchTerm);
       const matchesQuickFilter = applyQuickFilter(golfer);
-      return (
-        matches &&
-        matchesQuickFilter
-      );
+      return matches && matchesQuickFilter;
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -443,7 +438,6 @@ const TeamBuilderPage: React.FC = () => {
               </button>
             </div>
           )}
-
 
           {/* Budget & Team Summary */}
           <section className="summary-section">
@@ -566,9 +560,24 @@ const TeamBuilderPage: React.FC = () => {
                 {[
                   { value: 'all', label: 'All', icon: '👥', desc: '' },
                   { value: 'winners', label: 'Winners', icon: '🏆', desc: 'Won 1st place' },
-                  { value: 'podium-finishers', label: 'Podium', icon: '🥇', desc: 'Finished top 3' },
-                  { value: 'consistent', label: 'Consistent', icon: '📈', desc: 'Score 32+ in 70%+ of events' },
-                  { value: 'value-picks', label: 'Value', icon: '💎', desc: 'Great podiums for price' },
+                  {
+                    value: 'podium-finishers',
+                    label: 'Podium',
+                    icon: '🥇',
+                    desc: 'Finished top 3',
+                  },
+                  {
+                    value: 'consistent',
+                    label: 'Consistent',
+                    icon: '📈',
+                    desc: 'Score 32+ in 70%+ of events',
+                  },
+                  {
+                    value: 'value-picks',
+                    label: 'Value',
+                    icon: '💎',
+                    desc: 'Great podiums for price',
+                  },
                   { value: 'premium', label: 'Premium', icon: '⭐', desc: 'Highest priced' },
                 ].map((filter) => (
                   <button
@@ -576,7 +585,9 @@ const TeamBuilderPage: React.FC = () => {
                     className={`quick-filter-chip ${quickFilter === filter.value ? 'active' : ''}`}
                     onClick={() => setQuickFilter(filter.value as QuickFilter)}
                   >
-                    <span>{filter.icon} {filter.label}</span>
+                    <span>
+                      {filter.icon} {filter.label}
+                    </span>
                     {filter.desc && <span className="filter-desc">{filter.desc}</span>}
                   </button>
                 ))}
@@ -797,7 +808,8 @@ const TeamBuilderPage: React.FC = () => {
                     played: acc.played + ss.timesPlayed,
                     points: acc.points + ss.totalPoints,
                     wins: acc.wins + ss.timesFinished1st,
-                    podiums: acc.podiums + ss.timesFinished1st + ss.timesFinished2nd + ss.timesFinished3rd,
+                    podiums:
+                      acc.podiums + ss.timesFinished1st + ss.timesFinished2nd + ss.timesFinished3rd,
                     scored36Plus: acc.scored36Plus + (ss.timesScored36Plus || 0),
                     scored32Plus: acc.scored32Plus + (ss.timesScored32Plus || 0),
                   }),
@@ -834,7 +846,9 @@ const TeamBuilderPage: React.FC = () => {
                             <span className="modal-stat-label">32+</span>
                           </div>
                           <div className="modal-stat-item" style={{ gridColumn: '1 / -1' }}>
-                            <span className="modal-stat-value">{selectedGolferDetail.selectedPercentage ?? 0}%</span>
+                            <span className="modal-stat-value">
+                              {selectedGolferDetail.selectedPercentage ?? 0}%
+                            </span>
                             <span className="modal-stat-label">Selected</span>
                           </div>
                         </div>
@@ -842,7 +856,8 @@ const TeamBuilderPage: React.FC = () => {
                     </div>
                     <div className="modal-stats-full">
                       {selectedGolferDetail.seasonStats.map((ss) => {
-                        const podiums = ss.timesFinished1st + ss.timesFinished2nd + ss.timesFinished3rd;
+                        const podiums =
+                          ss.timesFinished1st + ss.timesFinished2nd + ss.timesFinished3rd;
                         const winRate =
                           ss.timesPlayed > 0
                             ? ((ss.timesFinished1st / ss.timesPlayed) * 100).toFixed(0)
@@ -990,13 +1005,7 @@ const TeamBuilderPage: React.FC = () => {
           </div>
         </div>
       )}
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </PageLayout>
   );
 };

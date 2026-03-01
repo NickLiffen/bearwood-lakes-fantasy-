@@ -12,7 +12,7 @@ export function getRedisClient(): Redis {
     if (!redisUrl) {
       throw new Error(
         'Missing Redis configuration. ' +
-        'Please set the REDIS_URL environment variable (e.g. redis://:password@host:port).'
+          'Please set the REDIS_URL environment variable (e.g. redis://:password@host:port).'
       );
     }
 
@@ -91,10 +91,7 @@ export async function checkRateLimit(
     const windowKey = `${key}:${Math.floor(now / config.windowMs)}`;
 
     // Atomically increment counter and set TTL via pipeline
-    const results = await redis.pipeline()
-      .incr(windowKey)
-      .expire(windowKey, windowSeconds)
-      .exec();
+    const results = await redis.pipeline().incr(windowKey).expire(windowKey, windowSeconds).exec();
     // ioredis pipeline returns [[err, result], ...] tuples
     if (!results || results[0]?.[0]) {
       throw new Error('Redis pipeline command failed');
@@ -121,7 +118,10 @@ export async function checkRateLimit(
     };
   } catch (error) {
     // Fail open if Redis is unavailable, but log for visibility
-    console.error('[RateLimit] Redis check failed, failing open:', error instanceof Error ? error.message : error);
+    console.error(
+      '[RateLimit] Redis check failed, failing open:',
+      error instanceof Error ? error.message : error
+    );
     return {
       allowed: true,
       remaining: config.maxRequests,
@@ -173,10 +173,7 @@ export function getRedisKeyPrefix(): string {
 /**
  * Helper to create rate limit key
  */
-export function createRateLimitKey(
-  identifier: string,
-  endpoint: string
-): string {
+export function createRateLimitKey(identifier: string, endpoint: string): string {
   return `${getRedisKeyPrefix()}v1:ratelimit:${identifier}:${endpoint}`;
 }
 

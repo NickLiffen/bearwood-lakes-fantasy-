@@ -1,6 +1,6 @@
 // GET /.netlify/functions/golfers-list
-// Supports pagination: ?page=1&limit=20
-// Returns all if no pagination params provided
+// Supports pagination: ?page=1&limit=50 (default)
+// Pass ?all=true to bypass pagination and return every golfer
 
 import { ObjectId } from 'mongodb';
 import { withVerifiedAuth, AuthenticatedEvent } from './_shared/middleware';
@@ -22,9 +22,10 @@ export const handler = withVerifiedAuth(async (event: AuthenticatedEvent) => {
 
     // Parse pagination params
     const queryParams = event.queryStringParameters || {};
-    const page = parseInt(queryParams.page || '0', 10);
-    const limit = parseInt(queryParams.limit || '0', 10);
-    const isPaginated = page > 0 && limit > 0;
+    const allRequested = queryParams.all === 'true';
+    const page = parseInt(queryParams.page || '1', 10);
+    const limit = Math.min(parseInt(queryParams.limit || '50', 10), 250);
+    const isPaginated = !allRequested;
     const seasonParam = queryParams.season; // e.g., "2025"
 
     // Time boundaries

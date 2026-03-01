@@ -64,7 +64,10 @@ export async function getSeasonByName(name: string): Promise<Season | null> {
   const { db } = await connectToDatabase();
   const collection = db.collection<SeasonDocument>(SEASONS_COLLECTION);
 
-  const season = await collection.findOne({ name: { $regex: new RegExp(`^${name}$`, 'i') } });
+  const season = await collection.findOne(
+    { name: name.trim() },
+    { collation: { locale: 'en', strength: 2 } }
+  );
   return season ? toSeason(season) : null;
 }
 

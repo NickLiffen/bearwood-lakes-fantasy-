@@ -93,7 +93,7 @@ const MyTeamPage: React.FC = () => {
   const [savingCaptain, setSavingCaptain] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'warning' } | null>(null);
   const [captainBannerDismissed, setCaptainBannerDismissed] = useState(
-    () => localStorage.getItem('captainBannerDismissed') === 'true',
+    () => localStorage.getItem('captainBannerDismissed') === 'true'
   );
   const { get, post, isAuthReady } = useApiClient();
   const { season } = useActiveSeason();
@@ -298,130 +298,125 @@ const MyTeamPage: React.FC = () => {
 
   return (
     <>
-    <PageLayout activeNav="my-team">
-      <div className="my-team-content">
-        <div className="my-team-container">
-          {/* Page Header */}
-          <div className="users-page-header">
-            <div className="page-header-row">
-              <div>
-                <h1>My Team</h1>
-                <p className="users-page-subtitle">Your {seasonName} Fantasy Golf Squad</p>
-              </div>
-              <div className="header-actions">
-                {teamData.transfersOpen ? (
-                  <>
-                    <span className="transfers-info">
-                      {teamData.unlimitedTransfers
-                        ? 'Unlimited transfers (pre-season)'
-                        : `Transfers: ${teamData.transfersUsedThisWeek} / ${teamData.maxTransfersPerWeek} used this week`}
-                    </span>
-                    {teamData.unlimitedTransfers ||
-                    teamData.transfersUsedThisWeek < teamData.maxTransfersPerWeek ? (
-                      <Link to="/team-builder" className="btn-edit-team">
-                        Edit Team →
-                      </Link>
-                    ) : (
-                      <span className="transfers-exhausted">No transfers remaining</span>
-                    )}
-                  </>
-                ) : (
-                  <span className="transfers-locked">Transfers Locked</span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Captain Prompt — one-time only, dismissed permanently after first captain set */}
-          {!captainBannerDismissed && !team.captainId && (
-            <div className="captain-prompt-banner">
-              <span className="banner-icon">⭐</span>
-              <div className="banner-text">
-                <h3>Pick Your Captain</h3>
-                <p>
-                  Tap the <span className="captain-badge-hint">C</span> next to a golfer&apos;s name
-                  to make them captain. Your captain earns <strong>2× points</strong> every week!
-                </p>
+      <PageLayout activeNav="my-team">
+        <div className="my-team-content">
+          <div className="my-team-container">
+            {/* Page Header */}
+            <div className="users-page-header">
+              <div className="page-header-row">
+                <div>
+                  <h1>My Team</h1>
+                  <p className="users-page-subtitle">Your {seasonName} Fantasy Golf Squad</p>
+                </div>
+                <div className="header-actions">
+                  {teamData.transfersOpen ? (
+                    <>
+                      <span className="transfers-info">
+                        {teamData.unlimitedTransfers
+                          ? 'Unlimited transfers (pre-season)'
+                          : `Transfers: ${teamData.transfersUsedThisWeek} / ${teamData.maxTransfersPerWeek} used this week`}
+                      </span>
+                      {teamData.unlimitedTransfers ||
+                      teamData.transfersUsedThisWeek < teamData.maxTransfersPerWeek ? (
+                        <Link to="/team-builder" className="btn-edit-team">
+                          Edit Team →
+                        </Link>
+                      ) : (
+                        <span className="transfers-exhausted">No transfers remaining</span>
+                      )}
+                    </>
+                  ) : (
+                    <span className="transfers-locked">Transfers Locked</span>
+                  )}
+                </div>
               </div>
             </div>
-          )}
 
-          {/* Stats Grid */}
-          <TeamStatsBar
-            weekPoints={team.totals.weekPoints}
-            monthPoints={team.totals.monthPoints || 0}
-            seasonPoints={team.totals.seasonPoints}
-          />
-
-          {/* Team Section */}
-          <TeamSection
-            firstName={authUser?.firstName || 'Your'}
-            teamValue={team.totals.totalSpent}
-          >
-            <PeriodNav
-              id="my-team-period-select"
-              options={weekOptions}
-              selectedDate={selectedDate || ''}
-              hasPrevious={teamData?.team?.period?.hasPrevious ?? false}
-              hasNext={teamData?.team?.period?.hasNext ?? false}
-              onNavigate={handleWeekNavigation}
-              onSelect={(date) => fetchTeam(date)}
-            />
-
-            {/* Error State */}
-            {error && <div className="error-message">{error}</div>}
-
-            {/* Golfers Table */}
-            <TeamGolferTable
-              golfers={sortedGolfers}
-              weekTotal={team.totals.weekPoints}
-              isOwnTeam={true}
-              onSetCaptain={handleSetCaptain}
-            />
-          </TeamSection>
-
-          {teamData?.history && teamData.history.length > 0 && (
-            <TeamHistory history={teamData.history} />
-          )}
-
-          {/* Team Info Footer */}
-          <div className="team-info-footer">
-            <p>
-              Team created:{' '}
-              {new Date(team.createdAt).toLocaleDateString('en-GB', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </p>
-            <p>
-              Team last updated:{' '}
-              {new Date(team.updatedAt).toLocaleDateString('en-GB', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-              })}
-            </p>
-            {!teamData.transfersOpen && (
-              <p className="locked-notice">
-                🔒 Transfer window is currently closed. You cannot make changes to your team.
-              </p>
+            {/* Captain Prompt — one-time only, dismissed permanently after first captain set */}
+            {!captainBannerDismissed && !team.captainId && (
+              <div className="captain-prompt-banner">
+                <span className="banner-icon">⭐</span>
+                <div className="banner-text">
+                  <h3>Pick Your Captain</h3>
+                  <p>
+                    Tap the <span className="captain-badge-hint">C</span> next to a golfer&apos;s
+                    name to make them captain. Your captain earns <strong>2× points</strong> every
+                    week!
+                  </p>
+                </div>
+              </div>
             )}
+
+            {/* Stats Grid */}
+            <TeamStatsBar
+              weekPoints={team.totals.weekPoints}
+              monthPoints={team.totals.monthPoints || 0}
+              seasonPoints={team.totals.seasonPoints}
+            />
+
+            {/* Team Section */}
+            <TeamSection
+              firstName={authUser?.firstName || 'Your'}
+              teamValue={team.totals.totalSpent}
+            >
+              <PeriodNav
+                id="my-team-period-select"
+                options={weekOptions}
+                selectedDate={selectedDate || ''}
+                hasPrevious={teamData?.team?.period?.hasPrevious ?? false}
+                hasNext={teamData?.team?.period?.hasNext ?? false}
+                onNavigate={handleWeekNavigation}
+                onSelect={(date) => fetchTeam(date)}
+              />
+
+              {/* Error State */}
+              {error && <div className="error-message">{error}</div>}
+
+              {/* Golfers Table */}
+              <TeamGolferTable
+                golfers={sortedGolfers}
+                weekTotal={team.totals.weekPoints}
+                isOwnTeam={true}
+                onSetCaptain={handleSetCaptain}
+              />
+            </TeamSection>
+
+            {teamData?.history && teamData.history.length > 0 && (
+              <TeamHistory history={teamData.history} />
+            )}
+
+            {/* Team Info Footer */}
+            <div className="team-info-footer">
+              <p>
+                Team created:{' '}
+                {new Date(team.createdAt).toLocaleDateString('en-GB', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </p>
+              <p>
+                Team last updated:{' '}
+                {new Date(team.updatedAt).toLocaleDateString('en-GB', {
+                  day: 'numeric',
+                  month: 'long',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </p>
+              {!teamData.transfersOpen && (
+                <p className="locked-notice">
+                  🔒 Transfer window is currently closed. You cannot make changes to your team.
+                </p>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    </PageLayout>
-    {toast && (
-      <Toast
-        message={toast.message}
-        type={toast.type}
-        onClose={() => setToast(null)}
-      />
-    )}
+      </PageLayout>
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </>
   );
 };

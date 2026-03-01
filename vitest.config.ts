@@ -14,22 +14,18 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: ['./vitest.setup.ts'],
-    include: [
-      'src/**/*.test.{ts,tsx}',
-      'shared/**/*.test.ts',
-      'netlify/**/*.test.ts',
+    environmentMatchGlobs: [
+      ['netlify/**/*.test.ts', 'node'],
+      ['shared/**/*.test.ts', 'node'],
     ],
+    setupFiles: ['./vitest.setup.ts'],
+    include: ['src/**/*.test.{ts,tsx}', 'shared/**/*.test.ts', 'netlify/**/*.test.ts'],
     exclude: ['node_modules', 'dist'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'html', 'json'],
       reportsDirectory: './coverage',
-      include: [
-        'src/**/*.{ts,tsx}',
-        'shared/**/*.ts',
-        'netlify/functions/**/*.ts',
-      ],
+      include: ['src/**/*.{ts,tsx}', 'shared/**/*.ts', 'netlify/functions/**/*.ts'],
       exclude: [
         '**/*.test.{ts,tsx}',
         '**/*.d.ts',

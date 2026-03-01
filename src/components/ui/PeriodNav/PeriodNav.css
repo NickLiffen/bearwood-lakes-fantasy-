@@ -1,0 +1,66 @@
+.period-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-md);
+  margin: var(--spacing-md) 0;
+}
+
+.section-header .period-nav {
+  margin: 0.5rem 0 0;
+}
+
+.period-nav-btn {
+  padding: 0.5rem 1rem;
+  background: var(--primary-green);
+  color: var(--light-text);
+  border: none;
+  border-radius: 8px;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.period-nav-btn:hover:not(:disabled) {
+  background: var(--secondary-green);
+}
+
+.period-nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.period-nav-select {
+  padding: 0.5rem 0.75rem;
+  background: var(--cream);
+  color: var(--dark-text);
+  border: 1px solid var(--sand);
+  border-radius: 8px;
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  min-width: 180px;
+  transition: border-color 0.2s ease;
+}
+
+.period-nav-select:focus {
+  outline: none;
+  border-color: var(--accent-gold);
+  box-shadow: 0 0 0 2px rgba(201, 162, 39, 0.2);
+}
+
+@media (max-width: 768px) {
+  .period-nav {
+    width: 100%;
+  }
+
+  .period-nav-select {
+    flex: 1;
+    min-width: 0;
+  }
+}

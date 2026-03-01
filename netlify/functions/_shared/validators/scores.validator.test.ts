@@ -111,18 +111,18 @@ describe('bulkEnterScoresSchema', () => {
       });
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.issues.some((i) => i.message.toLowerCase().includes('at least one golfer must have participated'))).toBe(
-          true
-        );
+        expect(
+          result.error.issues.some((i) =>
+            i.message.toLowerCase().includes('at least one golfer must have participated')
+          )
+        ).toBe(true);
       }
     });
 
     it('fails when participating golfer is missing rawScore', () => {
       const result = bulkEnterScoresSchema.safeParse({
         tournamentId: 't1',
-        scores: [
-          { golferId: 'g1', participated: true, rawScore: null, position: 1 },
-        ],
+        scores: [{ golferId: 'g1', participated: true, rawScore: null, position: 1 }],
       });
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -205,7 +205,9 @@ describe('bulkEnterScoresSchema', () => {
       });
       expect(result.success).toBe(false);
       if (!result.success) {
-        expect(result.error.issues.some((i) => i.message.includes('Duplicate positions'))).toBe(true);
+        expect(result.error.issues.some((i) => i.message.includes('Duplicate positions'))).toBe(
+          true
+        );
       }
     });
 

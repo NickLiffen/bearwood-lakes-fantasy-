@@ -118,7 +118,9 @@ const LeaderboardPage: React.FC = () => {
 
         // Set initial dates - use getSaturdayOfWeek to ensure we match option values
         if (response.data.currentWeek) {
-          setWeeklyDate(formatDateString(getSaturdayOfWeek(new Date(response.data.currentWeek.startDate))));
+          setWeeklyDate(
+            formatDateString(getSaturdayOfWeek(new Date(response.data.currentWeek.startDate)))
+          );
         }
         if (response.data.currentMonth) {
           const d = new Date(response.data.currentMonth.startDate);
@@ -129,7 +131,12 @@ const LeaderboardPage: React.FC = () => {
 
         // Generate dropdown options from shared utilities
         if (response.data.seasonInfo) {
-          setWeekOptions(generateWeekOptions(response.data.seasonInfo.startDate, response.data.seasonInfo.startDate));
+          setWeekOptions(
+            generateWeekOptions(
+              response.data.seasonInfo.startDate,
+              response.data.seasonInfo.startDate
+            )
+          );
           setMonthOptions(generateMonthOptions(response.data.seasonInfo.startDate));
         }
       }
@@ -408,7 +415,8 @@ const LeaderboardPage: React.FC = () => {
           <div className="section-title-row">
             <h2>{title}</h2>
             <span className="section-meta">
-              {tournamentCount} tournament{tournamentCount !== 1 ? 's' : ''} · {entries.length} participants
+              {tournamentCount} tournament{tournamentCount !== 1 ? 's' : ''} · {entries.length}{' '}
+              participants
             </span>
           </div>
           {showNavigation && period && (

@@ -32,7 +32,7 @@ jobs:
 
       - name: Run tests
         run: npm test
-        continue-on-error: true  # TODO: Remove once test paths are fixed (P2)
+        continue-on-error: true # TODO: Remove once test paths are fixed (P2)
 
       - name: Build application
         run: npm run build

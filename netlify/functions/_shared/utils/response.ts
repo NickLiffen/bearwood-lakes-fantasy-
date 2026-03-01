@@ -28,10 +28,7 @@ export function errorResponse(
 /**
  * Creates a standardized success response
  */
-export function successResponse<T>(
-  data: T,
-  headers?: Record<string, string>
-): ApiResponse {
+export function successResponse<T>(data: T, headers?: Record<string, string>): ApiResponse {
   return {
     statusCode: 200,
     headers: { ...defaultHeaders, ...headers },

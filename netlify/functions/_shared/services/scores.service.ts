@@ -5,15 +5,26 @@ import { connectToDatabase } from '../db';
 import { ScoreDocument, toScore, SCORES_COLLECTION } from '../models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from '../models/Tournament';
 import type { Score, EnterScoreRequest, BulkEnterScoresRequest } from '../../../../shared/types';
-import { getBasePointsForPosition, getBonusPoints } from '../../../../shared/types/tournament.types';
+import {
+  getBasePointsForPosition,
+  getBonusPoints,
+} from '../../../../shared/types/tournament.types';
+import { invalidateLeaderboardCache } from './leaderboard.service';
+import { getActiveSeason } from './seasons.service';
+
+async function invalidateLeaderboard(): Promise<void> {
+  const activeSeason = await getActiveSeason();
+  if (activeSeason) {
+    const seasonNum = parseInt(activeSeason.name, 10);
+    if (seasonNum) await invalidateLeaderboardCache(seasonNum);
+  }
+}
 
 export async function getScoresForTournament(tournamentId: string): Promise<Score[]> {
   const { db } = await connectToDatabase();
   const collection = db.collection<ScoreDocument>(SCORES_COLLECTION);
 
-  const scores = await collection
-    .find({ tournamentId: new ObjectId(tournamentId) })
-    .toArray();
+  const scores = await collection.find({ tournamentId: new ObjectId(tournamentId) }).toArray();
   return scores.map(toScore);
 }
 
@@ -21,9 +32,7 @@ export async function getScoresForGolfer(golferId: string): Promise<Score[]> {
   const { db } = await connectToDatabase();
   const collection = db.collection<ScoreDocument>(SCORES_COLLECTION);
 
-  const scores = await collection
-    .find({ golferId: new ObjectId(golferId) })
-    .toArray();
+  const scores = await collection.find({ golferId: new ObjectId(golferId) }).toArray();
   return scores.map(toScore);
 }
 
@@ -48,13 +57,13 @@ export async function enterScore(data: EnterScoreRequest): Promise<Score> {
   let basePoints = 0;
   let bonusPoints = 0;
   let multipliedPoints = 0;
-  
+
   if (data.participated) {
     basePoints = getBasePointsForPosition(data.position);
     bonusPoints = getBonusPoints(data.rawScore, scoringFormat, isMultiDay);
     multipliedPoints = (basePoints + bonusPoints) * tournament.multiplier;
   }
-  
+
   const now = new Date();
 
   // Upsert score for golfer/tournament combination
@@ -79,7 +88,9 @@ export async function enterScore(data: EnterScoreRequest): Promise<Score> {
     { upsert: true, returnDocument: 'after' }
   );
 
-  return toScore(result!);
+  const score = toScore(result!);
+  await invalidateLeaderboard();
+  return score;
 }
 
 export async function bulkEnterScores(data: BulkEnterScoresRequest): Promise<Score[]> {
@@ -99,14 +110,14 @@ export async function bulkEnterScores(data: BulkEnterScoresRequest): Promise<Sco
   const now = new Date();
 
   // Build bulk operations for MongoDB bulkWrite
-  const operations = data.scores.map(scoreData => {
+  const operations = data.scores.map((scoreData) => {
     const golferObjectId = new ObjectId(scoreData.golferId);
-    
+
     // Calculate points - only if participated
     let basePoints = 0;
     let bonusPoints = 0;
     let multipliedPoints = 0;
-    
+
     if (scoreData.participated) {
       basePoints = getBasePointsForPosition(scoreData.position);
       bonusPoints = getBonusPoints(scoreData.rawScore, scoringFormat, isMultiDay);
@@ -141,19 +152,27 @@ export async function bulkEnterScores(data: BulkEnterScoresRequest): Promise<Sco
   await scoresCollection.bulkWrite(operations);
 
   // Fetch the updated scores to return
-  const golferIds = data.scores.map(s => new ObjectId(s.golferId));
+  const golferIds = data.scores.map((s) => new ObjectId(s.golferId));
   const updatedScores = await scoresCollection
     .find({ tournamentId: tournamentObjectId, golferId: { $in: golferIds } })
     .toArray();
 
-  return updatedScores.map(toScore);
+  const scores = updatedScores.map(toScore);
+  await invalidateLeaderboard();
+  return scores;
 }
 
-export async function getAllScores(): Promise<Score[]> {
+export async function getAllScores(options?: {
+  limit?: number;
+  skip?: number;
+}): Promise<Score[]> {
   const { db } = await connectToDatabase();
   const collection = db.collection<ScoreDocument>(SCORES_COLLECTION);
 
-  const scores = await collection.find({}).toArray();
+  let cursor = collection.find({});
+  if (options?.skip !== undefined) cursor = cursor.skip(options.skip);
+  if (options?.limit !== undefined) cursor = cursor.limit(options.limit);
+  const scores = await cursor.toArray();
   return scores.map(toScore);
 }
 
@@ -163,15 +182,11 @@ export async function getPublishedScores(): Promise<Score[]> {
   const tournamentsCollection = db.collection<TournamentDocument>(TOURNAMENTS_COLLECTION);
 
   // Get published tournaments
-  const publishedTournaments = await tournamentsCollection
-    .find({ status: 'published' })
-    .toArray();
+  const publishedTournaments = await tournamentsCollection.find({ status: 'published' }).toArray();
   const publishedIds = publishedTournaments.map((t) => t._id);
 
   // Get scores only from published tournaments
-  const scores = await scoresCollection
-    .find({ tournamentId: { $in: publishedIds } })
-    .toArray();
+  const scores = await scoresCollection.find({ tournamentId: { $in: publishedIds } }).toArray();
 
   return scores.map(toScore);
 }
@@ -181,7 +196,9 @@ export async function deleteScore(scoreId: string): Promise<boolean> {
   const collection = db.collection<ScoreDocument>(SCORES_COLLECTION);
 
   const result = await collection.deleteOne({ _id: new ObjectId(scoreId) });
-  return result.deletedCount === 1;
+  const deleted = result.deletedCount === 1;
+  if (deleted) await invalidateLeaderboard();
+  return deleted;
 }
 
 export async function deleteScoresForTournament(tournamentId: string): Promise<number> {
@@ -189,6 +206,7 @@ export async function deleteScoresForTournament(tournamentId: string): Promise<n
   const collection = db.collection<ScoreDocument>(SCORES_COLLECTION);
 
   const result = await collection.deleteMany({ tournamentId: new ObjectId(tournamentId) });
+  if (result.deletedCount > 0) await invalidateLeaderboard();
   return result.deletedCount;
 }
 
@@ -218,14 +236,14 @@ export async function recalculateScoresForTournament(tournamentId: string): Prom
 
   // Get all scores for this tournament
   const scores = await scoresCollection.find({ tournamentId: tournamentObjectId }).toArray();
-  
+
   if (scores.length === 0) {
     return 0;
   }
 
-  // Recalculate each score
-  let updatedCount = 0;
-  for (const score of scores) {
+  // Build bulk operations to recalculate each score
+  const now = new Date();
+  const operations = scores.map((score) => {
     let basePoints = 0;
     let bonusPoints = 0;
     let multipliedPoints = 0;
@@ -236,19 +254,23 @@ export async function recalculateScoresForTournament(tournamentId: string): Prom
       multipliedPoints = (basePoints + bonusPoints) * tournament.multiplier;
     }
 
-    await scoresCollection.updateOne(
-      { _id: score._id },
-      {
-        $set: {
-          basePoints,
-          bonusPoints,
-          multipliedPoints,
-          updatedAt: new Date(),
+    return {
+      updateOne: {
+        filter: { _id: score._id },
+        update: {
+          $set: {
+            basePoints,
+            bonusPoints,
+            multipliedPoints,
+            updatedAt: now,
+          },
         },
-      }
-    );
-    updatedCount++;
-  }
+      },
+    };
+  });
 
-  return updatedCount;
+  await scoresCollection.bulkWrite(operations);
+
+  await invalidateLeaderboard();
+  return scores.length;
 }

@@ -46,9 +46,9 @@ async function main() {
   const allTournaments = await tournamentsCol.find({}).sort({ startDate: 1 }).toArray();
 
   // Identify Sunday tournaments
-  const sundayTournaments = allTournaments.filter(t => new Date(t.startDate).getUTCDay() === 0);
-  const saturdayTournaments = allTournaments.filter(t => new Date(t.startDate).getUTCDay() === 6);
-  const otherTournaments = allTournaments.filter(t => {
+  const sundayTournaments = allTournaments.filter((t) => new Date(t.startDate).getUTCDay() === 0);
+  const saturdayTournaments = allTournaments.filter((t) => new Date(t.startDate).getUTCDay() === 6);
+  const otherTournaments = allTournaments.filter((t) => {
     const day = new Date(t.startDate).getUTCDay();
     return day !== 0 && day !== 6;
   });
@@ -67,7 +67,7 @@ async function main() {
 
   // Step 1: Update Sunday tournaments to elevated
   console.log(`\n📋 Step 1: Set Sunday tournaments to elevated (2x)`);
-  const sundayIds = sundayTournaments.map(t => t._id);
+  const sundayIds = sundayTournaments.map((t) => t._id);
 
   if (!isDryRun) {
     await tournamentsCol.updateMany(
@@ -114,7 +114,9 @@ async function main() {
     }
   }
 
-  console.log(`   Recalculated ${totalRecalculated} scores across ${sundayTournaments.length} tournaments`);
+  console.log(
+    `   Recalculated ${totalRecalculated} scores across ${sundayTournaments.length} tournaments`
+  );
   console.log(`   Sunday points before (1x): ${pointsBefore}`);
   console.log(`   Sunday points after (2x):  ${pointsAfter}`);
   console.log(`   Change:                    +${pointsAfter - pointsBefore}`);
@@ -131,4 +133,7 @@ async function main() {
   await client.close();
 }
 
-main().catch(err => { console.error('Migration failed:', err); process.exit(1); });
+main().catch((err) => {
+  console.error('Migration failed:', err);
+  process.exit(1);
+});

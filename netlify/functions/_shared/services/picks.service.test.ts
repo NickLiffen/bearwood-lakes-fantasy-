@@ -1,4 +1,5 @@
 import { ObjectId } from 'mongodb';
+import type { Db, MongoClient } from 'mongodb';
 import { connectToDatabase } from '../db';
 import { savePicks, getUserPicks, getPickHistory, getTransfersThisWeek } from './picks.service';
 
@@ -30,7 +31,7 @@ const mockSettingsCollection = {
   findOne: vi.fn(),
 };
 
-const toArrayHelper = (items: any[]) => ({
+const toArrayHelper = <T>(items: T[]) => ({
   toArray: vi.fn().mockResolvedValue(items),
   sort: vi.fn().mockReturnValue({ toArray: vi.fn().mockResolvedValue(items) }),
 });
@@ -46,15 +47,18 @@ beforeEach(() => {
         if (name === 'settings') return mockSettingsCollection;
         return {};
       }),
-    } as any,
-    client: {} as any,
+    } as unknown as Db,
+    client: {} as unknown as MongoClient,
   });
   // Default: transfers open, new team creation allowed
   mockSettingsCollection.findOne.mockImplementation(({ key }: { key: string }) => {
     if (key === 'transfersOpen') return Promise.resolve({ key: 'transfersOpen', value: true });
-    if (key === 'allowNewTeamCreation') return Promise.resolve({ key: 'allowNewTeamCreation', value: true });
-    if (key === 'maxTransfersPerWeek') return Promise.resolve({ key: 'maxTransfersPerWeek', value: 1 });
-    if (key === 'maxPlayersPerTransfer') return Promise.resolve({ key: 'maxPlayersPerTransfer', value: 6 });
+    if (key === 'allowNewTeamCreation')
+      return Promise.resolve({ key: 'allowNewTeamCreation', value: true });
+    if (key === 'maxTransfersPerWeek')
+      return Promise.resolve({ key: 'maxTransfersPerWeek', value: 1 });
+    if (key === 'maxPlayersPerTransfer')
+      return Promise.resolve({ key: 'maxPlayersPerTransfer', value: 6 });
     return Promise.resolve(null);
   });
 });
@@ -79,7 +83,9 @@ describe('picks.service', () => {
       mockPicksCollection.findOne.mockResolvedValue(null);
       // Golfers within budget
       mockGolfersCollection.find.mockReturnValue(
-        toArrayHelper(makeGolferDocs([5_000_000, 5_000_000, 5_000_000, 5_000_000, 5_000_000, 5_000_000]))
+        toArrayHelper(
+          makeGolferDocs([5_000_000, 5_000_000, 5_000_000, 5_000_000, 5_000_000, 5_000_000])
+        )
       );
       mockHistoryCollection.insertOne.mockResolvedValue({ insertedId: new ObjectId() });
       mockPicksCollection.updateOne.mockResolvedValue({ modifiedCount: 1 });
@@ -109,9 +115,9 @@ describe('picks.service', () => {
     it('rejects when not exactly 6 golfers', async () => {
       mockPicksCollection.findOne.mockResolvedValue(null);
 
-      await expect(
-        savePicks(userId.toString(), golferIdStrings.slice(0, 5))
-      ).rejects.toThrow('You must select exactly 6 golfers');
+      await expect(savePicks(userId.toString(), golferIdStrings.slice(0, 5))).rejects.toThrow(
+        'You must select exactly 6 golfers'
+      );
     });
 
     it('rejects duplicate golfers', async () => {
@@ -127,7 +133,9 @@ describe('picks.service', () => {
       mockPicksCollection.findOne.mockResolvedValue(null);
       // Each golfer costs $10M = $60M total > $50M cap
       mockGolfersCollection.find.mockReturnValue(
-        toArrayHelper(makeGolferDocs([10_000_000, 10_000_000, 10_000_000, 10_000_000, 10_000_000, 10_000_000]))
+        toArrayHelper(
+          makeGolferDocs([10_000_000, 10_000_000, 10_000_000, 10_000_000, 10_000_000, 10_000_000])
+        )
       );
 
       await expect(savePicks(userId.toString(), golferIdStrings)).rejects.toThrow(
@@ -139,7 +147,9 @@ describe('picks.service', () => {
       mockPicksCollection.findOne.mockResolvedValue(null);
       // Return only 5 golfers when we asked for 6
       mockGolfersCollection.find.mockReturnValue(
-        toArrayHelper(makeGolferDocs([5_000_000, 5_000_000, 5_000_000, 5_000_000, 5_000_000]).slice(0, 5))
+        toArrayHelper(
+          makeGolferDocs([5_000_000, 5_000_000, 5_000_000, 5_000_000, 5_000_000]).slice(0, 5)
+        )
       );
 
       await expect(savePicks(userId.toString(), golferIdStrings)).rejects.toThrow(
@@ -150,7 +160,9 @@ describe('picks.service', () => {
     it('rejects when captain is not in selected golfers', async () => {
       mockPicksCollection.findOne.mockResolvedValue(null);
       mockGolfersCollection.find.mockReturnValue(
-        toArrayHelper(makeGolferDocs([5_000_000, 5_000_000, 5_000_000, 5_000_000, 5_000_000, 5_000_000]))
+        toArrayHelper(
+          makeGolferDocs([5_000_000, 5_000_000, 5_000_000, 5_000_000, 5_000_000, 5_000_000])
+        )
       );
 
       const invalidCaptain = new ObjectId().toString();
@@ -162,12 +174,49 @@ describe('picks.service', () => {
     it('rejects when new team creation is disabled', async () => {
       mockPicksCollection.findOne.mockResolvedValue(null);
       mockSettingsCollection.findOne.mockImplementation(({ key }: { key: string }) => {
-        if (key === 'allowNewTeamCreation') return Promise.resolve({ key: 'allowNewTeamCreation', value: false });
+        if (key === 'allowNewTeamCreation')
+          return Promise.resolve({ key: 'allowNewTeamCreation', value: false });
         return Promise.resolve(null);
       });
 
       await expect(savePicks(userId.toString(), golferIdStrings)).rejects.toThrow(
         'New team creation is currently disabled'
+      );
+    });
+
+    it('uses explicit season parameter for savePicks', async () => {
+      mockPicksCollection.findOne.mockResolvedValue(null);
+      mockGolfersCollection.find.mockReturnValue(
+        toArrayHelper(
+          makeGolferDocs([5_000_000, 5_000_000, 5_000_000, 5_000_000, 5_000_000, 5_000_000])
+        )
+      );
+      mockHistoryCollection.insertOne.mockResolvedValue({ insertedId: new ObjectId() });
+      mockPicksCollection.updateOne.mockResolvedValue({ modifiedCount: 1 });
+
+      const pickDoc = {
+        _id: new ObjectId(),
+        userId,
+        golferIds: golferIds.map((id) => new ObjectId(id)),
+        captainId: null,
+        totalSpent: 30_000_000,
+        season: 2026,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      mockPicksCollection.findOne.mockResolvedValueOnce(null).mockResolvedValueOnce(pickDoc);
+
+      const result = await savePicks(
+        userId.toString(),
+        golferIdStrings,
+        'Team selection',
+        null,
+        2026
+      );
+
+      expect(result).toBeDefined();
+      expect(mockHistoryCollection.insertOne).toHaveBeenCalledWith(
+        expect.objectContaining({ season: 2026 })
       );
     });
 
@@ -221,6 +270,18 @@ describe('picks.service', () => {
 
       expect(result).toBeDefined();
       expect(result!.golferIds).toHaveLength(6);
+    });
+
+    it('uses explicit season parameter and skips getCurrentSeason lookup', async () => {
+      mockPicksCollection.findOne.mockResolvedValue(null);
+
+      const result = await getUserPicks(userId.toString(), 2026);
+
+      expect(result).toBeNull();
+      expect(mockPicksCollection.findOne).toHaveBeenCalledWith({
+        userId: new ObjectId(userId.toString()),
+        season: 2026,
+      });
     });
   });
 

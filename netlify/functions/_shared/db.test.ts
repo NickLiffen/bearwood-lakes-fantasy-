@@ -9,6 +9,8 @@ describe('db', () => {
 
     const { connectToDatabase } = await import('./db');
 
-    await expect(connectToDatabase()).rejects.toThrow('Missing required environment variable: MONGODB_URI');
+    await expect(connectToDatabase()).rejects.toThrow(
+      'Missing required environment variable: MONGODB_URI'
+    );
   });
 });

@@ -14,10 +14,13 @@ interface Season {
 
 // Module-level cache so multiple hook instances share the same data
 let cachedSeason: Season | null = null;
+let cacheTimestamp: number = 0;
 let cachePromise: Promise<void> | null = null;
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 export function clearSeasonCache() {
   cachedSeason = null;
+  cacheTimestamp = 0;
   cachePromise = null;
 }
 
@@ -27,7 +30,22 @@ export const useActiveSeason = () => {
   const [loading, setLoading] = useState(!cachedSeason);
 
   useEffect(() => {
-    if (cachedSeason) {
+    const handleVisibility = () => {
+      if (
+        document.visibilityState === 'visible' &&
+        cachedSeason &&
+        Date.now() - cacheTimestamp >= CACHE_TTL_MS
+      ) {
+        cachedSeason = null;
+        cacheTimestamp = 0;
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, []);
+
+  useEffect(() => {
+    if (cachedSeason && Date.now() - cacheTimestamp < CACHE_TTL_MS) {
       setSeason(cachedSeason);
       setLoading(false);
       return;
@@ -52,6 +70,7 @@ export const useActiveSeason = () => {
             const active = result.data.find((s) => s.isActive);
             if (active) {
               cachedSeason = active;
+              cacheTimestamp = Date.now();
             }
           }
         } catch {

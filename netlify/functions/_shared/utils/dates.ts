@@ -60,7 +60,9 @@ export const getNextWeekStart = (date: Date): Date => {
  * If createdAt is missing/invalid (for existing teams before this feature),
  * return a far-past date so they get all historical points (grandfathered in)
  */
-export const getTeamEffectiveStartDate = (teamCreatedAt: Date | string | number | undefined | null): Date => {
+export const getTeamEffectiveStartDate = (
+  teamCreatedAt: Date | string | number | undefined | null
+): Date => {
   // If no createdAt, team is grandfathered in - use a date far in the past
   if (!teamCreatedAt) {
     return new Date(2000, 0, 1); // Far in the past - team gets all points

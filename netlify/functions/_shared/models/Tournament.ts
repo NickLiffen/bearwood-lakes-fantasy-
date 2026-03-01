@@ -1,7 +1,13 @@
 // Tournament model (MongoDB)
 
 import { ObjectId } from 'mongodb';
-import type { Tournament, TournamentStatus, TournamentType, ScoringFormat, GolferCountTier } from '../../../../shared/types';
+import type {
+  Tournament,
+  TournamentStatus,
+  TournamentType,
+  ScoringFormat,
+  GolferCountTier,
+} from '../../../../shared/types';
 
 export interface TournamentDocument {
   _id: ObjectId;

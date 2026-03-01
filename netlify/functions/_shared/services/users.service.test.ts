@@ -1,3 +1,4 @@
+import type { Db, MongoClient } from 'mongodb';
 import { ObjectId } from 'mongodb';
 import { connectToDatabase } from '../db';
 import { getAllUsers, getUserById } from './users.service';
@@ -11,17 +12,21 @@ const mockUsersCollection = {
   findOne: vi.fn(),
 };
 
-const toArrayHelper = (items: any[]) => ({
-  toArray: vi.fn().mockResolvedValue(items),
-});
+const toArrayHelper = <T>(items: T[]) => {
+  const cursor = {
+    toArray: vi.fn().mockResolvedValue(items),
+    project: vi.fn().mockReturnThis(),
+  };
+  return cursor;
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(connectToDatabase).mockResolvedValue({
     db: {
       collection: vi.fn().mockReturnValue(mockUsersCollection),
-    } as any,
-    client: {} as any,
+    } as unknown as Db,
+    client: {} as unknown as MongoClient,
   });
 });
 
@@ -51,7 +56,7 @@ describe('users.service', () => {
       expect(result[0].username).toBe('nickliffen');
       expect(result[0].id).toBe(userId.toString());
       // Should not include passwordHash in the returned user
-      expect((result[0] as any).passwordHash).toBeUndefined();
+      expect((result[0] as unknown as Record<string, unknown>).passwordHash).toBeUndefined();
     });
 
     it('returns empty array when no users', async () => {

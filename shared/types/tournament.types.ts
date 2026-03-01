@@ -143,7 +143,7 @@ export function getBasePointsForPosition(position: number | null): number {
 export function getBonusPoints(
   rawScore: number | null,
   scoringFormat: ScoringFormat,
-  isMultiDay: boolean = false,
+  isMultiDay: boolean = false
 ): number {
   if (rawScore === null) return 0;
 

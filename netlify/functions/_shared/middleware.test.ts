@@ -1,5 +1,5 @@
 import { verifyToken } from './auth';
-import { checkRateLimit, RateLimitConfig, getRateLimitKeyFromEvent, rateLimitHeaders, rateLimitExceededResponse } from './rateLimit';
+import { checkRateLimit, rateLimitExceededResponse } from './rateLimit';
 import {
   withCors,
   apiResponse,
@@ -8,6 +8,8 @@ import {
   withVerifiedAuth,
   withAdmin,
   withRateLimit,
+  withETag,
+  withAuthETag,
   corsHeaders,
 } from './middleware';
 import type { HandlerEvent, HandlerContext } from '@netlify/functions';
@@ -315,6 +317,126 @@ describe('middleware', () => {
       expect(corsHeaders['Content-Type']).toBe('application/json');
       expect(corsHeaders['Access-Control-Allow-Methods']).toContain('GET');
       expect(corsHeaders['Access-Control-Allow-Methods']).toContain('POST');
+    });
+  });
+
+  describe('withETag', () => {
+    it('returns response with ETag header on GET', async () => {
+      const handler = vi.fn().mockResolvedValue({ statusCode: 200, body: '{"data":"test"}' });
+      const wrapped = withETag(handler);
+      const event = makeEvent({ httpMethod: 'GET' });
+
+      const result = await wrapped(event, mockContext);
+
+      expect(result.statusCode).toBe(200);
+      expect(result.headers).toBeDefined();
+      expect(result.headers!['ETag']).toMatch(/^W\/"[a-f0-9]{16}"$/);
+      expect(result.headers!['Cache-Control']).toBe('private, no-cache');
+    });
+
+    it('returns 304 when If-None-Match matches', async () => {
+      const body = '{"data":"test"}';
+      const handler = vi.fn().mockResolvedValue({ statusCode: 200, body });
+      const wrapped = withETag(handler);
+
+      // First call to get the ETag
+      const firstResult = await wrapped(makeEvent({ httpMethod: 'GET' }), mockContext);
+      const etag = firstResult.headers!['ETag'] as string;
+
+      // Second call with matching If-None-Match
+      const event = makeEvent({
+        httpMethod: 'GET',
+        headers: { 'if-none-match': etag },
+      });
+      const result = await wrapped(event, mockContext);
+
+      expect(result.statusCode).toBe(304);
+      expect(result.body).toBe('');
+      expect(result.headers!['ETag']).toBe(etag);
+    });
+
+    it('does not add ETag on non-GET methods', async () => {
+      const handler = vi.fn().mockResolvedValue({ statusCode: 200, body: '{"ok":true}' });
+      const wrapped = withETag(handler);
+      const event = makeEvent({ httpMethod: 'POST' });
+
+      const result = await wrapped(event, mockContext);
+
+      expect(result.statusCode).toBe(200);
+      expect(result.headers?.['ETag']).toBeUndefined();
+    });
+
+    it('does not add ETag on non-200 responses', async () => {
+      const handler = vi.fn().mockResolvedValue({ statusCode: 404, body: '{"error":"not found"}' });
+      const wrapped = withETag(handler);
+      const event = makeEvent({ httpMethod: 'GET' });
+
+      const result = await wrapped(event, mockContext);
+
+      expect(result.statusCode).toBe(404);
+      expect(result.headers?.['ETag']).toBeUndefined();
+    });
+  });
+
+  describe('withAuthETag', () => {
+    it('returns response with ETag header on GET', async () => {
+      const handler = vi.fn().mockResolvedValue({ statusCode: 200, body: '{"data":"auth"}' });
+      const wrapped = withAuthETag(handler);
+      const event = makeEvent({ httpMethod: 'GET' }) as any;
+      event.user = { userId: 'u1', username: 'nick', role: 'user', phoneVerified: true };
+
+      const result = await wrapped(event, mockContext);
+
+      expect(result.statusCode).toBe(200);
+      expect(result.headers).toBeDefined();
+      expect(result.headers!['ETag']).toMatch(/^W\/"[a-f0-9]{16}"$/);
+      expect(result.headers!['Cache-Control']).toBe('private, no-cache');
+    });
+
+    it('returns 304 when If-None-Match matches', async () => {
+      const body = '{"data":"auth"}';
+      const handler = vi.fn().mockResolvedValue({ statusCode: 200, body });
+      const wrapped = withAuthETag(handler);
+
+      const event1 = makeEvent({ httpMethod: 'GET' }) as any;
+      event1.user = { userId: 'u1', username: 'nick', role: 'user', phoneVerified: true };
+      const firstResult = await wrapped(event1, mockContext);
+      const etag = firstResult.headers!['ETag'] as string;
+
+      const event2 = makeEvent({
+        httpMethod: 'GET',
+        headers: { 'if-none-match': etag },
+      }) as any;
+      event2.user = { userId: 'u1', username: 'nick', role: 'user', phoneVerified: true };
+      const result = await wrapped(event2, mockContext);
+
+      expect(result.statusCode).toBe(304);
+      expect(result.body).toBe('');
+      expect(result.headers!['ETag']).toBe(etag);
+    });
+
+    it('does not add ETag on non-GET methods', async () => {
+      const handler = vi.fn().mockResolvedValue({ statusCode: 200, body: '{"ok":true}' });
+      const wrapped = withAuthETag(handler);
+      const event = makeEvent({ httpMethod: 'POST' }) as any;
+      event.user = { userId: 'u1', username: 'nick', role: 'user', phoneVerified: true };
+
+      const result = await wrapped(event, mockContext);
+
+      expect(result.statusCode).toBe(200);
+      expect(result.headers?.['ETag']).toBeUndefined();
+    });
+
+    it('does not add ETag on non-200 responses', async () => {
+      const handler = vi.fn().mockResolvedValue({ statusCode: 500, body: '{"error":"fail"}' });
+      const wrapped = withAuthETag(handler);
+      const event = makeEvent({ httpMethod: 'GET' }) as any;
+      event.user = { userId: 'u1', username: 'nick', role: 'user', phoneVerified: true };
+
+      const result = await wrapped(event, mockContext);
+
+      expect(result.statusCode).toBe(500);
+      expect(result.headers?.['ETag']).toBeUndefined();
     });
   });
 });

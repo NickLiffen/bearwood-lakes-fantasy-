@@ -1,4 +1,5 @@
 import { ObjectId } from 'mongodb';
+import type { Db, MongoClient } from 'mongodb';
 import { connectToDatabase } from '../db';
 import {
   getAllGolfers,
@@ -21,7 +22,7 @@ const mockGolfersCollection = {
   deleteOne: vi.fn(),
 };
 
-const toArrayHelper = (items: any[]) => ({
+const toArrayHelper = <T>(items: T[]) => ({
   toArray: vi.fn().mockResolvedValue(items),
 });
 
@@ -30,8 +31,8 @@ beforeEach(() => {
   vi.mocked(connectToDatabase).mockResolvedValue({
     db: {
       collection: vi.fn().mockReturnValue(mockGolfersCollection),
-    } as any,
-    client: {} as any,
+    } as unknown as Db,
+    client: {} as unknown as MongoClient,
   });
 });
 
@@ -67,6 +68,21 @@ describe('golfers.service', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0].firstName).toBe('Tiger');
+    });
+
+    it('applies skip and limit when provided', async () => {
+      const cursor = {
+        skip: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        toArray: vi.fn().mockResolvedValue([golferDoc]),
+      };
+      mockGolfersCollection.find.mockReturnValue(cursor);
+
+      const result = await getAllGolfers({ skip: 10, limit: 5 });
+
+      expect(cursor.skip).toHaveBeenCalledWith(10);
+      expect(cursor.limit).toHaveBeenCalledWith(5);
+      expect(result).toHaveLength(1);
     });
   });
 

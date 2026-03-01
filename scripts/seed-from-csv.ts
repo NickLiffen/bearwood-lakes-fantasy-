@@ -210,7 +210,7 @@ async function seedFromCsv() {
   const proceed = await confirm(
     '⚠️  This will DELETE existing golfers, tournaments, scores, seasons, picks, and pickHistory.\n' +
       '   Users and settings will be preserved.\n' +
-      '   Type "YES" to continue: ',
+      '   Type "YES" to continue: '
   );
 
   if (!proceed) {
@@ -226,7 +226,14 @@ async function seedFromCsv() {
 
     // ── Step 1: Clear data ─────────────────────────────────────────────────
     console.log('\n🗑️  Clearing existing data...');
-    const collectionsToClear = ['golfers', 'tournaments', 'scores', 'seasons', 'picks', 'pickHistory'];
+    const collectionsToClear = [
+      'golfers',
+      'tournaments',
+      'scores',
+      'seasons',
+      'picks',
+      'pickHistory',
+    ];
     for (const col of collectionsToClear) {
       const result = await db.collection(col).deleteMany({});
       console.log(`   ${col}: ${result.deletedCount} deleted`);
@@ -269,7 +276,7 @@ async function seedFromCsv() {
     for (const s of seasons) {
       const label = s.isActive ? '(active)' : `(${s.status})`;
       console.log(
-        `   ${s.name}: ${s.startDate.toLocaleDateString()} – ${s.endDate.toLocaleDateString()} ${label}`,
+        `   ${s.name}: ${s.startDate.toLocaleDateString()} – ${s.endDate.toLocaleDateString()} ${label}`
       );
     }
 
@@ -315,14 +322,21 @@ async function seedFromCsv() {
     let scoresEntered = 0;
 
     // Track stats per golfer per season
-    const golferStats = new Map<string, { stats2024: GolferSeasonStats; stats2025: GolferSeasonStats }>();
+    const golferStats = new Map<
+      string,
+      { stats2024: GolferSeasonStats; stats2025: GolferSeasonStats }
+    >();
     for (const [_name, id] of golferMap) {
       golferStats.set(id.toString(), { stats2024: defaultStats(), stats2025: defaultStats() });
     }
 
     const MULTIPLIERS: Record<string, number> = {
-      rollup_stableford: 1, weekday_medal: 1, weekend_medal: 2,
-      presidents_cup: 3, founders: 4, club_champs_nett: 5,
+      rollup_stableford: 1,
+      weekday_medal: 1,
+      weekend_medal: 2,
+      presidents_cup: 3,
+      founders: 4,
+      club_champs_nett: 5,
     };
 
     for (const [dateStr, group] of dateGroups) {
@@ -425,23 +439,17 @@ async function seedFromCsv() {
             price,
             updatedAt: new Date(),
           },
-        },
+        }
       );
     }
     console.log(`   ${golferMap.size} golfers updated with stats and prices`);
 
     // ── Step 7: Ensure indexes ─────────────────────────────────────────────
     console.log('\n🔑 Ensuring indexes...');
-    await db
-      .collection('scores')
-      .createIndex({ tournamentId: 1, golferId: 1 }, { unique: true });
-    await db
-      .collection('tournaments')
-      .createIndex({ season: 1, status: 1 });
+    await db.collection('scores').createIndex({ tournamentId: 1, golferId: 1 }, { unique: true });
+    await db.collection('tournaments').createIndex({ season: 1, status: 1 });
     await db.collection('golfers').createIndex({ isActive: 1 });
-    await db
-      .collection('seasons')
-      .createIndex({ name: 1 }, { unique: true });
+    await db.collection('seasons').createIndex({ name: 1 }, { unique: true });
     console.log('   Indexes created');
 
     // ── Summary ────────────────────────────────────────────────────────────

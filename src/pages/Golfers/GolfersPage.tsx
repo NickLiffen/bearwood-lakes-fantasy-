@@ -94,7 +94,9 @@ const GolfersPage: React.FC = () => {
     };
 
     fetchGolfers();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [get, isAuthReady, selectedSeason]);
 
   const getStats = useCallback(
@@ -254,7 +256,12 @@ const GolfersPage: React.FC = () => {
       sortable: true,
       align: 'center',
       render: (golfer) => (
-        <span style={{ fontWeight: golfer.points?.form > 0 ? 600 : 400, color: golfer.points?.form > 0 ? 'var(--primary-green)' : '#9ca3af' }}>
+        <span
+          style={{
+            fontWeight: golfer.points?.form > 0 ? 600 : 400,
+            color: golfer.points?.form > 0 ? 'var(--primary-green)' : '#9ca3af',
+          }}
+        >
           {golfer.points?.form?.toFixed(1) || '0.0'}
         </span>
       ),
@@ -264,9 +271,7 @@ const GolfersPage: React.FC = () => {
       header: 'Season Pts',
       sortable: true,
       align: 'center',
-      render: (golfer) => (
-        <span style={{ fontWeight: 600 }}>{golfer.points?.season || 0}</span>
-      ),
+      render: (golfer) => <span style={{ fontWeight: 600 }}>{golfer.points?.season || 0}</span>,
     },
   ];
 

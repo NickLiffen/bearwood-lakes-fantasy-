@@ -33,51 +33,32 @@ async function updatePrices() {
     const db = client.db(MONGODB_DB_NAME);
 
     const golfers = await db.collection('golfers').find({}).toArray();
-    const scores = await db
-      .collection('scores')
-      .find({ participated: true })
-      .toArray();
+    const scores = await db.collection('scores').find({ participated: true }).toArray();
 
     console.log(`📊 Analyzing ${golfers.length} golfers across ${scores.length} scores...\n`);
 
     // Calculate composite score for each golfer
     const golferData = golfers.map((g) => {
-      const gScores = scores.filter(
-        (s) => s.golferId.toString() === g._id.toString(),
-      );
+      const gScores = scores.filter((s) => s.golferId.toString() === g._id.toString());
 
-      const totalPoints = gScores.reduce(
-        (sum, s) => sum + (s.multipliedPoints || 0),
-        0,
-      );
+      const totalPoints = gScores.reduce((sum, s) => sum + (s.multipliedPoints || 0), 0);
       const timesPlayed = gScores.length;
       const wins = gScores.filter((s) => s.position === 1).length;
-      const podiums = gScores.filter(
-        (s) => s.position !== null && s.position <= 3,
-      ).length;
-      const bonus32 = gScores.filter(
-        (s) => (s.rawScore ?? 0) >= 32,
-      ).length;
-      const avgPtsPerEvent =
-        timesPlayed > 0 ? totalPoints / timesPlayed : 0;
-      const consistencyRate =
-        timesPlayed >= 3 ? bonus32 / timesPlayed : 0;
+      const podiums = gScores.filter((s) => s.position !== null && s.position <= 3).length;
+      const bonus32 = gScores.filter((s) => (s.rawScore ?? 0) >= 32).length;
+      const avgPtsPerEvent = timesPlayed > 0 ? totalPoints / timesPlayed : 0;
+      const consistencyRate = timesPlayed >= 3 ? bonus32 / timesPlayed : 0;
 
       // Dampen average for small sample sizes
       const adjustedAvg =
         timesPlayed >= MIN_SAMPLE_SIZE
           ? avgPtsPerEvent
-          : (avgPtsPerEvent * timesPlayed +
-              MEAN_AVG_PTS * (MIN_SAMPLE_SIZE - timesPlayed)) /
+          : (avgPtsPerEvent * timesPlayed + MEAN_AVG_PTS * (MIN_SAMPLE_SIZE - timesPlayed)) /
             MIN_SAMPLE_SIZE;
 
       // Composite score
       const compositeScore =
-        totalPoints * 1.0 +
-        adjustedAvg * 5 +
-        wins * 8 +
-        podiums * 3 +
-        consistencyRate * 20;
+        totalPoints * 1.0 + adjustedAvg * 5 + wins * 8 + podiums * 3 + consistencyRate * 20;
 
       return {
         id: g._id,
@@ -100,18 +81,14 @@ async function updatePrices() {
 
     let updated = 0;
     for (const g of golferData) {
-      const normalizedScore =
-        maxScore > 0 ? g.compositeScore / maxScore : 0;
+      const normalizedScore = maxScore > 0 ? g.compositeScore / maxScore : 0;
       const priceFactor = Math.pow(Math.max(normalizedScore, 0), POWER_EXPONENT);
       const rawPrice = MIN_PRICE + priceFactor * MAX_ADDITIONAL;
       const price = Math.round(rawPrice / 100_000) * 100_000;
 
       await db
         .collection('golfers')
-        .updateOne(
-          { _id: g.id },
-          { $set: { price, updatedAt: new Date() } },
-        );
+        .updateOne({ _id: g.id }, { $set: { price, updatedAt: new Date() } });
       updated++;
     }
 
@@ -125,54 +102,99 @@ async function updatePrices() {
       const priceFactor = Math.pow(Math.max(normalizedScore, 0), POWER_EXPONENT);
       const price = Math.round((MIN_PRICE + priceFactor * MAX_ADDITIONAL) / 100_000) * 100_000;
       console.log(
-        `   £${(price / 1e6).toFixed(1)}M  ${g.name}  (pts:${g.totalPoints} played:${g.timesPlayed} wins:${g.wins} podiums:${g.podiums})`,
+        `   £${(price / 1e6).toFixed(1)}M  ${g.name}  (pts:${g.totalPoints} played:${g.timesPlayed} wins:${g.wins} podiums:${g.podiums})`
       );
     }
 
     // Tier distribution
     console.log('\n📊 Tier distribution:');
-    const tiers: [string, (g: typeof golferData[0]) => boolean][] = [
-      ['Elite (£10M+)', (g) => {
-        const n = maxScore > 0 ? g.compositeScore / maxScore : 0;
-        return Math.round((MIN_PRICE + Math.pow(Math.max(n, 0), POWER_EXPONENT) * MAX_ADDITIONAL) / 100_000) * 100_000 >= 10_000_000;
-      }],
-      ['Star (£7-10M)', (g) => {
-        const n = maxScore > 0 ? g.compositeScore / maxScore : 0;
-        const p = Math.round((MIN_PRICE + Math.pow(Math.max(n, 0), POWER_EXPONENT) * MAX_ADDITIONAL) / 100_000) * 100_000;
-        return p >= 7_000_000 && p < 10_000_000;
-      }],
-      ['Strong (£5-7M)', (g) => {
-        const n = maxScore > 0 ? g.compositeScore / maxScore : 0;
-        const p = Math.round((MIN_PRICE + Math.pow(Math.max(n, 0), POWER_EXPONENT) * MAX_ADDITIONAL) / 100_000) * 100_000;
-        return p >= 5_000_000 && p < 7_000_000;
-      }],
-      ['Average (£3-5M)', (g) => {
-        const n = maxScore > 0 ? g.compositeScore / maxScore : 0;
-        const p = Math.round((MIN_PRICE + Math.pow(Math.max(n, 0), POWER_EXPONENT) * MAX_ADDITIONAL) / 100_000) * 100_000;
-        return p >= 3_000_000 && p < 5_000_000;
-      }],
-      ['Developing (£2-3M)', (g) => {
-        const n = maxScore > 0 ? g.compositeScore / maxScore : 0;
-        const p = Math.round((MIN_PRICE + Math.pow(Math.max(n, 0), POWER_EXPONENT) * MAX_ADDITIONAL) / 100_000) * 100_000;
-        return p >= 2_000_000 && p < 3_000_000;
-      }],
-      ['Budget (£1-2M)', (g) => {
-        const n = maxScore > 0 ? g.compositeScore / maxScore : 0;
-        const p = Math.round((MIN_PRICE + Math.pow(Math.max(n, 0), POWER_EXPONENT) * MAX_ADDITIONAL) / 100_000) * 100_000;
-        return p < 2_000_000;
-      }],
+    const tiers: [string, (g: (typeof golferData)[0]) => boolean][] = [
+      [
+        'Elite (£10M+)',
+        (g) => {
+          const n = maxScore > 0 ? g.compositeScore / maxScore : 0;
+          return (
+            Math.round(
+              (MIN_PRICE + Math.pow(Math.max(n, 0), POWER_EXPONENT) * MAX_ADDITIONAL) / 100_000
+            ) *
+              100_000 >=
+            10_000_000
+          );
+        },
+      ],
+      [
+        'Star (£7-10M)',
+        (g) => {
+          const n = maxScore > 0 ? g.compositeScore / maxScore : 0;
+          const p =
+            Math.round(
+              (MIN_PRICE + Math.pow(Math.max(n, 0), POWER_EXPONENT) * MAX_ADDITIONAL) / 100_000
+            ) * 100_000;
+          return p >= 7_000_000 && p < 10_000_000;
+        },
+      ],
+      [
+        'Strong (£5-7M)',
+        (g) => {
+          const n = maxScore > 0 ? g.compositeScore / maxScore : 0;
+          const p =
+            Math.round(
+              (MIN_PRICE + Math.pow(Math.max(n, 0), POWER_EXPONENT) * MAX_ADDITIONAL) / 100_000
+            ) * 100_000;
+          return p >= 5_000_000 && p < 7_000_000;
+        },
+      ],
+      [
+        'Average (£3-5M)',
+        (g) => {
+          const n = maxScore > 0 ? g.compositeScore / maxScore : 0;
+          const p =
+            Math.round(
+              (MIN_PRICE + Math.pow(Math.max(n, 0), POWER_EXPONENT) * MAX_ADDITIONAL) / 100_000
+            ) * 100_000;
+          return p >= 3_000_000 && p < 5_000_000;
+        },
+      ],
+      [
+        'Developing (£2-3M)',
+        (g) => {
+          const n = maxScore > 0 ? g.compositeScore / maxScore : 0;
+          const p =
+            Math.round(
+              (MIN_PRICE + Math.pow(Math.max(n, 0), POWER_EXPONENT) * MAX_ADDITIONAL) / 100_000
+            ) * 100_000;
+          return p >= 2_000_000 && p < 3_000_000;
+        },
+      ],
+      [
+        'Budget (£1-2M)',
+        (g) => {
+          const n = maxScore > 0 ? g.compositeScore / maxScore : 0;
+          const p =
+            Math.round(
+              (MIN_PRICE + Math.pow(Math.max(n, 0), POWER_EXPONENT) * MAX_ADDITIONAL) / 100_000
+            ) * 100_000;
+          return p < 2_000_000;
+        },
+      ],
     ];
     tiers.forEach(([label, fn]) =>
-      console.log(`   ${label}: ${golferData.filter(fn).length} golfers`),
+      console.log(`   ${label}: ${golferData.filter(fn).length} golfers`)
     );
 
     // Budget check
     const top6Cost = golferData.slice(0, 6).reduce((sum, g) => {
       const n = maxScore > 0 ? g.compositeScore / maxScore : 0;
-      return sum + Math.round((MIN_PRICE + Math.pow(Math.max(n, 0), POWER_EXPONENT) * MAX_ADDITIONAL) / 100_000) * 100_000;
+      return (
+        sum +
+        Math.round(
+          (MIN_PRICE + Math.pow(Math.max(n, 0), POWER_EXPONENT) * MAX_ADDITIONAL) / 100_000
+        ) *
+          100_000
+      );
     }, 0);
     console.log(
-      `\n🏆 Top 6 cost: £${(top6Cost / 1e6).toFixed(1)}M (budget: £50M) → ${top6Cost > 50e6 ? 'Forces trade-offs ✅' : 'Fits in budget'}`,
+      `\n🏆 Top 6 cost: £${(top6Cost / 1e6).toFixed(1)}M (budget: £50M) → ${top6Cost > 50e6 ? 'Forces trade-offs ✅' : 'Fits in budget'}`
     );
   } finally {
     await client.close();

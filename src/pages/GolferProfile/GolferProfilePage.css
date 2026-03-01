@@ -179,7 +179,9 @@
   padding: 1.25rem;
   text-align: center;
   border: 1px solid rgba(0, 21, 60, 0.08);
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
 }
 
 .points-card:hover {
@@ -337,9 +339,15 @@
   color: #1f2937;
 }
 
-.season-stat-value.gold { color: #d97706; }
-.season-stat-value.silver { color: #6b7280; }
-.season-stat-value.bronze { color: #b45309; }
+.season-stat-value.gold {
+  color: #d97706;
+}
+.season-stat-value.silver {
+  color: #6b7280;
+}
+.season-stat-value.bronze {
+  color: #b45309;
+}
 
 .season-stat-label {
   font-size: 0.75rem;

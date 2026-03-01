@@ -52,6 +52,8 @@ export async function handler(event: { body: string }) {
     await db.collection('seasons').createIndex({ name: 1 }, { unique: true });
     await db.collection('refreshTokens').createIndex({ tokenHash: 1 });
     await db.collection('refreshTokens').createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+    await db.collection('picks').createIndex({ season: 1 });
+    await db.collection('pickHistory').createIndex({ userId: 1, changedAt: -1, reason: 1 });
 
     // Seed admin user (skip if already exists from a previous deploy)
     const existingAdmin = await db.collection('users').findOne({ username: 'admin' });

@@ -6,9 +6,9 @@ import { useAuth } from './hooks/useAuth';
 import { usePageTracking } from './hooks/usePageTracking';
 import LoadingSpinner from './components/ui/LoadingSpinner';
 import HomePage from './pages/Home/HomePage';
-import LoginPage from './pages/Auth/LoginPage';
-import RegisterPage from './pages/Auth/RegisterPage';
-import VerifyPhonePage from './pages/Auth/VerifyPhonePage';
+import LoginPage from './pages/Auth/Login';
+import RegisterPage from './pages/Auth/Register';
+import VerifyPhonePage from './pages/Auth/VerifyPhone';
 import ScoringPage from './pages/Scoring/ScoringPage';
 import DashboardPage from './pages/Dashboard/DashboardPage';
 import ProfilePage from './pages/Profile/ProfilePage';
@@ -23,14 +23,14 @@ import TournamentsPage from './pages/Tournaments/TournamentsPage';
 import TournamentDetailPage from './pages/Tournaments/TournamentDetailPage';
 
 // Admin pages
-import AdminOverviewPage from './pages/Admin/AdminOverviewPage';
-import GolfersAdminPage from './pages/Admin/GolfersAdminPage';
-import TournamentsAdminPage from './pages/Admin/TournamentsAdminPage';
-import ScoresAdminPage from './pages/Admin/ScoresAdminPage';
-import UsersAdminPage from './pages/Admin/UsersAdminPage';
-import SettingsAdminPage from './pages/Admin/SettingsAdminPage';
-import SeasonUploadPage from './pages/Admin/SeasonUploadPage';
-import SeasonsAdminPage from './pages/Admin/SeasonsAdminPage';
+import AdminOverviewPage from './pages/Admin/Overview';
+import GolfersAdminPage from './pages/Admin/Golfers';
+import TournamentsAdminPage from './pages/Admin/Tournaments';
+import ScoresAdminPage from './pages/Admin/Scores';
+import UsersAdminPage from './pages/Admin/Users';
+import SettingsAdminPage from './pages/Admin/Settings';
+import SeasonUploadPage from './pages/Admin/SeasonUpload';
+import SeasonsAdminPage from './pages/Admin/Seasons';
 
 // Protected route wrapper for admin pages
 const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {

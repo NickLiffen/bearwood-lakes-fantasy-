@@ -12,7 +12,14 @@ import {
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from '../models/Tournament';
 import { ScoreDocument, SCORES_COLLECTION } from '../models/Score';
 import { SeasonDocument, SEASONS_COLLECTION } from '../models/Season';
-import { getBasePointsForPosition, getBonusPoints, TOURNAMENT_TYPE_CONFIG, type TournamentType, type ScoringFormat, type GolferCountTier } from '../../../../shared/types/tournament.types';
+import {
+  getBasePointsForPosition,
+  getBonusPoints,
+  TOURNAMENT_TYPE_CONFIG,
+  type TournamentType,
+  type ScoringFormat,
+  type GolferCountTier,
+} from '../../../../shared/types/tournament.types';
 
 export interface SeasonUploadResult {
   golfersCreated: number;

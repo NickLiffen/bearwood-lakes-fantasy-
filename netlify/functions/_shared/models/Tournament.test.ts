@@ -65,7 +65,10 @@ describe('Tournament model', () => {
     });
 
     it('defaults participatingGolferIds to empty array when falsy', () => {
-      const doc = { ...fullDoc, participatingGolferIds: undefined } as unknown as TournamentDocument;
+      const doc = {
+        ...fullDoc,
+        participatingGolferIds: undefined,
+      } as unknown as TournamentDocument;
       expect(toTournament(doc).participatingGolferIds).toEqual([]);
     });
   });

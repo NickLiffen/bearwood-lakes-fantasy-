@@ -450,9 +450,15 @@
   color: var(--dark-text);
 }
 
-.stat-item .stat-value.gold { color: #d4a419; }
-.stat-item .stat-value.silver { color: #6b7280; }
-.stat-item .stat-value.bronze { color: #b45309; }
+.stat-item .stat-value.gold {
+  color: #d4a419;
+}
+.stat-item .stat-value.silver {
+  color: #6b7280;
+}
+.stat-item .stat-value.bronze {
+  color: #b45309;
+}
 
 .stat-item .stat-label {
   font-size: 0.75rem;
@@ -681,7 +687,8 @@
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.6;
   }
   50% {

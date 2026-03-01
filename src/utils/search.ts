@@ -8,7 +8,5 @@ export function matchesSearch(text: string, query: string): boolean {
   const textWords = text.toLowerCase().split(/\s+/);
   const queryTokens = query.toLowerCase().trim().split(/\s+/);
 
-  return queryTokens.every((token) =>
-    textWords.some((word) => word.startsWith(token)),
-  );
+  return queryTokens.every((token) => textWords.some((word) => word.startsWith(token)));
 }

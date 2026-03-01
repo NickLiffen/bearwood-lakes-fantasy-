@@ -19,15 +19,11 @@ describe('rateLimit', () => {
     });
 
     it('auth is stricter than default', () => {
-      expect(RateLimitConfig.auth.maxRequests).toBeLessThan(
-        RateLimitConfig.default.maxRequests
-      );
+      expect(RateLimitConfig.auth.maxRequests).toBeLessThan(RateLimitConfig.default.maxRequests);
     });
 
     it('read is more lenient than write', () => {
-      expect(RateLimitConfig.read.maxRequests).toBeGreaterThan(
-        RateLimitConfig.write.maxRequests
-      );
+      expect(RateLimitConfig.read.maxRequests).toBeGreaterThan(RateLimitConfig.write.maxRequests);
     });
 
     it('verification is the strictest', () => {
@@ -51,9 +47,7 @@ describe('rateLimit', () => {
 
       expect(headers['X-RateLimit-Limit']).toBe('100');
       expect(headers['X-RateLimit-Remaining']).toBe('95');
-      expect(headers['X-RateLimit-Reset']).toBe(
-        Math.ceil(resetAt.getTime() / 1000).toString()
-      );
+      expect(headers['X-RateLimit-Reset']).toBe(Math.ceil(resetAt.getTime() / 1000).toString());
     });
 
     it('clamps remaining to 0 when negative', () => {

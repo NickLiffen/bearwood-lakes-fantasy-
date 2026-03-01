@@ -38,11 +38,15 @@ async function cleanup() {
       const newLast = stripQuotes(golfer.lastName);
 
       if (newFirst !== golfer.firstName || newLast !== golfer.lastName) {
-        await db.collection('golfers').updateOne(
-          { _id: golfer._id },
-          { $set: { firstName: newFirst, lastName: newLast, updatedAt: new Date() } }
+        await db
+          .collection('golfers')
+          .updateOne(
+            { _id: golfer._id },
+            { $set: { firstName: newFirst, lastName: newLast, updatedAt: new Date() } }
+          );
+        console.log(
+          `   ✅ Golfer: "${golfer.firstName} ${golfer.lastName}" → "${newFirst} ${newLast}"`
         );
-        console.log(`   ✅ Golfer: "${golfer.firstName} ${golfer.lastName}" → "${newFirst} ${newLast}"`);
         golfersFixed++;
       }
     }
@@ -55,10 +59,9 @@ async function cleanup() {
       const newName = tournament.name.replace(/"/g, '').trim();
 
       if (newName !== tournament.name) {
-        await db.collection('tournaments').updateOne(
-          { _id: tournament._id },
-          { $set: { name: newName, updatedAt: new Date() } }
-        );
+        await db
+          .collection('tournaments')
+          .updateOne({ _id: tournament._id }, { $set: { name: newName, updatedAt: new Date() } });
         console.log(`   ✅ Tournament: "${tournament.name}" → "${newName}"`);
         tournamentsFixed++;
       }

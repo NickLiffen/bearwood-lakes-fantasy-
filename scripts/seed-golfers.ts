@@ -11,33 +11,194 @@ const MONGODB_DB_NAME = process.env.MONGODB_DB_NAME || 'bearwood-fantasy';
 
 // Realistic golf club member names - mix of British names
 const firstNames = [
-  'James', 'William', 'Oliver', 'Thomas', 'Harry', 'George', 'Charlie', 'Jack',
-  'Edward', 'Henry', 'Samuel', 'Daniel', 'David', 'Michael', 'Richard', 'Robert',
-  'Andrew', 'Peter', 'Christopher', 'Matthew', 'Stephen', 'Paul', 'Mark', 'Simon',
-  'Jonathan', 'Nicholas', 'Timothy', 'Patrick', 'Graham', 'Colin', 'Stuart', 'Alan',
-  'Brian', 'Keith', 'Derek', 'Malcolm', 'Trevor', 'Nigel', 'Clive', 'Roger',
-  'Emma', 'Sophie', 'Charlotte', 'Victoria', 'Elizabeth', 'Sarah', 'Catherine',
-  'Rebecca', 'Rachel', 'Laura', 'Jessica', 'Hannah', 'Claire', 'Louise', 'Helen',
-  'Jennifer', 'Amanda', 'Susan', 'Patricia', 'Margaret', 'Caroline', 'Fiona',
-  'Oscar', 'Archie', 'Leo', 'Freddie', 'Alfie', 'Noah', 'Theo', 'Max', 'Lucas',
-  'Ethan', 'Jacob', 'Isaac', 'Lily', 'Grace', 'Ella', 'Mia', 'Chloe', 'Ava',
-  'Geoffrey', 'Bernard', 'Harold', 'Kenneth', 'Ronald', 'Norman', 'Douglas',
-  'Raymond', 'Stanley', 'Albert', 'Arthur', 'Ernest', 'Frederick', 'Walter',
-  'Leonard', 'Herbert', 'Reginald', 'Clifford', 'Gerald', 'Maurice',
+  'James',
+  'William',
+  'Oliver',
+  'Thomas',
+  'Harry',
+  'George',
+  'Charlie',
+  'Jack',
+  'Edward',
+  'Henry',
+  'Samuel',
+  'Daniel',
+  'David',
+  'Michael',
+  'Richard',
+  'Robert',
+  'Andrew',
+  'Peter',
+  'Christopher',
+  'Matthew',
+  'Stephen',
+  'Paul',
+  'Mark',
+  'Simon',
+  'Jonathan',
+  'Nicholas',
+  'Timothy',
+  'Patrick',
+  'Graham',
+  'Colin',
+  'Stuart',
+  'Alan',
+  'Brian',
+  'Keith',
+  'Derek',
+  'Malcolm',
+  'Trevor',
+  'Nigel',
+  'Clive',
+  'Roger',
+  'Emma',
+  'Sophie',
+  'Charlotte',
+  'Victoria',
+  'Elizabeth',
+  'Sarah',
+  'Catherine',
+  'Rebecca',
+  'Rachel',
+  'Laura',
+  'Jessica',
+  'Hannah',
+  'Claire',
+  'Louise',
+  'Helen',
+  'Jennifer',
+  'Amanda',
+  'Susan',
+  'Patricia',
+  'Margaret',
+  'Caroline',
+  'Fiona',
+  'Oscar',
+  'Archie',
+  'Leo',
+  'Freddie',
+  'Alfie',
+  'Noah',
+  'Theo',
+  'Max',
+  'Lucas',
+  'Ethan',
+  'Jacob',
+  'Isaac',
+  'Lily',
+  'Grace',
+  'Ella',
+  'Mia',
+  'Chloe',
+  'Ava',
+  'Geoffrey',
+  'Bernard',
+  'Harold',
+  'Kenneth',
+  'Ronald',
+  'Norman',
+  'Douglas',
+  'Raymond',
+  'Stanley',
+  'Albert',
+  'Arthur',
+  'Ernest',
+  'Frederick',
+  'Walter',
+  'Leonard',
+  'Herbert',
+  'Reginald',
+  'Clifford',
+  'Gerald',
+  'Maurice',
 ];
 
 const lastNames = [
-  'Smith', 'Jones', 'Williams', 'Brown', 'Taylor', 'Davies', 'Wilson', 'Evans',
-  'Thomas', 'Johnson', 'Roberts', 'Walker', 'Wright', 'Robinson', 'Thompson',
-  'White', 'Hughes', 'Edwards', 'Green', 'Hall', 'Lewis', 'Harris', 'Clarke',
-  'Patel', 'Jackson', 'Wood', 'Turner', 'Martin', 'Cooper', 'Hill', 'Ward',
-  'Morris', 'Moore', 'Clark', 'Lee', 'King', 'Baker', 'Harrison', 'Morgan',
-  'Allen', 'James', 'Scott', 'Ellis', 'Bennett', 'Gray', 'Collins', 'Stewart',
-  'Murphy', 'Bell', 'Kelly', 'Cook', 'Murray', 'Shaw', 'Webb', 'Palmer',
-  'Simpson', 'Richardson', 'Chapman', 'Marshall', 'Andrews', 'Bailey', 'Howard',
-  'Price', 'Watson', 'Brooks', 'Sanders', 'Rose', 'Powell', 'Sullivan', 'Russell',
-  'Hamilton', 'Reynolds', 'Griffin', 'Wallace', 'Henderson', 'Cole', 'Perry',
-  'Butler', 'Patterson', 'Barnes', 'Fisher', 'Grant', 'Mason', 'Spencer', 'Fox',
+  'Smith',
+  'Jones',
+  'Williams',
+  'Brown',
+  'Taylor',
+  'Davies',
+  'Wilson',
+  'Evans',
+  'Thomas',
+  'Johnson',
+  'Roberts',
+  'Walker',
+  'Wright',
+  'Robinson',
+  'Thompson',
+  'White',
+  'Hughes',
+  'Edwards',
+  'Green',
+  'Hall',
+  'Lewis',
+  'Harris',
+  'Clarke',
+  'Patel',
+  'Jackson',
+  'Wood',
+  'Turner',
+  'Martin',
+  'Cooper',
+  'Hill',
+  'Ward',
+  'Morris',
+  'Moore',
+  'Clark',
+  'Lee',
+  'King',
+  'Baker',
+  'Harrison',
+  'Morgan',
+  'Allen',
+  'James',
+  'Scott',
+  'Ellis',
+  'Bennett',
+  'Gray',
+  'Collins',
+  'Stewart',
+  'Murphy',
+  'Bell',
+  'Kelly',
+  'Cook',
+  'Murray',
+  'Shaw',
+  'Webb',
+  'Palmer',
+  'Simpson',
+  'Richardson',
+  'Chapman',
+  'Marshall',
+  'Andrews',
+  'Bailey',
+  'Howard',
+  'Price',
+  'Watson',
+  'Brooks',
+  'Sanders',
+  'Rose',
+  'Powell',
+  'Sullivan',
+  'Russell',
+  'Hamilton',
+  'Reynolds',
+  'Griffin',
+  'Wallace',
+  'Henderson',
+  'Cole',
+  'Perry',
+  'Butler',
+  'Patterson',
+  'Barnes',
+  'Fisher',
+  'Grant',
+  'Mason',
+  'Spencer',
+  'Fox',
 ];
 
 // Avatar URLs using UI Avatars service
@@ -61,12 +222,12 @@ type SkillTier = 'elite' | 'strong' | 'average' | 'developing' | 'casual';
 const generateStats = (tier: SkillTier, isCurrentSeason: boolean): GolferStats => {
   // Current season (2026) has fewer rounds as it's in progress
   const maxRounds = isCurrentSeason ? 8 : 25;
-  
+
   let timesPlayed: number;
   let winRate: number;
   let podiumRate: number;
   let scoring36Rate: number;
-  
+
   switch (tier) {
     case 'elite':
       timesPlayed = Math.floor(Math.random() * 8) + (isCurrentSeason ? 5 : 18);
@@ -100,15 +261,15 @@ const generateStats = (tier: SkillTier, isCurrentSeason: boolean): GolferStats =
       scoring36Rate = Math.random() * 0.05;
       break;
   }
-  
+
   timesPlayed = Math.min(timesPlayed, maxRounds);
-  
+
   const timesFinished1st = Math.floor(timesPlayed * winRate);
   const remainingPodiums = Math.floor(timesPlayed * podiumRate) - timesFinished1st;
   const timesFinished2nd = Math.max(0, Math.floor(remainingPodiums * 0.5));
   const timesFinished3rd = Math.max(0, remainingPodiums - timesFinished2nd);
   const timesScored36Plus = Math.floor(timesPlayed * scoring36Rate);
-  
+
   return {
     timesScored36Plus: Math.max(timesScored36Plus, timesFinished1st), // Winners usually score well
     timesFinished1st,
@@ -121,7 +282,7 @@ const generateStats = (tier: SkillTier, isCurrentSeason: boolean): GolferStats =
 // Generate price based on tier (in pounds, stored as whole number)
 const generatePrice = (tier: SkillTier): number => {
   let basePrice: number;
-  
+
   switch (tier) {
     case 'elite':
       basePrice = 8_000_000 + Math.floor(Math.random() * 4_000_000); // £8M - £12M
@@ -140,7 +301,7 @@ const generatePrice = (tier: SkillTier): number => {
       basePrice = 500_000 + Math.floor(Math.random() * 500_000); // £500K - £1M
       break;
   }
-  
+
   // Round to nearest 100K
   return Math.round(basePrice / 100_000) * 100_000;
 };
@@ -148,11 +309,11 @@ const generatePrice = (tier: SkillTier): number => {
 // Determine skill tier with weighted distribution
 const getSkillTier = (): SkillTier => {
   const rand = Math.random();
-  if (rand < 0.05) return 'elite';      // 5% elite players
-  if (rand < 0.20) return 'strong';     // 15% strong players
-  if (rand < 0.55) return 'average';    // 35% average players
-  if (rand < 0.80) return 'developing'; // 25% developing players
-  return 'casual';                       // 20% casual players
+  if (rand < 0.05) return 'elite'; // 5% elite players
+  if (rand < 0.2) return 'strong'; // 15% strong players
+  if (rand < 0.55) return 'average'; // 35% average players
+  if (rand < 0.8) return 'developing'; // 25% developing players
+  return 'casual'; // 20% casual players
 };
 
 interface GolferDocument {
@@ -180,36 +341,39 @@ async function seedGolfers() {
 
     // Track used name combinations to avoid duplicates
     const usedNames = new Set<string>();
-    
+
     // Get existing names from database
-    const existingGolfers = await db.collection('golfers').find({}, { projection: { firstName: 1, lastName: 1 } }).toArray();
-    existingGolfers.forEach(g => usedNames.add(`${g.firstName}-${g.lastName}`));
+    const existingGolfers = await db
+      .collection('golfers')
+      .find({}, { projection: { firstName: 1, lastName: 1 } })
+      .toArray();
+    existingGolfers.forEach((g) => usedNames.add(`${g.firstName}-${g.lastName}`));
 
     const golfers: GolferDocument[] = [];
     const now = new Date();
-    
+
     // Generate 100 golfers
     let attempts = 0;
     const maxAttempts = 500;
-    
+
     while (golfers.length < 100 && attempts < maxAttempts) {
       attempts++;
-      
+
       const tier = getSkillTier();
-      
+
       // Get random first name
       const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
       const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
-      
+
       const nameKey = `${firstName}-${lastName}`;
-      
+
       // Skip if name already used
       if (usedNames.has(nameKey)) {
         continue;
       }
-      
+
       usedNames.add(nameKey);
-      
+
       const golfer: GolferDocument = {
         firstName,
         lastName,
@@ -221,7 +385,7 @@ async function seedGolfers() {
         createdAt: now,
         updatedAt: now,
       };
-      
+
       golfers.push(golfer);
     }
 
@@ -230,17 +394,20 @@ async function seedGolfers() {
     } else {
       // Insert golfers
       console.log(`🏌️ Inserting ${golfers.length} golfers...`);
-      
+
       const result = await db.collection('golfers').insertMany(golfers);
       console.log(`✅ Inserted ${result.insertedCount} golfers\n`);
 
       // Price distribution
       const priceRanges = {
-        'Elite (£8M+)': golfers.filter(g => g.price >= 8_000_000).length,
-        'Strong (£5M-£8M)': golfers.filter(g => g.price >= 5_000_000 && g.price < 8_000_000).length,
-        'Average (£2.5M-£5M)': golfers.filter(g => g.price >= 2_500_000 && g.price < 5_000_000).length,
-        'Developing (£1M-£2.5M)': golfers.filter(g => g.price >= 1_000_000 && g.price < 2_500_000).length,
-        'Casual (<£1M)': golfers.filter(g => g.price < 1_000_000).length,
+        'Elite (£8M+)': golfers.filter((g) => g.price >= 8_000_000).length,
+        'Strong (£5M-£8M)': golfers.filter((g) => g.price >= 5_000_000 && g.price < 8_000_000)
+          .length,
+        'Average (£2.5M-£5M)': golfers.filter((g) => g.price >= 2_500_000 && g.price < 5_000_000)
+          .length,
+        'Developing (£1M-£2.5M)': golfers.filter((g) => g.price >= 1_000_000 && g.price < 2_500_000)
+          .length,
+        'Casual (<£1M)': golfers.filter((g) => g.price < 1_000_000).length,
       };
 
       console.log('💰 Price distribution:');
@@ -252,18 +419,21 @@ async function seedGolfers() {
       // Show some example golfers
       console.log('🎯 Sample golfers created:');
       const samples = golfers.slice(0, 5);
-      samples.forEach(g => {
+      samples.forEach((g) => {
         const priceStr = `£${(g.price / 1_000_000).toFixed(1)}M`;
         console.log(`   ${g.firstName} ${g.lastName} - ${priceStr}`);
-        console.log(`      2025: ${g.stats2025.timesPlayed} played, ${g.stats2025.timesFinished1st} wins, ${g.stats2025.timesScored36Plus} x 36+`);
-        console.log(`      2026: ${g.stats2026.timesPlayed} played, ${g.stats2026.timesFinished1st} wins, ${g.stats2026.timesScored36Plus} x 36+`);
+        console.log(
+          `      2025: ${g.stats2025.timesPlayed} played, ${g.stats2025.timesFinished1st} wins, ${g.stats2025.timesScored36Plus} x 36+`
+        );
+        console.log(
+          `      2026: ${g.stats2026.timesPlayed} played, ${g.stats2026.timesFinished1st} wins, ${g.stats2026.timesScored36Plus} x 36+`
+        );
       });
     }
 
     // Final count
     const finalCount = await db.collection('golfers').countDocuments();
     console.log(`\n📈 Total golfers in database: ${finalCount}`);
-
   } catch (error) {
     console.error('❌ Seed failed:', error);
     throw error;

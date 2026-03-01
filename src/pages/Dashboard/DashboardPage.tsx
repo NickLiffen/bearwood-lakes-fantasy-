@@ -109,7 +109,12 @@ const CountdownTimer = memo(({ seasonStartDate }: { seasonStartDate?: string }) 
   }, [getDeadline]);
 
   const seasonStartFormatted = deadlineInfo.isSeasonCountdown
-    ? deadlineInfo.date.toLocaleDateString('en-GB', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+    ? deadlineInfo.date.toLocaleDateString('en-GB', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      })
     : null;
 
   return (
@@ -310,9 +315,7 @@ const DashboardPage: React.FC = () => {
           )}
 
           {/* Weekly Deadline Countdown */}
-          {!seasonLoading && (
-            <CountdownTimer seasonStartDate={season?.startDate?.toString()} />
-          )}
+          {!seasonLoading && <CountdownTimer seasonStartDate={season?.startDate?.toString()} />}
 
           {/* Incomplete Team Banner - only show if has team but less than 6 golfers */}
           {!statsLoading && hasTeam && golferCount < 6 && (

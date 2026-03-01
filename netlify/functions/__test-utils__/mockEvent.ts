@@ -23,9 +23,7 @@ export function makeEvent(overrides: Partial<HandlerEvent> = {}): HandlerEvent {
 /**
  * Factory for creating an authenticated HandlerEvent (with Bearer token header).
  */
-export function makeAuthEvent(
-  overrides: Partial<HandlerEvent> = {}
-): HandlerEvent {
+export function makeAuthEvent(overrides: Partial<HandlerEvent> = {}): HandlerEvent {
   return makeEvent({
     headers: { authorization: 'Bearer valid-token', ...overrides.headers },
     ...overrides,

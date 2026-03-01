@@ -3,7 +3,12 @@
 import { connectToDatabase } from '../db';
 import { UserDocument, toUser, USERS_COLLECTION } from '../models/User';
 import { sendVerificationCode, checkVerificationCode } from '../twilio';
-import { generateAccessToken, generateRefreshToken, hashRefreshToken, getRefreshTokenExpiry } from '../auth';
+import {
+  generateAccessToken,
+  generateRefreshToken,
+  hashRefreshToken,
+  getRefreshTokenExpiry,
+} from '../auth';
 import { RefreshTokenDocument, REFRESH_TOKENS_COLLECTION } from '../models/RefreshToken';
 import type { User } from '../../../../shared/types';
 import { ObjectId } from 'mongodb';

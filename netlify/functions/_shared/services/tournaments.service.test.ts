@@ -1,3 +1,4 @@
+import type { Db, MongoClient } from 'mongodb';
 import { ObjectId } from 'mongodb';
 import { connectToDatabase } from '../db';
 import {
@@ -28,7 +29,7 @@ const mockTournamentsCollection = {
   deleteOne: vi.fn(),
 };
 
-const toArraySorted = (items: any[]) => ({
+const toArraySorted = <T>(items: T[]) => ({
   sort: vi.fn().mockReturnValue({ toArray: vi.fn().mockResolvedValue(items) }),
   toArray: vi.fn().mockResolvedValue(items),
 });
@@ -38,8 +39,8 @@ beforeEach(() => {
   vi.mocked(connectToDatabase).mockResolvedValue({
     db: {
       collection: vi.fn().mockReturnValue(mockTournamentsCollection),
-    } as any,
-    client: {} as any,
+    } as unknown as Db,
+    client: {} as unknown as MongoClient,
   });
 });
 
@@ -166,6 +167,23 @@ describe('tournaments.service', () => {
 
       expect(result.multiplier).toBe(4);
       expect(result.isMultiDay).toBe(true);
+    });
+
+    it('uses explicit season parameter and skips getCurrentSeason lookup', async () => {
+      const insertedId = new ObjectId();
+      mockTournamentsCollection.insertOne.mockResolvedValue({ insertedId });
+
+      const result = await createTournament(
+        {
+          name: 'Future Medal',
+          startDate: '2026-04-15',
+          endDate: '2026-04-15',
+          tournamentType: 'weekend_medal',
+        },
+        2026
+      );
+
+      expect(result.season).toBe(2026);
     });
   });
 

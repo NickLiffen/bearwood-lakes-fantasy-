@@ -35,12 +35,10 @@ function getVerifyServiceSid(): string {
  */
 export async function sendVerificationCode(phoneNumber: string): Promise<string> {
   const client = getTwilioClient();
-  const verification = await client.verify.v2
-    .services(getVerifyServiceSid())
-    .verifications.create({
-      channel: 'sms',
-      to: phoneNumber,
-    });
+  const verification = await client.verify.v2.services(getVerifyServiceSid()).verifications.create({
+    channel: 'sms',
+    to: phoneNumber,
+  });
   return verification.status;
 }
 
@@ -48,22 +46,21 @@ export async function sendVerificationCode(phoneNumber: string): Promise<string>
  * Check a user-provided verification code against the Twilio Verify API.
  * Returns true if the code is correct ('approved'), false otherwise.
  */
-export async function checkVerificationCode(
-  phoneNumber: string,
-  code: string
-): Promise<boolean> {
+export async function checkVerificationCode(phoneNumber: string, code: string): Promise<boolean> {
   const client = getTwilioClient();
   try {
-    const check = await client.verify.v2
-      .services(getVerifyServiceSid())
-      .verificationChecks.create({
-        code,
-        to: phoneNumber,
-      });
+    const check = await client.verify.v2.services(getVerifyServiceSid()).verificationChecks.create({
+      code,
+      to: phoneNumber,
+    });
     return check.status === 'approved';
   } catch (error) {
     // Twilio returns 404 if the verification expired or was already approved
-    if (error instanceof Error && 'status' in error && (error as { status: number }).status === 404) {
+    if (
+      error instanceof Error &&
+      'status' in error &&
+      (error as { status: number }).status === 404
+    ) {
       return false;
     }
     throw error;

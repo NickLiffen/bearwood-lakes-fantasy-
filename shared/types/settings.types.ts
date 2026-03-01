@@ -8,7 +8,12 @@ export interface Setting {
 }
 
 // Known settings keys
-export type SettingsKey = 'transfersOpen' | 'registrationOpen' | 'allowNewTeamCreation' | 'maxTransfersPerWeek' | 'maxPlayersPerTransfer';
+export type SettingsKey =
+  | 'transfersOpen'
+  | 'registrationOpen'
+  | 'allowNewTeamCreation'
+  | 'maxTransfersPerWeek'
+  | 'maxPlayersPerTransfer';
 
 export interface AppSettings {
   transfersOpen: boolean;

@@ -51,14 +51,7 @@ const HomePage: React.FC = () => {
 
       {/* Hero Section */}
       <header className="hero">
-        <video
-          className="hero-video"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-        >
+        <video className="hero-video" autoPlay muted loop playsInline preload="auto">
           <source src="/video.mp4" type="video/mp4" />
         </video>
         <div className="hero-overlay" />

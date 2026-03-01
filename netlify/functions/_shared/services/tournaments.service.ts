@@ -9,7 +9,10 @@ import type {
   CreateTournamentDTO,
   UpdateTournamentDTO,
 } from '../../../../shared/types';
-import { getMultiplierForType, TOURNAMENT_TYPE_CONFIG } from '../../../../shared/types/tournament.types';
+import {
+  getMultiplierForType,
+  TOURNAMENT_TYPE_CONFIG,
+} from '../../../../shared/types/tournament.types';
 import { getActiveSeason } from './seasons.service';
 
 async function getCurrentSeason(): Promise<number> {
@@ -57,13 +60,16 @@ export async function getTournamentById(id: string): Promise<Tournament | null> 
   return tournament ? toTournament(tournament) : null;
 }
 
-export async function createTournament(data: CreateTournamentDTO): Promise<Tournament> {
+export async function createTournament(
+  data: CreateTournamentDTO,
+  season?: number
+): Promise<Tournament> {
   const { db } = await connectToDatabase();
   const collection = db.collection<TournamentDocument>(TOURNAMENTS_COLLECTION);
 
-  const currentSeason = await getCurrentSeason();
+  const currentSeason = season ?? (await getCurrentSeason());
   const now = new Date();
-  
+
   const tournamentType = data.tournamentType ?? 'rollup_stableford';
   const config = TOURNAMENT_TYPE_CONFIG[tournamentType];
   const multiplier = getMultiplierForType(tournamentType);

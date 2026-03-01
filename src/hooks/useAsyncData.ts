@@ -36,7 +36,7 @@ interface UseAsyncDataReturn<T> extends AsyncDataState<T> {
  * - Waiting for auth to be ready
  * - Ignoring cancelled requests (unmount, navigation)
  * - Loading and error states
- * 
+ *
  * @param endpoint The API endpoint to fetch from
  * @param options Configuration options
  */
@@ -46,7 +46,7 @@ export function useAsyncData<T>(
 ): UseAsyncDataReturn<T> {
   const { immediate = true, deps = [] } = options;
   const { get, isAuthReady } = useApiClient();
-  
+
   const [state, setState] = useState<AsyncDataState<T>>({
     data: null,
     loading: immediate, // Start loading if immediate fetch
@@ -57,7 +57,7 @@ export function useAsyncData<T>(
   const isFirstRender = useRef(true);
 
   const fetchData = useCallback(async () => {
-    setState(prev => ({ ...prev, loading: true, error: null }));
+    setState((prev) => ({ ...prev, loading: true, error: null }));
 
     const response = await get<T>(endpoint);
 
@@ -69,10 +69,10 @@ export function useAsyncData<T>(
     if (response.success && response.data) {
       setState({ data: response.data, loading: false, error: null });
     } else {
-      setState(prev => ({ 
-        ...prev, 
-        loading: false, 
-        error: response.error || 'Failed to load data' 
+      setState((prev) => ({
+        ...prev,
+        loading: false,
+        error: response.error || 'Failed to load data',
       }));
     }
   }, [get, endpoint]);
@@ -85,13 +85,13 @@ export function useAsyncData<T>(
       return;
     }
     isFirstRender.current = false;
-    
+
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthReady, fetchData, ...deps]);
 
   const clearError = useCallback(() => {
-    setState(prev => ({ ...prev, error: null }));
+    setState((prev) => ({ ...prev, error: null }));
   }, []);
 
   const reset = useCallback(() => {
@@ -112,50 +112,53 @@ export function useAsyncData<T>(
  */
 export function useAsyncMutation<TRequest, TResponse>() {
   const { post, put, del, isAuthReady } = useApiClient();
-  
+
   const [state, setState] = useState<AsyncDataState<TResponse>>({
     data: null,
     loading: false,
     error: null,
   });
 
-  const execute = useCallback(async (
-    endpoint: string,
-    method: 'post' | 'put' | 'delete',
-    body?: TRequest
-  ): Promise<{ success: boolean; data?: TResponse; error?: string }> => {
-    setState(prev => ({ ...prev, loading: true, error: null }));
+  const execute = useCallback(
+    async (
+      endpoint: string,
+      method: 'post' | 'put' | 'delete',
+      body?: TRequest
+    ): Promise<{ success: boolean; data?: TResponse; error?: string }> => {
+      setState((prev) => ({ ...prev, loading: true, error: null }));
 
-    let response;
-    switch (method) {
-      case 'post':
-        response = await post<TResponse>(endpoint, body);
-        break;
-      case 'put':
-        response = await put<TResponse>(endpoint, body);
-        break;
-      case 'delete':
-        response = await del<TResponse>(endpoint);
-        break;
-    }
+      let response;
+      switch (method) {
+        case 'post':
+          response = await post<TResponse>(endpoint, body);
+          break;
+        case 'put':
+          response = await put<TResponse>(endpoint, body);
+          break;
+        case 'delete':
+          response = await del<TResponse>(endpoint);
+          break;
+      }
 
-    // Ignore cancelled requests
-    if (response.cancelled) {
-      return { success: false };
-    }
+      // Ignore cancelled requests
+      if (response.cancelled) {
+        return { success: false };
+      }
 
-    if (response.success && response.data) {
-      setState({ data: response.data, loading: false, error: null });
-      return { success: true, data: response.data };
-    } else {
-      const error = response.error || 'Operation failed';
-      setState(prev => ({ ...prev, loading: false, error }));
-      return { success: false, error };
-    }
-  }, [post, put, del]);
+      if (response.success && response.data) {
+        setState({ data: response.data, loading: false, error: null });
+        return { success: true, data: response.data };
+      } else {
+        const error = response.error || 'Operation failed';
+        setState((prev) => ({ ...prev, loading: false, error }));
+        return { success: false, error };
+      }
+    },
+    [post, put, del]
+  );
 
   const clearError = useCallback(() => {
-    setState(prev => ({ ...prev, error: null }));
+    setState((prev) => ({ ...prev, error: null }));
   }, []);
 
   return {

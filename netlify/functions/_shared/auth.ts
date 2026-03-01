@@ -13,7 +13,7 @@ function getRequiredEnv(name: string): string {
   if (!value) {
     throw new Error(
       `Missing required environment variable: ${name}. ` +
-      `Please ensure it is set in your Netlify environment variables or .env.local file.`
+        `Please ensure it is set in your Netlify environment variables or .env.local file.`
     );
   }
   return value;

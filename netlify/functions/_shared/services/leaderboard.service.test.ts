@@ -1,6 +1,17 @@
 import { ObjectId } from 'mongodb';
+import type { Db, MongoClient } from 'mongodb';
 import { connectToDatabase } from '../db';
-import { getLeaderboard, getFullLeaderboard } from './leaderboard.service';
+import {
+  getLeaderboard,
+  getFullLeaderboard,
+  getTournamentLeaderboard,
+  invalidateLeaderboardCache,
+} from './leaderboard.service';
+
+const mockRedisGet = vi.fn();
+const mockRedisSet = vi.fn();
+const mockRedisKeys = vi.fn();
+const mockRedisDel = vi.fn();
 
 vi.mock('../db', () => ({
   connectToDatabase: vi.fn(),
@@ -10,43 +21,77 @@ vi.mock('./seasons.service', () => ({
   getActiveSeason: vi.fn().mockResolvedValue({ id: '1', name: '2025', isActive: true }),
 }));
 
-const mockUsersCollection = { find: vi.fn() };
-const mockPicksCollection = { find: vi.fn() };
-const mockScoresCollection = { find: vi.fn() };
-const mockTournamentsCollection = { find: vi.fn(), findOne: vi.fn() };
+vi.mock('../rateLimit', () => ({
+  getRedisClient: vi.fn(() => ({
+    get: mockRedisGet,
+    set: mockRedisSet,
+    keys: mockRedisKeys,
+    del: mockRedisDel,
+  })),
+  getRedisKeyPrefix: vi.fn(() => 'test:'),
+}));
 
-const toArrayHelper = (items: any[]) => ({
+const mockTournamentsCollection = { find: vi.fn(), findOne: vi.fn() };
+const mockPicksCollection = { aggregate: vi.fn() };
+const mockUsersCollection = { find: vi.fn() };
+
+const chainHelper = <T>(items: T[]) => {
+  const terminal = { toArray: vi.fn().mockResolvedValue(items) };
+  return {
+    ...terminal,
+    project: vi.fn().mockReturnValue(terminal),
+  };
+};
+
+const aggregateHelper = <T>(items: T[]) => ({
   toArray: vi.fn().mockResolvedValue(items),
-  sort: vi.fn().mockReturnValue({ toArray: vi.fn().mockResolvedValue(items) }),
 });
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mockRedisGet.mockResolvedValue(null);
+  mockRedisSet.mockResolvedValue('OK');
+  mockRedisKeys.mockResolvedValue([]);
+  mockRedisDel.mockResolvedValue(0);
   vi.mocked(connectToDatabase).mockResolvedValue({
     db: {
       collection: vi.fn().mockImplementation((name: string) => {
         if (name === 'users') return mockUsersCollection;
         if (name === 'picks') return mockPicksCollection;
-        if (name === 'scores') return mockScoresCollection;
         if (name === 'tournaments') return mockTournamentsCollection;
         return {};
       }),
-    } as any,
-    client: {} as any,
+    } as unknown as Db,
+    client: {} as unknown as MongoClient,
   });
 });
 
 describe('leaderboard.service', () => {
   describe('getLeaderboard', () => {
     it('returns empty leaderboard when no users', async () => {
-      mockUsersCollection.find.mockReturnValue(toArrayHelper([]));
-      mockPicksCollection.find.mockReturnValue(toArrayHelper([]));
-      mockTournamentsCollection.find.mockReturnValue(toArrayHelper([]));
-      mockScoresCollection.find.mockReturnValue(toArrayHelper([]));
+      mockTournamentsCollection.find.mockReturnValue(chainHelper([]));
+      mockPicksCollection.aggregate.mockReturnValue(aggregateHelper([]));
+      mockUsersCollection.find.mockReturnValue(chainHelper([]));
 
       const result = await getLeaderboard();
 
       expect(result).toEqual([]);
+    });
+
+    it('uses explicit season parameter and skips getCurrentSeason lookup', async () => {
+      mockTournamentsCollection.find.mockReturnValue(chainHelper([]));
+      mockPicksCollection.aggregate.mockReturnValue(aggregateHelper([]));
+      mockUsersCollection.find.mockReturnValue(chainHelper([]));
+
+      const result = await getLeaderboard(2026);
+
+      expect(result).toEqual([]);
+      expect(mockTournamentsCollection.find).toHaveBeenCalledWith(
+        expect.objectContaining({ season: 2026 })
+      );
+      expect(mockPicksCollection.aggregate).toHaveBeenCalledWith(
+        expect.arrayContaining([expect.objectContaining({ $match: { season: 2026 } })])
+      );
     });
 
     it('ranks users by total points descending', async () => {
@@ -56,52 +101,31 @@ describe('leaderboard.service', () => {
       const golfer2 = new ObjectId();
       const tournamentId = new ObjectId();
 
-      mockUsersCollection.find.mockReturnValue(
-        toArrayHelper([
-          { _id: user1, username: 'alice', firstName: 'Alice', lastName: 'A' },
-          { _id: user2, username: 'bob', firstName: 'Bob', lastName: 'B' },
-        ])
+      mockTournamentsCollection.find.mockReturnValue(
+        chainHelper([{ _id: tournamentId, startDate: new Date('2025-05-01') }])
       );
 
-      // Both users created teams in the past (grandfathered)
-      mockPicksCollection.find.mockReturnValue(
-        toArrayHelper([
+      // Aggregation returns picks joined with scores and user data
+      mockPicksCollection.aggregate.mockReturnValue(
+        aggregateHelper([
           {
             userId: user1,
-            golferIds: [golfer1],
             captainId: null,
-            totalSpent: 10_000_000,
-            season: 2025,
             createdAt: new Date('2024-01-01'),
+            scores: [{ golferId: golfer1, tournamentId, multipliedPoints: 20 }],
+            user: { _id: user1, username: 'alice' },
           },
           {
             userId: user2,
-            golferIds: [golfer2],
             captainId: null,
-            totalSpent: 10_000_000,
-            season: 2025,
             createdAt: new Date('2024-01-01'),
+            scores: [{ golferId: golfer2, tournamentId, multipliedPoints: 10 }],
+            user: { _id: user2, username: 'bob' },
           },
         ])
       );
 
-      mockTournamentsCollection.find.mockReturnValue(
-        toArrayHelper([
-          {
-            _id: tournamentId,
-            status: 'published',
-            season: 2025,
-            startDate: new Date('2025-05-01'),
-          },
-        ])
-      );
-
-      mockScoresCollection.find.mockReturnValue(
-        toArrayHelper([
-          { golferId: golfer1, tournamentId, multipliedPoints: 20 },
-          { golferId: golfer2, tournamentId, multipliedPoints: 10 },
-        ])
-      );
+      mockUsersCollection.find.mockReturnValue(chainHelper([]));
 
       const result = await getLeaderboard();
 
@@ -120,31 +144,30 @@ describe('leaderboard.service', () => {
       const golfer2 = new ObjectId();
       const tournamentId = new ObjectId();
 
-      mockUsersCollection.find.mockReturnValue(
-        toArrayHelper([
-          { _id: user1, username: 'alice', firstName: 'Alice', lastName: 'A' },
-          { _id: user2, username: 'bob', firstName: 'Bob', lastName: 'B' },
-        ])
-      );
-
-      mockPicksCollection.find.mockReturnValue(
-        toArrayHelper([
-          { userId: user1, golferIds: [golfer1], captainId: null, totalSpent: 10_000_000, season: 2025, createdAt: new Date('2024-01-01') },
-          { userId: user2, golferIds: [golfer2], captainId: null, totalSpent: 10_000_000, season: 2025, createdAt: new Date('2024-01-01') },
-        ])
-      );
-
       mockTournamentsCollection.find.mockReturnValue(
-        toArrayHelper([{ _id: tournamentId, status: 'published', season: 2025, startDate: new Date('2025-05-01') }])
+        chainHelper([{ _id: tournamentId, startDate: new Date('2025-05-01') }])
       );
 
-      // Same points = tie
-      mockScoresCollection.find.mockReturnValue(
-        toArrayHelper([
-          { golferId: golfer1, tournamentId, multipliedPoints: 15 },
-          { golferId: golfer2, tournamentId, multipliedPoints: 15 },
+      mockPicksCollection.aggregate.mockReturnValue(
+        aggregateHelper([
+          {
+            userId: user1,
+            captainId: null,
+            createdAt: new Date('2024-01-01'),
+            scores: [{ golferId: golfer1, tournamentId, multipliedPoints: 15 }],
+            user: { _id: user1, username: 'alice' },
+          },
+          {
+            userId: user2,
+            captainId: null,
+            createdAt: new Date('2024-01-01'),
+            scores: [{ golferId: golfer2, tournamentId, multipliedPoints: 15 }],
+            user: { _id: user2, username: 'bob' },
+          },
         ])
       );
+
+      mockUsersCollection.find.mockReturnValue(chainHelper([]));
 
       const result = await getLeaderboard();
 
@@ -155,12 +178,11 @@ describe('leaderboard.service', () => {
     it('gives zero points to users without picks', async () => {
       const user1 = new ObjectId();
 
+      mockTournamentsCollection.find.mockReturnValue(chainHelper([]));
+      mockPicksCollection.aggregate.mockReturnValue(aggregateHelper([]));
       mockUsersCollection.find.mockReturnValue(
-        toArrayHelper([{ _id: user1, username: 'alice', firstName: 'Alice', lastName: 'A' }])
+        chainHelper([{ _id: user1, username: 'alice' }])
       );
-      mockPicksCollection.find.mockReturnValue(toArrayHelper([]));
-      mockTournamentsCollection.find.mockReturnValue(toArrayHelper([]));
-      mockScoresCollection.find.mockReturnValue(toArrayHelper([]));
 
       const result = await getLeaderboard();
 
@@ -170,7 +192,8 @@ describe('leaderboard.service', () => {
 
   describe('getFullLeaderboard', () => {
     it('returns empty leaderboards when no picks exist', async () => {
-      mockPicksCollection.find.mockReturnValue(toArrayHelper([]));
+      mockTournamentsCollection.find.mockReturnValue(chainHelper([]));
+      mockPicksCollection.aggregate.mockReturnValue(aggregateHelper([]));
 
       const result = await getFullLeaderboard();
 
@@ -180,42 +203,50 @@ describe('leaderboard.service', () => {
       expect(result.currentMonth).toBeDefined();
     });
 
+    it('uses explicit season parameter and skips getCurrentSeason lookup', async () => {
+      mockTournamentsCollection.find.mockReturnValue(chainHelper([]));
+      mockPicksCollection.aggregate.mockReturnValue(aggregateHelper([]));
+
+      const result = await getFullLeaderboard(2026);
+
+      expect(result.season).toEqual([]);
+      expect(mockTournamentsCollection.find).toHaveBeenCalledWith(
+        expect.objectContaining({ season: 2026 })
+      );
+    });
+
     it('calculates captain multiplier (2x) for captain golfer', async () => {
       const user1 = new ObjectId();
       const golfer1 = new ObjectId();
       const golfer2 = new ObjectId();
       const tournamentId = new ObjectId();
 
-      mockPicksCollection.find.mockReturnValue(
-        toArrayHelper([
-          {
-            userId: user1,
-            golferIds: [golfer1, golfer2],
-            captainId: golfer1,
-            totalSpent: 20_000_000,
-            season: 2025,
-            createdAt: new Date('2024-01-01'),
-          },
-        ])
-      );
-
-      mockUsersCollection.find.mockReturnValue(
-        toArrayHelper([{ _id: user1, username: 'alice', firstName: 'Alice', lastName: 'A' }])
-      );
-
       // Use a date within the current month so it counts for season/month/week
       const now = new Date();
-      const tournamentDate = new Date(now.getFullYear(), now.getMonth(), Math.min(now.getDate(), 28));
-      mockTournamentsCollection.find.mockReturnValue(
-        toArrayHelper([
-          { _id: tournamentId, status: 'published', season: 2025, startDate: tournamentDate },
-        ])
+      const tournamentDate = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        Math.min(now.getDate(), 28)
       );
 
-      mockScoresCollection.find.mockReturnValue(
-        toArrayHelper([
-          { golferId: golfer1, tournamentId, multipliedPoints: 10, participated: true },
-          { golferId: golfer2, tournamentId, multipliedPoints: 10, participated: true },
+      mockTournamentsCollection.find.mockReturnValue(
+        chainHelper([{ _id: tournamentId, startDate: tournamentDate }])
+      );
+
+      // Aggregation returns pick with joined scores and user data
+      mockPicksCollection.aggregate.mockReturnValue(
+        aggregateHelper([
+          {
+            userId: user1,
+            captainId: golfer1,
+            createdAt: new Date('2024-01-01'),
+            totalSpent: 20_000_000,
+            scores: [
+              { golferId: golfer1, tournamentId, multipliedPoints: 10, participated: true },
+              { golferId: golfer2, tournamentId, multipliedPoints: 10, participated: true },
+            ],
+            user: { _id: user1, username: 'alice', firstName: 'Alice', lastName: 'A' },
+          },
         ])
       );
 
@@ -223,6 +254,113 @@ describe('leaderboard.service', () => {
 
       // Captain golfer1 gets 10*2=20, golfer2 gets 10*1=10, total = 30
       expect(result.season[0].points).toBe(30);
+    });
+  });
+
+  describe('getTournamentLeaderboard', () => {
+    it('uses explicit season parameter', async () => {
+      const tournamentId = new ObjectId();
+
+      mockTournamentsCollection.findOne.mockResolvedValue({
+        _id: tournamentId,
+        status: 'published',
+        season: 2026,
+        startDate: new Date('2026-05-01'),
+      });
+      mockPicksCollection.aggregate.mockReturnValue(aggregateHelper([]));
+      mockUsersCollection.find.mockReturnValue(chainHelper([]));
+
+      const result = await getTournamentLeaderboard(tournamentId.toString(), 2026);
+
+      expect(result).toEqual([]);
+      expect(mockPicksCollection.aggregate).toHaveBeenCalledWith(
+        expect.arrayContaining([expect.objectContaining({ $match: { season: 2026 } })])
+      );
+    });
+  });
+
+  describe('caching', () => {
+    it('returns cached data for getLeaderboard without DB queries', async () => {
+      const cachedData = [
+        { userId: '1', username: 'alice', totalPoints: 20, rank: 1 },
+      ];
+      mockRedisGet.mockResolvedValue(JSON.stringify(cachedData));
+
+      const result = await getLeaderboard(2025);
+
+      expect(result).toEqual(cachedData);
+      expect(connectToDatabase).not.toHaveBeenCalled();
+      expect(mockRedisGet).toHaveBeenCalledWith('test:v1:cache:leaderboard:simple:2025');
+    });
+
+    it('returns cached data for getFullLeaderboard without DB queries', async () => {
+      const cachedData = {
+        season: [],
+        month: [],
+        week: [],
+        currentMonth: 'July 2025',
+        weekStart: '2025-07-01T00:00:00.000Z',
+        weekEnd: '2025-07-07T00:00:00.000Z',
+      };
+      mockRedisGet.mockResolvedValue(JSON.stringify(cachedData));
+
+      const result = await getFullLeaderboard(2025);
+
+      expect(result).toEqual(cachedData);
+      expect(connectToDatabase).not.toHaveBeenCalled();
+      expect(mockRedisGet).toHaveBeenCalledWith('test:v1:cache:leaderboard:full:2025');
+    });
+
+    it('returns cached data for getTournamentLeaderboard without DB queries', async () => {
+      const cachedData = [
+        { userId: '1', username: 'alice', totalPoints: 10, rank: 1 },
+      ];
+      const tid = new ObjectId();
+      mockRedisGet.mockResolvedValue(JSON.stringify(cachedData));
+
+      const result = await getTournamentLeaderboard(tid.toString(), 2025);
+
+      expect(result).toEqual(cachedData);
+      expect(connectToDatabase).not.toHaveBeenCalled();
+      expect(mockRedisGet).toHaveBeenCalledWith(
+        `test:v1:cache:leaderboard:tournament:2025:${tid.toString()}`
+      );
+    });
+
+    it('caches result on cache miss for getLeaderboard', async () => {
+      mockTournamentsCollection.find.mockReturnValue(chainHelper([]));
+      mockPicksCollection.aggregate.mockReturnValue(aggregateHelper([]));
+      mockUsersCollection.find.mockReturnValue(chainHelper([]));
+
+      await getLeaderboard(2025);
+
+      expect(mockRedisSet).toHaveBeenCalledWith(
+        'test:v1:cache:leaderboard:simple:2025',
+        expect.any(String),
+        'EX',
+        60
+      );
+    });
+
+    it('invalidateLeaderboardCache deletes matching keys', async () => {
+      const keys = [
+        'test:v1:cache:leaderboard:full:2025',
+        'test:v1:cache:leaderboard:simple:2025',
+      ];
+      mockRedisKeys.mockResolvedValue(keys);
+
+      await invalidateLeaderboardCache(2025);
+
+      expect(mockRedisKeys).toHaveBeenCalledWith('test:v1:cache:leaderboard:*:2025*');
+      expect(mockRedisDel).toHaveBeenCalledWith(...keys);
+    });
+
+    it('invalidateLeaderboardCache does nothing when no keys match', async () => {
+      mockRedisKeys.mockResolvedValue([]);
+
+      await invalidateLeaderboardCache(2025);
+
+      expect(mockRedisDel).not.toHaveBeenCalled();
     });
   });
 });

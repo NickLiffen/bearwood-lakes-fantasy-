@@ -98,25 +98,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, [persistAuth, clearAuth]);
 
   // Schedule a proactive refresh before the access token expires
-  const scheduleRefresh = useCallback((accessToken: string) => {
-    clearRefreshTimer();
-    const exp = decodeJwtExp(accessToken);
-    if (!exp) return;
+  const scheduleRefresh = useCallback(
+    (accessToken: string) => {
+      clearRefreshTimer();
+      const exp = decodeJwtExp(accessToken);
+      if (!exp) return;
 
-    const expiresAt = exp * 1000; // Convert to ms
-    const now = Date.now();
-    const delay = expiresAt - now - REFRESH_BUFFER_MS;
+      const expiresAt = exp * 1000; // Convert to ms
+      const now = Date.now();
+      const delay = expiresAt - now - REFRESH_BUFFER_MS;
 
-    if (delay <= 0) {
-      // Already expired or about to — refresh immediately
-      doRefresh();
-      return;
-    }
+      if (delay <= 0) {
+        // Already expired or about to — refresh immediately
+        doRefresh();
+        return;
+      }
 
-    refreshTimerRef.current = setTimeout(() => {
-      doRefresh();
-    }, delay);
-  }, [clearRefreshTimer, doRefresh]);
+      refreshTimerRef.current = setTimeout(() => {
+        doRefresh();
+      }, delay);
+    },
+    [clearRefreshTimer, doRefresh]
+  );
 
   // Hydrate auth state from localStorage on mount — validate token expiry
   useEffect(() => {
@@ -185,46 +188,52 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  const login = useCallback(async (username: string, password: string): Promise<void> => {
-    const response = await fetch('/.netlify/functions/auth-login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ username, password }),
-    });
+  const login = useCallback(
+    async (username: string, password: string): Promise<void> => {
+      const response = await fetch('/.netlify/functions/auth-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ username, password }),
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    if (!response.ok) {
-      throw new Error(data.error || 'Login failed');
-    }
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed');
+      }
 
-    persistAuth(data.data.token, data.data.user);
-  }, [persistAuth]);
+      persistAuth(data.data.token, data.data.user);
+    },
+    [persistAuth]
+  );
 
-  const register = useCallback(async (data: {
-    firstName: string;
-    lastName: string;
-    username: string;
-    email: string;
-    password: string;
-    phoneNumber: string;
-  }): Promise<void> => {
-    const response = await fetch('/.netlify/functions/auth-register', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify(data),
-    });
+  const register = useCallback(
+    async (data: {
+      firstName: string;
+      lastName: string;
+      username: string;
+      email: string;
+      password: string;
+      phoneNumber: string;
+    }): Promise<void> => {
+      const response = await fetch('/.netlify/functions/auth-register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(data),
+      });
 
-    const result = await response.json();
+      const result = await response.json();
 
-    if (!response.ok) {
-      throw new Error(result.error || 'Registration failed');
-    }
+      if (!response.ok) {
+        throw new Error(result.error || 'Registration failed');
+      }
 
-    persistAuth(result.data.token, result.data.user);
-  }, [persistAuth]);
+      persistAuth(result.data.token, result.data.user);
+    },
+    [persistAuth]
+  );
 
   const logout = useCallback(() => {
     fetch('/.netlify/functions/auth-logout', {

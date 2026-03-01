@@ -43,6 +43,9 @@
     # Strict Transport Security (HTTPS only)
     Strict-Transport-Security = "max-age=31536000; includeSubDomains"
 
+[functions."scheduled-recalculate"]
+  schedule = "@daily"
+
 # Note: Environment variables are split between local and cloud:
 # - Local development: .env file (gitignored) with localhost defaults
 # - Production/Staging: Netlify UI → Site settings → Environment variables

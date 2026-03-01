@@ -51,9 +51,7 @@ const ScoringPage: React.FC = () => {
               <div className="event-multiplier">3×</div>
               <h3>Presidents Cup</h3>
               <p className="event-example">Annual Presidents Cup</p>
-              <p className="event-desc">
-                Triple points! One of the biggest events of the season.
-              </p>
+              <p className="event-desc">Triple points! One of the biggest events of the season.</p>
             </div>
             <div className="event-card signature">
               <div className="event-multiplier">4×</div>
@@ -105,7 +103,9 @@ const ScoringPage: React.FC = () => {
               <p className="points-subtitle">Awarded based on scoring format and event duration</p>
               <div className="points-table">
                 <div className="points-row highlight">
-                  <span className="position" style={{ fontWeight: 600 }}>Single-Day Stableford</span>
+                  <span className="position" style={{ fontWeight: 600 }}>
+                    Single-Day Stableford
+                  </span>
                   <span className="points-value"></span>
                 </div>
                 <div className="points-row">
@@ -113,11 +113,16 @@ const ScoringPage: React.FC = () => {
                   <span className="points-value">+3 bonus</span>
                 </div>
                 <div className="points-row">
-                  <span className="position">32-35 stableford points <em style={{ fontSize: '0.75em', color: '#9ca3af' }}>(aka a Sanjeev)</em></span>
+                  <span className="position">
+                    32-35 stableford points{' '}
+                    <em style={{ fontSize: '0.75em', color: '#9ca3af' }}>(aka a Sanjeev)</em>
+                  </span>
                   <span className="points-value">+1 bonus</span>
                 </div>
                 <div className="points-row highlight">
-                  <span className="position" style={{ fontWeight: 600 }}>Multi-Day Stableford</span>
+                  <span className="position" style={{ fontWeight: 600 }}>
+                    Multi-Day Stableford
+                  </span>
                   <span className="points-value"></span>
                 </div>
                 <div className="points-row">
@@ -129,7 +134,9 @@ const ScoringPage: React.FC = () => {
                   <span className="points-value">+1 bonus</span>
                 </div>
                 <div className="points-row highlight">
-                  <span className="position" style={{ fontWeight: 600 }}>Single-Day Medal</span>
+                  <span className="position" style={{ fontWeight: 600 }}>
+                    Single-Day Medal
+                  </span>
                   <span className="points-value"></span>
                 </div>
                 <div className="points-row">
@@ -141,7 +148,9 @@ const ScoringPage: React.FC = () => {
                   <span className="points-value">+1 bonus</span>
                 </div>
                 <div className="points-row highlight">
-                  <span className="position" style={{ fontWeight: 600 }}>Multi-Day Medal</span>
+                  <span className="position" style={{ fontWeight: 600 }}>
+                    Multi-Day Medal
+                  </span>
                   <span className="points-value"></span>
                 </div>
                 <div className="points-row">
@@ -225,7 +234,11 @@ const ScoringPage: React.FC = () => {
           <h2>📝 Worked Examples</h2>
           <div className="examples-grid">
             <div className="example-box">
-              <h3 style={{ margin: '0 0 0.75rem', fontSize: '1rem', color: 'var(--primary-green)' }}>⛳ Medal Example</h3>
+              <h3
+                style={{ margin: '0 0 0.75rem', fontSize: '1rem', color: 'var(--primary-green)' }}
+              >
+                ⛳ Medal Example
+              </h3>
               <p className="example-scenario">
                 <strong>Matthew Green</strong> plays in a <strong>Weekend Medal</strong> (2×
                 multiplier). He finishes <strong>1st</strong> with a nett score of{' '}
@@ -260,7 +273,11 @@ const ScoringPage: React.FC = () => {
             </div>
 
             <div className="example-box">
-              <h3 style={{ margin: '0 0 0.75rem', fontSize: '1rem', color: 'var(--primary-green)' }}>🏌️ Stableford Example</h3>
+              <h3
+                style={{ margin: '0 0 0.75rem', fontSize: '1rem', color: 'var(--primary-green)' }}
+              >
+                🏌️ Stableford Example
+              </h3>
               <p className="example-scenario">
                 <strong>Nick Liffen</strong> plays in a <strong>Rollup Stableford</strong> (1×
                 multiplier). He finishes <strong>2nd</strong> with{' '}
@@ -321,12 +338,15 @@ const ScoringPage: React.FC = () => {
             <div className="rule-item">
               <span className="rule-icon">🔄</span>
               <p>
-                <strong>Transfers</strong> — During pre-season, you have <strong>unlimited transfers</strong> to build your perfect squad. Once the season starts, you get <strong>1 transfer per week</strong>. Transfers must be made before <strong>8am on Saturday</strong> for them to take effect that gameweek. Any transfers made after 8am Saturday will apply to the following week's score.
+                <strong>Transfers</strong> — During pre-season, you have{' '}
+                <strong>unlimited transfers</strong> to build your perfect squad. Once the season
+                starts, you get <strong>1 transfer per week</strong>. Transfers must be made before{' '}
+                <strong>8am on Saturday</strong> for them to take effect that gameweek. Any
+                transfers made after 8am Saturday will apply to the following week's score.
               </p>
             </div>
           </div>
         </section>
-
       </div>
     </PageLayout>
   );

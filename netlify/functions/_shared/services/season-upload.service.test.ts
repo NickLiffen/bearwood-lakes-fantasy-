@@ -1,4 +1,5 @@
 import { ObjectId } from 'mongodb';
+import type { Db, MongoClient } from 'mongodb';
 import { connectToDatabase } from '../db';
 import { processSeasonUpload } from './season-upload.service';
 
@@ -28,7 +29,7 @@ const mockSeasonsCol = {
   find: vi.fn(),
 };
 
-const toArraySorted = (items: any[]) => ({
+const toArraySorted = <T>(items: T[]) => ({
   sort: vi.fn().mockReturnValue({ toArray: vi.fn().mockResolvedValue(items) }),
   toArray: vi.fn().mockResolvedValue(items),
   project: vi.fn().mockReturnValue({ toArray: vi.fn().mockResolvedValue(items) }),
@@ -45,8 +46,8 @@ beforeEach(() => {
         if (name === 'seasons') return mockSeasonsCol;
         return {};
       }),
-    } as any,
-    client: {} as any,
+    } as unknown as Db,
+    client: {} as unknown as MongoClient,
   });
 });
 
@@ -70,17 +71,13 @@ describe('season-upload.service', () => {
     mockTournamentsCol.updateOne.mockResolvedValue({ modifiedCount: 1 });
     // Default: golfer not found (will be created)
     mockGolfersCol.findOne.mockResolvedValue(null);
-    let golferInsertCount = 0;
     mockGolfersCol.insertOne.mockImplementation(() => {
-      golferInsertCount++;
       return Promise.resolve({ insertedId: new ObjectId() });
     });
     mockGolfersCol.updateOne.mockResolvedValue({ modifiedCount: 1 });
     mockScoresCol.updateOne.mockResolvedValue({ modifiedCount: 1 });
     // For stats recalculation
-    mockTournamentsCol.find.mockReturnValue(
-      toArraySorted([{ _id: new ObjectId() }])
-    );
+    mockTournamentsCol.find.mockReturnValue(toArraySorted([{ _id: new ObjectId() }]));
     mockScoresCol.find.mockReturnValue(toArraySorted([]));
   });
 

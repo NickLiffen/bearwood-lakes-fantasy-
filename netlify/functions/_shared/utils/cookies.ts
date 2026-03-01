@@ -7,8 +7,9 @@ const REFRESH_TOKEN_MAX_AGE = 30 * 24 * 60 * 60; // 30 days in seconds
  * Create Set-Cookie header for refresh token (httpOnly, secure, sameSite)
  */
 export function setRefreshTokenCookie(refreshToken: string): string {
-  const isProduction = process.env.NODE_ENV === 'production' || process.env.CONTEXT === 'production';
-  
+  const isProduction =
+    process.env.NODE_ENV === 'production' || process.env.CONTEXT === 'production';
+
   const parts = [
     `${REFRESH_TOKEN_COOKIE_NAME}=${refreshToken}`,
     'HttpOnly',
@@ -38,8 +39,8 @@ export function clearRefreshTokenCookie(): string {
 export function getRefreshTokenFromCookie(cookieHeader: string | undefined): string | null {
   if (!cookieHeader) return null;
 
-  const cookies = cookieHeader.split(';').map(c => c.trim());
-  
+  const cookies = cookieHeader.split(';').map((c) => c.trim());
+
   for (const cookie of cookies) {
     const [name, ...valueParts] = cookie.split('=');
     if (name === REFRESH_TOKEN_COOKIE_NAME) {
@@ -59,7 +60,7 @@ export function getClientInfo(headers: Record<string, string | undefined>): {
 } {
   return {
     userAgent: headers['user-agent'],
-    ipAddress: 
+    ipAddress:
       headers['x-nf-client-connection-ip'] ||
       headers['x-forwarded-for']?.split(',')[0]?.trim() ||
       headers['x-real-ip'],

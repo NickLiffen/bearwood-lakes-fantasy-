@@ -18,7 +18,9 @@ import { getActiveSeason } from './seasons.service';
 
 async function getCurrentSeason(): Promise<number> {
   const activeSeason = await getActiveSeason();
-  return activeSeason ? (parseInt(activeSeason.name, 10) || new Date().getFullYear()) : new Date().getFullYear();
+  return activeSeason
+    ? parseInt(activeSeason.name, 10) || new Date().getFullYear()
+    : new Date().getFullYear();
 }
 
 async function areTransfersOpen(): Promise<boolean> {
@@ -60,13 +62,11 @@ export async function getTransfersThisWeek(userId: string): Promise<number> {
 
   // Count pickHistory entries for this user since weekStart
   // Exclude initial picks (reason === 'Initial pick')
-  const count = await db
-    .collection<PickHistoryDocument>(PICK_HISTORY_COLLECTION)
-    .countDocuments({
-      userId: new ObjectId(userId),
-      changedAt: { $gte: weekStart },
-      reason: { $ne: 'Initial pick' },
-    });
+  const count = await db.collection<PickHistoryDocument>(PICK_HISTORY_COLLECTION).countDocuments({
+    userId: new ObjectId(userId),
+    changedAt: { $gte: weekStart },
+    reason: { $ne: 'Initial pick' },
+  });
 
   return count;
 }
@@ -126,7 +126,8 @@ export async function savePicks(
   userId: string,
   golferIds: string[],
   reason: string = 'Team selection',
-  captainId?: string | null
+  captainId?: string | null,
+  season?: number
 ): Promise<Pick> {
   const { db } = await connectToDatabase();
   const picksCollection = db.collection<PickDocument>(PICKS_COLLECTION);
@@ -137,17 +138,27 @@ export async function savePicks(
   const existingPick = await getUserPicks(userId);
   if (existingPick) {
     // Check if this is ONLY a captain change (same golfers, different captain)
-    const oldGolferIds = new Set(existingPick.golferIds.map(id => id.toString()));
+    const oldGolferIds = new Set(existingPick.golferIds.map((id) => id.toString()));
     const newGolferIds = new Set(golferIds);
-    const isSameGolfers = oldGolferIds.size === newGolferIds.size &&
-      [...oldGolferIds].every(id => newGolferIds.has(id));
+    const isSameGolfers =
+      oldGolferIds.size === newGolferIds.size &&
+      [...oldGolferIds].every((id) => newGolferIds.has(id));
 
     const isCaptainOnlyChange = isSameGolfers && captainId !== undefined;
 
     // Captain changes are always allowed, but golfer changes require transfers to be open
     if (!isCaptainOnlyChange) {
+      // Fetch all transfer-related settings in parallel
+      const [transfersOpen, activeSeason, transfersUsed, maxTransfers, maxPlayersPerTransfer] =
+        await Promise.all([
+          areTransfersOpen(),
+          getActiveSeason(),
+          getTransfersThisWeek(userId),
+          getMaxTransfersPerWeek(),
+          getMaxPlayersPerTransfer(),
+        ]);
+
       // User has an existing team and is changing golfers - this is a transfer
-      const transfersOpen = await areTransfersOpen();
       if (!transfersOpen) {
         throw new Error('Transfers are currently locked');
       }
@@ -156,7 +167,6 @@ export async function savePicks(
       // 1. Before the season starts (pre-season setup)
       // 2. Before the team's first game week (grace period after creation)
       const now = new Date();
-      const activeSeason = await getActiveSeason();
       const seasonStartDate = activeSeason?.startDate ? new Date(activeSeason.startDate) : null;
       const teamEffectiveStart = getTeamEffectiveStartDate(existingPick.createdAt);
       const isPreSeason = seasonStartDate && now < seasonStartDate;
@@ -165,24 +175,21 @@ export async function savePicks(
 
       if (!hasUnlimitedTransfers) {
         // Enforce weekly transfer limit
-        const maxTransfers = await getMaxTransfersPerWeek();
-        const transfersUsed = await getTransfersThisWeek(userId);
-
         if (transfersUsed >= maxTransfers) {
-          throw new Error(`Transfer limit reached. You've used ${transfersUsed} of ${maxTransfers} transfer${maxTransfers === 1 ? '' : 's'} this week.`);
+          throw new Error(
+            `Transfer limit reached. You've used ${transfersUsed} of ${maxTransfers} transfer${maxTransfers === 1 ? '' : 's'} this week.`
+          );
         }
 
         // Check how many players are being changed
-        const removedCount = [...oldGolferIds].filter(id => !newGolferIds.has(id)).length;
-        const addedCount = [...newGolferIds].filter(id => !oldGolferIds.has(id)).length;
+        const removedCount = [...oldGolferIds].filter((id) => !newGolferIds.has(id)).length;
+        const addedCount = [...newGolferIds].filter((id) => !oldGolferIds.has(id)).length;
         const playersChanged = Math.max(removedCount, addedCount);
-
-        const maxPlayersPerTransfer = await getMaxPlayersPerTransfer();
 
         if (playersChanged > maxPlayersPerTransfer) {
           throw new Error(
             `You can only swap ${maxPlayersPerTransfer} golfer${maxPlayersPerTransfer === 1 ? '' : 's'} per transfer. ` +
-            `You're trying to change ${playersChanged}.`
+              `You're trying to change ${playersChanged}.`
           );
         }
       }
@@ -226,7 +233,7 @@ export async function savePicks(
 
   const now = new Date();
   const userObjectId = new ObjectId(userId);
-  const currentSeason = await getCurrentSeason();
+  const currentSeason = season ?? (await getCurrentSeason());
 
   // Save to pick history for audit trail
   await historyCollection.insertOne({

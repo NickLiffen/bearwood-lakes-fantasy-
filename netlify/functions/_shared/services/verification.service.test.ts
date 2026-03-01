@@ -1,7 +1,8 @@
+import type { Db, MongoClient } from 'mongodb';
 import { ObjectId } from 'mongodb';
 import { connectToDatabase } from '../db';
 import { sendVerificationCode, checkVerificationCode } from '../twilio';
-import { generateAccessToken, generateRefreshToken, hashRefreshToken, getRefreshTokenExpiry } from '../auth';
+import '../auth';
 import { sendPhoneVerification, checkPhoneVerification } from './verification.service';
 
 vi.mock('../db', () => ({
@@ -38,8 +39,8 @@ beforeEach(() => {
         if (name === 'refreshTokens') return mockTokensCollection;
         return {};
       }),
-    } as any,
-    client: {} as any,
+    } as unknown as Db,
+    client: {} as unknown as MongoClient,
   });
 });
 
@@ -118,9 +119,7 @@ describe('verification.service', () => {
       const verifiedDoc = makeUserDoc({ phoneVerified: true });
 
       // First findOne returns unverified, second returns verified after update
-      mockUsersCollection.findOne
-        .mockResolvedValueOnce(userDoc)
-        .mockResolvedValueOnce(verifiedDoc);
+      mockUsersCollection.findOne.mockResolvedValueOnce(userDoc).mockResolvedValueOnce(verifiedDoc);
       mockUsersCollection.updateOne.mockResolvedValue({ modifiedCount: 1 });
       vi.mocked(checkVerificationCode).mockResolvedValue(true);
 

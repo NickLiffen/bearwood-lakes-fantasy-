@@ -69,7 +69,7 @@ describe('twilio', () => {
 
     it('returns false when Twilio returns 404 (expired/already used)', async () => {
       const error = new Error('Not found');
-      (error as any).status = 404;
+      (error as unknown as Record<string, number>).status = 404;
       mockCheckCreate.mockRejectedValue(error);
 
       const result = await checkVerificationCode('+447123456789', '123456');
@@ -79,7 +79,7 @@ describe('twilio', () => {
 
     it('re-throws non-404 errors', async () => {
       const error = new Error('Internal server error');
-      (error as any).status = 500;
+      (error as unknown as Record<string, number>).status = 500;
       mockCheckCreate.mockRejectedValue(error);
 
       await expect(checkVerificationCode('+447123456789', '123456')).rejects.toThrow(

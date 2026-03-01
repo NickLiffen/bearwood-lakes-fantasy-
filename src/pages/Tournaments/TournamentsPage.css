@@ -192,8 +192,8 @@
 /* Responsive */
 @media (max-width: 1200px) {
   /* Hide some columns on smaller screens */
-  .tournaments-container [data-column="third"],
-  .tournaments-container [data-column="scored36Plus"] {
+  .tournaments-container [data-column='third'],
+  .tournaments-container [data-column='scored36Plus'] {
     display: none;
   }
 }

@@ -80,7 +80,7 @@ describe('AuthContext — login', () => {
     await expect(
       act(async () => {
         await result.current.login('bad', 'creds');
-      }),
+      })
     ).rejects.toThrow('Invalid credentials');
 
     expect(result.current.isAuthenticated).toBe(false);

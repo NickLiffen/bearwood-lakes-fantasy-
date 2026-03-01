@@ -293,10 +293,7 @@ const UserProfilePage: React.FC = () => {
           {hasTeam && team && (
             <>
               {/* Team Summary */}
-              <TeamSection
-                firstName={user.firstName}
-                teamValue={team.totals.totalSpent}
-              >
+              <TeamSection firstName={user.firstName} teamValue={team.totals.totalSpent}>
                 {/* Week Navigation */}
                 <PeriodNav
                   id="user-profile-period-select"

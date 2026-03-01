@@ -93,7 +93,8 @@ describe('golfers-list handler', () => {
   }
 
   it('returns empty list when no golfers', async () => {
-    setupMockDb([], [], [makeSeasonDoc('2026', true)]);
+    const mocks = setupMockDb([], [], [makeSeasonDoc('2026', true)]);
+    mocks.golfersCollection.countDocuments.mockResolvedValue(0);
 
     const event = makeAuthEvent({ httpMethod: 'GET' });
     const result = await handler(event, mockContext);
@@ -102,6 +103,9 @@ describe('golfers-list handler', () => {
     expect(result.statusCode).toBe(200);
     expect(body.success).toBe(true);
     expect(body.data).toEqual([]);
+    expect(body.pagination).toBeDefined();
+    expect(body.pagination.page).toBe(1);
+    expect(body.pagination.limit).toBe(50);
   });
 
   it('returns golfers with stats, form, and ownership', async () => {
@@ -128,7 +132,8 @@ describe('golfers-list handler', () => {
       season: 2026,
     };
 
-    setupMockDb([golfer], [tournament], seasons);
+    const mocks = setupMockDb([golfer], [tournament], seasons);
+    mocks.golfersCollection.countDocuments.mockResolvedValue(1);
 
     const event = makeAuthEvent({ httpMethod: 'GET' });
     const result = await handler(event, mockContext);
@@ -142,6 +147,7 @@ describe('golfers-list handler', () => {
     expect(body.data[0].stats2026).toBeDefined();
     expect(body.data[0].seasonStats).toBeDefined();
     expect(typeof body.data[0].selectedPercentage).toBe('number');
+    expect(body.pagination).toBeDefined();
   });
 
   it('handles pagination params', async () => {
@@ -172,7 +178,8 @@ describe('golfers-list handler', () => {
     const golfer = makeGolferDoc(golferId, 'Brooks', 'Koepka');
     const seasons = [makeSeasonDoc('2025', false), makeSeasonDoc('2026', true)];
 
-    setupMockDb([golfer], [], seasons);
+    const mocks = setupMockDb([golfer], [], seasons);
+    mocks.golfersCollection.countDocuments.mockResolvedValue(1);
 
     const event = makeAuthEvent({
       httpMethod: 'GET',
@@ -183,6 +190,45 @@ describe('golfers-list handler', () => {
 
     expect(result.statusCode).toBe(200);
     expect(body.success).toBe(true);
+  });
+
+  it('returns all golfers when ?all=true is passed', async () => {
+    const golferId = '507f1f77bcf86cd799439011';
+    const golfer = makeGolferDoc(golferId, 'Jordan', 'Spieth');
+    const seasons = [makeSeasonDoc('2026', true)];
+
+    setupMockDb([golfer], [], seasons);
+
+    const event = makeAuthEvent({
+      httpMethod: 'GET',
+      queryStringParameters: { all: 'true' },
+    });
+    const result = await handler(event, mockContext);
+    const body = parseBody(result);
+
+    expect(result.statusCode).toBe(200);
+    expect(body.success).toBe(true);
+    expect(body.data).toHaveLength(1);
+    expect(body.pagination).toBeUndefined();
+  });
+
+  it('caps limit at 250', async () => {
+    const golferId = '507f1f77bcf86cd799439011';
+    const golfer = makeGolferDoc(golferId, 'Dustin', 'Johnson');
+    const seasons = [makeSeasonDoc('2026', true)];
+
+    const mocks = setupMockDb([golfer], [], seasons);
+    mocks.golfersCollection.countDocuments.mockResolvedValue(1);
+
+    const event = makeAuthEvent({
+      httpMethod: 'GET',
+      queryStringParameters: { page: '1', limit: '500' },
+    });
+    const result = await handler(event, mockContext);
+    const body = parseBody(result);
+
+    expect(result.statusCode).toBe(200);
+    expect(body.pagination.limit).toBe(250);
   });
 
   it('returns 500 on internal error', async () => {

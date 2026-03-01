@@ -1,4 +1,5 @@
 import { ObjectId } from 'mongodb';
+import type { Db, MongoClient } from 'mongodb';
 import { connectToDatabase } from '../db';
 import {
   hashPassword,
@@ -51,8 +52,8 @@ beforeEach(() => {
         if (name === 'refreshTokens') return mockTokensCollection;
         return {};
       }),
-    } as any,
-    client: {} as any,
+    } as unknown as Db,
+    client: {} as unknown as MongoClient,
   });
   vi.mocked(hashRefreshToken).mockReturnValue('hashed-refresh-token');
   vi.mocked(getRefreshTokenExpiry).mockReturnValue(new Date('2025-02-01'));
@@ -86,18 +87,27 @@ describe('auth.service', () => {
       expect(result.token).toBe('jwt-access-token');
       expect(result.refreshToken).toBe('new-refresh-token');
       expect(mockTokensCollection.insertOne).toHaveBeenCalledWith(
-        expect.objectContaining({ tokenHash: 'hashed-refresh-token', userId: insertedId.toString() })
+        expect.objectContaining({
+          tokenHash: 'hashed-refresh-token',
+          userId: insertedId.toString(),
+        })
       );
     });
 
     it('throws when email already exists', async () => {
-      mockUsersCollection.findOne.mockResolvedValue({ email: 'nick@example.com', username: 'other' });
+      mockUsersCollection.findOne.mockResolvedValue({
+        email: 'nick@example.com',
+        username: 'other',
+      });
 
       await expect(registerUser(validCreateDTO)).rejects.toThrow('Email already exists');
     });
 
     it('throws when username already exists', async () => {
-      mockUsersCollection.findOne.mockResolvedValue({ email: 'other@example.com', username: 'nickliffen' });
+      mockUsersCollection.findOne.mockResolvedValue({
+        email: 'other@example.com',
+        username: 'nickliffen',
+      });
 
       await expect(registerUser(validCreateDTO)).rejects.toThrow('Username already exists');
     });
@@ -116,7 +126,7 @@ describe('auth.service', () => {
       mockUsersCollection.findOne.mockResolvedValue(null);
       vi.mocked(hashPassword).mockResolvedValue('hashed-pw');
       const err = new Error('E11000 duplicate key error email');
-      (err as any).code = 11000;
+      (err as Error & { code: number }).code = 11000;
       mockUsersCollection.insertOne.mockRejectedValue(err);
 
       await expect(registerUser(validCreateDTO)).rejects.toThrow('Email already exists');

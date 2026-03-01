@@ -74,10 +74,7 @@ export async function validateRefreshToken(refreshToken: string): Promise<User> 
   }
 
   // Revoke the used token (rotation)
-  await tokensCollection.updateOne(
-    { _id: tokenDoc._id },
-    { $set: { revokedAt: now } }
-  );
+  await tokensCollection.updateOne({ _id: tokenDoc._id }, { $set: { revokedAt: now } });
 
   return toUser(userDoc);
 }
@@ -103,10 +100,7 @@ export async function revokeRefreshToken(refreshToken: string): Promise<void> {
   const collection = db.collection<RefreshTokenDocument>(REFRESH_TOKENS_COLLECTION);
 
   const tokenHash = hashRefreshToken(refreshToken);
-  await collection.updateOne(
-    { tokenHash },
-    { $set: { revokedAt: new Date() } }
-  );
+  await collection.updateOne({ tokenHash }, { $set: { revokedAt: new Date() } });
 }
 
 export async function registerUser(
@@ -119,11 +113,7 @@ export async function registerUser(
 
   // Check for existing email/username/phone
   const existing = await collection.findOne({
-    $or: [
-      { email: data.email },
-      { username: data.username },
-      { phoneNumber: data.phoneNumber },
-    ],
+    $or: [{ email: data.email }, { username: data.username }, { phoneNumber: data.phoneNumber }],
   });
 
   if (existing) {

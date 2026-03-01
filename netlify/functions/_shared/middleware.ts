@@ -1,5 +1,6 @@
 // Middleware wrappers for Netlify Functions
 
+import crypto from 'crypto';
 import type { Handler, HandlerEvent, HandlerContext, HandlerResponse } from '@netlify/functions';
 import { verifyToken, JwtPayload } from './auth';
 import {
@@ -255,6 +256,94 @@ export function withAdmin(
 }
 
 /**
+ * Generate a weak ETag from response body
+ */
+function generateETag(body: string): string {
+  const hash = crypto.createHash('md5').update(body).digest('hex').substring(0, 16);
+  return `W/"${hash}"`;
+}
+
+/**
+ * Middleware that adds ETag headers and handles conditional requests.
+ * Wrap around any handler that returns cacheable GET responses.
+ * Returns 304 Not Modified if client's If-None-Match matches the response ETag.
+ */
+export function withETag(handler: PublicHandler): PublicHandler {
+  return async (event, context) => {
+    // Only apply ETags to GET requests
+    if (event.httpMethod !== 'GET') {
+      return handler(event, context);
+    }
+
+    const response = await handler(event, context);
+
+    // Only add ETag to successful responses with a body
+    if (!response.body || response.statusCode !== 200) {
+      return response;
+    }
+
+    const etag = generateETag(response.body);
+    const clientETag = event.headers['if-none-match'];
+
+    // If client has a matching ETag, return 304
+    if (clientETag && clientETag === etag) {
+      return {
+        statusCode: 304,
+        headers: {
+          ...response.headers,
+          ETag: etag,
+        },
+        body: '',
+      };
+    }
+
+    // Return response with ETag header
+    return {
+      ...response,
+      headers: {
+        ...response.headers,
+        ETag: etag,
+        'Cache-Control': 'private, no-cache',
+      },
+    };
+  };
+}
+
+/**
+ * Authenticated version of withETag middleware.
+ * Adds ETag headers and handles conditional requests for authenticated GET endpoints.
+ */
+export function withAuthETag(handler: AuthenticatedHandler): AuthenticatedHandler {
+  return async (event, context) => {
+    if (event.httpMethod !== 'GET') {
+      return handler(event, context);
+    }
+
+    const response = await handler(event, context);
+
+    if (!response.body || response.statusCode !== 200) {
+      return response;
+    }
+
+    const etag = generateETag(response.body);
+    const clientETag = event.headers['if-none-match'];
+
+    if (clientETag && clientETag === etag) {
+      return {
+        statusCode: 304,
+        headers: { ...response.headers, ETag: etag },
+        body: '',
+      };
+    }
+
+    return {
+      ...response,
+      headers: { ...response.headers, ETag: etag, 'Cache-Control': 'private, no-cache' },
+    };
+  };
+}
+
+/**
  * Standard API response helper
  */
 export function apiResponse<T>(
@@ -366,11 +455,7 @@ export function createAuthHandler(config: {
   requireVerified?: boolean;
 }): Handler {
   const requireVerified = config.requireVerified !== false;
-  const wrapper = config.requireAdmin
-    ? withAdmin
-    : requireVerified
-      ? withVerifiedAuth
-      : withAuth;
+  const wrapper = config.requireAdmin ? withAdmin : requireVerified ? withVerifiedAuth : withAuth;
 
   return wrapper(async (event, context) => {
     const requestId = getRequestId(event.headers);

@@ -13,7 +13,9 @@ module.exports = {
     }
 
     if (!reviewId) {
-      utils.status.show({ summary: 'Deploy preview detected but no REVIEW_ID found — skipping isolation.' });
+      utils.status.show({
+        summary: 'Deploy preview detected but no REVIEW_ID found — skipping isolation.',
+      });
       return;
     }
 

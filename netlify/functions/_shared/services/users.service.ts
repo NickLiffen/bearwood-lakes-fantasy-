@@ -8,7 +8,7 @@ export async function getAllUsers(): Promise<User[]> {
   const { db } = await connectToDatabase();
   const collection = db.collection<UserDocument>(USERS_COLLECTION);
 
-  const users = await collection.find({}).toArray();
+  const users = await collection.find({}).project({ passwordHash: 0 }).toArray();
   return users.map(toUser);
 }
 

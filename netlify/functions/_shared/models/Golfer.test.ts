@@ -1,5 +1,11 @@
 import { ObjectId } from 'mongodb';
-import { toGolfer, defaultStats2024, defaultStats2025, defaultStats2026, GOLFERS_COLLECTION } from './Golfer';
+import {
+  toGolfer,
+  defaultStats2024,
+  defaultStats2025,
+  defaultStats2026,
+  GOLFERS_COLLECTION,
+} from './Golfer';
 import type { GolferDocument } from './Golfer';
 
 describe('Golfer model', () => {

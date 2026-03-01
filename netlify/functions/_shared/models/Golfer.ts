@@ -1,7 +1,12 @@
 // Golfer model (MongoDB)
 
 import { ObjectId } from 'mongodb';
-import type { Golfer, Golfer2024Stats, Golfer2025Stats, Golfer2026Stats } from '../../../../shared/types';
+import type {
+  Golfer,
+  Golfer2024Stats,
+  Golfer2025Stats,
+  Golfer2026Stats,
+} from '../../../../shared/types';
 
 export interface GolferDocument {
   _id: ObjectId;

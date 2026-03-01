@@ -7,11 +7,17 @@ import { ScoreDocument, SCORES_COLLECTION } from '../models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from '../models/Tournament';
 import type { Golfer, CreateGolferDTO, UpdateGolferDTO } from '../../../../shared/types';
 
-export async function getAllGolfers(): Promise<Golfer[]> {
+export async function getAllGolfers(options?: {
+  limit?: number;
+  skip?: number;
+}): Promise<Golfer[]> {
   const { db } = await connectToDatabase();
   const collection = db.collection<GolferDocument>(GOLFERS_COLLECTION);
 
-  const golfers = await collection.find({}).toArray();
+  let cursor = collection.find({});
+  if (options?.skip !== undefined) cursor = cursor.skip(options.skip);
+  if (options?.limit !== undefined) cursor = cursor.limit(options.limit);
+  const golfers = await cursor.toArray();
   return golfers.map(toGolfer);
 }
 

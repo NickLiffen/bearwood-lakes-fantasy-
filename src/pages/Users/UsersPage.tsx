@@ -92,8 +92,7 @@ const UsersPage: React.FC = () => {
       .filter((user) => {
         const fullName = `${user.firstName} ${user.lastName}`;
         const matchesSearch =
-          matchesSearchUtil(fullName, searchTerm) ||
-          matchesSearchUtil(user.username, searchTerm);
+          matchesSearchUtil(fullName, searchTerm) || matchesSearchUtil(user.username, searchTerm);
         const matchesQuickFilter = applyQuickFilter(user);
         return matchesSearch && matchesQuickFilter;
       })

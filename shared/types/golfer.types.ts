@@ -2,12 +2,12 @@
 
 // Performance stats structure (used for all seasons)
 export interface GolferSeasonStats {
-  timesScored36Plus: number;         // Times shot 36 points or above
-  timesScored32Plus: number;         // Times shot 32 points or above
-  timesFinished1st: number;          // Times finished 1st place
-  timesFinished2nd: number;          // Times finished 2nd place
-  timesFinished3rd: number;          // Times finished 3rd place
-  timesPlayed: number;               // Total times played
+  timesScored36Plus: number; // Times shot 36 points or above
+  timesScored32Plus: number; // Times shot 32 points or above
+  timesFinished1st: number; // Times finished 1st place
+  timesFinished2nd: number; // Times finished 2nd place
+  timesFinished3rd: number; // Times finished 3rd place
+  timesPlayed: number; // Total times played
 }
 
 // Alias for backwards compatibility

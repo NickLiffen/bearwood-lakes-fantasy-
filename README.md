@@ -56,14 +56,14 @@ netlify dev
 
 ### Scripts
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start Vite dev server |
-| `npm run build` | Build for production |
-| `npm run preview` | Preview production build |
-| `npm run test` | Run Jest tests |
-| `npm run lint` | Run ESLint |
-| `npm run format` | Format with Prettier |
+| Command              | Description              |
+| -------------------- | ------------------------ |
+| `npm run dev`        | Start Vite dev server    |
+| `npm run build`      | Build for production     |
+| `npm run preview`    | Preview production build |
+| `npm run test`       | Run Jest tests           |
+| `npm run lint`       | Run ESLint               |
+| `npm run format`     | Format with Prettier     |
 | `npm run type-check` | TypeScript type checking |
 
 ## Project Structure
@@ -88,32 +88,32 @@ netlify dev
 
 ## API Endpoints
 
-| Endpoint | Method | Auth | Description |
-|----------|--------|------|-------------|
-| `/auth-register` | POST | - | Register new user |
-| `/auth-login` | POST | - | Login |
-| `/users-list` | GET | ✓ | List all users |
-| `/golfers-list` | GET | ✓ | List all golfers |
-| `/golfers-get` | GET | ✓ | Get single golfer |
-| `/golfers-create` | POST | Admin | Create golfer |
-| `/golfers-update` | PUT | Admin | Update golfer |
-| `/golfers-delete` | DELETE | Admin | Delete golfer |
-| `/golfers-stats` | GET | ✓ | Get golfer statistics |
-| `/picks-get` | GET | ✓ | Get user's picks |
-| `/picks-save` | POST | ✓ | Save picks |
-| `/scores-list` | GET | ✓ | Get scores |
-| `/scores-enter` | POST | Admin | Enter weekly scores |
-| `/leaderboard` | GET | ✓ | Get leaderboard |
-| `/admin-lock-transfers` | POST | Admin | Toggle transfer lock |
+| Endpoint                | Method | Auth  | Description           |
+| ----------------------- | ------ | ----- | --------------------- |
+| `/auth-register`        | POST   | -     | Register new user     |
+| `/auth-login`           | POST   | -     | Login                 |
+| `/users-list`           | GET    | ✓     | List all users        |
+| `/golfers-list`         | GET    | ✓     | List all golfers      |
+| `/golfers-get`          | GET    | ✓     | Get single golfer     |
+| `/golfers-create`       | POST   | Admin | Create golfer         |
+| `/golfers-update`       | PUT    | Admin | Update golfer         |
+| `/golfers-delete`       | DELETE | Admin | Delete golfer         |
+| `/golfers-stats`        | GET    | ✓     | Get golfer statistics |
+| `/picks-get`            | GET    | ✓     | Get user's picks      |
+| `/picks-save`           | POST   | ✓     | Save picks            |
+| `/scores-list`          | GET    | ✓     | Get scores            |
+| `/scores-enter`         | POST   | Admin | Enter weekly scores   |
+| `/leaderboard`          | GET    | ✓     | Get leaderboard       |
+| `/admin-lock-transfers` | POST   | Admin | Toggle transfer lock  |
 
 ## Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| `MONGODB_URI` | MongoDB connection string |
-| `MONGODB_DB_NAME` | Database name |
-| `JWT_SECRET` | Secret for signing JWTs |
-| `JWT_EXPIRES_IN` | Token expiration (e.g., `7d`) |
+| Variable          | Description                   |
+| ----------------- | ----------------------------- |
+| `MONGODB_URI`     | MongoDB connection string     |
+| `MONGODB_DB_NAME` | Database name                 |
+| `JWT_SECRET`      | Secret for signing JWTs       |
+| `JWT_EXPIRES_IN`  | Token expiration (e.g., `7d`) |
 
 ## Deployment
 

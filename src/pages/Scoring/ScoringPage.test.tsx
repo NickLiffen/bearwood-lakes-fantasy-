@@ -4,7 +4,14 @@ vi.mock('../../hooks/useDocumentTitle', () => ({
 
 vi.mock('../../hooks/useAuth', () => ({
   useAuth: () => ({
-    user: { id: '1', firstName: 'Test', lastName: 'User', username: 'testuser', role: 'user', phoneVerified: true },
+    user: {
+      id: '1',
+      firstName: 'Test',
+      lastName: 'User',
+      username: 'testuser',
+      role: 'user',
+      phoneVerified: true,
+    },
     logout: vi.fn(),
   }),
 }));

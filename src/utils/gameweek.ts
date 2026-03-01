@@ -68,7 +68,7 @@ export const formatWeekLabel = (weekStart: Date, gameweek?: number | null): stri
  */
 export const generateWeekOptions = (
   teamEffectiveStart: string,
-  seasonStartDate?: string,
+  seasonStartDate?: string
 ): PeriodOption[] => {
   const options: PeriodOption[] = [];
   const now = new Date();

@@ -6,35 +6,15 @@ import type { Handler } from '@netlify/functions';
 import { ObjectId } from 'mongodb';
 import { withVerifiedAuth, AuthenticatedEvent } from './_shared/middleware';
 import { connectToDatabase } from './_shared/db';
-import { PickDocument, PICKS_COLLECTION, PickHistoryDocument, PICK_HISTORY_COLLECTION } from './_shared/models/Pick';
-import { GolferDocument, GOLFERS_COLLECTION, toGolfer } from './_shared/models/Golfer';
+import { PickDocument, PICKS_COLLECTION } from './_shared/models/Pick';
+import { GolferDocument, GOLFERS_COLLECTION } from './_shared/models/Golfer';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
 import { SettingDocument, SETTINGS_COLLECTION } from './_shared/models/Settings';
-import { getWeekStart, getWeekEnd, getMonthStart, getMonthEnd, getTeamEffectiveStartDate, getGameweekNumber, getSeasonFirstSaturday } from './_shared/utils/dates';
+import { getWeekStart, getWeekEnd, getTeamEffectiveStartDate, getGameweekNumber, getSeasonFirstSaturday } from './_shared/utils/dates';
 import { getTransfersThisWeek } from './_shared/services/picks.service';
 import { getActiveSeason } from './_shared/services/seasons.service';
-
-interface TournamentScoreInfo {
-  tournamentId: string;
-  tournamentName: string;
-  position: number | null;
-  basePoints: number;
-  bonusPoints: number;
-  multipliedPoints: number;
-  rawScore: number | null;
-  participated: boolean;
-  tournamentDate: Date;
-}
-
-interface GolferWithScores {
-  golfer: ReturnType<typeof toGolfer>;
-  weekPoints: number;
-  seasonPoints: number;
-  weekScores: TournamentScoreInfo[];
-  seasonScores: TournamentScoreInfo[];
-  isCaptain: boolean;
-}
+import { getTeamGolferScores, getTeamTransferHistory } from './_shared/services/team.service';
 
 /**
  * Format week label like "Jan 4 - Jan 10"
@@ -149,9 +129,6 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
       })
       .toArray();
 
-    const tournamentMap = new Map(
-      publishedTournaments.map((t) => [t._id.toString(), t])
-    );
     const publishedTournamentIds = publishedTournaments.map((t) => t._id);
 
     // Get all scores for these golfers from published tournaments
@@ -162,16 +139,6 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
         tournamentId: { $in: publishedTournamentIds },
       })
       .toArray();
-
-    // Build golfer scores map
-    const golferScoresMap = new Map<string, ScoreDocument[]>();
-    for (const score of scores) {
-      const golferId = score.golferId.toString();
-      if (!golferScoresMap.has(golferId)) {
-        golferScoresMap.set(golferId, []);
-      }
-      golferScoresMap.get(golferId)!.push(score);
-    }
 
     // Time boundaries
     const currentWeekStart = getWeekStart(now);
@@ -198,66 +165,22 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
     // Can go forward if we're not already on or past the current week
     const hasNext = selectedWeekEnd < currentWeekEnd;
 
-    // Build golfer data with scores
-    const captainIdString = pick.captainId?.toString();
-    const golfersWithScores: GolferWithScores[] = golfers.map((golfer) => {
-      const golferScores = golferScoresMap.get(golfer._id.toString()) || [];
-      const isCaptain = golfer._id.toString() === captainIdString;
-      const captainMultiplier = isCaptain ? 2 : 1;
-
-      // Format scores with tournament info
-      const formattedScores: TournamentScoreInfo[] = golferScores.map((score) => {
-        const tournament = tournamentMap.get(score.tournamentId.toString());
-        return {
-          tournamentId: score.tournamentId.toString(),
-          tournamentName: tournament?.name || 'Unknown Tournament',
-          position: score.position,
-          basePoints: score.basePoints,
-          bonusPoints: score.bonusPoints,
-          multipliedPoints: score.multipliedPoints,
-          rawScore: score.rawScore,
-          participated: score.participated,
-          tournamentDate: tournament?.startDate || new Date(),
-        };
-      }).sort((a, b) => new Date(b.tournamentDate).getTime() - new Date(a.tournamentDate).getTime());
-
-      // Filter by time period - must be within period AND after team's effective start date
-      const weekScores = formattedScores.filter((s) => {
-        const date = new Date(s.tournamentDate);
-        return date >= selectedWeekStart && date <= selectedWeekEnd && date >= teamEffectiveStartDate;
-      });
-
-      const seasonScores = formattedScores.filter((s) => {
-        const date = new Date(s.tournamentDate);
-        return date >= seasonFirstSat && date >= teamEffectiveStartDate;
-      });
-
-      // Month scores — current month of the selected week
-      const monthStart = getMonthStart(selectedWeekStart);
-      const monthEnd = getMonthEnd(selectedWeekStart);
-      const monthScores = formattedScores.filter((s) => {
-        const date = new Date(s.tournamentDate);
-        return date >= monthStart && date <= monthEnd && date >= teamEffectiveStartDate;
-      });
-
-      // Calculate totals with captain multiplier
-      const weekPoints = weekScores.reduce((sum, s) => sum + s.multipliedPoints, 0) * captainMultiplier;
-      const monthPoints = monthScores.reduce((sum, s) => sum + s.multipliedPoints, 0) * captainMultiplier;
-      const seasonPoints = seasonScores.reduce((sum, s) => sum + s.multipliedPoints, 0) * captainMultiplier;
-
-      return {
-        golfer: toGolfer(golfer),
-        weekPoints,
-        monthPoints,
-        seasonPoints,
-        weekScores,
-        seasonScores,
-        isCaptain,
-      };
-    });
-
-    // Sort by week points descending for the selected week
-    golfersWithScores.sort((a, b) => b.weekPoints - a.weekPoints);
+    // Compute golfer scores and fetch transfer history in parallel
+    const [golfersWithScores, filteredHistory] = await Promise.all([
+      Promise.resolve(
+        getTeamGolferScores(
+          golfers,
+          publishedTournaments,
+          scores,
+          activeSeason?.startDate ? new Date(activeSeason.startDate) : null,
+          pick.captainId?.toString(),
+          selectedWeekStart,
+          selectedWeekEnd,
+          teamEffectiveStartDate,
+        ),
+      ),
+      getTeamTransferHistory(db, event.user.userId, currentSeason),
+    ]);
 
     // Calculate team totals
     const teamTotals = {
@@ -266,67 +189,6 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
       seasonPoints: golfersWithScores.reduce((sum, g) => sum + g.seasonPoints, 0),
       totalSpent: pick.totalSpent,
     };
-
-    // Fetch pick history for transfer timeline
-    const userObjectId = new ObjectId(event.user.userId);
-    const pickHistory = await db
-      .collection<PickHistoryDocument>(PICK_HISTORY_COLLECTION)
-      .find({ userId: userObjectId, season: currentSeason })
-      .sort({ changedAt: -1 })
-      .toArray();
-
-    const allHistoryGolferIds = new Set<string>();
-    for (const h of pickHistory) {
-      for (const gid of h.golferIds) {
-        allHistoryGolferIds.add(gid.toString());
-      }
-    }
-    const historyGolfers = await db
-      .collection<GolferDocument>(GOLFERS_COLLECTION)
-      .find({ _id: { $in: Array.from(allHistoryGolferIds).map((id) => new ObjectId(id)) } })
-      .project({ _id: 1, firstName: 1, lastName: 1 })
-      .toArray();
-    const historyGolferMap = new Map(historyGolfers.map((g) => [g._id.toString(), g]));
-
-    const formattedHistory = pickHistory.map((h, index) => {
-      const previousHistory = pickHistory[index + 1];
-      const previousGolferIds = previousHistory
-        ? new Set(previousHistory.golferIds.map((id) => id.toString()))
-        : new Set<string>();
-      const currentGolferIds = new Set(h.golferIds.map((id) => id.toString()));
-
-      const addedGolfers: Array<{ id: string; name: string }> = [];
-      const removedGolfers: Array<{ id: string; name: string }> = [];
-
-      for (const pid of currentGolferIds) {
-        if (!previousGolferIds.has(pid)) {
-          const golfer = historyGolferMap.get(pid);
-          if (golfer) addedGolfers.push({ id: pid, name: `${golfer.firstName} ${golfer.lastName}` });
-        }
-      }
-      if (previousHistory) {
-        for (const pid of previousGolferIds) {
-          if (!currentGolferIds.has(pid)) {
-            const golfer = historyGolferMap.get(pid);
-            if (golfer)
-              removedGolfers.push({ id: pid, name: `${golfer.firstName} ${golfer.lastName}` });
-          }
-        }
-      }
-
-      return {
-        changedAt: h.changedAt,
-        reason: h.reason,
-        totalSpent: h.totalSpent,
-        golferCount: h.golferIds.length,
-        addedGolfers,
-        removedGolfers,
-      };
-    });
-
-    const filteredHistory = formattedHistory.filter(
-      (h) => h.addedGolfers.length > 0 || h.removedGolfers.length > 0,
-    );
 
     return {
       statusCode: 200,

@@ -21,7 +21,13 @@ const GOLFER_PARTICIPATION_RATE = 0.7; // 70% of golfers participate in each tou
 const DEFAULT_PASSWORD = 'password123';
 
 // Tournament types and their multipliers
-type TournamentType = 'rollup_stableford' | 'weekday_medal' | 'weekend_medal' | 'presidents_cup' | 'founders' | 'club_champs_nett';
+type TournamentType =
+  | 'rollup_stableford'
+  | 'weekday_medal'
+  | 'weekend_medal'
+  | 'presidents_cup'
+  | 'founders'
+  | 'club_champs_nett';
 type GolferCountTier = '0-10' | '10-20' | '20+';
 
 const tournamentTypeMultipliers: Record<TournamentType, number> = {
@@ -538,7 +544,12 @@ async function seedComprehensive() {
           startDate: dates.start,
           endDate: dates.end,
           tournamentType,
-          scoringFormat: tournamentType === 'rollup_stableford' || tournamentType === 'presidents_cup' || tournamentType === 'founders' ? 'stableford' : 'medal',
+          scoringFormat:
+            tournamentType === 'rollup_stableford' ||
+            tournamentType === 'presidents_cup' ||
+            tournamentType === 'founders'
+              ? 'stableford'
+              : 'medal',
           isMultiDay: tournamentType === 'founders' || tournamentType === 'club_champs_nett',
           multiplier: tournamentTypeMultipliers[tournamentType],
           golferCountTier: tier,

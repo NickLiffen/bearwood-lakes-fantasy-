@@ -19,7 +19,7 @@ async function confirmDeletion(): Promise<boolean> {
   return new Promise((resolve) => {
     rl.question(
       `\n⚠️  WARNING: This will DELETE ALL DATA from database "${MONGODB_DB_NAME}"!\n` +
-      `   Type "DELETE" to confirm: `,
+        `   Type "DELETE" to confirm: `,
       (answer) => {
         rl.close();
         resolve(answer === 'DELETE');
@@ -47,7 +47,7 @@ async function deleteDatabase() {
   try {
     // Get all collections
     const collections = await db.listCollections().toArray();
-    
+
     if (collections.length === 0) {
       console.log('ℹ️  No collections found in database.\n');
     } else {

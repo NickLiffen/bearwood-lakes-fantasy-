@@ -1,6 +1,13 @@
 vi.mock('../../hooks/useAuth', () => ({
   useAuth: () => ({
-    user: { id: '1', firstName: 'Test', lastName: 'User', username: 'testuser', role: 'user', phoneVerified: true },
+    user: {
+      id: '1',
+      firstName: 'Test',
+      lastName: 'User',
+      username: 'testuser',
+      role: 'user',
+      phoneVerified: true,
+    },
     token: 'mock-token',
     isAuthenticated: true,
     isAdmin: false,

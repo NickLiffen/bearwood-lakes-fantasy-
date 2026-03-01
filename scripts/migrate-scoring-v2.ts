@@ -46,7 +46,7 @@ function parseCsv(filePath: string): CsvRow[] {
   const content = fs.readFileSync(filePath, 'utf-8');
   const lines = content.trim().split('\n');
   // Skip header
-  return lines.slice(1).map(line => {
+  return lines.slice(1).map((line) => {
     const [date, position, player, stablefordPoints] = line.split(',');
     return {
       date: date.trim(),
@@ -83,7 +83,9 @@ async function main() {
 
   const csvRows = parseCsv(csvPath);
   console.log(`\n🔄 Scoring System V2 Migration (with CSV data)`);
-  console.log(`   Mode: ${isDryRun ? '🔍 DRY RUN (no changes will be made)' : '⚡ APPLYING CHANGES'}`);
+  console.log(
+    `   Mode: ${isDryRun ? '🔍 DRY RUN (no changes will be made)' : '⚡ APPLYING CHANGES'}`
+  );
   console.log(`   CSV rows loaded: ${csvRows.length}`);
   console.log('');
 
@@ -107,7 +109,9 @@ async function main() {
       { scoringFormat: { $exists: false } },
       { $set: { scoringFormat: 'stableford' } }
     );
-    console.log(`   ✅ Set scoringFormat = 'stableford' on ${tournamentsWithoutFormat} tournaments`);
+    console.log(
+      `   ✅ Set scoringFormat = 'stableford' on ${tournamentsWithoutFormat} tournaments`
+    );
   }
 
   // Step 2: Build lookup maps
@@ -150,7 +154,9 @@ async function main() {
     } else {
       csvUnmatched++;
       if (csvUnmatched <= 5) {
-        console.log(`   ⚠️ No match: date=${row.date} (${dateKey}), player="${row.player}" → tournament=${!!tournamentId}, golfer=${!!golferId}`);
+        console.log(
+          `   ⚠️ No match: date=${row.date} (${dateKey}), player="${row.player}" → tournament=${!!tournamentId}, golfer=${!!golferId}`
+        );
       }
     }
   }
@@ -180,11 +186,14 @@ async function main() {
     const tournamentId = score.tournamentId.toString();
     const golferId = score.golferId.toString();
     const key = `${tournamentId}:${golferId}`;
-    const multiplier = tournamentDateToMultiplier.get(
-      normalizeDateFromDb(new Date(
-        allTournaments.find(t => t._id.toString() === tournamentId)?.startDate || new Date()
-      ))
-    ) || 1;
+    const multiplier =
+      tournamentDateToMultiplier.get(
+        normalizeDateFromDb(
+          new Date(
+            allTournaments.find((t) => t._id.toString() === tournamentId)?.startDate || new Date()
+          )
+        )
+      ) || 1;
 
     totalPointsBefore += score.multipliedPoints || 0;
 
@@ -251,7 +260,9 @@ async function main() {
   console.log(`   Total bonus scorers:   ${newBonusScorerCount}`);
   console.log(`   Total points before:   ${totalPointsBefore}`);
   console.log(`   Total points after:    ${totalPointsAfter}`);
-  console.log(`   Change:                ${totalPointsAfter - totalPointsBefore > 0 ? '+' : ''}${totalPointsAfter - totalPointsBefore}`);
+  console.log(
+    `   Change:                ${totalPointsAfter - totalPointsBefore > 0 ? '+' : ''}${totalPointsAfter - totalPointsBefore}`
+  );
 
   // Summary
   console.log('\n' + '='.repeat(60));

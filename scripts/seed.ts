@@ -39,9 +39,7 @@ async function seed() {
     await db.collection('tournaments').createIndex({ status: 1 });
 
     // Scores indexes (one score per golfer per tournament)
-    await db
-      .collection('scores')
-      .createIndex({ tournamentId: 1, golferId: 1 }, { unique: true });
+    await db.collection('scores').createIndex({ tournamentId: 1, golferId: 1 }, { unique: true });
     await db.collection('scores').createIndex({ tournamentId: 1 });
     await db.collection('scores').createIndex({ golferId: 1 });
 
@@ -65,7 +63,8 @@ async function seed() {
     await db.collection('picks').createIndex({ season: 1 });
 
     // PickHistory - compound for user history with sort (replaces standalone userId)
-    await db.collection('pickHistory').createIndex({ userId: 1, changedAt: -1 });
+    // Covers getTransfersThisWeek() query filtering by userId, changedAt range, and reason
+    await db.collection('pickHistory').createIndex({ userId: 1, changedAt: -1, reason: 1 });
 
     // RefreshTokens - token lookup during refresh flow
     await db.collection('refreshTokens').createIndex({ tokenHash: 1 });
@@ -114,9 +113,7 @@ async function seed() {
     // ============================================
     console.log('⚙️  Creating initial settings...');
 
-    const settings = [
-      { key: 'transfersOpen', value: false },
-    ];
+    const settings = [{ key: 'transfersOpen', value: false }];
 
     for (const setting of settings) {
       const existing = await db.collection('settings').findOne({ key: setting.key });
