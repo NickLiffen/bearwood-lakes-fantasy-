@@ -215,6 +215,7 @@ export async function deleteScoresForGolfer(golferId: string): Promise<number> {
   const collection = db.collection<ScoreDocument>(SCORES_COLLECTION);
 
   const result = await collection.deleteMany({ golferId: new ObjectId(golferId) });
+  if (result.deletedCount > 0) await invalidateLeaderboard();
   return result.deletedCount;
 }
 

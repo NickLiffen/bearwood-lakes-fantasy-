@@ -45,7 +45,7 @@ export const api = {
   getUsers: () => request<User[]>('users-list'),
 
   // Golfers
-  getGolfers: () => request<Golfer[]>('golfers-list'),
+  getGolfers: () => request<Golfer[]>('golfers-list?all=true'),
   createGolfer: (data: Omit<Golfer, 'id' | 'createdAt' | 'updatedAt'>) =>
     request<Golfer>('golfers-create', {
       method: 'POST',

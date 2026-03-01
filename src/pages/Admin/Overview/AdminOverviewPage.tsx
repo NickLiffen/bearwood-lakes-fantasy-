@@ -33,7 +33,7 @@ const AdminOverviewPage: React.FC = () => {
       try {
         const [usersData, golfersData, tournamentsData, scoresData] = await Promise.all([
           get<{ id: string }[]>('users-list'),
-          get<{ id: string; isActive: boolean }[]>('golfers-list'),
+          get<{ id: string; isActive: boolean }[]>('golfers-list?all=true'),
           get<{ id: string; status: string }[]>('tournaments-list'),
           get<{ id: string; participated: boolean }[]>('scores-list'),
         ]);

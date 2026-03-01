@@ -79,7 +79,7 @@ const GolfersPage: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await get<Golfer[]>(`golfers-list?season=${selectedSeason}`);
+        const response = await get<Golfer[]>(`golfers-list?all=true&season=${selectedSeason}`);
         if (response.cancelled || cancelled) return;
         if (response.success && response.data) {
           setGolfers(response.data);

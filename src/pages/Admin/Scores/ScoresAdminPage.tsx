@@ -80,7 +80,7 @@ const ScoresAdminPage: React.FC = () => {
       setError(''); // Clear previous errors
       const [tournamentsRes, golfersRes, scoresRes] = await Promise.all([
         get<Tournament[]>('tournaments-list?allSeasons=true'),
-        get<Golfer[]>('golfers-list'),
+        get<Golfer[]>('golfers-list?all=true'),
         get<Score[]>('scores-list'),
       ]);
 

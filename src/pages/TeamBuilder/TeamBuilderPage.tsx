@@ -112,7 +112,7 @@ const TeamBuilderPage: React.FC = () => {
 
       // Fetch golfers, user's picks, and settings in parallel
       const [playersRes, picksRes, settingsRes] = await Promise.all([
-        get<Golfer[]>('golfers-list'),
+        get<Golfer[]>('golfers-list?all=true'),
         get<{ golfers: Golfer[]; captainId?: string | null }>('picks-get'),
         get<Settings>('settings-public'),
       ]);

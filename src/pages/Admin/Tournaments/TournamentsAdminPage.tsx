@@ -183,7 +183,7 @@ const TournamentsAdminPage: React.FC = () => {
 
   const fetchGolfers = useCallback(async () => {
     try {
-      const response = await get<Golfer[]>('golfers-list');
+      const response = await get<Golfer[]>('golfers-list?all=true');
 
       // Ignore cancelled requests
       if (response.cancelled) return;

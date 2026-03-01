@@ -38,7 +38,7 @@ describe('api service', () => {
 
   it('getGolfers calls golfers-list', async () => {
     await api.getGolfers();
-    expect(mockFetch).toHaveBeenCalledWith('/.netlify/functions/golfers-list', undefined);
+    expect(mockFetch).toHaveBeenCalledWith('/.netlify/functions/golfers-list?all=true', undefined);
   });
 
   it('getMyPicks calls picks-get', async () => {
