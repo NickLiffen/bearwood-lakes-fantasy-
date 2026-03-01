@@ -22,6 +22,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [user, setUser] = useState<User | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user: authUser, logout: authLogout } = useAuth();
 
   useEffect(() => {
@@ -35,6 +36,28 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
     }
     setUser(authUser as User);
   }, [authUser, navigate]);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
+
+  // Close mobile menu on Escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileMenuOpen(false);
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, []);
+
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    document.body.style.overflow = mobileMenuOpen ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileMenuOpen]);
 
   const handleLogout = () => {
     authLogout();
@@ -80,8 +103,101 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
               Logout
             </button>
           </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            className="admin-mobile-menu-btn"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-expanded={mobileMenuOpen}
+            aria-controls="admin-mobile-nav"
+            aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
+          >
+            <span className={`admin-hamburger ${mobileMenuOpen ? 'open' : ''}`}>
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
+          </button>
         </div>
       </header>
+
+      {/* Mobile Menu Overlay */}
+      <div
+        className={`admin-mobile-overlay ${mobileMenuOpen ? 'active' : ''}`}
+        onClick={() => setMobileMenuOpen(false)}
+      />
+
+      {/* Mobile Menu Panel */}
+      <nav
+        id="admin-mobile-nav"
+        className={`admin-mobile-menu ${mobileMenuOpen ? 'open' : ''}`}
+        aria-hidden={!mobileMenuOpen}
+      >
+        <div className="admin-mobile-menu-header">
+          <span className="admin-mobile-greeting">
+            {user.firstName} <span className="admin-badge">Admin</span>
+          </span>
+        </div>
+        <div className="admin-mobile-menu-links">
+          <Link
+            to="/admin"
+            className={`admin-mobile-nav-link ${isActive('/admin') ? 'active' : ''}`}
+          >
+            <span className="nav-icon">📊</span> Overview
+          </Link>
+          <Link
+            to="/admin/golfers"
+            className={`admin-mobile-nav-link ${isActive('/admin/golfers') ? 'active' : ''}`}
+          >
+            <span className="nav-icon">🏌️</span> Golfers
+          </Link>
+          <Link
+            to="/admin/tournaments"
+            className={`admin-mobile-nav-link ${isActive('/admin/tournaments') ? 'active' : ''}`}
+          >
+            <span className="nav-icon">🏆</span> Tournaments
+          </Link>
+          <Link
+            to="/admin/scores"
+            className={`admin-mobile-nav-link ${isActive('/admin/scores') ? 'active' : ''}`}
+          >
+            <span className="nav-icon">📝</span> Scores
+          </Link>
+          <Link
+            to="/admin/seasons"
+            className={`admin-mobile-nav-link ${isActive('/admin/seasons') ? 'active' : ''}`}
+          >
+            <span className="nav-icon">📅</span> Seasons
+          </Link>
+          <Link
+            to="/admin/users"
+            className={`admin-mobile-nav-link ${isActive('/admin/users') ? 'active' : ''}`}
+          >
+            <span className="nav-icon">👥</span> Users
+          </Link>
+          <div className="admin-mobile-divider" />
+          <Link
+            to="/admin/season-upload"
+            className={`admin-mobile-nav-link ${isActive('/admin/season-upload') ? 'active' : ''}`}
+          >
+            <span className="nav-icon">📤</span> Season Upload
+          </Link>
+          <Link
+            to="/admin/settings"
+            className={`admin-mobile-nav-link ${isActive('/admin/settings') ? 'active' : ''}`}
+          >
+            <span className="nav-icon">⚙️</span> Settings
+          </Link>
+        </div>
+        <div className="admin-mobile-menu-footer">
+          <Link to="/dashboard" className="admin-mobile-back-link">
+            ← Back to App
+          </Link>
+          <button onClick={handleLogout} className="admin-mobile-logout-btn">
+            Sign Out
+          </button>
+        </div>
+      </nav>
 
       <div className="admin-body">
         {/* Sidebar */}

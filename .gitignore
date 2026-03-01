@@ -30,3 +30,6 @@ npm-debug.log*
 
 # TypeScript
 *.tsbuildinfo
+
+# Database backups
+scripts/backups/

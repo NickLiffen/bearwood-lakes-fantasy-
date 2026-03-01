@@ -22,6 +22,16 @@ vi.mock('./_shared/services/golfers.service');
 vi.mock('./_shared/services/tournaments.service');
 vi.mock('./_shared/services/scores.service');
 vi.mock('./_shared/services/seasons.service');
+vi.mock('./_shared/db', () => ({
+  connectToDatabase: vi.fn().mockResolvedValue({
+    db: {
+      collection: vi.fn().mockReturnValue({
+        find: vi.fn().mockReturnValue({ toArray: vi.fn().mockResolvedValue([]) }),
+        countDocuments: vi.fn().mockResolvedValue(0),
+      }),
+    },
+  }),
+}));
 vi.mock('./_shared/utils/dates', () => ({
   getWeekStart: vi.fn().mockReturnValue(new Date('2026-06-01')),
   getMonthStart: vi.fn().mockReturnValue(new Date('2026-06-01')),

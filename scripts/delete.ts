@@ -10,6 +10,13 @@ dotenv.config();
 const MONGODB_URI = process.env.MONGODB_URI!;
 const MONGODB_DB_NAME = process.env.MONGODB_DB_NAME || 'bearwood-fantasy';
 
+// Safety guard: refuse to delete the production database
+if (MONGODB_DB_NAME === 'bearwood-fantasy') {
+  console.error('❌ Cannot delete production database "bearwood-fantasy".');
+  console.error('   Set MONGODB_DB_NAME to a different database to use this script.');
+  process.exit(1);
+}
+
 async function confirmDeletion(): Promise<boolean> {
   const rl = readline.createInterface({
     input: process.stdin,

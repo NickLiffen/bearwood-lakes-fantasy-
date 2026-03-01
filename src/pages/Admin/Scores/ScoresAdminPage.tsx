@@ -480,7 +480,8 @@ const ScoresAdminPage: React.FC = () => {
                 <p>Add scores to tournaments below to see them here.</p>
               </div>
             ) : (
-              <table className="admin-table">
+              <div className="admin-table-wrapper">
+              <table className="admin-table admin-table-card">
                 <thead>
                   <tr>
                     <th>Tournament</th>
@@ -494,7 +495,7 @@ const ScoresAdminPage: React.FC = () => {
                 <tbody>
                   {tournamentsWithScores.map((item) => (
                     <tr key={item.tournament.id}>
-                      <td>
+                      <td data-label="Tournament">
                         <button
                           onClick={() => handleViewScores(item)}
                           style={{
@@ -511,15 +512,15 @@ const ScoresAdminPage: React.FC = () => {
                           {item.tournament.name}
                         </button>
                       </td>
-                      <td>{formatDate(item.tournament.startDate)}</td>
-                      <td>{getTypeBadge(item.tournament)}</td>
-                      <td>{item.scores.filter((s) => s.participated).length} golfers</td>
-                      <td>
+                      <td data-label="Date">{formatDate(item.tournament.startDate)}</td>
+                      <td data-label="Type">{getTypeBadge(item.tournament)}</td>
+                      <td data-label="golfers">{item.scores.filter((s) => s.participated).length} golfers</td>
+                      <td data-label="Total Points">
                         <strong style={{ color: 'var(--primary-green)' }}>
                           {item.totalPoints} pts
                         </strong>
                       </td>
-                      <td>
+                      <td data-label="Actions">
                         <div className="table-actions">
                           <button
                             className="btn btn-secondary btn-sm"
@@ -540,6 +541,7 @@ const ScoresAdminPage: React.FC = () => {
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </div>
 
@@ -556,7 +558,8 @@ const ScoresAdminPage: React.FC = () => {
                 <p>All tournaments have scores entered.</p>
               </div>
             ) : (
-              <table className="admin-table">
+              <div className="admin-table-wrapper">
+              <table className="admin-table admin-table-card">
                 <thead>
                   <tr>
                     <th>Tournament</th>
@@ -569,17 +572,17 @@ const ScoresAdminPage: React.FC = () => {
                 <tbody>
                   {tournamentsWithoutScores.map((tournament) => (
                     <tr key={tournament.id}>
-                      <td style={{ fontWeight: 500 }}>{tournament.name}</td>
-                      <td>{formatDate(tournament.startDate)}</td>
-                      <td>{getTypeBadge(tournament)}</td>
-                      <td>
+                      <td data-label="Tournament" style={{ fontWeight: 500 }}>{tournament.name}</td>
+                      <td data-label="Date">{formatDate(tournament.startDate)}</td>
+                      <td data-label="Type">{getTypeBadge(tournament)}</td>
+                      <td data-label="Status">
                         <span
                           className={`badge ${tournament.status === 'complete' ? 'badge-info' : 'badge-success'}`}
                         >
                           {tournament.status}
                         </span>
                       </td>
-                      <td>
+                      <td data-label="Actions">
                         <button
                           className="btn btn-primary btn-sm"
                           onClick={() => handleOpenAddScores(tournament)}
@@ -591,6 +594,7 @@ const ScoresAdminPage: React.FC = () => {
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </div>
         </>
@@ -682,6 +686,7 @@ const ScoresAdminPage: React.FC = () => {
               {golfers.length === 0 ? (
                 <p>No golfers available. Add golfers first.</p>
               ) : (
+                <div className="admin-table-wrapper">
                 <table className="admin-table">
                   <thead>
                     <tr>
@@ -818,6 +823,7 @@ const ScoresAdminPage: React.FC = () => {
                                     id={`raw-score-${golfer.id}`}
                                     name={`raw-score-${golfer.id}`}
                                     type="number"
+                                    inputMode="numeric"
                                     value={score?.rawScore ?? ''}
                                     onChange={(e) =>
                                       handleScoreChange(golfer.id, 'rawScore', e.target.value)
@@ -860,6 +866,7 @@ const ScoresAdminPage: React.FC = () => {
                       })}
                   </tbody>
                 </table>
+                </div>
               )}
             </div>
             {/* Validation feedback */}
@@ -970,7 +977,8 @@ const ScoresAdminPage: React.FC = () => {
                 </div>
               </div>
 
-              <table className="admin-table">
+              <div className="admin-table-wrapper">
+              <table className="admin-table admin-table-card">
                 <thead>
                   <tr>
                     <th>Position</th>
@@ -993,14 +1001,14 @@ const ScoresAdminPage: React.FC = () => {
                     })
                     .map((score) => (
                       <tr key={score.id}>
-                        <td>
+                        <td data-label="Position">
                           {score.position === 1 && '🥇 1st'}
                           {score.position === 2 && '🥈 2nd'}
                           {score.position === 3 && '🥉 3rd'}
                           {!score.position && '-'}
                         </td>
-                        <td style={{ fontWeight: 500 }}>{getGolferName(score.golferId)}</td>
-                        <td>
+                        <td data-label="Golfer" style={{ fontWeight: 500 }}>{getGolferName(score.golferId)}</td>
+                        <td data-label="Score">
                           {score.rawScore != null ? (
                             <span>
                               {formatRawScore(score.rawScore, editingTournament!.scoringFormat)}
@@ -1009,7 +1017,7 @@ const ScoresAdminPage: React.FC = () => {
                             <span style={{ color: '#9ca3af' }}>-</span>
                           )}
                         </td>
-                        <td>
+                        <td data-label="Score Bonus Points">
                           {score.bonusPoints > 0 ? (
                             <span style={{ color: 'var(--primary-green)', fontWeight: 600 }}>
                               +{score.bonusPoints}
@@ -1018,10 +1026,10 @@ const ScoresAdminPage: React.FC = () => {
                             <span style={{ color: '#9ca3af' }}>0</span>
                           )}
                         </td>
-                        <td>
+                        <td data-label="Position Points">
                           <span>{score.basePoints}</span>
                         </td>
-                        <td>
+                        <td data-label="Final">
                           <strong
                             style={{
                               color:
@@ -1035,6 +1043,7 @@ const ScoresAdminPage: React.FC = () => {
                     ))}
                 </tbody>
               </table>
+              </div>
             </div>
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={handleCloseDetailsModal}>

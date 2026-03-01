@@ -37,6 +37,14 @@ interface SeasonStat {
   totalPoints: number;
 }
 
+interface SelectedByUser {
+  userId: string;
+  username: string;
+  firstName: string;
+  lastName: string;
+  isCaptain: boolean;
+}
+
 interface Golfer {
   id: string;
   firstName: string;
@@ -49,6 +57,9 @@ interface Golfer {
   stats2026: GolferStats;
   points: GolferPoints;
   seasonStats?: SeasonStat[];
+  selectedBy?: SelectedByUser[];
+  selectedByCount?: number;
+  totalTeams?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -63,6 +74,7 @@ const GolferProfilePage: React.FC = () => {
   const seasonName = season?.name || '2026';
   useDocumentTitle(golfer ? `${golfer.firstName} ${golfer.lastName}` : 'Golfer Profile');
   const [expandedSeasons, setExpandedSeasons] = useState<Set<string>>(new Set());
+  const [showAllTeams, setShowAllTeams] = useState(false);
 
   // Track request ID to ignore stale responses
   const requestIdRef = useRef(0);
@@ -415,6 +427,62 @@ const GolferProfilePage: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Selected By — which teams have this golfer */}
+          {golfer.selectedBy && golfer.selectedBy.length > 0 && (
+            <div className="selected-by-section">
+              <div className="selected-by-header">
+                <h2>👥 Selected By</h2>
+                <span className="selected-by-count">
+                  {golfer.selectedByCount || golfer.selectedBy.length}/
+                  {golfer.totalTeams || 0} teams
+                </span>
+              </div>
+              <div
+                className={`selected-by-chips ${showAllTeams ? 'expanded' : ''}`}
+              >
+                {(showAllTeams ? golfer.selectedBy : golfer.selectedBy.slice(0, 6)).map(
+                  (user) => (
+                    <Link
+                      key={user.userId}
+                      to={`/users/${user.userId}`}
+                      className={`team-chip ${user.isCaptain ? 'captain' : ''}`}
+                    >
+                      <span className="chip-avatar">
+                        {user.firstName[0]}
+                        {user.lastName[0]}
+                      </span>
+                      <span className="chip-name">
+                        {user.firstName} {user.lastName[0]}.
+                      </span>
+                      {user.isCaptain && <span className="captain-badge">⭐ C</span>}
+                    </Link>
+                  )
+                )}
+              </div>
+              {golfer.selectedBy.length > 6 && (
+                <button
+                  className="show-all-teams-btn"
+                  onClick={() => setShowAllTeams(!showAllTeams)}
+                >
+                  {showAllTeams
+                    ? 'Show fewer'
+                    : `Show all ${golfer.selectedBy.length} teams`}
+                </button>
+              )}
+              {golfer.totalTeams && golfer.totalTeams > 0 && (
+                <div className="selected-by-pct">
+                  Selected by{' '}
+                  {Math.round(
+                    ((golfer.selectedByCount || golfer.selectedBy.length) /
+                      golfer.totalTeams) *
+                      100
+                  )}
+                  % of teams
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Golfer Info */}
           <div className="golfer-info-card">

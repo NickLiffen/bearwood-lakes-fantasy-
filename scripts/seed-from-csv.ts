@@ -156,15 +156,17 @@ function calculatePrice(stats2024: GolferSeasonStats, stats2025: GolferSeasonSta
     stats2025.timesFinished3rd;
   const total36Plus = stats2024.timesScored36Plus + stats2025.timesScored36Plus;
 
-  // Base price from activity
-  let price = 1_000_000; // £1M minimum
-  price += totalPlayed * 200_000; // £200K per tournament played
-  price += totalWins * 1_500_000; // £1.5M per win
-  price += totalPodiums * 500_000; // £500K per podium
-  price += total36Plus * 300_000; // £300K per 36+ round
+  // Composite score (additive, uncapped)
+  const compositeScore =
+    totalPlayed * 1.0 + totalWins * 8 + totalPodiums * 3 + total36Plus * 2;
 
-  // Cap at £12M
-  return Math.min(price, 12_000_000);
+  // Normalize against a reasonable max composite (40 tournaments, 10 wins, 15 podiums, 15 bonuses)
+  const maxComposite = 40 * 1.0 + 10 * 8 + 15 * 3 + 15 * 2;
+  const normalized = Math.min(compositeScore / maxComposite, 1);
+
+  // Convex power curve: £3.5M floor, £14.5M ceiling
+  const price = 3_500_000 + Math.pow(normalized, 1.3) * 11_000_000;
+  return Math.min(Math.round(price / 100_000) * 100_000, 14_500_000);
 }
 
 // ── Confirmation ─────────────────────────────────────────────────────────────

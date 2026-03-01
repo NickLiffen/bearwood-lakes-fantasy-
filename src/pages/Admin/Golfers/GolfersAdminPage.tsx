@@ -723,7 +723,8 @@ const GolfersAdminPage: React.FC = () => {
             </button>
           </div>
         ) : (
-          <table className="admin-table">
+          <div className="admin-table-wrapper">
+          <table className="admin-table admin-table-card">
             <thead>
               <tr>
                 <th>Golfer</th>
@@ -735,7 +736,7 @@ const GolfersAdminPage: React.FC = () => {
             <tbody>
               {Golfers.map((Golfer) => (
                 <tr key={Golfer.id}>
-                  <td>
+                  <td data-label="Golfer">
                     <div
                       style={{
                         display: 'flex',
@@ -783,15 +784,15 @@ const GolfersAdminPage: React.FC = () => {
                       </span>
                     </div>
                   </td>
-                  <td style={{ fontWeight: 600, color: 'var(--primary-green)' }}>
+                  <td data-label="Price" style={{ fontWeight: 600, color: 'var(--primary-green)' }}>
                     {formatPrice(Golfer.price)}
                   </td>
-                  <td>
+                  <td data-label="Status">
                     <span className={`badge ${Golfer.isActive ? 'badge-success' : 'badge-gray'}`}>
                       {Golfer.isActive ? 'Active' : 'Inactive'}
                     </span>
                   </td>
-                  <td>
+                  <td data-label="">
                     <div className="table-actions">
                       <button
                         className="btn btn-secondary btn-sm"
@@ -811,6 +812,7 @@ const GolfersAdminPage: React.FC = () => {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 
@@ -888,6 +890,7 @@ const GolfersAdminPage: React.FC = () => {
                     </label>
                     <input
                       type="number"
+                      inputMode="numeric"
                       id="price"
                       className={getFieldClass('price')}
                       value={formData.price}

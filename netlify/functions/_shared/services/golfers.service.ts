@@ -6,6 +6,13 @@ import { GolferDocument, toGolfer, GOLFERS_COLLECTION, defaultStats2025 } from '
 import { ScoreDocument, SCORES_COLLECTION } from '../models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from '../models/Tournament';
 import type { Golfer, CreateGolferDTO, UpdateGolferDTO } from '../../../../shared/types';
+import {
+  MIN_PRICE,
+  MAX_PRICE,
+  PRICE_RANGE,
+  POWER_EXPONENT,
+  ROUND_TO,
+} from '../../../../shared/constants/pricing';
 
 export async function getAllGolfers(options?: {
   limit?: number;
@@ -117,7 +124,7 @@ export async function calculateGolferPrices(season: number): Promise<{
   // 4. Get all golfers
   const golfers = await db.collection<GolferDocument>(GOLFERS_COLLECTION).find({}).toArray();
 
-  // 5. Calculate prices
+  // 5. Calculate prices using convex power curve
   let maxAdjustedPoints = 0;
   const adjustedPointsMap = new Map<string, number>();
 
@@ -141,9 +148,10 @@ export async function calculateGolferPrices(season: number): Promise<{
     const golferId = golfer._id.toString();
     const adjustedPoints = adjustedPointsMap.get(golferId);
     const normalized = adjustedPoints !== undefined ? adjustedPoints / maxAdjustedPoints : 0;
-    let price = 3_000_000 + normalized * 12_000_000;
-    price = Math.round(price / 500_000) * 500_000;
-    price = Math.max(price, 3_000_000);
+    const priceFactor = Math.pow(Math.max(normalized, 0), POWER_EXPONENT);
+    let price = MIN_PRICE + priceFactor * PRICE_RANGE;
+    price = Math.round(price / ROUND_TO) * ROUND_TO;
+    price = Math.min(Math.max(price, MIN_PRICE), MAX_PRICE);
 
     return {
       updateOne: {

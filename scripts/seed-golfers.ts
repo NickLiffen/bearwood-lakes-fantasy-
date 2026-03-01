@@ -285,20 +285,20 @@ const generatePrice = (tier: SkillTier): number => {
 
   switch (tier) {
     case 'elite':
-      basePrice = 8_000_000 + Math.floor(Math.random() * 4_000_000); // £8M - £12M
+      basePrice = 12_000_000 + Math.floor(Math.random() * 2_500_000); // £12M - £14.5M
       break;
     case 'strong':
-      basePrice = 5_000_000 + Math.floor(Math.random() * 3_000_000); // £5M - £8M
+      basePrice = 8_000_000 + Math.floor(Math.random() * 4_000_000); // £8M - £12M
       break;
     case 'average':
-      basePrice = 2_500_000 + Math.floor(Math.random() * 2_500_000); // £2.5M - £5M
+      basePrice = 5_500_000 + Math.floor(Math.random() * 2_500_000); // £5.5M - £8M
       break;
     case 'developing':
-      basePrice = 1_000_000 + Math.floor(Math.random() * 1_500_000); // £1M - £2.5M
+      basePrice = 3_500_000 + Math.floor(Math.random() * 2_000_000); // £3.5M - £5.5M
       break;
     case 'casual':
     default:
-      basePrice = 500_000 + Math.floor(Math.random() * 500_000); // £500K - £1M
+      basePrice = 3_500_000 + Math.floor(Math.random() * 500_000); // £3.5M - £4M
       break;
   }
 

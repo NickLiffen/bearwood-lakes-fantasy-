@@ -23,7 +23,9 @@
     "db:seed-comprehensive": "npx tsx scripts/seed-comprehensive.ts",
     "db:seed-csv": "npx tsx scripts/seed-from-csv.ts",
     "db:update-prices": "npx tsx scripts/update-prices.ts",
-    "db:delete": "npx tsx scripts/delete.ts"
+    "db:delete": "npx tsx scripts/delete.ts",
+    "db:backup": "npx tsx scripts/backup.ts",
+    "db:restore": "npx tsx scripts/restore.ts"
   },
   "dependencies": {
     "ioredis": "^5.9.3",

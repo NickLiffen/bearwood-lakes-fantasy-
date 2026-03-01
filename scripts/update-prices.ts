@@ -1,10 +1,18 @@
-// Update golfer prices based on composite performance score
+// Update golfer prices using convex power curve based on current price ranking
 // Run with: npm run db:update-prices
+// Flags: --dry-run (preview only), --backup (export current prices to JSON)
 
 import { MongoClient } from 'mongodb';
 import * as dotenv from 'dotenv';
+import * as fs from 'fs';
 import { fileURLToPath } from 'url';
 import * as path from 'path';
+import {
+  MIN_PRICE,
+  MAX_PRICE,
+  POWER_EXPONENT,
+  calculatePrice,
+} from '../shared/constants/pricing';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,16 +23,16 @@ dotenv.config();
 const MONGODB_URI = process.env.MONGODB_URI!;
 const MONGODB_DB_NAME = process.env.MONGODB_DB_NAME || 'bearwood-fantasy';
 
-// Pricing constants
-const MIN_PRICE = 1_000_000; // £1M floor
-const MAX_ADDITIONAL = 11_000_000; // £11M range (total max = £12M)
-const POWER_EXPONENT = 0.7; // Power curve for top-end separation
-const MEAN_AVG_PTS = 3; // League average pts per event (for dampening)
-const MIN_SAMPLE_SIZE = 5; // Min games before trusting raw average
+const args = process.argv.slice(2);
+const isDryRun = args.includes('--dry-run');
+const doBackup = args.includes('--backup');
 
 async function updatePrices() {
-  console.log('💰 Updating Golfer Prices');
-  console.log(`   Database: ${MONGODB_DB_NAME}\n`);
+  console.log('💰 Updating Golfer Prices (v2 — Convex Power Curve)');
+  console.log(`   Database: ${MONGODB_DB_NAME}`);
+  console.log(`   Floor: £${(MIN_PRICE / 1e6).toFixed(1)}M | Ceiling: £${(MAX_PRICE / 1e6).toFixed(1)}M | Exponent: ${POWER_EXPONENT}`);
+  if (isDryRun) console.log('   🔍 DRY RUN — no database writes');
+  console.log();
 
   const client = new MongoClient(MONGODB_URI);
 
@@ -33,169 +41,150 @@ async function updatePrices() {
     const db = client.db(MONGODB_DB_NAME);
 
     const golfers = await db.collection('golfers').find({}).toArray();
-    const scores = await db.collection('scores').find({ participated: true }).toArray();
+    console.log(`📊 Found ${golfers.length} golfers\n`);
 
-    console.log(`📊 Analyzing ${golfers.length} golfers across ${scores.length} scores...\n`);
+    if (golfers.length === 0) {
+      console.log('No golfers found. Exiting.');
+      return;
+    }
 
-    // Calculate composite score for each golfer
-    const golferData = golfers.map((g) => {
-      const gScores = scores.filter((s) => s.golferId.toString() === g._id.toString());
+    // Backup current prices if requested
+    if (doBackup) {
+      const backup = golfers.map((g) => ({
+        id: g._id.toString(),
+        name: `${g.firstName} ${g.lastName}`,
+        price: g.price,
+      }));
+      const backupPath = path.join(__dirname, `pricing-backup-${Date.now()}.json`);
+      fs.writeFileSync(backupPath, JSON.stringify(backup, null, 2));
+      console.log(`📦 Backup saved to ${backupPath}\n`);
+    }
 
-      const totalPoints = gScores.reduce((sum, s) => sum + (s.multipliedPoints || 0), 0);
-      const timesPlayed = gScores.length;
-      const wins = gScores.filter((s) => s.position === 1).length;
-      const podiums = gScores.filter((s) => s.position !== null && s.position <= 3).length;
-      const bonus32 = gScores.filter((s) => (s.rawScore ?? 0) >= 32).length;
-      const avgPtsPerEvent = timesPlayed > 0 ? totalPoints / timesPlayed : 0;
-      const consistencyRate = timesPlayed >= 3 ? bonus32 / timesPlayed : 0;
+    // Sort by current price descending (preserves manual ranking adjustments)
+    const sorted = [...golfers].sort((a, b) => b.price - a.price);
 
-      // Dampen average for small sample sizes
-      const adjustedAvg =
-        timesPlayed >= MIN_SAMPLE_SIZE
-          ? avgPtsPerEvent
-          : (avgPtsPerEvent * timesPlayed + MEAN_AVG_PTS * (MIN_SAMPLE_SIZE - timesPlayed)) /
-            MIN_SAMPLE_SIZE;
+    // Find current price range for normalization
+    const currentMax = sorted[0].price;
+    const currentMin = sorted[sorted.length - 1].price;
+    const currentRange = currentMax - currentMin || 1;
 
-      // Composite score
-      const compositeScore =
-        totalPoints * 1.0 + adjustedAvg * 5 + wins * 8 + podiums * 3 + consistencyRate * 20;
+    console.log(`📈 Current price range: £${(currentMin / 1e6).toFixed(1)}M – £${(currentMax / 1e6).toFixed(1)}M\n`);
 
-      return {
+    // Calculate new prices based on current price ranking
+    interface PriceUpdate {
+      id: unknown;
+      name: string;
+      oldPrice: number;
+      newPrice: number;
+      oldRank: number;
+      newRank: number;
+    }
+    const updates: PriceUpdate[] = [];
+
+    for (let i = 0; i < sorted.length; i++) {
+      const g = sorted[i];
+      const normalized = (g.price - currentMin) / currentRange;
+      const newPrice = calculatePrice(normalized);
+
+      updates.push({
         id: g._id,
         name: `${g.firstName} ${g.lastName}`,
-        compositeScore,
-        totalPoints,
-        timesPlayed,
-        wins,
-        podiums,
-        bonus32,
-        avgPtsPerEvent: Math.round(avgPtsPerEvent * 10) / 10,
-      };
-    });
-
-    // Sort by composite score descending
-    golferData.sort((a, b) => b.compositeScore - a.compositeScore);
-
-    // Calculate prices using power curve
-    const maxScore = golferData[0].compositeScore;
-
-    let updated = 0;
-    for (const g of golferData) {
-      const normalizedScore = maxScore > 0 ? g.compositeScore / maxScore : 0;
-      const priceFactor = Math.pow(Math.max(normalizedScore, 0), POWER_EXPONENT);
-      const rawPrice = MIN_PRICE + priceFactor * MAX_ADDITIONAL;
-      const price = Math.round(rawPrice / 100_000) * 100_000;
-
-      await db
-        .collection('golfers')
-        .updateOne({ _id: g.id }, { $set: { price, updatedAt: new Date() } });
-      updated++;
+        oldPrice: g.price,
+        newPrice,
+        oldRank: i + 1,
+        newRank: 0, // calculated after sorting
+      });
     }
 
-    console.log(`✅ Updated ${updated} golfer prices\n`);
+    // Verify ranking preservation
+    const sortedByNew = [...updates].sort((a, b) => b.newPrice - a.newPrice);
+    sortedByNew.forEach((u, i) => { u.newRank = i + 1; });
 
-    // Show results
-    console.log('💰 Top 15 by price:');
-    const topPriced = golferData.slice(0, 15);
-    for (const g of topPriced) {
-      const normalizedScore = maxScore > 0 ? g.compositeScore / maxScore : 0;
-      const priceFactor = Math.pow(Math.max(normalizedScore, 0), POWER_EXPONENT);
-      const price = Math.round((MIN_PRICE + priceFactor * MAX_ADDITIONAL) / 100_000) * 100_000;
+    let rankingPreserved = true;
+    for (const u of updates) {
+      if (u.oldRank !== u.newRank) {
+        rankingPreserved = false;
+        break;
+      }
+    }
+
+    // Show top 15
+    console.log('💰 Price changes (top 15):');
+    for (const u of updates.slice(0, 15)) {
+      const arrow = u.newPrice > u.oldPrice ? '↑' : u.newPrice < u.oldPrice ? '↓' : '=';
       console.log(
-        `   £${(price / 1e6).toFixed(1)}M  ${g.name}  (pts:${g.totalPoints} played:${g.timesPlayed} wins:${g.wins} podiums:${g.podiums})`
+        `   #${u.oldRank.toString().padStart(2)}  £${(u.oldPrice / 1e6).toFixed(1).padStart(4)}M → £${(u.newPrice / 1e6).toFixed(1).padStart(4)}M  ${arrow}  ${u.name}`
       );
     }
+
+    // Show bottom 5
+    if (updates.length > 15) {
+      console.log('   ...');
+      for (const u of updates.slice(-5)) {
+        const arrow = u.newPrice > u.oldPrice ? '↑' : u.newPrice < u.oldPrice ? '↓' : '=';
+        console.log(
+          `   #${u.oldRank.toString().padStart(2)}  £${(u.oldPrice / 1e6).toFixed(1).padStart(4)}M → £${(u.newPrice / 1e6).toFixed(1).padStart(4)}M  ${arrow}  ${u.name}`
+        );
+      }
+    }
+
+    // Ranking check
+    console.log(`\n🏅 Ranking preserved: ${rankingPreserved ? '✅ Yes' : '❌ No (see warnings above)'}`);
 
     // Tier distribution
-    console.log('\n📊 Tier distribution:');
-    const tiers: [string, (g: (typeof golferData)[0]) => boolean][] = [
-      [
-        'Elite (£10M+)',
-        (g) => {
-          const n = maxScore > 0 ? g.compositeScore / maxScore : 0;
-          return (
-            Math.round(
-              (MIN_PRICE + Math.pow(Math.max(n, 0), POWER_EXPONENT) * MAX_ADDITIONAL) / 100_000
-            ) *
-              100_000 >=
-            10_000_000
-          );
-        },
-      ],
-      [
-        'Star (£7-10M)',
-        (g) => {
-          const n = maxScore > 0 ? g.compositeScore / maxScore : 0;
-          const p =
-            Math.round(
-              (MIN_PRICE + Math.pow(Math.max(n, 0), POWER_EXPONENT) * MAX_ADDITIONAL) / 100_000
-            ) * 100_000;
-          return p >= 7_000_000 && p < 10_000_000;
-        },
-      ],
-      [
-        'Strong (£5-7M)',
-        (g) => {
-          const n = maxScore > 0 ? g.compositeScore / maxScore : 0;
-          const p =
-            Math.round(
-              (MIN_PRICE + Math.pow(Math.max(n, 0), POWER_EXPONENT) * MAX_ADDITIONAL) / 100_000
-            ) * 100_000;
-          return p >= 5_000_000 && p < 7_000_000;
-        },
-      ],
-      [
-        'Average (£3-5M)',
-        (g) => {
-          const n = maxScore > 0 ? g.compositeScore / maxScore : 0;
-          const p =
-            Math.round(
-              (MIN_PRICE + Math.pow(Math.max(n, 0), POWER_EXPONENT) * MAX_ADDITIONAL) / 100_000
-            ) * 100_000;
-          return p >= 3_000_000 && p < 5_000_000;
-        },
-      ],
-      [
-        'Developing (£2-3M)',
-        (g) => {
-          const n = maxScore > 0 ? g.compositeScore / maxScore : 0;
-          const p =
-            Math.round(
-              (MIN_PRICE + Math.pow(Math.max(n, 0), POWER_EXPONENT) * MAX_ADDITIONAL) / 100_000
-            ) * 100_000;
-          return p >= 2_000_000 && p < 3_000_000;
-        },
-      ],
-      [
-        'Budget (£1-2M)',
-        (g) => {
-          const n = maxScore > 0 ? g.compositeScore / maxScore : 0;
-          const p =
-            Math.round(
-              (MIN_PRICE + Math.pow(Math.max(n, 0), POWER_EXPONENT) * MAX_ADDITIONAL) / 100_000
-            ) * 100_000;
-          return p < 2_000_000;
-        },
-      ],
+    console.log('\n📊 New tier distribution:');
+    const tierDefs: [string, (p: number) => boolean][] = [
+      ['Elite (£12M+)', (p) => p >= 12_000_000],
+      ['Star (£9-12M)', (p) => p >= 9_000_000 && p < 12_000_000],
+      ['Strong (£6-9M)', (p) => p >= 6_000_000 && p < 9_000_000],
+      ['Average (£4.5-6M)', (p) => p >= 4_500_000 && p < 6_000_000],
+      ['Developing (£3.5-4.5M)', (p) => p < 4_500_000],
     ];
-    tiers.forEach(([label, fn]) =>
-      console.log(`   ${label}: ${golferData.filter(fn).length} golfers`)
+    for (const [label, fn] of tierDefs) {
+      console.log(`   ${label}: ${updates.filter((u) => fn(u.newPrice)).length} golfers`);
+    }
+
+    // Budget check — top 6 cost
+    const top6Cost = updates.slice(0, 6).reduce((sum, u) => sum + u.newPrice, 0);
+    console.log(
+      `\n🏆 Top 6 cost: £${(top6Cost / 1e6).toFixed(1)}M (budget: £50M) → ${top6Cost > 50e6 ? 'Forces trade-offs ✅' : '⚠️ Fits in budget — consider tuning'}`
     );
 
-    // Budget check
-    const top6Cost = golferData.slice(0, 6).reduce((sum, g) => {
-      const n = maxScore > 0 ? g.compositeScore / maxScore : 0;
-      return (
-        sum +
-        Math.round(
-          (MIN_PRICE + Math.pow(Math.max(n, 0), POWER_EXPONENT) * MAX_ADDITIONAL) / 100_000
-        ) *
-          100_000
-      );
-    }, 0);
-    console.log(
-      `\n🏆 Top 6 cost: £${(top6Cost / 1e6).toFixed(1)}M (budget: £50M) → ${top6Cost > 50e6 ? 'Forces trade-offs ✅' : 'Fits in budget'}`
-    );
+    // Check existing teams for budget impact
+    const picks = await db.collection('picks').find({}).toArray();
+    if (picks.length > 0) {
+      console.log(`\n👥 Checking ${picks.length} existing teams for budget impact...`);
+      let overBudget = 0;
+      for (const pick of picks) {
+        const teamIds = (pick.golferIds as { toString(): string }[]).map((id) => id.toString());
+        const teamNewCost = updates
+          .filter((u) => teamIds.includes(u.id.toString()))
+          .reduce((sum, u) => sum + u.newPrice, 0);
+        if (teamNewCost > 50_000_000) {
+          overBudget++;
+          console.log(`   ⚠️  User ${pick.userId}: £${(teamNewCost / 1e6).toFixed(1)}M (over by £${((teamNewCost - 50_000_000) / 1e6).toFixed(1)}M)`);
+        }
+      }
+      if (overBudget === 0) {
+        console.log('   ✅ No teams exceed budget');
+      } else {
+        console.log(`   ⚠️  ${overBudget} team(s) would exceed budget (enforced at next transfer window)`);
+      }
+    }
+
+    // Apply updates (unless dry run)
+    if (!isDryRun) {
+      let updated = 0;
+      for (const u of updates) {
+        await db
+          .collection('golfers')
+          .updateOne({ _id: u.id }, { $set: { price: u.newPrice, updatedAt: new Date() } });
+        updated++;
+      }
+      console.log(`\n✅ Updated ${updated} golfer prices`);
+    } else {
+      console.log('\n🔍 Dry run complete — no changes written to database');
+    }
   } finally {
     await client.close();
   }

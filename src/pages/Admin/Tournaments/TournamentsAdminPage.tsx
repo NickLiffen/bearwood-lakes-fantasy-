@@ -433,7 +433,8 @@ const TournamentsAdminPage: React.FC = () => {
             </button>
           </div>
         ) : (
-          <table className="admin-table">
+          <div className="admin-table-wrapper">
+          <table className="admin-table admin-table-card">
             <thead>
               <tr>
                 <th>Tournament</th>
@@ -446,7 +447,7 @@ const TournamentsAdminPage: React.FC = () => {
             <tbody>
               {tournaments.map((tournament) => (
                 <tr key={tournament.id}>
-                  <td>
+                  <td data-label="Tournament">
                     <button
                       onClick={() => handleViewTournament(tournament)}
                       style={{
@@ -463,10 +464,10 @@ const TournamentsAdminPage: React.FC = () => {
                       {tournament.name}
                     </button>
                   </td>
-                  <td>
+                  <td data-label="Dates">
                     {formatDate(tournament.startDate)} – {formatDate(tournament.endDate)}
                   </td>
-                  <td>
+                  <td data-label="Type">
                     <span
                       style={{
                         background:
@@ -490,8 +491,8 @@ const TournamentsAdminPage: React.FC = () => {
                       {tournament.multiplier}x {getTournamentTypeLabel(tournament.tournamentType)}
                     </span>
                   </td>
-                  <td>{getStatusBadge(tournament.status)}</td>
-                  <td>
+                  <td data-label="Status">{getStatusBadge(tournament.status)}</td>
+                  <td data-label="">
                     <div className="table-actions">
                       <button
                         className="btn btn-secondary btn-sm"
@@ -531,6 +532,7 @@ const TournamentsAdminPage: React.FC = () => {
               ))}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 

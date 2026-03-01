@@ -1,11 +1,13 @@
 // GET /.netlify/functions/golfers-get?id=xxx
 
+import { ObjectId } from 'mongodb';
 import { withVerifiedAuth } from './_shared/middleware';
 import { getGolferById } from './_shared/services/golfers.service';
 import { getAllTournaments } from './_shared/services/tournaments.service';
 import { getScoresForGolfer } from './_shared/services/scores.service';
 import { getWeekStart, getMonthStart, getSeasonStart } from './_shared/utils/dates';
 import { getActiveSeason, getAllSeasons } from './_shared/services/seasons.service';
+import { connectToDatabase } from './_shared/db';
 
 export const handler = withVerifiedAuth(async (event) => {
   try {
@@ -119,6 +121,51 @@ export const handler = withVerifiedAuth(async (event) => {
       });
     }
 
+    // Query which teams have selected this golfer
+    const { db } = await connectToDatabase();
+    let golferObjectId: ObjectId;
+    try {
+      golferObjectId = new ObjectId(id);
+    } catch {
+      // Invalid ObjectId format — skip selectedBy query
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          success: true,
+          data: { ...golfer, stats2026, points, seasonStats, selectedBy: [], selectedByCount: 0, totalTeams: 0 },
+        }),
+      };
+    }
+
+    const [picksWithGolfer, totalTeams] = await Promise.all([
+      db.collection('picks')
+        .find({ golferIds: golferObjectId, season: currentSeason })
+        .toArray(),
+      db.collection('picks').countDocuments({ season: currentSeason }),
+    ]);
+
+    let selectedBy: { userId: string; username: string; firstName: string; lastName: string; isCaptain: boolean }[] = [];
+    if (picksWithGolfer.length > 0) {
+      const userIds = picksWithGolfer.map(p => p.userId);
+      const users = await db.collection('users')
+        .find({ _id: { $in: userIds } })
+        .project({ firstName: 1, lastName: 1, username: 1 })
+        .toArray();
+
+      const userMap = new Map(users.map(u => [u._id.toString(), u]));
+
+      selectedBy = picksWithGolfer.map(pick => {
+        const user = userMap.get(pick.userId.toString());
+        return {
+          userId: pick.userId.toString(),
+          username: user?.username || 'Unknown',
+          firstName: user?.firstName || '',
+          lastName: user?.lastName || '',
+          isCaptain: pick.captainId?.toString() === id,
+        };
+      });
+    }
+
     return {
       statusCode: 200,
       body: JSON.stringify({ 
@@ -128,6 +175,9 @@ export const handler = withVerifiedAuth(async (event) => {
           stats2026,
           points,
           seasonStats,
+          selectedBy,
+          selectedByCount: selectedBy.length,
+          totalTeams,
         },
       }),
     };
