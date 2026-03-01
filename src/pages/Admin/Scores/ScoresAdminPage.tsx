@@ -258,7 +258,12 @@ const ScoresAdminPage: React.FC = () => {
       const newScore = {
         ...prev[golferId],
         golferId,
-        [field]: field === 'position' ? (value ? parseInt(value as string) : null) : value,
+        [field]:
+          field === 'position' || field === 'rawScore'
+            ? value !== '' && value !== false
+              ? parseInt(value as string)
+              : null
+            : value,
       };
 
       // If unchecking participated, reset position and bonus
