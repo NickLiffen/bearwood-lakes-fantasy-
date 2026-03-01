@@ -1,3 +1,5 @@
+/// <reference types="vite/client" />
+
 // CSS module declarations for TypeScript
 declare module '*.css' {
   const content: { [className: string]: string };

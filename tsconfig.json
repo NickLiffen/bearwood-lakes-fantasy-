@@ -25,5 +25,5 @@
     }
   },
   "include": ["src", "shared"],
-  "exclude": ["node_modules", "dist", "netlify/functions"]
+  "exclude": ["node_modules", "dist", "netlify/functions", "**/*.test.ts", "**/*.test.tsx"]
 }
