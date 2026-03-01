@@ -1,3 +1,0 @@
-# Exclude test files from Netlify function deployment
-netlify/functions/**/*.test.ts
-netlify/functions/__test-utils__/
