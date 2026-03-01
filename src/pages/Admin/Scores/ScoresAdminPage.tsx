@@ -1011,7 +1011,7 @@ const ScoresAdminPage: React.FC = () => {
                         <td data-label="Score">
                           {score.rawScore != null ? (
                             <span>
-                              {formatRawScore(score.rawScore, editingTournament!.scoringFormat)}
+                              {formatRawScore(score.rawScore, viewingTournament.tournament.scoringFormat)}
                             </span>
                           ) : (
                             <span style={{ color: '#9ca3af' }}>-</span>
