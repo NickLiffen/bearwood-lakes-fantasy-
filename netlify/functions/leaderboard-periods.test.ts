@@ -16,6 +16,8 @@ vi.mock('./_shared/rateLimit', () => ({
   getRateLimitKeyFromEvent: vi.fn().mockReturnValue('ratelimit:key'),
   rateLimitHeaders: vi.fn().mockReturnValue({}),
   rateLimitExceededResponse: vi.fn(),
+  getRedisClient: vi.fn().mockReturnValue({ get: vi.fn().mockResolvedValue(null), set: vi.fn().mockResolvedValue('OK') }),
+  getRedisKeyPrefix: vi.fn().mockReturnValue('test:'),
 }));
 vi.mock('./_shared/utils/logger', () => ({
   createLogger: vi.fn().mockReturnValue({ info: vi.fn(), warn: vi.fn(), error: vi.fn() }),

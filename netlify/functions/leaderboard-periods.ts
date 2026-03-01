@@ -10,6 +10,35 @@ import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
 import { getActiveSeason, getSeasonByName } from './_shared/services/seasons.service';
 import { getWeekStart, getMonthStart, getTeamEffectiveStartDate, getGameweekNumber } from './_shared/utils/dates';
+import { getRedisClient, getRedisKeyPrefix } from './_shared/rateLimit';
+
+const PERIODS_CACHE_TTL = 60; // 60 seconds
+
+function periodsCacheKey(action: string, season: string, period?: string, date?: string): string {
+  const parts = [getRedisKeyPrefix(), 'v1:cache:leaderboard-periods', season, action];
+  if (period) parts.push(period);
+  if (date) parts.push(date);
+  return parts.join(':');
+}
+
+async function getCached<T>(key: string): Promise<T | null> {
+  try {
+    const redis = getRedisClient();
+    const cached = await redis.get(key);
+    return cached ? (JSON.parse(cached) as T) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function setCache<T>(key: string, data: T): Promise<void> {
+  try {
+    const redis = getRedisClient();
+    await redis.set(key, JSON.stringify(data), 'EX', PERIODS_CACHE_TTL);
+  } catch {
+    // Redis unavailable — continue without caching
+  }
+}
 
 interface LeaderboardEntry {
   rank: number;
@@ -216,13 +245,23 @@ function rankEntries(
 
 export const handler: Handler = withVerifiedAuth(async (event) => {
   try {
-    const { db } = await connectToDatabase();
-    
     // Get query params
-    const period = event.queryStringParameters?.period || 'week'; // week, month, season
-    const dateParam = event.queryStringParameters?.date; // ISO date string
-    const action = event.queryStringParameters?.action; // 'leaders' for top 3 summary
+    const period = event.queryStringParameters?.period || 'week';
+    const dateParam = event.queryStringParameters?.date;
+    const action = event.queryStringParameters?.action;
     const seasonParam = event.queryStringParameters?.season;
+
+    // Check Redis cache first
+    const cacheKey = periodsCacheKey(action || period, seasonParam || 'active', period, dateParam);
+    const cached = await getCached<unknown>(cacheKey);
+    if (cached) {
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ success: true, data: cached }),
+      };
+    }
+
+    const { db } = await connectToDatabase();
     
     // Get season — use explicit season param or fall back to active season
     const activeSeason = seasonParam
@@ -383,6 +422,7 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
         },
       };
       
+      await setCache(cacheKey, response);
       return {
         statusCode: 200,
         body: JSON.stringify({ success: true, data: response }),
@@ -454,6 +494,7 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
       tournamentCount: currentData.tournamentCount,
     };
     
+    await setCache(cacheKey, response);
     return {
       statusCode: 200,
       body: JSON.stringify({ success: true, data: response }),

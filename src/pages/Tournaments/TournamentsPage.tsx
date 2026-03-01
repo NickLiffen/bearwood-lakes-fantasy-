@@ -268,7 +268,7 @@ const TournamentsPage: React.FC = () => {
     []
   );
 
-  if (loading) {
+  if ((loading || tournaments === null) && !error) {
     return (
       <PageLayout activeNav="tournaments">
         <div className="tournaments-content">

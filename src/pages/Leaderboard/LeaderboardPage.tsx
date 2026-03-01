@@ -66,7 +66,7 @@ const LeaderboardPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [compareUserId, setCompareUserId] = useState<string | null>(null);
-  const [selectedSeason, setSelectedSeason] = useState<string>('');
+  const [selectedSeason, setSelectedSeason] = useState<string>('2026');
 
   // Get user from useAuth hook for current user check
   const { user } = useAuth();
@@ -103,47 +103,6 @@ const LeaderboardPage: React.FC = () => {
   const [monthlyPage, setMonthlyPage] = useState(1);
   const [seasonPage, setSeasonPage] = useState(1);
 
-  const fetchLeaders = useCallback(async () => {
-    if (!selectedSeason) return;
-    try {
-      const response = await get<LeadersResponse>(
-        `leaderboard-periods?action=leaders&season=${selectedSeason}`
-      );
-
-      // Ignore cancelled requests
-      if (response.cancelled) return;
-
-      if (response.success && response.data) {
-        setLeaders(response.data);
-
-        // Set initial dates - use getSaturdayOfWeek to ensure we match option values
-        if (response.data.currentWeek) {
-          setWeeklyDate(
-            formatDateString(getSaturdayOfWeek(new Date(response.data.currentWeek.startDate)))
-          );
-        }
-        if (response.data.currentMonth) {
-          const d = new Date(response.data.currentMonth.startDate);
-          const year = d.getFullYear();
-          const month = String(d.getMonth() + 1).padStart(2, '0');
-          setMonthlyDate(`${year}-${month}-01`);
-        }
-
-        // Generate dropdown options from shared utilities
-        if (response.data.seasonInfo) {
-          setWeekOptions(
-            generateWeekOptions(
-              response.data.seasonInfo.startDate,
-              response.data.seasonInfo.startDate
-            )
-          );
-          setMonthOptions(generateMonthOptions(response.data.seasonInfo.startDate));
-        }
-      }
-    } catch (err) {
-      console.error('Failed to fetch leaders:', err);
-    }
-  }, [get, selectedSeason]);
 
   const fetchPeriodData = useCallback(
     async (period: 'week' | 'month' | 'season', date?: string) => {
@@ -175,6 +134,7 @@ const LeaderboardPage: React.FC = () => {
   // Reset and re-fetch when selectedSeason changes
   useEffect(() => {
     if (!isAuthReady || !userId || !selectedSeason) return;
+    let cancelled = false;
 
     // Reset selections when season changes
     setWeeklyDate('');
@@ -187,28 +147,61 @@ const LeaderboardPage: React.FC = () => {
 
     const loadInitialData = async () => {
       setLoading(true);
+      setError(null);
       try {
-        await fetchLeaders();
+        const leadersResponse = await get<LeadersResponse>(
+          `leaderboard-periods?action=leaders&season=${selectedSeason}`
+        );
+        if (leadersResponse.cancelled || cancelled) return;
+
+        if (leadersResponse.success && leadersResponse.data) {
+          setLeaders(leadersResponse.data);
+
+          if (leadersResponse.data.currentWeek) {
+            setWeeklyDate(
+              formatDateString(getSaturdayOfWeek(new Date(leadersResponse.data.currentWeek.startDate)))
+            );
+          }
+          if (leadersResponse.data.currentMonth) {
+            const d = new Date(leadersResponse.data.currentMonth.startDate);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            setMonthlyDate(`${year}-${month}-01`);
+          }
+          if (leadersResponse.data.seasonInfo) {
+            setWeekOptions(
+              generateWeekOptions(
+                leadersResponse.data.seasonInfo.startDate,
+                leadersResponse.data.seasonInfo.startDate
+              )
+            );
+            setMonthOptions(generateMonthOptions(leadersResponse.data.seasonInfo.startDate));
+          }
+        }
 
         // Fetch all three tables in parallel
-        const [weekly, monthly, season] = await Promise.all([
+        const [weekly, monthly, seasonData] = await Promise.all([
           fetchPeriodData('week'),
           fetchPeriodData('month'),
           fetchPeriodData('season'),
         ]);
+        if (cancelled) return;
 
         setWeeklyData(weekly);
         setMonthlyData(monthly);
-        setSeasonData(season);
+        setSeasonData(seasonData);
       } catch {
-        setError('Failed to load leaderboard. Please refresh the page.');
+        if (!cancelled) setError('Failed to load leaderboard. Please refresh the page.');
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     loadInitialData();
-  }, [isAuthReady, userId, selectedSeason, fetchLeaders, fetchPeriodData]);
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthReady, userId, selectedSeason, get, fetchPeriodData]);
 
   // Navigation handlers
   const handleWeekNavigation = async (direction: 'prev' | 'next') => {

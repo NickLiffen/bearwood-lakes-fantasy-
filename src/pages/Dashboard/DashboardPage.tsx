@@ -199,7 +199,7 @@ interface Tournament {
 const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const { get, isAuthReady } = useApiClient();
-  const { season, loading: seasonLoading } = useActiveSeason();
+  const { season } = useActiveSeason();
   const navigate = useNavigate();
   const seasonName = season?.name || '2026';
   useDocumentTitle('Dashboard');
@@ -210,8 +210,11 @@ const DashboardPage: React.FC = () => {
   const [tournamentsLoading, setTournamentsLoading] = useState(true);
 
   const [teamData, setTeamData] = useState<MyTeamResponse | null>(null);
+  const [teamDataFetched, setTeamDataFetched] = useState(false);
   const [leaderboardData, setLeaderboardData] = useState<FantasyUser[]>([]);
+  const [leaderboardFetched, setLeaderboardFetched] = useState(false);
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
+  const [tournamentsFetched, setTournamentsFetched] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch team/stats data
@@ -219,16 +222,20 @@ const DashboardPage: React.FC = () => {
     if (!isAuthReady) return;
 
     setStatsLoading(true);
+    let cancelled = false;
     try {
       const teamRes = await get<MyTeamResponse>('my-team');
-      if (teamRes.cancelled) return;
+      if (teamRes.cancelled) { cancelled = true; return; }
       if (teamRes.success && teamRes.data) {
         setTeamData(teamRes.data);
       }
     } catch {
       setError('Failed to load stats data.');
     } finally {
-      setStatsLoading(false);
+      if (!cancelled) {
+        setStatsLoading(false);
+        setTeamDataFetched(true);
+      }
     }
   }, [get, isAuthReady]);
 
@@ -237,16 +244,20 @@ const DashboardPage: React.FC = () => {
     if (!isAuthReady) return;
 
     setLeaderboardLoading(true);
+    let cancelled = false;
     try {
       const usersRes = await get<FantasyUser[]>('users-fantasy');
-      if (usersRes.cancelled) return;
+      if (usersRes.cancelled) { cancelled = true; return; }
       if (usersRes.success && usersRes.data) {
         setLeaderboardData(usersRes.data.slice(0, 5));
       }
     } catch {
       setError('Failed to load leaderboard data.');
     } finally {
-      setLeaderboardLoading(false);
+      if (!cancelled) {
+        setLeaderboardLoading(false);
+        setLeaderboardFetched(true);
+      }
     }
   }, [get, isAuthReady]);
 
@@ -255,9 +266,10 @@ const DashboardPage: React.FC = () => {
     if (!isAuthReady) return;
 
     setTournamentsLoading(true);
+    let cancelled = false;
     try {
       const tournamentsRes = await get<Tournament[]>('tournaments-list');
-      if (tournamentsRes.cancelled) return;
+      if (tournamentsRes.cancelled) { cancelled = true; return; }
       if (tournamentsRes.success && tournamentsRes.data) {
         // Only show complete tournaments (those with scores), most recent first
         const recent = tournamentsRes.data
@@ -269,7 +281,10 @@ const DashboardPage: React.FC = () => {
     } catch {
       setError('Failed to load tournaments data.');
     } finally {
-      setTournamentsLoading(false);
+      if (!cancelled) {
+        setTournamentsLoading(false);
+        setTournamentsFetched(true);
+      }
     }
   }, [get, isAuthReady]);
 
@@ -315,7 +330,7 @@ const DashboardPage: React.FC = () => {
           )}
 
           {/* Weekly Deadline Countdown */}
-          {!seasonLoading && <CountdownTimer seasonStartDate={season?.startDate?.toString()} />}
+          {season && <CountdownTimer seasonStartDate={season.startDate?.toString()} />}
 
           {/* Incomplete Team Banner - only show if has team but less than 6 golfers */}
           {!statsLoading && hasTeam && golferCount < 6 && (
@@ -342,7 +357,7 @@ const DashboardPage: React.FC = () => {
               </Link>
             </div>
             <div className="team-snapshot">
-              {statsLoading ? (
+              {statsLoading || !teamDataFetched ? (
                 <div className="section-loading">
                   <LoadingSpinner size="medium" fullPage={false} text="Loading team..." />
                 </div>
@@ -400,7 +415,7 @@ const DashboardPage: React.FC = () => {
                 </Link>
               </div>
               <div className="table-container">
-                {leaderboardLoading ? (
+                {leaderboardLoading || !leaderboardFetched ? (
                   <div className="section-loading">
                     <LoadingSpinner size="medium" fullPage={false} text="Loading leaderboard..." />
                   </div>
@@ -457,7 +472,7 @@ const DashboardPage: React.FC = () => {
                 </Link>
               </div>
               <div className="tournaments-list">
-                {tournamentsLoading ? (
+                {tournamentsLoading || !tournamentsFetched ? (
                   <div className="section-loading">
                     <LoadingSpinner size="medium" fullPage={false} text="Loading tournaments..." />
                   </div>
