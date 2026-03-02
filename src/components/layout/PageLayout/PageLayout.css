@@ -312,6 +312,11 @@
   overflow-y: auto;
 }
 
+.mobile-nav-icon {
+  font-size: 1.1rem;
+  margin-right: 0.5rem;
+}
+
 .mobile-nav-link {
   display: block;
   padding: 1rem 1.5rem;

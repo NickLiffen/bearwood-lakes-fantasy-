@@ -202,44 +202,44 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children, activeNav }) => {
             to="/dashboard"
             className={`mobile-nav-link ${activeNav === 'dashboard' ? 'active' : ''}`}
           >
-            Dashboard
+            <span className="mobile-nav-icon">📊</span> Dashboard
           </Link>
           <Link
             to="/my-team"
             className={`mobile-nav-link ${activeNav === 'my-team' ? 'active' : ''}`}
           >
-            My Team
+            <span className="mobile-nav-icon">⛳</span> My Team
           </Link>
           <Link
             to="/golfers"
             className={`mobile-nav-link ${activeNav === 'golfers' ? 'active' : ''}`}
           >
-            Golfers
+            <span className="mobile-nav-icon">🏌️</span> Golfers
           </Link>
           <Link
             to="/leaderboard"
             className={`mobile-nav-link ${activeNav === 'leaderboard' ? 'active' : ''}`}
           >
-            Leaderboard
+            <span className="mobile-nav-icon">🏅</span> Leaderboard
           </Link>
           <Link
             to="/leagues"
             className={`mobile-nav-link ${activeNav === 'leagues' ? 'active' : ''}`}
           >
-            Leagues
+            <span className="mobile-nav-icon">🤝</span> Leagues
           </Link>
           <Link
             to="/tournaments"
             className={`mobile-nav-link ${activeNav === 'tournaments' ? 'active' : ''}`}
           >
-            Tournaments
+            <span className="mobile-nav-icon">🏆</span> Tournaments
           </Link>
           <Link to="/users" className={`mobile-nav-link ${activeNav === 'users' ? 'active' : ''}`}>
-            Users
+            <span className="mobile-nav-icon">👥</span> Users
           </Link>
           {user.role === 'admin' && (
             <Link to="/admin" className="mobile-nav-link mobile-nav-admin">
-              Admin
+              <span className="mobile-nav-icon">⚙️</span> Admin
             </Link>
           )}
         </div>
