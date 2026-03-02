@@ -34,6 +34,7 @@ import ScoresAdminPage from './pages/Admin/Scores';
 import UsersAdminPage from './pages/Admin/Users';
 import SettingsAdminPage from './pages/Admin/Settings';
 import SeasonUploadPage from './pages/Admin/SeasonUpload';
+import LeaguesAdminPage from './pages/Admin/Leagues';
 import SeasonsAdminPage from './pages/Admin/Seasons';
 
 // Protected route wrapper for admin pages
@@ -309,6 +310,14 @@ const AppRoutes: React.FC = () => {
         element={
           <AdminRoute>
             <UsersAdminPage />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/leagues"
+        element={
+          <AdminRoute>
+            <LeaguesAdminPage />
           </AdminRoute>
         }
       />

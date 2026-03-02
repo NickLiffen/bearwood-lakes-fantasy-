@@ -175,6 +175,12 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
           >
             <span className="nav-icon">👥</span> Users
           </Link>
+          <Link
+            to="/admin/leagues"
+            className={`admin-mobile-nav-link ${isActive('/admin/leagues') ? 'active' : ''}`}
+          >
+            <span className="nav-icon">🏆</span> Leagues
+          </Link>
           <div className="admin-mobile-divider" />
           <Link
             to="/admin/season-upload"
@@ -241,6 +247,13 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
             >
               <span className="nav-icon">👥</span>
               Users
+            </Link>
+            <Link
+              to="/admin/leagues"
+              className={`admin-nav-link ${isActive('/admin/leagues') ? 'active' : ''}`}
+            >
+              <span className="nav-icon">🏆</span>
+              Leagues
             </Link>
 
             <div className="nav-divider" />
