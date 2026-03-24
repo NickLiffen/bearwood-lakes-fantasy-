@@ -154,6 +154,12 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children, activeNav }) => {
             >
               Tournaments
             </Link>
+            <Link
+              to="/scoring"
+              className={`nav-link ${activeNav === 'scoring' ? 'active' : ''}`}
+            >
+              Rules
+            </Link>
           </nav>
 
           <div className="header-user" ref={userRef}>
@@ -236,6 +242,12 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children, activeNav }) => {
           </Link>
           <Link to="/users" className={`mobile-nav-link ${activeNav === 'users' ? 'active' : ''}`}>
             <span className="mobile-nav-icon">👥</span> Users
+          </Link>
+          <Link
+            to="/scoring"
+            className={`mobile-nav-link ${activeNav === 'scoring' ? 'active' : ''}`}
+          >
+            <span className="mobile-nav-icon">📋</span> Rules
           </Link>
           {user.role === 'admin' && (
             <Link to="/admin" className="mobile-nav-link mobile-nav-admin">
