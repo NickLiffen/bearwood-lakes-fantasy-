@@ -12,7 +12,7 @@ import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
 import { SettingDocument, SETTINGS_COLLECTION } from './_shared/models/Settings';
 import { getWeekStart, getWeekEnd, getTeamEffectiveStartDate, getGameweekNumber, getFirstGameweekStart } from './_shared/utils/dates';
-import { getTransfersThisWeek } from './_shared/services/picks.service';
+import { getTransfersThisWeek, applyPendingChanges } from './_shared/services/picks.service';
 import { getActiveSeason } from './_shared/services/seasons.service';
 import { getTeamGolferScores, getTeamTransferHistory } from './_shared/services/team.service';
 
@@ -79,7 +79,10 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
     // Get transfer count for this user this week
     const transfersUsedThisWeek = await getTransfersThisWeek(event.user.userId);
 
-    // Get user's picks for current season
+    // Apply any pending changes from previous gameweeks
+    await applyPendingChanges(event.user.userId);
+
+    // Get user's picks for current season (re-read after potential apply)
     const pick = await db
       .collection<PickDocument>(PICKS_COLLECTION)
       .findOne({
@@ -220,6 +223,14 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
             updatedAt: pick.updatedAt,
           },
           history: filteredHistory,
+          pendingChanges:
+            pick.pendingGolferIds || pick.pendingCaptainId !== undefined
+              ? {
+                  pendingGolferIds: pick.pendingGolferIds?.map((id) => id.toString()) || null,
+                  pendingCaptainId: pick.pendingCaptainId?.toString() || null,
+                  pendingChangedAt: pick.pendingChangedAt || null,
+                }
+              : null,
         },
       }),
     };

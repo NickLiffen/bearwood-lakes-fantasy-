@@ -140,6 +140,69 @@
   margin: 0 0.2rem;
 }
 
+/* Pending Changes Banner */
+.pending-changes-banner {
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  border: 1px solid #90caf9;
+  border-radius: 12px;
+  padding: 1.25rem 1.75rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 15px rgba(33, 150, 243, 0.15);
+}
+
+.pending-changes-banner .banner-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.pending-changes-banner .banner-text {
+  flex: 1;
+}
+
+.pending-changes-banner .banner-text h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--dark-text);
+  margin: 0 0 0.15rem;
+}
+
+.pending-changes-banner .banner-text p {
+  color: rgba(0, 0, 0, 0.7);
+  font-size: 0.9rem;
+  margin: 0.25rem 0 0;
+}
+
+.pending-changes-banner .pending-date {
+  font-size: 0.8rem;
+  color: rgba(0, 0, 0, 0.5);
+}
+
+.btn-cancel-pending {
+  background: white;
+  border: 1px solid #e57373;
+  color: #c62828;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.btn-cancel-pending:hover:not(:disabled) {
+  background: #ffebee;
+  border-color: #c62828;
+}
+
+.btn-cancel-pending:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Stats Grid - 3 card summary */
 .team-stats-grid {
   display: grid;

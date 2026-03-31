@@ -294,7 +294,7 @@ describe('picks.service', () => {
       expect(result).toBe(2);
       expect(mockHistoryCollection.countDocuments).toHaveBeenCalledWith(
         expect.objectContaining({
-          reason: { $ne: 'Initial pick' },
+          reason: { $nin: ['Initial pick', 'Captain change', 'Scheduled captain change'] },
         })
       );
     });

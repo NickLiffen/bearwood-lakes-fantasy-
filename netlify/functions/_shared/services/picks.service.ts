@@ -67,7 +67,7 @@ export async function getTransfersThisWeek(userId: string): Promise<number> {
   const count = await db.collection<PickHistoryDocument>(PICK_HISTORY_COLLECTION).countDocuments({
     userId: new ObjectId(userId),
     changedAt: { $gte: weekStart },
-    reason: { $ne: 'Initial pick' },
+    reason: { $nin: ['Initial pick', 'Captain change', 'Scheduled captain change'] },
   });
 
   return count;
@@ -138,43 +138,49 @@ export async function savePicks(
 
   // Check if transfers are open (for existing teams) or new team creation is allowed (for new teams)
   const existingPick = await getUserPicks(userId);
+  let hasUnlimitedTransfers = true;
+  let isCaptainOnlyChange = false;
+
   if (existingPick) {
-    // Check if this is ONLY a captain change (same golfers, different captain)
+    // Detect captain-only change (same golfers, different captain)
     const oldGolferIds = new Set(existingPick.golferIds.map((id) => id.toString()));
     const newGolferIds = new Set(golferIds);
     const isSameGolfers =
       oldGolferIds.size === newGolferIds.size &&
       [...oldGolferIds].every((id) => newGolferIds.has(id));
+    isCaptainOnlyChange = isSameGolfers && captainId !== undefined;
 
-    const isCaptainOnlyChange = isSameGolfers && captainId !== undefined;
+    // Fetch all transfer-related settings in parallel
+    const [transfersOpen, activeSeason, transfersUsed, maxTransfers, maxPlayersPerTransfer] =
+      await Promise.all([
+        areTransfersOpen(),
+        getActiveSeason(),
+        getTransfersThisWeek(userId),
+        getMaxTransfersPerWeek(),
+        getMaxPlayersPerTransfer(),
+      ]);
 
-    // Captain changes are always allowed, but golfer changes require transfers to be open
-    if (!isCaptainOnlyChange) {
-      // Fetch all transfer-related settings in parallel
-      const [transfersOpen, activeSeason, transfersUsed, maxTransfers, maxPlayersPerTransfer] =
-        await Promise.all([
-          areTransfersOpen(),
-          getActiveSeason(),
-          getTransfersThisWeek(userId),
-          getMaxTransfersPerWeek(),
-          getMaxPlayersPerTransfer(),
-        ]);
+    // Determine pre-season / unlimited transfers period
+    const checkNow = new Date();
+    const seasonStartDate = activeSeason?.startDate ? new Date(activeSeason.startDate) : null;
+    const firstGW = activeSeason?.firstGameweekStart
+      ? new Date(activeSeason.firstGameweekStart)
+      : null;
+    const teamEffectiveStart = getTeamEffectiveStartDate(existingPick.createdAt, firstGW);
+    const isPreSeason = !!(seasonStartDate && checkNow < seasonStartDate);
+    const isPreFirstGameWeek = checkNow < teamEffectiveStart;
+    hasUnlimitedTransfers = isPreSeason || isPreFirstGameWeek;
 
-      // User has an existing team and is changing golfers - this is a transfer
+    if (isCaptainOnlyChange) {
+      // Captain-only changes: need transfersOpen when in-season, no transfer limit
+      if (!hasUnlimitedTransfers && !transfersOpen) {
+        throw new Error('Transfers are currently locked');
+      }
+    } else {
+      // Golfer changes: always need transfersOpen
       if (!transfersOpen) {
         throw new Error('Transfers are currently locked');
       }
-
-      // Check if we're in an unlimited transfer period:
-      // 1. Before the season starts (pre-season setup)
-      // 2. Before the team's first game week (grace period after creation)
-      const now = new Date();
-      const seasonStartDate = activeSeason?.startDate ? new Date(activeSeason.startDate) : null;
-      const firstGW = activeSeason?.firstGameweekStart ? new Date(activeSeason.firstGameweekStart) : null;
-      const teamEffectiveStart = getTeamEffectiveStartDate(existingPick.createdAt, firstGW);
-      const isPreSeason = seasonStartDate && now < seasonStartDate;
-      const isPreFirstGameWeek = now < teamEffectiveStart;
-      const hasUnlimitedTransfers = isPreSeason || isPreFirstGameWeek;
 
       if (!hasUnlimitedTransfers) {
         // Enforce weekly transfer limit
@@ -238,6 +244,19 @@ export async function savePicks(
   const userObjectId = new ObjectId(userId);
   const currentSeason = season ?? (await getCurrentSeason());
 
+  // Determine if this change should be deferred to the next gameweek
+  const isDeferred = !!existingPick && !hasUnlimitedTransfers;
+
+  // Determine the history reason
+  let historyReason: string;
+  if (!existingPick) {
+    historyReason = 'Initial pick';
+  } else if (isDeferred) {
+    historyReason = isCaptainOnlyChange ? 'Scheduled captain change' : 'Scheduled transfer';
+  } else {
+    historyReason = isCaptainOnlyChange ? 'Captain change' : reason;
+  }
+
   // Save to pick history for audit trail
   await historyCollection.insertOne({
     userId: userObjectId,
@@ -245,27 +264,53 @@ export async function savePicks(
     totalSpent,
     season: currentSeason,
     changedAt: now,
-    reason: existingPick ? reason : 'Initial pick',
+    reason: historyReason,
   } as PickHistoryDocument);
 
-  // Upsert the current pick
-  await picksCollection.updateOne(
-    { userId: userObjectId, season: currentSeason },
-    {
-      $set: {
-        golferIds: objectIds,
-        captainId: captainId ? new ObjectId(captainId) : null,
-        totalSpent,
-        updatedAt: now,
+  if (isDeferred) {
+    // DEFERRED: write to pending fields only (applied at next gameweek)
+    const setFields: Record<string, unknown> = {
+      updatedAt: now,
+      pendingChangedAt: now,
+    };
+
+    if (!isCaptainOnlyChange) {
+      setFields.pendingGolferIds = objectIds;
+    }
+
+    if (captainId !== undefined) {
+      setFields.pendingCaptainId = captainId ? new ObjectId(captainId) : null;
+    }
+
+    await picksCollection.updateOne(
+      { userId: userObjectId, season: currentSeason },
+      { $set: setFields }
+    );
+  } else {
+    // IMMEDIATE: write to main fields and clear any pending fields
+    await picksCollection.updateOne(
+      { userId: userObjectId, season: currentSeason },
+      {
+        $set: {
+          golferIds: objectIds,
+          captainId: captainId ? new ObjectId(captainId) : null,
+          totalSpent,
+          updatedAt: now,
+        },
+        $setOnInsert: {
+          userId: userObjectId,
+          season: currentSeason,
+          createdAt: now,
+        },
+        $unset: {
+          pendingGolferIds: '',
+          pendingCaptainId: '',
+          pendingChangedAt: '',
+        },
       },
-      $setOnInsert: {
-        userId: userObjectId,
-        season: currentSeason,
-        createdAt: now,
-      },
-    },
-    { upsert: true }
-  );
+      { upsert: true }
+    );
+  }
 
   const pick = await getUserPicks(userId);
   return pick!;
@@ -289,6 +334,76 @@ export async function getPickHistory(userId: string): Promise<PickHistory[]> {
     changedAt: doc.changedAt,
     reason: doc.reason,
   }));
+}
+
+/**
+ * Cancel pending changes for a user (clears pendingGolferIds, pendingCaptainId, pendingChangedAt)
+ */
+export async function cancelPendingChanges(userId: string): Promise<void> {
+  const { db } = await connectToDatabase();
+  const currentSeason = await getCurrentSeason();
+  await db.collection<PickDocument>(PICKS_COLLECTION).updateOne(
+    { userId: new ObjectId(userId), season: currentSeason },
+    {
+      $unset: { pendingGolferIds: '', pendingCaptainId: '', pendingChangedAt: '' },
+      $set: { updatedAt: new Date() },
+    }
+  );
+}
+
+/**
+ * Apply pending changes if the gameweek boundary has passed.
+ * Call this before reading/scoring a pick to ensure the active team is current.
+ * Returns true if changes were applied.
+ */
+export async function applyPendingChanges(userId: string): Promise<boolean> {
+  const { db } = await connectToDatabase();
+  const currentSeason = await getCurrentSeason();
+  const activeSeason = await getActiveSeason();
+  const firstGW = activeSeason?.firstGameweekStart
+    ? new Date(activeSeason.firstGameweekStart)
+    : null;
+
+  const pick = await db.collection<PickDocument>(PICKS_COLLECTION).findOne({
+    userId: new ObjectId(userId),
+    season: currentSeason,
+  });
+
+  if (!pick?.pendingChangedAt) return false;
+
+  // Check if the pending change was made before the current week started
+  const weekStart = getWeekStart(new Date(), firstGW);
+  if (pick.pendingChangedAt >= weekStart) return false; // Still in the same week
+
+  // Apply pending changes to main fields
+  const updateSet: Record<string, unknown> = { updatedAt: new Date() };
+  const updateUnset: Record<string, string> = {};
+
+  if (pick.pendingGolferIds && pick.pendingGolferIds.length > 0) {
+    updateSet.golferIds = pick.pendingGolferIds;
+    // Recalculate totalSpent from pending golfers
+    const golfers = await db
+      .collection('golfers')
+      .find({ _id: { $in: pick.pendingGolferIds } })
+      .toArray();
+    updateSet.totalSpent = golfers.reduce((sum, g) => sum + (g.price || 0), 0);
+  }
+
+  if (pick.pendingCaptainId !== undefined) {
+    updateSet.captainId = pick.pendingCaptainId;
+  }
+
+  // Clear pending fields
+  updateUnset.pendingGolferIds = '';
+  updateUnset.pendingCaptainId = '';
+  updateUnset.pendingChangedAt = '';
+
+  await db.collection<PickDocument>(PICKS_COLLECTION).updateOne(
+    { _id: pick._id },
+    { $set: updateSet, $unset: updateUnset }
+  );
+
+  return true;
 }
 
 // Backwards compatibility alias

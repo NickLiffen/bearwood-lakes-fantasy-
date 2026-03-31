@@ -7,6 +7,9 @@ export interface Pick {
   userId: string;
   golferIds: string[];
   captainId: string | null;
+  pendingGolferIds?: string[];
+  pendingCaptainId?: string | null;
+  pendingChangedAt?: Date;
   totalSpent: number;
   season: number;
   createdAt: Date;

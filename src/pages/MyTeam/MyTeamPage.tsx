@@ -82,6 +82,11 @@ interface MyTeamApiResponse {
     addedGolfers: Array<{ id: string; name: string }>;
     removedGolfers: Array<{ id: string; name: string }>;
   }>;
+  pendingChanges?: {
+    pendingGolferIds: string[] | null;
+    pendingCaptainId: string | null;
+    pendingChangedAt: string | null;
+  } | null;
 }
 
 const MyTeamPage: React.FC = () => {
@@ -95,6 +100,7 @@ const MyTeamPage: React.FC = () => {
   const [captainBannerDismissed, setCaptainBannerDismissed] = useState(
     () => localStorage.getItem('captainBannerDismissed') === 'true'
   );
+  const [cancellingPending, setCancellingPending] = useState(false);
   const { get, post, isAuthReady } = useApiClient();
   const { season } = useActiveSeason();
   const { user: authUser } = useAuth();
@@ -154,6 +160,25 @@ const MyTeamPage: React.FC = () => {
     const newDate = formatDateString(current);
     setSelectedDate(newDate);
     fetchTeam(newDate);
+  };
+
+  // Handle cancelling pending changes
+  const handleCancelPending = async () => {
+    if (cancellingPending) return;
+    setCancellingPending(true);
+    try {
+      const response = await post('picks-cancel-pending', {});
+      if (response.success) {
+        setToast({ message: 'Pending changes cancelled', type: 'success' });
+        fetchTeam(selectedDate);
+      } else {
+        setToast({ message: 'Failed to cancel pending changes', type: 'warning' });
+      }
+    } catch {
+      setToast({ message: 'Failed to cancel pending changes', type: 'warning' });
+    } finally {
+      setCancellingPending(false);
+    }
   };
 
   // Handle setting a golfer as captain
@@ -344,6 +369,54 @@ const MyTeamPage: React.FC = () => {
                     week!
                   </p>
                 </div>
+              </div>
+            )}
+
+            {/* Pending Changes Banner */}
+            {teamData.pendingChanges && (
+              <div className="pending-changes-banner">
+                <span className="banner-icon">🔄</span>
+                <div className="banner-text">
+                  <h3>Scheduled for Next Gameweek</h3>
+                  {teamData.pendingChanges.pendingGolferIds && team && (() => {
+                    const currentIds = new Set(team.golfers.map((g) => g.golfer.id));
+                    const pendingIds = new Set(teamData.pendingChanges!.pendingGolferIds!);
+                    const added = [...pendingIds].filter((id) => !currentIds.has(id));
+                    const removed = [...currentIds].filter((id) => !pendingIds.has(id));
+                    if (added.length === 0 && removed.length === 0) return null;
+                    return (
+                      <p>
+                        {removed.length > 0 && (
+                          <>Swapping out {removed.length} golfer{removed.length > 1 ? 's' : ''}</>
+                        )}
+                        {removed.length > 0 && added.length > 0 && ' → '}
+                        {added.length > 0 && (
+                          <>{removed.length === 0 ? 'A' : 'a'}dding {added.length} golfer{added.length > 1 ? 's' : ''}</>
+                        )}
+                      </p>
+                    );
+                  })()}
+                  {teamData.pendingChanges.pendingCaptainId !== null &&
+                    teamData.pendingChanges.pendingCaptainId !== team?.captainId && (
+                      <p>Captain change scheduled</p>
+                    )}
+                  {teamData.pendingChanges.pendingChangedAt && (
+                    <p className="pending-date">
+                      Changed on{' '}
+                      {new Date(teamData.pendingChanges.pendingChangedAt).toLocaleDateString(
+                        'en-GB',
+                        { day: 'numeric', month: 'short', year: 'numeric' }
+                      )}
+                    </p>
+                  )}
+                </div>
+                <button
+                  className="btn-cancel-pending"
+                  onClick={handleCancelPending}
+                  disabled={cancellingPending}
+                >
+                  {cancellingPending ? 'Cancelling...' : 'Cancel Changes'}
+                </button>
               </div>
             )}
 

@@ -8,6 +8,9 @@ export interface PickDocument {
   userId: ObjectId;
   golferIds: ObjectId[];
   captainId?: ObjectId | null;
+  pendingGolferIds?: ObjectId[];
+  pendingCaptainId?: ObjectId | null;
+  pendingChangedAt?: Date;
   totalSpent: number;
   season: number;
   createdAt: Date;
@@ -20,6 +23,9 @@ export function toPick(doc: PickDocument): Pick {
     userId: doc.userId.toString(),
     golferIds: doc.golferIds.map((id) => id.toString()),
     captainId: doc.captainId?.toString() || null,
+    pendingGolferIds: doc.pendingGolferIds?.map((id) => id.toString()),
+    pendingCaptainId: doc.pendingCaptainId !== undefined ? (doc.pendingCaptainId?.toString() || null) : undefined,
+    pendingChangedAt: doc.pendingChangedAt,
     totalSpent: doc.totalSpent,
     season: doc.season,
     createdAt: doc.createdAt,
