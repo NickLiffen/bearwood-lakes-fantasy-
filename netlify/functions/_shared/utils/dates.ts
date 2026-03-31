@@ -6,11 +6,42 @@ const WEEK_START_HOUR = 0;
 // Team eligibility starts at 8am on Saturday (for when new teams can start earning points)
 const TEAM_ELIGIBILITY_HOUR = 8;
 
+/** Check if two dates fall on the same calendar day */
+const isSameDay = (a: Date, b: Date): boolean =>
+  a.getFullYear() === b.getFullYear() &&
+  a.getMonth() === b.getMonth() &&
+  a.getDate() === b.getDate();
+
 /**
- * Get Saturday midnight of the week containing the given date
- * Week runs from Saturday 00:00 to the following Friday 23:59:59
+ * Get the start of the gameweek containing the given date.
+ *
+ * Normal weeks run Saturday 00:00 → Friday 23:59:59.
+ * When `firstGameweekStart` is supplied, GW1 may begin on a non-Saturday.
+ * GW1 runs from `firstGameweekStart` at 00:00 until the Saturday that is
+ * 7 days after the first Saturday on or after `firstGameweekStart`.
+ * All subsequent weeks follow the normal Saturday cadence.
  */
-export const getWeekStart = (date: Date = new Date()): Date => {
+export const getWeekStart = (
+  date: Date = new Date(),
+  firstGameweekStart?: Date | null
+): Date => {
+  // If a custom GW1 start is provided, check whether `date` falls inside GW1
+  if (firstGameweekStart) {
+    const gw1Start = new Date(firstGameweekStart);
+    gw1Start.setHours(0, 0, 0, 0);
+
+    // GW2 begins on the Saturday 7 days after the first Sat on or after GW1
+    const firstSat = getSeasonFirstSaturday(firstGameweekStart);
+    const gw2Start = new Date(firstSat);
+    gw2Start.setDate(gw2Start.getDate() + 7);
+    gw2Start.setHours(0, 0, 0, 0);
+
+    if (date >= gw1Start && date < gw2Start) {
+      return gw1Start;
+    }
+  }
+
+  // Standard Saturday-based week logic
   const d = new Date(date);
   const dayOfWeek = d.getDay(); // 0 = Sunday, 6 = Saturday
 
@@ -30,9 +61,30 @@ export const getWeekStart = (date: Date = new Date()): Date => {
 };
 
 /**
- * Get the end of a week (Friday 23:59:59.999) given the week start
+ * Get the end of a gameweek given its start.
+ *
+ * For a normal Saturday-started week the end is weekStart + 7 days − 1 ms
+ * (i.e. Friday 23:59:59.999).
+ *
+ * For GW1 (when `weekStart` matches `firstGameweekStart`), the end is
+ * the day before GW2 starts — i.e. the Friday before the second Saturday
+ * on or after `firstGameweekStart`.
  */
-export const getWeekEnd = (weekStart: Date): Date => {
+export const getWeekEnd = (weekStart: Date, firstGameweekStart?: Date | null): Date => {
+  if (firstGameweekStart) {
+    const gw1Start = new Date(firstGameweekStart);
+    gw1Start.setHours(0, 0, 0, 0);
+
+    if (isSameDay(weekStart, gw1Start)) {
+      // GW2 starts on the Saturday 7 days after the first Sat on or after GW1
+      const firstSat = getSeasonFirstSaturday(firstGameweekStart);
+      const gw2Start = new Date(firstSat);
+      gw2Start.setDate(gw2Start.getDate() + 7);
+      gw2Start.setHours(0, 0, 0, 0);
+      return new Date(gw2Start.getTime() - 1);
+    }
+  }
+
   const end = new Date(weekStart);
   end.setDate(end.getDate() + 7);
   end.setMilliseconds(end.getMilliseconds() - 1);
@@ -40,11 +92,29 @@ export const getWeekEnd = (weekStart: Date): Date => {
 };
 
 /**
- * Get the start of the NEXT week after a given date (at 8am for team eligibility)
- * Used to calculate when a newly created team should start earning points
+ * Get start of the NEXT week after a given date (at 8am for team eligibility).
+ *
+ * When `firstGameweekStart` is supplied and the date falls within GW1,
+ * the next week is GW2 — the Saturday 7 days after the first Saturday
+ * on or after `firstGameweekStart`, at 8 am.
  */
-export const getNextWeekStart = (date: Date): Date => {
-  const currentWeekStart = getWeekStart(date);
+export const getNextWeekStart = (date: Date, firstGameweekStart?: Date | null): Date => {
+  const currentWeekStart = getWeekStart(date, firstGameweekStart);
+
+  // If we're inside GW1, the next week is GW2 (first normal Saturday cadence)
+  if (firstGameweekStart) {
+    const gw1Start = new Date(firstGameweekStart);
+    gw1Start.setHours(0, 0, 0, 0);
+
+    if (isSameDay(currentWeekStart, gw1Start)) {
+      const firstSat = getSeasonFirstSaturday(firstGameweekStart);
+      const gw2Start = new Date(firstSat);
+      gw2Start.setDate(gw2Start.getDate() + 7);
+      gw2Start.setHours(TEAM_ELIGIBILITY_HOUR, 0, 0, 0);
+      return gw2Start;
+    }
+  }
+
   const nextWeek = new Date(currentWeekStart);
   nextWeek.setDate(nextWeek.getDate() + 7);
   // Use 8am for team eligibility
@@ -61,7 +131,8 @@ export const getNextWeekStart = (date: Date): Date => {
  * return a far-past date so they get all historical points (grandfathered in)
  */
 export const getTeamEffectiveStartDate = (
-  teamCreatedAt: Date | string | number | undefined | null
+  teamCreatedAt: Date | string | number | undefined | null,
+  firstGameweekStart?: Date | null
 ): Date => {
   // If no createdAt, team is grandfathered in - use a date far in the past
   if (!teamCreatedAt) {
@@ -76,7 +147,7 @@ export const getTeamEffectiveStartDate = (
     return new Date(2000, 0, 1);
   }
 
-  return getNextWeekStart(date);
+  return getNextWeekStart(date, firstGameweekStart);
 };
 
 /**
@@ -138,12 +209,37 @@ export const getSeasonFirstSaturday = (seasonStartDate: Date): Date => {
 };
 
 /**
- * Calculate gameweek number from a week start date and season start
- * GW1 = first Saturday of the season (first Saturday in April)
+ * Get the anchor date for GW1.
+ *
+ * If `firstGameweekStart` is provided, returns it (normalised to midnight).
+ * Otherwise falls back to the first Saturday on or after `seasonStartDate`.
  */
-export const getGameweekNumber = (weekStart: Date, seasonStartDate: Date): number => {
-  const firstSaturday = getSeasonFirstSaturday(seasonStartDate);
-  const diffMs = weekStart.getTime() - firstSaturday.getTime();
+export const getFirstGameweekStart = (
+  seasonStartDate: Date,
+  firstGameweekStart?: Date | null
+): Date => {
+  if (firstGameweekStart) {
+    const d = new Date(firstGameweekStart);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+  return getSeasonFirstSaturday(seasonStartDate);
+};
+
+/**
+ * Calculate gameweek number from a week start date and season start.
+ *
+ * Uses `getFirstGameweekStart()` as the anchor (day 0 = GW1).
+ * floor(diffDays / 7) + 1 works for both the custom-length GW1 and all
+ * subsequent 7-day weeks because the Saturday cadence aligns after GW1.
+ */
+export const getGameweekNumber = (
+  weekStart: Date,
+  seasonStartDate: Date,
+  firstGameweekStart?: Date | null
+): number => {
+  const anchor = getFirstGameweekStart(seasonStartDate, firstGameweekStart);
+  const diffMs = weekStart.getTime() - anchor.getTime();
   const diffWeeks = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000));
   return diffWeeks + 1;
 };

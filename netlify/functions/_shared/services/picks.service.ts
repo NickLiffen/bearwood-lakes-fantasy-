@@ -58,7 +58,9 @@ async function getMaxPlayersPerTransfer(): Promise<number> {
 
 export async function getTransfersThisWeek(userId: string): Promise<number> {
   const { db } = await connectToDatabase();
-  const weekStart = getWeekStart(new Date());
+  const activeSeason = await getActiveSeason();
+  const firstGW = activeSeason?.firstGameweekStart ? new Date(activeSeason.firstGameweekStart) : null;
+  const weekStart = getWeekStart(new Date(), firstGW);
 
   // Count pickHistory entries for this user since weekStart
   // Exclude initial picks (reason === 'Initial pick')
@@ -168,7 +170,8 @@ export async function savePicks(
       // 2. Before the team's first game week (grace period after creation)
       const now = new Date();
       const seasonStartDate = activeSeason?.startDate ? new Date(activeSeason.startDate) : null;
-      const teamEffectiveStart = getTeamEffectiveStartDate(existingPick.createdAt);
+      const firstGW = activeSeason?.firstGameweekStart ? new Date(activeSeason.firstGameweekStart) : null;
+      const teamEffectiveStart = getTeamEffectiveStartDate(existingPick.createdAt, firstGW);
       const isPreSeason = seasonStartDate && now < seasonStartDate;
       const isPreFirstGameWeek = now < teamEffectiveStart;
       const hasUnlimitedTransfers = isPreSeason || isPreFirstGameWeek;

@@ -202,8 +202,11 @@ const ScoringPage: React.FC = () => {
             <div className="gameweek-item">
               <span className="gameweek-icon">⏰</span>
               <div>
-                <h3>Saturday 8am Start</h3>
-                <p>Each gameweek begins on Saturday at 8am and runs until the following Friday.</p>
+                <h3>Gameweek Start Times</h3>
+                <p>
+                  The first gameweek of the 2026 season starts on Friday April 3rd at 8am. All
+                  subsequent gameweeks begin on Saturday at 8am and run until the following Friday.
+                </p>
               </div>
             </div>
             <div className="gameweek-item">
@@ -340,9 +343,9 @@ const ScoringPage: React.FC = () => {
               <p>
                 <strong>Transfers</strong> — During pre-season, you have{' '}
                 <strong>unlimited transfers</strong> to build your perfect squad. Once the season
-                starts, you get <strong>1 transfer per week</strong>. Transfers must be made before{' '}
-                <strong>8am on Saturday</strong> for them to take effect that gameweek. Any
-                transfers made after 8am Saturday will apply to the following week's score.
+                starts, you get <strong>1 transfer per week</strong>. Transfers must be made before
+                the <strong>gameweek deadline (8am)</strong> for them to take effect that gameweek.
+                Any transfers made after the deadline will apply to the following week's score.
               </p>
             </div>
           </div>

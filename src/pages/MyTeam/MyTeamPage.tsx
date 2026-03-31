@@ -141,7 +141,7 @@ const MyTeamPage: React.FC = () => {
   // Generate week options when both team data and season data are available
   useEffect(() => {
     if (teamData?.team?.teamEffectiveStart && season?.startDate) {
-      const options = generateWeekOptions(teamData.team.teamEffectiveStart, season.startDate);
+      const options = generateWeekOptions(teamData.team.teamEffectiveStart, season.startDate, season?.firstGameweekStart);
       setWeekOptions(options);
     }
   }, [teamData?.team?.teamEffectiveStart, season?.startDate]);

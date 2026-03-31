@@ -137,14 +137,14 @@ const LeagueDetailPage: React.FC = () => {
           setLeaders(leadersRes.data.leaders);
 
           if (leadersRes.data.leaders.currentWeek) {
-            setWeeklyDate(formatDateString(getSaturdayOfWeek(new Date(leadersRes.data.leaders.currentWeek.startDate))));
+            setWeeklyDate(formatDateString(getSaturdayOfWeek(new Date(leadersRes.data.leaders.currentWeek.startDate), season?.firstGameweekStart)));
           }
           if (leadersRes.data.leaders.currentMonth) {
             const d = new Date(leadersRes.data.leaders.currentMonth.startDate);
             setMonthlyDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`);
           }
           if (leadersRes.data.leaders.seasonInfo) {
-            setWeekOptions(generateWeekOptions(leadersRes.data.leaders.seasonInfo.startDate, leadersRes.data.leaders.seasonInfo.startDate));
+            setWeekOptions(generateWeekOptions(leadersRes.data.leaders.seasonInfo.startDate, leadersRes.data.leaders.seasonInfo.startDate, season?.firstGameweekStart));
             setMonthOptions(generateMonthOptions(leadersRes.data.leaders.seasonInfo.startDate));
           }
         } else {
@@ -177,7 +177,7 @@ const LeagueDetailPage: React.FC = () => {
     if (!weeklyData?.period) return;
     const currentDate = new Date(weeklyData.period.startDate);
     currentDate.setDate(currentDate.getDate() + (direction === 'prev' ? -7 : 7));
-    const newDate = formatDateString(getSaturdayOfWeek(currentDate));
+    const newDate = formatDateString(getSaturdayOfWeek(currentDate, season?.firstGameweekStart));
     setWeeklyDate(newDate);
     setWeeklyPage(1);
     const data = await fetchPeriodData('week', newDate);

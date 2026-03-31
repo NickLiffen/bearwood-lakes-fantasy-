@@ -159,7 +159,7 @@ const LeaderboardPage: React.FC = () => {
 
           if (leadersResponse.data.currentWeek) {
             setWeeklyDate(
-              formatDateString(getSaturdayOfWeek(new Date(leadersResponse.data.currentWeek.startDate)))
+              formatDateString(getSaturdayOfWeek(new Date(leadersResponse.data.currentWeek.startDate), season?.firstGameweekStart))
             );
           }
           if (leadersResponse.data.currentMonth) {
@@ -172,7 +172,8 @@ const LeaderboardPage: React.FC = () => {
             setWeekOptions(
               generateWeekOptions(
                 leadersResponse.data.seasonInfo.startDate,
-                leadersResponse.data.seasonInfo.startDate
+                leadersResponse.data.seasonInfo.startDate,
+                season?.firstGameweekStart
               )
             );
             setMonthOptions(generateMonthOptions(leadersResponse.data.seasonInfo.startDate));
@@ -201,7 +202,7 @@ const LeaderboardPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [isAuthReady, userId, selectedSeason, get, fetchPeriodData]);
+  }, [isAuthReady, userId, selectedSeason, get, fetchPeriodData, season?.firstGameweekStart]);
 
   // Navigation handlers
   const handleWeekNavigation = async (direction: 'prev' | 'next') => {
@@ -211,7 +212,7 @@ const LeaderboardPage: React.FC = () => {
     const offset = direction === 'prev' ? -7 : 7;
     currentDate.setDate(currentDate.getDate() + offset);
 
-    const newDate = formatDateString(getSaturdayOfWeek(currentDate));
+    const newDate = formatDateString(getSaturdayOfWeek(currentDate, season?.firstGameweekStart));
 
     setWeeklyDate(newDate);
     setWeeklyPage(1);

@@ -37,11 +37,32 @@ vi.mock('./_shared/utils/dates', () => ({
     date.setHours(0, 0, 0, 0);
     return date;
   }),
+  getWeekEnd: vi.fn().mockImplementation((ws: Date) => {
+    const end = new Date(ws);
+    end.setDate(end.getDate() + 6);
+    end.setHours(23, 59, 59, 999);
+    return end;
+  }),
   getMonthStart: vi.fn().mockImplementation((d: Date) => {
     return new Date(d.getFullYear(), d.getMonth(), 1);
   }),
   getTeamEffectiveStartDate: vi.fn().mockImplementation((d: Date) => new Date(d)),
   getGameweekNumber: vi.fn().mockReturnValue(5),
+  getSeasonFirstSaturday: vi.fn().mockImplementation((d: Date) => {
+    const date = new Date(d);
+    while (date.getDay() !== 6) date.setDate(date.getDate() + 1);
+    return date;
+  }),
+  getFirstGameweekStart: vi.fn().mockImplementation((seasonStartDate: Date, firstGameweekStart?: Date | null) => {
+    if (firstGameweekStart) {
+      const d = new Date(firstGameweekStart);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+    const date = new Date(seasonStartDate);
+    while (date.getDay() !== 6) date.setDate(date.getDate() + 1);
+    return date;
+  }),
 }));
 
 const mockGetLeagueById = vi.fn();

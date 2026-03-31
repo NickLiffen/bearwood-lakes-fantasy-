@@ -8,6 +8,7 @@ export interface SeasonDocument {
   name: string;
   startDate: Date;
   endDate: Date;
+  firstGameweekStart?: Date;
   isActive: boolean;
   status: SeasonStatus;
   createdAt: Date;
@@ -20,6 +21,7 @@ export function toSeason(doc: SeasonDocument): Season {
     name: doc.name,
     startDate: doc.startDate,
     endDate: doc.endDate,
+    firstGameweekStart: doc.firstGameweekStart,
     isActive: doc.isActive ?? false,
     status: doc.status || 'setup',
     createdAt: doc.createdAt,

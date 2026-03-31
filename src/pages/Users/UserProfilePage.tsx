@@ -189,10 +189,10 @@ const UserProfilePage: React.FC = () => {
   // Generate week options when both profile data and season data are available
   useEffect(() => {
     if (profileData?.teamEffectiveStart && season?.startDate) {
-      const options = generateWeekOptions(profileData.teamEffectiveStart, season.startDate);
+      const options = generateWeekOptions(profileData.teamEffectiveStart, season.startDate, season?.firstGameweekStart);
       setWeekOptions(options);
     }
-  }, [profileData?.teamEffectiveStart, season?.startDate]);
+  }, [profileData?.teamEffectiveStart, season?.startDate, season?.firstGameweekStart]);
 
   // Navigation handlers
   const handleWeekNavigation = (direction: 'prev' | 'next') => {

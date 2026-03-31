@@ -12,7 +12,7 @@ import {
   getMonthStart,
   getMonthEnd,
   getTeamEffectiveStartDate,
-  getSeasonFirstSaturday,
+  getFirstGameweekStart,
 } from '../utils/dates';
 
 export interface TournamentScoreInfo {
@@ -50,6 +50,7 @@ export function getTeamGolferScores(
   selectedWeekStart: Date,
   selectedWeekEnd: Date,
   teamEffectiveStart: Date,
+  firstGameweekStart?: Date | null,
 ): GolferWithScores[] {
   const tournamentMap = new Map(
     publishedTournaments.map((t) => [t._id.toString(), t]),
@@ -65,10 +66,10 @@ export function getTeamGolferScores(
     golferScoresMap.get(golferId)!.push(score);
   }
 
-  // Season's first gameweek (first Saturday of the season)
+  // Season's first gameweek
   const seasonFirstSat = seasonStartDate
-    ? getSeasonFirstSaturday(new Date(seasonStartDate))
-    : getWeekStart(new Date());
+    ? getFirstGameweekStart(new Date(seasonStartDate), firstGameweekStart)
+    : getWeekStart(new Date(), firstGameweekStart);
 
   const captainIdString = captainId?.toString();
 

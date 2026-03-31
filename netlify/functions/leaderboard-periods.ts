@@ -9,7 +9,7 @@ import { UserDocument, USERS_COLLECTION } from './_shared/models/User';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
 import { getActiveSeason, getSeasonByName } from './_shared/services/seasons.service';
-import { getWeekStart, getMonthStart, getTeamEffectiveStartDate, getGameweekNumber } from './_shared/utils/dates';
+import { getWeekStart, getMonthStart, getTeamEffectiveStartDate, getGameweekNumber, getFirstGameweekStart } from './_shared/utils/dates';
 import { getRedisClient, getRedisKeyPrefix } from './_shared/rateLimit';
 
 const PERIODS_CACHE_TTL = 60; // 60 seconds
@@ -80,8 +80,8 @@ interface LeadersResponse {
 }
 
 // Get Sunday of the week containing the given date
-function getWeekEnd(date: Date): Date {
-  const weekStart = getWeekStart(date);
+function getWeekEnd(date: Date, firstGameweekStart?: Date | null): Date {
+  const weekStart = getWeekStart(date, firstGameweekStart);
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekStart.getDate() + 6);
   weekEnd.setHours(23, 59, 59, 999);
@@ -114,7 +114,8 @@ async function calculateLeaderboard(
   tournaments: TournamentDocument[],
   allScores: ScoreDocument[],
   periodStart: Date,
-  periodEnd: Date
+  periodEnd: Date,
+  firstGameweekStart?: Date | null
 ): Promise<{ entries: Array<{ userId: string; user: UserDocument; points: number; teamValue: number; events: number }>; tournamentCount: number }> {
   
   // Filter tournaments within the period
@@ -151,7 +152,7 @@ async function calculateLeaderboard(
     if (!user) continue;
 
     // Team only earns points from tournaments starting on or after their effective start date
-    const teamEffectiveStart = getTeamEffectiveStartDate(pick.createdAt);
+    const teamEffectiveStart = getTeamEffectiveStartDate(pick.createdAt, firstGameweekStart);
 
     let points = 0;
     const eventsSet = new Set<string>();
@@ -273,6 +274,7 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
     seasonEndDate.setHours(23, 59, 59, 999);
     
     const currentSeason = activeSeason ? parseInt(activeSeason.name) || fallbackYear : fallbackYear;
+    const firstGW = activeSeason?.firstGameweekStart ? new Date(activeSeason.firstGameweekStart) : null;
     
     const picks = await db.collection<PickDocument>(PICKS_COLLECTION)
       .find({ season: currentSeason })
@@ -283,8 +285,8 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
     
     if (picks.length === 0) {
       if (action === 'leaders') {
-        const weekStart = getWeekStart(now);
-        const weekEnd = getWeekEnd(now);
+        const weekStart = getWeekStart(now, firstGW);
+        const weekEnd = getWeekEnd(now, firstGW);
         const monthStart = getMonthStart(now);
         const monthEnd = getMonthEnd(now);
         
@@ -300,8 +302,8 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
                 type: 'week',
                 startDate: weekStart.toISOString(),
                 endDate: weekEnd.toISOString(),
-                label: formatWeekLabel(weekStart, weekEnd, getGameweekNumber(weekStart, seasonStartDate)),
-                gameweek: getGameweekNumber(weekStart, seasonStartDate),
+                label: formatWeekLabel(weekStart, weekEnd, getGameweekNumber(weekStart, seasonStartDate, firstGW)),
+                gameweek: getGameweekNumber(weekStart, seasonStartDate, firstGW),
                 hasPrevious: weekStart > seasonStartDate,
                 hasNext: false,
               },
@@ -367,8 +369,8 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
     // If requesting leaders summary
     if (action === 'leaders') {
       // Current week
-      const weekStart = getWeekStart(now);
-      const weekEnd = getWeekEnd(now);
+      const weekStart = getWeekStart(now, firstGW);
+      const weekEnd = getWeekEnd(now, firstGW);
       const prevWeekStart = new Date(weekStart);
       prevWeekStart.setDate(prevWeekStart.getDate() - 7);
       const prevWeekEnd = new Date(weekEnd);
@@ -381,11 +383,11 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
       const prevMonthEnd = getMonthEnd(new Date(now.getFullYear(), now.getMonth() - 1, 1));
       
       // Calculate all leaderboards
-      const weekData = await calculateLeaderboard(picks, userMap, seasonTournaments, allScores, weekStart, weekEnd);
-      const prevWeekData = await calculateLeaderboard(picks, userMap, seasonTournaments, allScores, prevWeekStart, prevWeekEnd);
-      const monthData = await calculateLeaderboard(picks, userMap, seasonTournaments, allScores, monthStart, monthEnd);
-      const prevMonthData = await calculateLeaderboard(picks, userMap, seasonTournaments, allScores, prevMonthStart, prevMonthEnd);
-      const seasonData = await calculateLeaderboard(picks, userMap, seasonTournaments, allScores, seasonStartDate, seasonEndDate);
+      const weekData = await calculateLeaderboard(picks, userMap, seasonTournaments, allScores, weekStart, weekEnd, firstGW);
+      const prevWeekData = await calculateLeaderboard(picks, userMap, seasonTournaments, allScores, prevWeekStart, prevWeekEnd, firstGW);
+      const monthData = await calculateLeaderboard(picks, userMap, seasonTournaments, allScores, monthStart, monthEnd, firstGW);
+      const prevMonthData = await calculateLeaderboard(picks, userMap, seasonTournaments, allScores, prevMonthStart, prevMonthEnd, firstGW);
+      const seasonData = await calculateLeaderboard(picks, userMap, seasonTournaments, allScores, seasonStartDate, seasonEndDate, firstGW);
       
       const weekRanked = rankEntries(weekData.entries, prevWeekData.entries);
       const monthRanked = rankEntries(monthData.entries, prevMonthData.entries);
@@ -399,8 +401,8 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
           type: 'week',
           startDate: weekStart.toISOString(),
           endDate: weekEnd.toISOString(),
-          label: formatWeekLabel(weekStart, weekEnd, getGameweekNumber(weekStart, seasonStartDate)),
-          gameweek: getGameweekNumber(weekStart, seasonStartDate),
+          label: formatWeekLabel(weekStart, weekEnd, getGameweekNumber(weekStart, seasonStartDate, firstGW)),
+          gameweek: getGameweekNumber(weekStart, seasonStartDate, firstGW),
           hasPrevious: weekStart > seasonStartDate,
           hasNext: weekEnd < now,
         },
@@ -438,13 +440,13 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
     let periodLabel: string;
     
     if (period === 'week') {
-      periodStart = getWeekStart(referenceDate);
-      periodEnd = getWeekEnd(referenceDate);
+      periodStart = getWeekStart(referenceDate, firstGW);
+      periodEnd = getWeekEnd(referenceDate, firstGW);
       prevPeriodStart = new Date(periodStart);
       prevPeriodStart.setDate(prevPeriodStart.getDate() - 7);
       prevPeriodEnd = new Date(periodEnd);
       prevPeriodEnd.setDate(prevPeriodEnd.getDate() - 7);
-      periodLabel = formatWeekLabel(periodStart, periodEnd, getGameweekNumber(periodStart, seasonStartDate));
+      periodLabel = formatWeekLabel(periodStart, periodEnd, getGameweekNumber(periodStart, seasonStartDate, firstGW));
     } else if (period === 'month') {
       periodStart = getMonthStart(referenceDate);
       periodEnd = getMonthEnd(referenceDate);
@@ -461,9 +463,9 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
     }
     
     // Calculate current and previous period
-    const currentData = await calculateLeaderboard(picks, userMap, seasonTournaments, allScores, periodStart, periodEnd);
+    const currentData = await calculateLeaderboard(picks, userMap, seasonTournaments, allScores, periodStart, periodEnd, firstGW);
     const previousData = period !== 'season' 
-      ? await calculateLeaderboard(picks, userMap, seasonTournaments, allScores, prevPeriodStart, prevPeriodEnd)
+      ? await calculateLeaderboard(picks, userMap, seasonTournaments, allScores, prevPeriodStart, prevPeriodEnd, firstGW)
       : null;
     
     const ranked = rankEntries(currentData.entries, previousData?.entries || null);
@@ -474,7 +476,7 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
     
     if (period === 'week') {
       hasPrevious = periodStart > seasonStartDate;
-      hasNext = periodEnd < getWeekEnd(now);
+      hasNext = periodEnd < getWeekEnd(now, firstGW);
     } else if (period === 'month') {
       hasPrevious = periodStart > seasonStartDate;
       hasNext = periodEnd < getMonthEnd(now);
@@ -487,7 +489,7 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
         startDate: periodStart.toISOString(),
         endDate: periodEnd.toISOString(),
         label: periodLabel,
-        gameweek: period === 'week' ? getGameweekNumber(periodStart, seasonStartDate) : undefined,
+        gameweek: period === 'week' ? getGameweekNumber(periodStart, seasonStartDate, firstGW) : undefined,
         hasPrevious,
         hasNext,
       },

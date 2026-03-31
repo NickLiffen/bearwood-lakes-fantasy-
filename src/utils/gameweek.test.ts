@@ -1,6 +1,7 @@
 import {
   getSaturdayOfWeek,
   getSeasonFirstSaturday,
+  getFirstGameweekStart,
   getGameweekNumber,
   formatDateString,
   formatWeekLabel,
@@ -208,5 +209,65 @@ describe('generateMonthOptions', () => {
     const options = generateMonthOptions(futureDate.toISOString());
     // Should still return at least one option (the start month)
     expect(options.length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe('GW1 Friday start (firstGameweekStart override)', () => {
+  const seasonStart = new Date(2026, 3, 1); // April 1
+  const firstGW = '2026-04-03T08:00:00'; // Friday April 3
+
+  describe('getFirstGameweekStart', () => {
+    it('returns Friday Apr 3 when firstGameweekStart provided', () => {
+      const result = getFirstGameweekStart(seasonStart, firstGW);
+      expect(result.getDate()).toBe(3);
+      expect(result.getMonth()).toBe(3);
+    });
+
+    it('falls back to Saturday Apr 4 without override', () => {
+      const result = getFirstGameweekStart(seasonStart);
+      expect(result.getDate()).toBe(4);
+      expect(result.getDay()).toBe(6);
+    });
+  });
+
+  describe('getSaturdayOfWeek with firstGameweekStart', () => {
+    it('returns Friday Apr 3 for dates within GW1', () => {
+      const result = getSaturdayOfWeek(new Date(2026, 3, 7), firstGW); // Monday Apr 7
+      expect(result.getDate()).toBe(3);
+    });
+
+    it('returns Saturday Apr 11 for GW2 dates', () => {
+      const result = getSaturdayOfWeek(new Date(2026, 3, 14), firstGW); // Tuesday Apr 14
+      expect(result.getDate()).toBe(11);
+      expect(result.getDay()).toBe(6);
+    });
+  });
+
+  describe('getGameweekNumber with firstGameweekStart', () => {
+    it('returns GW1 for Friday Apr 3', () => {
+      const fri = new Date(2026, 3, 3);
+      fri.setHours(0, 0, 0, 0);
+      expect(getGameweekNumber(fri, seasonStart, firstGW)).toBe(1);
+    });
+
+    it('returns GW2 for Saturday Apr 11', () => {
+      expect(getGameweekNumber(new Date(2026, 3, 11), seasonStart, firstGW)).toBe(2);
+    });
+
+    it('returns GW3 for Saturday Apr 18', () => {
+      expect(getGameweekNumber(new Date(2026, 3, 18), seasonStart, firstGW)).toBe(3);
+    });
+  });
+
+  describe('generateWeekOptions with firstGameweekStart', () => {
+    it('includes GW1 starting on Friday', () => {
+      const options = generateWeekOptions('2026-04-01', '2026-04-01', firstGW);
+      // Should have at least GW1
+      expect(options.length).toBeGreaterThanOrEqual(1);
+      // Last option (earliest week, since reversed) should be GW1 on Friday
+      const gw1Option = options[options.length - 1];
+      expect(gw1Option.value).toBe('2026-04-03');
+      expect(gw1Option.label).toContain('Gameweek 1');
+    });
   });
 });

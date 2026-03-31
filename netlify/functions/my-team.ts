@@ -11,7 +11,7 @@ import { GolferDocument, GOLFERS_COLLECTION } from './_shared/models/Golfer';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
 import { SettingDocument, SETTINGS_COLLECTION } from './_shared/models/Settings';
-import { getWeekStart, getWeekEnd, getTeamEffectiveStartDate, getGameweekNumber, getSeasonFirstSaturday } from './_shared/utils/dates';
+import { getWeekStart, getWeekEnd, getTeamEffectiveStartDate, getGameweekNumber, getFirstGameweekStart } from './_shared/utils/dates';
 import { getTransfersThisWeek } from './_shared/services/picks.service';
 import { getActiveSeason } from './_shared/services/seasons.service';
 import { getTeamGolferScores, getTeamTransferHistory } from './_shared/services/team.service';
@@ -19,9 +19,8 @@ import { getTeamGolferScores, getTeamTransferHistory } from './_shared/services/
 /**
  * Format week label like "Jan 4 - Jan 10"
  */
-function formatWeekLabel(weekStart: Date, gameweek?: number | null): string {
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekEnd.getDate() + 6); // Friday (6 days after Saturday)
+function formatWeekLabel(weekStart: Date, gameweek?: number | null, firstGameweekStart?: Date | null): string {
+  const weekEnd = getWeekEnd(weekStart, firstGameweekStart);
 
   const startMonth = weekStart.toLocaleDateString('en-US', { month: 'short' });
   const startDay = weekStart.getDate();
@@ -63,12 +62,13 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
     ]);
 
     const currentSeason = activeSeason ? (parseInt(activeSeason.name, 10) || new Date().getFullYear()) : new Date().getFullYear();
+    const firstGW = activeSeason?.firstGameweekStart ? new Date(activeSeason.firstGameweekStart) : null;
 
     // If season hasn't started yet and no specific date requested, default to GW1
     if (!dateParam && activeSeason) {
-      const seasonFirstSat = getSeasonFirstSaturday(new Date(activeSeason.startDate));
-      if (new Date() < seasonFirstSat) {
-        targetDate = seasonFirstSat;
+      const seasonFirstGW = getFirstGameweekStart(new Date(activeSeason.startDate), firstGW);
+      if (new Date() < seasonFirstGW) {
+        targetDate = seasonFirstGW;
       }
     }
 
@@ -91,7 +91,7 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
     const now = new Date();
     const seasonStartDate = activeSeason?.startDate ? new Date(activeSeason.startDate) : null;
     const isPreSeason = seasonStartDate ? now < seasonStartDate : false;
-    const teamEffectiveStart = pick ? getTeamEffectiveStartDate(pick.createdAt) : null;
+    const teamEffectiveStart = pick ? getTeamEffectiveStartDate(pick.createdAt, firstGW) : null;
     const isPreFirstGameWeek = teamEffectiveStart ? now < teamEffectiveStart : false;
     const unlimitedTransfers = isPreSeason || isPreFirstGameWeek;
 
@@ -141,20 +141,20 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
       .toArray();
 
     // Time boundaries
-    const currentWeekStart = getWeekStart(now);
-    const currentWeekEnd = getWeekEnd(currentWeekStart);
+    const currentWeekStart = getWeekStart(now, firstGW);
+    const currentWeekEnd = getWeekEnd(currentWeekStart, firstGW);
 
-    // Season's first gameweek (first Saturday of the season)
+    // Season's first gameweek
     const seasonFirstSat = activeSeason?.startDate
-      ? getSeasonFirstSaturday(new Date(activeSeason.startDate))
-      : getWeekStart(new Date());
+      ? getFirstGameweekStart(new Date(activeSeason.startDate), firstGW)
+      : getWeekStart(new Date(), firstGW);
 
     // Selected week boundaries (based on date param or current)
-    const selectedWeekStart = getWeekStart(targetDate);
-    const selectedWeekEnd = getWeekEnd(selectedWeekStart);
+    const selectedWeekStart = getWeekStart(targetDate, firstGW);
+    const selectedWeekEnd = getWeekEnd(selectedWeekStart, firstGW);
 
     // Team effective start date
-    const teamEffectiveStartDate = getTeamEffectiveStartDate(pick.createdAt);
+    const teamEffectiveStartDate = getTeamEffectiveStartDate(pick.createdAt, firstGW);
 
     // Navigation constraints — can't go before season's first Saturday
     const previousWeekStart = new Date(selectedWeekStart);
@@ -177,6 +177,7 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
           selectedWeekStart,
           selectedWeekEnd,
           teamEffectiveStartDate,
+          firstGW,
         ),
       ),
       getTeamTransferHistory(db, event.user.userId, currentSeason),
@@ -208,8 +209,8 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
             period: {
               weekStart: selectedWeekStart.toISOString(),
               weekEnd: selectedWeekEnd.toISOString(),
-              label: formatWeekLabel(selectedWeekStart, activeSeason ? getGameweekNumber(selectedWeekStart, new Date(activeSeason.startDate)) : null),
-              gameweek: activeSeason ? getGameweekNumber(selectedWeekStart, new Date(activeSeason.startDate)) : null,
+              label: formatWeekLabel(selectedWeekStart, activeSeason ? getGameweekNumber(selectedWeekStart, new Date(activeSeason.startDate), firstGW) : null, firstGW),
+              gameweek: activeSeason ? getGameweekNumber(selectedWeekStart, new Date(activeSeason.startDate), firstGW) : null,
               hasPrevious,
               hasNext,
             },

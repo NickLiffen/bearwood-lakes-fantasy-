@@ -48,6 +48,16 @@ vi.mock('./_shared/utils/dates', () => ({
     while (date.getDay() !== 6) date.setDate(date.getDate() + 1);
     return date;
   }),
+  getFirstGameweekStart: vi.fn().mockImplementation((seasonStartDate: Date, firstGameweekStart?: Date | null) => {
+    if (firstGameweekStart) {
+      const d = new Date(firstGameweekStart);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+    const date = new Date(seasonStartDate);
+    while (date.getDay() !== 6) date.setDate(date.getDate() + 1);
+    return date;
+  }),
 }));
 
 const mockSeason = {

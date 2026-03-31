@@ -142,6 +142,7 @@ async function seed() {
         name: '2026',
         startDate: new Date('2026-04-01'),
         endDate: new Date('2027-03-30'),
+        firstGameweekStart: new Date(2026, 3, 3, 8, 0), // Fri Apr 3, 2026 8am
         isActive: true,
         status: 'setup',
         createdAt: new Date(),

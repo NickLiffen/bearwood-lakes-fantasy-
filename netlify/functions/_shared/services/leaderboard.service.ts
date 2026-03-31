@@ -101,7 +101,11 @@ async function getCurrentSeason(): Promise<number> {
 }
 
 export async function getFullLeaderboard(season?: number): Promise<FullLeaderboardResponse> {
-  const currentSeason = season ?? (await getCurrentSeason());
+  const activeSeason = await getActiveSeason();
+  const currentSeason = season ?? (activeSeason
+    ? parseInt(activeSeason.name, 10) || new Date().getFullYear()
+    : new Date().getFullYear());
+  const firstGW = activeSeason?.firstGameweekStart ? new Date(activeSeason.firstGameweekStart) : null;
   const cacheKey = leaderboardCacheKey('full', currentSeason);
 
   const cached = await getCachedLeaderboard<FullLeaderboardResponse>(cacheKey);
@@ -113,8 +117,8 @@ export async function getFullLeaderboard(season?: number): Promise<FullLeaderboa
   const seasonStart = getSeasonStart();
   const monthStart = getMonthStart();
   const monthEnd = getMonthEnd();
-  const weekStart = getWeekStart();
-  const weekEnd = getWeekEnd(weekStart);
+  const weekStart = getWeekStart(undefined, firstGW);
+  const weekEnd = getWeekEnd(weekStart, firstGW);
 
   const emptyResponse: FullLeaderboardResponse = {
     season: [],
@@ -197,7 +201,7 @@ export async function getFullLeaderboard(season?: number): Promise<FullLeaderboa
   }> = [];
 
   for (const pick of pickResults) {
-    const teamEffectiveStart = getTeamEffectiveStartDate(pick.createdAt);
+    const teamEffectiveStart = getTeamEffectiveStartDate(pick.createdAt, firstGW);
     const captainIdStr = pick.captainId?.toString();
 
     let seasonPoints = 0;
@@ -287,7 +291,11 @@ export async function getFullLeaderboard(season?: number): Promise<FullLeaderboa
 }
 
 export async function getLeaderboard(season?: number): Promise<LeaderboardEntry[]> {
-  const currentSeason = season ?? (await getCurrentSeason());
+  const activeSeason = await getActiveSeason();
+  const currentSeason = season ?? (activeSeason
+    ? parseInt(activeSeason.name, 10) || new Date().getFullYear()
+    : new Date().getFullYear());
+  const firstGW = activeSeason?.firstGameweekStart ? new Date(activeSeason.firstGameweekStart) : null;
   const cacheKey = leaderboardCacheKey('simple', currentSeason);
 
   const cached = await getCachedLeaderboard<LeaderboardEntry[]>(cacheKey);
@@ -356,7 +364,7 @@ export async function getLeaderboard(season?: number): Promise<LeaderboardEntry[
 
   for (const pick of pickResults) {
     pickUserIds.push(pick.userId);
-    const teamEffectiveStart = getTeamEffectiveStartDate(pick.createdAt);
+    const teamEffectiveStart = getTeamEffectiveStartDate(pick.createdAt, firstGW);
     const captainIdStr = pick.captainId?.toString();
     let totalPoints = 0;
 
@@ -413,7 +421,11 @@ export async function getTournamentLeaderboard(
   tournamentId: string,
   season?: number
 ): Promise<LeaderboardEntry[]> {
-  const currentSeason = season ?? (await getCurrentSeason());
+  const activeSeason = await getActiveSeason();
+  const currentSeason = season ?? (activeSeason
+    ? parseInt(activeSeason.name, 10) || new Date().getFullYear()
+    : new Date().getFullYear());
+  const firstGW = activeSeason?.firstGameweekStart ? new Date(activeSeason.firstGameweekStart) : null;
   const cacheKey = leaderboardCacheKey('tournament', currentSeason, tournamentId);
 
   const cached = await getCachedLeaderboard<LeaderboardEntry[]>(cacheKey);
@@ -485,7 +497,7 @@ export async function getTournamentLeaderboard(
 
   for (const pick of pickResults) {
     pickUserIds.push(pick.userId);
-    const teamEffectiveStart = getTeamEffectiveStartDate(pick.createdAt);
+    const teamEffectiveStart = getTeamEffectiveStartDate(pick.createdAt, firstGW);
     const captainIdStr = pick.captainId?.toString();
     let totalPoints = 0;
 

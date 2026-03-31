@@ -10,26 +10,41 @@ import { useActiveSeason } from '../../hooks/useActiveSeason';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import './DashboardPage.css';
 
-// Get the next Saturday at 8am (weekly deadline)
-const getNextSaturdayDeadline = (): Date => {
+// Get the next weekly deadline at 8am
+// During GW1 (when firstGameweekStart is provided and we're before GW2), deadline is the
+// first Saturday after GW1 start + 7 days (GW2 start). After that, normal Saturday 8am.
+const getNextWeeklyDeadline = (firstGameweekStart?: string): Date => {
   const now = new Date();
+
+  // If we have a GW1 override, check if we're currently in GW1
+  if (firstGameweekStart) {
+    const gw1Start = new Date(firstGameweekStart);
+    gw1Start.setHours(8, 0, 0, 0);
+    // GW2 starts on the first Saturday after GW1 start + 7 days
+    const gw2Start = new Date(firstGameweekStart);
+    while (gw2Start.getDay() !== 6) gw2Start.setDate(gw2Start.getDate() + 1);
+    gw2Start.setDate(gw2Start.getDate() + 7);
+    gw2Start.setHours(8, 0, 0, 0);
+
+    if (now < gw2Start) {
+      // We're before GW2 — deadline is GW2 start (Saturday at 8am)
+      return gw2Start;
+    }
+  }
+
+  // Normal Saturday 8am deadline
   const dayOfWeek = now.getDay(); // 0 = Sunday, 6 = Saturday
 
-  // Calculate days until next Saturday
   let daysUntilSaturday: number;
   if (dayOfWeek === 6) {
-    // It's Saturday - check if we're past 8am
     const saturdayDeadline = new Date(now);
     saturdayDeadline.setHours(8, 0, 0, 0);
     if (now >= saturdayDeadline) {
-      // Past 8am Saturday, next deadline is next Saturday
       daysUntilSaturday = 7;
     } else {
-      // Before 8am Saturday, deadline is today
       daysUntilSaturday = 0;
     }
   } else {
-    // Days until Saturday: Saturday(6) - currentDay, but if Sunday(0), it's 6 days
     daysUntilSaturday = (6 - dayOfWeek + 7) % 7;
     if (daysUntilSaturday === 0) daysUntilSaturday = 7;
   }
@@ -47,26 +62,41 @@ interface TimeRemaining {
   seconds: number;
 }
 
-// Get the first Saturday on or after a date (season GW1 start)
-const getSeasonFirstSaturday = (date: Date): Date => {
-  const d = new Date(date);
+// Get the GW1 start date — uses firstGameweekStart override if provided, otherwise first Saturday
+const getGW1Start = (seasonStartDate: Date, firstGameweekStart?: string): Date => {
+  if (firstGameweekStart) {
+    const d = new Date(firstGameweekStart);
+    d.setHours(8, 0, 0, 0);
+    return d;
+  }
+  const d = new Date(seasonStartDate);
   while (d.getDay() !== 6) d.setDate(d.getDate() + 1);
   d.setHours(8, 0, 0, 0);
   return d;
 };
 
 // Memoized countdown timer component to prevent parent re-renders
-const CountdownTimer = memo(({ seasonStartDate }: { seasonStartDate?: string }) => {
-  const getDeadline = useCallback((): { date: Date; isSeasonCountdown: boolean } => {
-    // Check if season hasn't started yet
-    if (seasonStartDate) {
-      const seasonStart = getSeasonFirstSaturday(new Date(seasonStartDate));
-      if (new Date() < seasonStart) {
-        return { date: seasonStart, isSeasonCountdown: true };
+const CountdownTimer = memo(
+  ({
+    seasonStartDate,
+    firstGameweekStart,
+  }: {
+    seasonStartDate?: string;
+    firstGameweekStart?: string;
+  }) => {
+    const getDeadline = useCallback((): { date: Date; isSeasonCountdown: boolean } => {
+      // Check if season hasn't started yet
+      if (seasonStartDate) {
+        const gw1Start = getGW1Start(new Date(seasonStartDate), firstGameweekStart);
+        if (new Date() < gw1Start) {
+          return { date: gw1Start, isSeasonCountdown: true };
+        }
       }
-    }
-    return { date: getNextSaturdayDeadline(), isSeasonCountdown: false };
-  }, [seasonStartDate]);
+      return {
+        date: getNextWeeklyDeadline(firstGameweekStart),
+        isSeasonCountdown: false,
+      };
+    }, [seasonStartDate, firstGameweekStart]);
 
   const [deadlineInfo, setDeadlineInfo] = useState(() => getDeadline());
   const [timeRemaining, setTimeRemaining] = useState<TimeRemaining>(() => {
@@ -126,7 +156,7 @@ const CountdownTimer = memo(({ seasonStartDate }: { seasonStartDate?: string }) 
       <p className="countdown-subtitle">
         {deadlineInfo.isSeasonCountdown
           ? `Get your team in before ${seasonStartFormatted} at 8am`
-          : 'Get your team in before Saturday 8am'}
+          : `Get your team in before ${deadlineInfo.date.toLocaleDateString('en-GB', { weekday: 'long' })} 8am`}
       </p>
       <div className="countdown-timer">
         <div className="countdown-unit">
@@ -330,7 +360,12 @@ const DashboardPage: React.FC = () => {
           )}
 
           {/* Weekly Deadline Countdown */}
-          {season && <CountdownTimer seasonStartDate={season.startDate?.toString()} />}
+          {season && (
+            <CountdownTimer
+              seasonStartDate={season.startDate?.toString()}
+              firstGameweekStart={season.firstGameweekStart?.toString()}
+            />
+          )}
 
           {/* Incomplete Team Banner - only show if has team but less than 6 golfers */}
           {!statsLoading && hasTeam && golferCount < 6 && (

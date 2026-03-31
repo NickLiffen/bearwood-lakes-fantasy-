@@ -8,6 +8,7 @@ interface Season {
   name: string;
   startDate: string;
   endDate: string;
+  firstGameweekStart?: string;
   isActive: boolean;
   status: 'setup' | 'active' | 'complete';
 }

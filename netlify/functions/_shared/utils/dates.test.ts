@@ -11,6 +11,7 @@ import {
   isDateInPeriod,
   getSeasonFirstSaturday,
   getGameweekNumber,
+  getFirstGameweekStart,
 } from './dates';
 
 describe('getWeekStart', () => {
@@ -296,7 +297,129 @@ describe('getGameweekNumber', () => {
   it('calculates correct gameweek for mid-season', () => {
     const seasonStart = new Date(2025, 0, 1);
     // First Saturday is Jan 4 (GW1). Jan 11 = GW2, ..., Mar 15 = 10 weeks after Jan 4
-    const tenWeeksLater = new Date(2025, 2, 15); // Saturday
-    expect(getGameweekNumber(tenWeeksLater, seasonStart)).toBe(10);
+    const tenWeeksLater = new Date(2025, 2, 15); // Saturday Mar 15
+    // Jan 4 → Mar 15 = 70 days = 10 full weeks → floor(10) + 1 = GW 11
+    expect(getGameweekNumber(tenWeeksLater, seasonStart)).toBe(11);
+  });
+});
+
+describe('GW1 Friday start (firstGameweekStart override)', () => {
+  // 2026 season: startDate = Apr 1 (Wed), firstGameweekStart = Apr 3 (Fri)
+  const seasonStart = new Date(2026, 3, 1);
+  const firstGW = new Date(2026, 3, 3, 8, 0); // Friday April 3, 2026 8am
+
+  describe('getFirstGameweekStart', () => {
+    it('returns firstGameweekStart when provided', () => {
+      const result = getFirstGameweekStart(seasonStart, firstGW);
+      expect(result.getDate()).toBe(3);
+      expect(result.getMonth()).toBe(3); // April
+      expect(result.getHours()).toBe(0); // normalized to midnight
+    });
+
+    it('falls back to first Saturday when not provided', () => {
+      const result = getFirstGameweekStart(seasonStart);
+      expect(result.getDate()).toBe(4); // Saturday April 4
+      expect(result.getDay()).toBe(6);
+    });
+  });
+
+  describe('getWeekStart with firstGameweekStart', () => {
+    it('returns Friday Apr 3 for a date on Friday Apr 3', () => {
+      const result = getWeekStart(new Date(2026, 3, 3, 10, 0), firstGW);
+      expect(result.getDate()).toBe(3);
+      expect(result.getDay()).toBe(5); // Friday
+    });
+
+    it('returns Friday Apr 3 for a date on Wednesday Apr 8 (mid-GW1)', () => {
+      const result = getWeekStart(new Date(2026, 3, 8), firstGW);
+      expect(result.getDate()).toBe(3); // Still in GW1
+    });
+
+    it('returns Friday Apr 3 for a date on Friday Apr 10 (last day of GW1)', () => {
+      const result = getWeekStart(new Date(2026, 3, 10, 23, 0), firstGW);
+      expect(result.getDate()).toBe(3);
+    });
+
+    it('returns Saturday Apr 11 for a date on Saturday Apr 11 (GW2)', () => {
+      const result = getWeekStart(new Date(2026, 3, 11), firstGW);
+      expect(result.getDate()).toBe(11);
+      expect(result.getDay()).toBe(6); // Saturday
+    });
+
+    it('returns Saturday Apr 18 for a date in GW3', () => {
+      const result = getWeekStart(new Date(2026, 3, 20), firstGW); // Monday Apr 20
+      expect(result.getDate()).toBe(18);
+      expect(result.getDay()).toBe(6);
+    });
+
+    it('uses normal Saturday logic for dates before GW1', () => {
+      const result = getWeekStart(new Date(2026, 2, 30), firstGW); // March 30 (Monday)
+      expect(result.getDay()).toBe(6); // Previous Saturday (Mar 28)
+      expect(result.getDate()).toBe(28);
+    });
+  });
+
+  describe('getWeekEnd with firstGameweekStart', () => {
+    it('returns Friday Apr 10 23:59:59.999 for GW1', () => {
+      const gw1Start = new Date(2026, 3, 3);
+      gw1Start.setHours(0, 0, 0, 0);
+      const result = getWeekEnd(gw1Start, firstGW);
+      expect(result.getDate()).toBe(10); // Friday Apr 10
+      expect(result.getHours()).toBe(23);
+      expect(result.getMinutes()).toBe(59);
+      expect(result.getSeconds()).toBe(59);
+      expect(result.getMilliseconds()).toBe(999);
+    });
+
+    it('returns normal 7-day end for GW2', () => {
+      const gw2Start = new Date(2026, 3, 11);
+      gw2Start.setHours(0, 0, 0, 0);
+      const result = getWeekEnd(gw2Start, firstGW);
+      expect(result.getDate()).toBe(17); // Friday Apr 17
+    });
+  });
+
+  describe('getGameweekNumber with firstGameweekStart', () => {
+    it('returns GW1 for Friday Apr 3', () => {
+      const fri = new Date(2026, 3, 3);
+      fri.setHours(0, 0, 0, 0);
+      expect(getGameweekNumber(fri, seasonStart, firstGW)).toBe(1);
+    });
+
+    it('returns GW2 for Saturday Apr 11', () => {
+      const sat = new Date(2026, 3, 11);
+      sat.setHours(0, 0, 0, 0);
+      expect(getGameweekNumber(sat, seasonStart, firstGW)).toBe(2);
+    });
+
+    it('returns GW3 for Saturday Apr 18', () => {
+      const sat = new Date(2026, 3, 18);
+      sat.setHours(0, 0, 0, 0);
+      expect(getGameweekNumber(sat, seasonStart, firstGW)).toBe(3);
+    });
+  });
+
+  describe('getNextWeekStart with firstGameweekStart', () => {
+    it('returns GW2 start (Sat Apr 11 8am) when inside GW1', () => {
+      const result = getNextWeekStart(new Date(2026, 3, 5), firstGW); // Sunday Apr 5, inside GW1
+      expect(result.getDate()).toBe(11);
+      expect(result.getDay()).toBe(6);
+      expect(result.getHours()).toBe(8);
+    });
+
+    it('returns normal next Saturday for GW2+', () => {
+      const result = getNextWeekStart(new Date(2026, 3, 13), firstGW); // Monday Apr 13, GW2
+      expect(result.getDate()).toBe(18);
+      expect(result.getDay()).toBe(6);
+      expect(result.getHours()).toBe(8);
+    });
+  });
+
+  describe('getTeamEffectiveStartDate with firstGameweekStart', () => {
+    it('returns GW2 start for team created during GW1', () => {
+      const result = getTeamEffectiveStartDate(new Date(2026, 3, 5), firstGW);
+      expect(result.getDate()).toBe(11); // Sat Apr 11
+      expect(result.getHours()).toBe(8);
+    });
   });
 });

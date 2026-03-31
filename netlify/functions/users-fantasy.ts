@@ -36,6 +36,7 @@ export const handler: Handler = withVerifiedAuth(async () => {
     // Get current season from active season
     const activeSeason = await getActiveSeason();
     const currentSeason = activeSeason ? (parseInt(activeSeason.name, 10) || new Date().getFullYear()) : new Date().getFullYear();
+    const firstGW = activeSeason?.firstGameweekStart ? new Date(activeSeason.firstGameweekStart) : null;
 
     // Parallelize independent queries for faster response
     const [users, picks, tournaments] = await Promise.all([
@@ -85,7 +86,7 @@ export const handler: Handler = withVerifiedAuth(async () => {
 
     // Time boundaries
     const now = new Date();
-    const weekStart = getWeekStart(now);
+    const weekStart = getWeekStart(now, firstGW);
     const monthStart = getMonthStart(now);
     const seasonStart = getSeasonStart();
 
@@ -117,7 +118,7 @@ export const handler: Handler = withVerifiedAuth(async () => {
       let seasonPoints = 0;
 
       // Team only earns points from tournaments starting on or after their effective start date
-      const teamEffectiveStart = getTeamEffectiveStartDate(pick.createdAt);
+      const teamEffectiveStart = getTeamEffectiveStartDate(pick.createdAt, firstGW);
 
       for (const golferId of pick.golferIds) {
         const golferScores = scoresByGolferTournament.get(golferId.toString());

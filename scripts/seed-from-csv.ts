@@ -267,6 +267,7 @@ async function seedFromCsv() {
         name: '2026',
         startDate: new Date(2026, 3, 1), // Apr 1, 2026
         endDate: new Date(2027, 2, 31), // Mar 31, 2027
+        firstGameweekStart: new Date(2026, 3, 3, 8, 0), // Fri Apr 3, 2026 8am
         isActive: true,
         status: 'setup' as const,
         createdAt: now,
