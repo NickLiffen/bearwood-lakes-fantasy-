@@ -26,7 +26,8 @@
     "db:delete": "npx tsx scripts/delete.ts",
     "db:backup": "npx tsx scripts/backup.ts",
     "db:restore": "npx tsx scripts/restore.ts",
-    "db:migrate-gw1": "npx tsx scripts/migrate-gw1-friday.ts"
+    "db:migrate-gw1": "npx tsx scripts/migrate-gw1-friday.ts",
+    "db:simulate": "npx tsx scripts/simulate-season.ts"
   },
   "dependencies": {
     "ioredis": "^5.9.3",

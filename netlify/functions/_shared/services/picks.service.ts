@@ -387,6 +387,16 @@ export async function applyPendingChanges(userId: string): Promise<boolean> {
       .find({ _id: { $in: pick.pendingGolferIds } })
       .toArray();
     updateSet.totalSpent = golfers.reduce((sum, g) => sum + (g.price || 0), 0);
+
+    // If captain was swapped out and no pendingCaptainId set, reassign to first golfer
+    if (pick.captainId && pick.pendingCaptainId === undefined) {
+      const captainStillOnTeam = pick.pendingGolferIds.some(
+        (id) => id.toString() === pick.captainId?.toString()
+      );
+      if (!captainStillOnTeam) {
+        updateSet.captainId = pick.pendingGolferIds[0];
+      }
+    }
   }
 
   if (pick.pendingCaptainId !== undefined) {
