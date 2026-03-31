@@ -2,7 +2,11 @@
 // Run with: npx tsx scripts/migrate-gw1-friday.ts
 
 import { MongoClient } from 'mongodb';
-import 'dotenv/config';
+import dotenv from 'dotenv';
+
+// Load .env.local first (production), then .env as fallback
+dotenv.config({ path: '.env.local' });
+dotenv.config();
 
 async function main() {
   const uri = process.env.MONGODB_URI;
