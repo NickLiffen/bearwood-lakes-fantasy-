@@ -3,7 +3,7 @@ import { handler } from './my-team';
 import { makeAuthEvent, mockContext, parseBody, createMockDb, mockCursor } from './__test-utils__';
 import { connectToDatabase } from './_shared/db';
 import { getActiveSeason } from './_shared/services/seasons.service';
-import { getTransfersThisWeek, applyPendingChanges } from './_shared/services/picks.service';
+import { getTransfersThisWeek } from './_shared/services/picks.service';
 
 const { mockVerifyToken } = vi.hoisted(() => ({
   mockVerifyToken: vi.fn(),
@@ -29,39 +29,58 @@ vi.mock('./_shared/services/picks.service', () => ({
   getTransfersThisWeek: vi.fn(),
   applyPendingChanges: vi.fn().mockResolvedValue(false),
 }));
-vi.mock('./_shared/utils/dates', () => ({
-  getWeekStart: vi.fn().mockImplementation((d: Date) => {
-    const date = new Date(d);
-    date.setDate(date.getDate() - ((date.getDay() + 1) % 7));
-    date.setHours(0, 0, 0, 0);
-    return date;
-  }),
-  getWeekEnd: vi.fn().mockImplementation((ws: Date) => {
-    const end = new Date(ws);
-    end.setDate(end.getDate() + 6);
-    end.setHours(23, 59, 59, 999);
-    return end;
-  }),
-  getMonthStart: vi.fn().mockImplementation((d: Date) => new Date(d.getFullYear(), d.getMonth(), 1)),
-  getMonthEnd: vi.fn().mockImplementation((d: Date) => new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999)),
-  getTeamEffectiveStartDate: vi.fn().mockImplementation((d: Date) => new Date(d)),
-  getGameweekNumber: vi.fn().mockReturnValue(3),
-  getSeasonFirstSaturday: vi.fn().mockImplementation((d: Date) => {
+vi.mock('./_shared/utils/dates', () => {
+  const getSeasonFirstSaturdayImpl = (d: Date) => {
     const date = new Date(d);
     while (date.getDay() !== 6) date.setDate(date.getDate() + 1);
+    date.setHours(0, 0, 0, 0);
     return date;
-  }),
-  getFirstGameweekStart: vi.fn().mockImplementation((seasonStartDate: Date, firstGameweekStart?: Date | null) => {
+  };
+  const getFirstGameweekStartImpl = (seasonStartDate: Date, firstGameweekStart?: Date | null) => {
     if (firstGameweekStart) {
       const d = new Date(firstGameweekStart);
       d.setHours(0, 0, 0, 0);
       return d;
     }
-    const date = new Date(seasonStartDate);
-    while (date.getDay() !== 6) date.setDate(date.getDate() + 1);
-    return date;
-  }),
-}));
+    return getSeasonFirstSaturdayImpl(seasonStartDate);
+  };
+  const getTeamEffectiveStartDateImpl = (d: Date) => new Date(d);
+
+  return {
+    getWeekStart: vi.fn().mockImplementation((d: Date) => {
+      const date = new Date(d);
+      date.setDate(date.getDate() - ((date.getDay() + 1) % 7));
+      date.setHours(0, 0, 0, 0);
+      return date;
+    }),
+    getWeekEnd: vi.fn().mockImplementation((ws: Date) => {
+      const end = new Date(ws);
+      end.setDate(end.getDate() + 6);
+      end.setHours(23, 59, 59, 999);
+      return end;
+    }),
+    getMonthStart: vi.fn().mockImplementation((d: Date) => new Date(d.getFullYear(), d.getMonth(), 1)),
+    getMonthEnd: vi.fn().mockImplementation((d: Date) => new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999)),
+    getTeamEffectiveStartDate: vi.fn().mockImplementation(getTeamEffectiveStartDateImpl),
+    getGameweekNumber: vi.fn().mockReturnValue(3),
+    getSeasonFirstSaturday: vi.fn().mockImplementation(getSeasonFirstSaturdayImpl),
+    getFirstGameweekStart: vi.fn().mockImplementation(getFirstGameweekStartImpl),
+    hasUnlimitedTransfers: vi.fn().mockImplementation(
+      (seasonStartDate: Date | null, firstGameweekStart: Date | null, teamCreatedAt?: Date | null, now: Date = new Date()) => {
+        const isPreSeason = seasonStartDate ? now < seasonStartDate : false;
+        const firstGWDate = seasonStartDate
+          ? (firstGameweekStart ? new Date(firstGameweekStart) : getSeasonFirstSaturdayImpl(seasonStartDate))
+          : null;
+        const isBeforeFirstGameweek = firstGWDate ? now < firstGWDate : false;
+        const teamEffective = teamCreatedAt !== undefined && teamCreatedAt !== null
+          ? getTeamEffectiveStartDateImpl(teamCreatedAt)
+          : null;
+        const isPreFirstGameWeek = teamEffective ? now < teamEffective : false;
+        return isPreSeason || isBeforeFirstGameweek || isPreFirstGameWeek;
+      }
+    ),
+  };
+});
 
 const mockSeason = {
   _id: 'season-1',
@@ -348,5 +367,136 @@ describe('my-team handler', () => {
     expect(body.data.team.period).toHaveProperty('hasNext');
     expect(body.data.team.period).toHaveProperty('weekStart');
     expect(body.data.team.period).toHaveProperty('weekEnd');
+  });
+
+  describe('unlimitedTransfers flag', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    const preSeasonSeason = {
+      _id: 'season-pre',
+      name: '2026',
+      startDate: new Date('2026-04-01'),
+      endDate: new Date('2026-12-31'),
+      firstGameweekStart: new Date('2026-04-03T08:00:00Z'),
+      isActive: true,
+    };
+
+    const golfers = [
+      {
+        _id: golferId1,
+        firstName: 'Rory',
+        lastName: 'McIlroy',
+        picture: null,
+        price: 12_000_000,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        _id: golferId2,
+        firstName: 'Tiger',
+        lastName: 'Woods',
+        picture: null,
+        price: 13_000_000,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ];
+
+    it('returns unlimitedTransfers:true when before season startDate (pre-season)', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-03-15T12:00:00Z'));
+
+      vi.mocked(getActiveSeason).mockResolvedValue(preSeasonSeason as any);
+      setupDb();
+
+      const res = await handler(makeAuthEvent(), mockContext);
+      const body = parseBody(res!);
+
+      expect(res!.statusCode).toBe(200);
+      expect(body.data.hasTeam).toBe(false);
+      expect(body.data.unlimitedTransfers).toBe(true);
+    });
+
+    it('returns unlimitedTransfers:true when between season.startDate and firstGameweekStart', async () => {
+      // Season started March 1, GW1 starts April 3 — current date April 1 (before GW1)
+      const season = {
+        ...preSeasonSeason,
+        startDate: new Date('2026-03-01'),
+      };
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-04-01T12:00:00Z'));
+
+      vi.mocked(getActiveSeason).mockResolvedValue(season as any);
+
+      const pick = {
+        userId: userObjectId,
+        golferIds: [golferId1, golferId2],
+        captainId: null,
+        totalSpent: 25_000_000,
+        season: 2026,
+        createdAt: new Date('2026-03-15'),
+        updatedAt: new Date('2026-03-15'),
+      };
+      setupDb({ pick, golfers });
+
+      const res = await handler(makeAuthEvent(), mockContext);
+      const body = parseBody(res!);
+
+      expect(res!.statusCode).toBe(200);
+      expect(body.data.unlimitedTransfers).toBe(true);
+    });
+
+    it('returns unlimitedTransfers:false when after firstGameweekStart', async () => {
+      // Season started March 1, GW1 started April 3 — current date April 5 (after GW1)
+      const season = {
+        ...preSeasonSeason,
+        startDate: new Date('2026-03-01'),
+      };
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-04-05T12:00:00Z'));
+
+      vi.mocked(getActiveSeason).mockResolvedValue(season as any);
+
+      const pick = {
+        userId: userObjectId,
+        golferIds: [golferId1, golferId2],
+        captainId: null,
+        totalSpent: 25_000_000,
+        season: 2026,
+        createdAt: new Date('2026-03-01'),
+        updatedAt: new Date('2026-03-01'),
+      };
+      setupDb({ pick, golfers });
+
+      const res = await handler(makeAuthEvent(), mockContext);
+      const body = parseBody(res!);
+
+      expect(res!.statusCode).toBe(200);
+      expect(body.data.unlimitedTransfers).toBe(false);
+    });
+
+    it('returns unlimitedTransfers:true for no-team user when before firstGameweekStart', async () => {
+      // Season started March 1, GW1 starts April 3 — current date April 1
+      const season = {
+        ...preSeasonSeason,
+        startDate: new Date('2026-03-01'),
+      };
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-04-01T12:00:00Z'));
+
+      vi.mocked(getActiveSeason).mockResolvedValue(season as any);
+      setupDb(); // No pick
+
+      const res = await handler(makeAuthEvent(), mockContext);
+      const body = parseBody(res!);
+
+      expect(res!.statusCode).toBe(200);
+      expect(body.data.hasTeam).toBe(false);
+      expect(body.data.unlimitedTransfers).toBe(true);
+    });
   });
 });

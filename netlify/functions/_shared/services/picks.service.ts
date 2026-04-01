@@ -13,7 +13,7 @@ import { GolferDocument, GOLFERS_COLLECTION } from '../models/Golfer';
 import { SettingDocument, SETTINGS_COLLECTION } from '../models/Settings';
 import { BUDGET_CAP, MAX_GOLFERS } from '../../../../shared/constants/rules';
 import type { Pick, PickWithGolfers, PickHistory } from '../../../../shared/types';
-import { getWeekStart, getTeamEffectiveStartDate } from '../utils/dates';
+import { getWeekStart, hasUnlimitedTransfers as checkUnlimitedTransfers } from '../utils/dates';
 import { getActiveSeason } from './seasons.service';
 
 async function getCurrentSeason(): Promise<number> {
@@ -166,10 +166,12 @@ export async function savePicks(
     const firstGW = activeSeason?.firstGameweekStart
       ? new Date(activeSeason.firstGameweekStart)
       : null;
-    const teamEffectiveStart = getTeamEffectiveStartDate(existingPick.createdAt, firstGW);
-    const isPreSeason = !!(seasonStartDate && checkNow < seasonStartDate);
-    const isPreFirstGameWeek = checkNow < teamEffectiveStart;
-    hasUnlimitedTransfers = isPreSeason || isPreFirstGameWeek;
+    hasUnlimitedTransfers = checkUnlimitedTransfers(
+      seasonStartDate,
+      firstGW,
+      existingPick.createdAt,
+      checkNow,
+    );
 
     if (isCaptainOnlyChange) {
       // Captain-only changes: need transfersOpen when in-season, no transfer limit

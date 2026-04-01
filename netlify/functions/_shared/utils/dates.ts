@@ -243,3 +243,34 @@ export const getGameweekNumber = (
   const diffWeeks = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000));
   return diffWeeks + 1;
 };
+
+/**
+ * Determine whether unlimited transfers apply right now.
+ *
+ * Unlimited transfers are granted when ANY of these is true:
+ *  1. Before the season start date (pre-season)
+ *  2. Before the first gameweek starts (season active but GW1 hasn't begun)
+ *  3. Before the team's effective start date (grace period for newly created teams)
+ */
+export const hasUnlimitedTransfers = (
+  seasonStartDate: Date | null,
+  firstGameweekStart: Date | null,
+  teamCreatedAt?: Date | string | number | null,
+  now: Date = new Date(),
+): boolean => {
+  const isPreSeason = seasonStartDate ? now < seasonStartDate : false;
+
+  // Use the raw firstGameweekStart (preserves configured time, e.g. 8am)
+  // and only fall back to the calculated first Saturday when it's unset.
+  const firstGWDate = seasonStartDate
+    ? (firstGameweekStart ? new Date(firstGameweekStart) : getSeasonFirstSaturday(seasonStartDate))
+    : null;
+  const isBeforeFirstGameweek = firstGWDate ? now < firstGWDate : false;
+
+  const teamEffectiveStart = teamCreatedAt !== undefined
+    ? getTeamEffectiveStartDate(teamCreatedAt, firstGameweekStart)
+    : null;
+  const isPreFirstGameWeek = teamEffectiveStart ? now < teamEffectiveStart : false;
+
+  return isPreSeason || isBeforeFirstGameweek || isPreFirstGameWeek;
+};
