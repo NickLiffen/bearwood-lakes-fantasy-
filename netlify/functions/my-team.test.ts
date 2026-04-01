@@ -68,7 +68,9 @@ vi.mock('./_shared/utils/dates', () => {
     hasUnlimitedTransfers: vi.fn().mockImplementation(
       (seasonStartDate: Date | null, firstGameweekStart: Date | null, teamCreatedAt?: Date | null, now: Date = new Date()) => {
         const isPreSeason = seasonStartDate ? now < seasonStartDate : false;
-        const firstGWDate = seasonStartDate ? getFirstGameweekStartImpl(seasonStartDate, firstGameweekStart) : null;
+        const firstGWDate = seasonStartDate
+          ? (firstGameweekStart ? new Date(firstGameweekStart) : getSeasonFirstSaturdayImpl(seasonStartDate))
+          : null;
         const isBeforeFirstGameweek = firstGWDate ? now < firstGWDate : false;
         const teamEffective = teamCreatedAt !== undefined && teamCreatedAt !== null
           ? getTeamEffectiveStartDateImpl(teamCreatedAt)

@@ -260,8 +260,10 @@ export const hasUnlimitedTransfers = (
 ): boolean => {
   const isPreSeason = seasonStartDate ? now < seasonStartDate : false;
 
+  // Use the raw firstGameweekStart (preserves configured time, e.g. 8am)
+  // and only fall back to the calculated first Saturday when it's unset.
   const firstGWDate = seasonStartDate
-    ? getFirstGameweekStart(seasonStartDate, firstGameweekStart)
+    ? (firstGameweekStart ? new Date(firstGameweekStart) : getSeasonFirstSaturday(seasonStartDate))
     : null;
   const isBeforeFirstGameweek = firstGWDate ? now < firstGWDate : false;
 

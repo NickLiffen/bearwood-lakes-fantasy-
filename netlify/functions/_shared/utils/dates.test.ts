@@ -469,4 +469,14 @@ describe('hasUnlimitedTransfers', () => {
     const now = new Date('2026-04-01T12:00:00Z');
     expect(hasUnlimitedTransfers(null, null, undefined, now)).toBe(false);
   });
+
+  it('returns true on GW1 day before configured kickoff time (e.g. 07:00 < 08:00)', () => {
+    const now = new Date('2026-04-03T07:00:00Z'); // 7am on GW1 day, kickoff is 8am
+    expect(hasUnlimitedTransfers(seasonStart, firstGW, undefined, now)).toBe(true);
+  });
+
+  it('returns false on GW1 day after configured kickoff time (e.g. 09:00 > 08:00)', () => {
+    const now = new Date('2026-04-03T09:00:00Z'); // 9am on GW1 day, kickoff was 8am
+    expect(hasUnlimitedTransfers(seasonStart, firstGW, undefined, now)).toBe(false);
+  });
 });
