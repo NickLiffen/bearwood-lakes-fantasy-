@@ -3,7 +3,7 @@ import { handler } from './my-team';
 import { makeAuthEvent, mockContext, parseBody, createMockDb, mockCursor } from './__test-utils__';
 import { connectToDatabase } from './_shared/db';
 import { getActiveSeason } from './_shared/services/seasons.service';
-import { getTransfersThisWeek, applyPendingChanges } from './_shared/services/picks.service';
+import { getTransfersThisWeek } from './_shared/services/picks.service';
 
 const { mockVerifyToken } = vi.hoisted(() => ({
   mockVerifyToken: vi.fn(),
