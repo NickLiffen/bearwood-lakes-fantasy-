@@ -11,7 +11,7 @@ import { GolferDocument, GOLFERS_COLLECTION } from './_shared/models/Golfer';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
 import { SettingDocument, SETTINGS_COLLECTION } from './_shared/models/Settings';
-import { getWeekStart, getWeekEnd, getTeamEffectiveStartDate, getGameweekNumber, getFirstGameweekStart } from './_shared/utils/dates';
+import { getWeekStart, getWeekEnd, getTeamEffectiveStartDate, getGameweekNumber, getFirstGameweekStart, hasUnlimitedTransfers } from './_shared/utils/dates';
 import { getTransfersThisWeek, applyPendingChanges } from './_shared/services/picks.service';
 import { getActiveSeason } from './_shared/services/seasons.service';
 import { getTeamGolferScores, getTeamTransferHistory } from './_shared/services/team.service';
@@ -93,12 +93,12 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
     // Check if unlimited transfers apply (pre-season, before GW1, or pre-first-game-week for new teams)
     const now = new Date();
     const seasonStartDate = activeSeason?.startDate ? new Date(activeSeason.startDate) : null;
-    const isPreSeason = seasonStartDate ? now < seasonStartDate : false;
-    const firstGameweekStartDate = seasonStartDate ? getFirstGameweekStart(seasonStartDate, firstGW) : null;
-    const isBeforeFirstGameweek = firstGameweekStartDate ? now < firstGameweekStartDate : false;
-    const teamEffectiveStart = pick ? getTeamEffectiveStartDate(pick.createdAt, firstGW) : null;
-    const isPreFirstGameWeek = teamEffectiveStart ? now < teamEffectiveStart : false;
-    const unlimitedTransfers = isPreSeason || isBeforeFirstGameweek || isPreFirstGameWeek;
+    const unlimitedTransfers = hasUnlimitedTransfers(
+      seasonStartDate,
+      firstGW,
+      pick?.createdAt,
+      now,
+    );
 
     if (!pick) {
       return {
@@ -111,7 +111,7 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
             allowNewTeamCreation,
             maxTransfersPerWeek,
             transfersUsedThisWeek: 0,
-            unlimitedTransfers: isPreSeason || isBeforeFirstGameweek,
+            unlimitedTransfers: hasUnlimitedTransfers(seasonStartDate, firstGW, undefined, now),
             team: null,
           },
         }),

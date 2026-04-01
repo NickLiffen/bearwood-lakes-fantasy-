@@ -246,97 +246,99 @@ describe('picks.service', () => {
       );
     });
 
-    it('allows unlimited transfers when before firstGameweekStart', async () => {
-      vi.useFakeTimers();
-      vi.setSystemTime(new Date('2026-04-01T12:00:00Z'));
+    describe('unlimited transfers before first gameweek', () => {
+      afterEach(() => {
+        vi.useRealTimers();
+      });
 
-      // Season started Mar 1, GW1 starts Apr 3 — we're April 1 (before GW1)
-      vi.mocked(getActiveSeason).mockResolvedValue({
-        id: '1',
-        name: '2026',
-        startDate: new Date('2026-03-01'),
-        firstGameweekStart: new Date('2026-04-03T08:00:00Z'),
-        isActive: true,
-      } as any);
+      it('allows unlimited transfers when before firstGameweekStart', async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-04-01T12:00:00Z'));
 
-      // Existing pick (team created in the past, effective start has passed)
-      const existingPick = {
-        _id: new ObjectId(),
-        userId,
-        golferIds: golferIds.map((id) => new ObjectId(id)),
-        captainId: null,
-        totalSpent: 30_000_000,
-        season: 2026,
-        createdAt: new Date('2026-03-15'),
-        updatedAt: new Date('2026-03-15'),
-      };
-      // First call: getUserPicks returns existing pick; second: returns updated pick
-      mockPicksCollection.findOne.mockResolvedValueOnce(existingPick).mockResolvedValueOnce(existingPick);
+        // Season started Mar 1, GW1 starts Apr 3 — we're April 1 (before GW1)
+        vi.mocked(getActiveSeason).mockResolvedValue({
+          id: '1',
+          name: '2026',
+          startDate: new Date('2026-03-01'),
+          firstGameweekStart: new Date('2026-04-03T08:00:00Z'),
+          isActive: true,
+        } as any);
 
-      // Transfer already used this week — normally would be rejected
-      mockHistoryCollection.countDocuments.mockResolvedValue(1);
+        // Existing pick (team created in the past, effective start has passed)
+        const existingPick = {
+          _id: new ObjectId(),
+          userId,
+          golferIds: golferIds.map((id) => new ObjectId(id)),
+          captainId: null,
+          totalSpent: 30_000_000,
+          season: 2026,
+          createdAt: new Date('2026-03-15'),
+          updatedAt: new Date('2026-03-15'),
+        };
+        // First call: getUserPicks returns existing pick; second: returns updated pick
+        mockPicksCollection.findOne.mockResolvedValueOnce(existingPick).mockResolvedValueOnce(existingPick);
 
-      // New golfers (different from existing to trigger transfer validation)
-      const newGolferIds = Array.from({ length: 6 }, () => new ObjectId());
-      const newGolferIdStrings = newGolferIds.map((id) => id.toString());
-      mockGolfersCollection.find.mockReturnValue(
-        toArrayHelper(
-          newGolferIds.map((id, i) => ({
-            _id: id,
-            firstName: `Golfer`,
-            lastName: `${i + 1}`,
-            price: 5_000_000,
-            isActive: true,
-          }))
-        )
-      );
-      mockHistoryCollection.insertOne.mockResolvedValue({ insertedId: new ObjectId() });
-      mockPicksCollection.updateOne.mockResolvedValue({ modifiedCount: 1 });
+        // Transfer already used this week — normally would be rejected
+        mockHistoryCollection.countDocuments.mockResolvedValue(1);
 
-      // Should succeed despite transfer count >= max (because pre-GW1 = unlimited)
-      const result = await savePicks(userId.toString(), newGolferIdStrings, 'Transfer', null, 2026);
-      expect(result).toBeDefined();
+        // New golfers (different from existing to trigger transfer validation)
+        const newGolferIds = Array.from({ length: 6 }, () => new ObjectId());
+        const newGolferIdStrings = newGolferIds.map((id) => id.toString());
+        mockGolfersCollection.find.mockReturnValue(
+          toArrayHelper(
+            newGolferIds.map((id, i) => ({
+              _id: id,
+              firstName: `Golfer`,
+              lastName: `${i + 1}`,
+              price: 5_000_000,
+              isActive: true,
+            }))
+          )
+        );
+        mockHistoryCollection.insertOne.mockResolvedValue({ insertedId: new ObjectId() });
+        mockPicksCollection.updateOne.mockResolvedValue({ modifiedCount: 1 });
 
-      vi.useRealTimers();
-    });
+        // Should succeed despite transfer count >= max (because pre-GW1 = unlimited)
+        const result = await savePicks(userId.toString(), newGolferIdStrings, 'Transfer', null, 2026);
+        expect(result).toBeDefined();
+      });
 
-    it('enforces transfer limit after firstGameweekStart', async () => {
-      vi.useFakeTimers();
-      vi.setSystemTime(new Date('2026-04-05T12:00:00Z'));
+      it('enforces transfer limit after firstGameweekStart', async () => {
+        vi.useFakeTimers();
+        vi.setSystemTime(new Date('2026-04-05T12:00:00Z'));
 
-      // Season started Mar 1, GW1 started Apr 3 — we're April 5 (after GW1)
-      vi.mocked(getActiveSeason).mockResolvedValue({
-        id: '1',
-        name: '2026',
-        startDate: new Date('2026-03-01'),
-        firstGameweekStart: new Date('2026-04-03T08:00:00Z'),
-        isActive: true,
-      } as any);
+        // Season started Mar 1, GW1 started Apr 3 — we're April 5 (after GW1)
+        vi.mocked(getActiveSeason).mockResolvedValue({
+          id: '1',
+          name: '2026',
+          startDate: new Date('2026-03-01'),
+          firstGameweekStart: new Date('2026-04-03T08:00:00Z'),
+          isActive: true,
+        } as any);
 
-      // Existing pick (team created well in the past)
-      const existingPick = {
-        _id: new ObjectId(),
-        userId,
-        golferIds: golferIds.map((id) => new ObjectId(id)),
-        captainId: null,
-        totalSpent: 30_000_000,
-        season: 2026,
-        createdAt: new Date('2026-03-01'),
-        updatedAt: new Date('2026-03-01'),
-      };
-      mockPicksCollection.findOne.mockResolvedValue(existingPick);
+        // Existing pick (team created well in the past)
+        const existingPick = {
+          _id: new ObjectId(),
+          userId,
+          golferIds: golferIds.map((id) => new ObjectId(id)),
+          captainId: null,
+          totalSpent: 30_000_000,
+          season: 2026,
+          createdAt: new Date('2026-03-01'),
+          updatedAt: new Date('2026-03-01'),
+        };
+        mockPicksCollection.findOne.mockResolvedValue(existingPick);
 
-      // Transfer already used this week
-      mockHistoryCollection.countDocuments.mockResolvedValue(1);
+        // Transfer already used this week
+        mockHistoryCollection.countDocuments.mockResolvedValue(1);
 
-      // Different golfers to trigger transfer validation
-      const newGolferIds = [...golferIdStrings.slice(1), new ObjectId().toString()];
+        // Different golfers to trigger transfer validation
+        const newGolferIds = [...golferIdStrings.slice(1), new ObjectId().toString()];
 
-      await expect(savePicks(userId.toString(), newGolferIds, 'Transfer', null, 2026)).rejects.toThrow(
-        'Transfer limit reached'
-      );
-
-      vi.useRealTimers();
+        await expect(savePicks(userId.toString(), newGolferIds, 'Transfer', null, 2026)).rejects.toThrow(
+          'Transfer limit reached'
+        );
+      });
     });
   });
 

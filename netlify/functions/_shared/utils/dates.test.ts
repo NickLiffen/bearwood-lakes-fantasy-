@@ -12,6 +12,7 @@ import {
   getSeasonFirstSaturday,
   getGameweekNumber,
   getFirstGameweekStart,
+  hasUnlimitedTransfers,
 } from './dates';
 
 describe('getWeekStart', () => {
@@ -421,5 +422,51 @@ describe('GW1 Friday start (firstGameweekStart override)', () => {
       expect(result.getDate()).toBe(11); // Sat Apr 11
       expect(result.getHours()).toBe(8);
     });
+  });
+});
+
+describe('hasUnlimitedTransfers', () => {
+  // Season: startDate Mar 1, firstGameweekStart Apr 3 (Fri 8am)
+  const seasonStart = new Date('2026-03-01T00:00:00Z');
+  const firstGW = new Date('2026-04-03T08:00:00Z');
+
+  it('returns true before season startDate (pre-season)', () => {
+    const now = new Date('2026-02-15T12:00:00Z');
+    expect(hasUnlimitedTransfers(seasonStart, firstGW, undefined, now)).toBe(true);
+  });
+
+  it('returns true between season startDate and firstGameweekStart', () => {
+    const now = new Date('2026-04-01T12:00:00Z');
+    // Team created March 15 — effective start is past
+    const teamCreated = new Date('2026-03-15T00:00:00Z');
+    expect(hasUnlimitedTransfers(seasonStart, firstGW, teamCreated, now)).toBe(true);
+  });
+
+  it('returns false after firstGameweekStart with old team', () => {
+    const now = new Date('2026-04-05T12:00:00Z');
+    const teamCreated = new Date('2026-03-01T00:00:00Z');
+    expect(hasUnlimitedTransfers(seasonStart, firstGW, teamCreated, now)).toBe(false);
+  });
+
+  it('returns true for newly created team (before effective start)', () => {
+    // Team created mid-season on a Wednesday — effective start is next Saturday 8am
+    const now = new Date('2026-04-08T12:00:00Z'); // Wednesday after GW1
+    const teamCreated = new Date('2026-04-08T10:00:00Z'); // Just created
+    expect(hasUnlimitedTransfers(seasonStart, firstGW, teamCreated, now)).toBe(true);
+  });
+
+  it('returns true when no teamCreatedAt (no team yet) and before GW1', () => {
+    const now = new Date('2026-04-01T12:00:00Z');
+    expect(hasUnlimitedTransfers(seasonStart, firstGW, undefined, now)).toBe(true);
+  });
+
+  it('returns false when no teamCreatedAt and after GW1', () => {
+    const now = new Date('2026-04-05T12:00:00Z');
+    expect(hasUnlimitedTransfers(seasonStart, firstGW, undefined, now)).toBe(false);
+  });
+
+  it('returns false when no season data', () => {
+    const now = new Date('2026-04-01T12:00:00Z');
+    expect(hasUnlimitedTransfers(null, null, undefined, now)).toBe(false);
   });
 });

@@ -29,39 +29,56 @@ vi.mock('./_shared/services/picks.service', () => ({
   getTransfersThisWeek: vi.fn(),
   applyPendingChanges: vi.fn().mockResolvedValue(false),
 }));
-vi.mock('./_shared/utils/dates', () => ({
-  getWeekStart: vi.fn().mockImplementation((d: Date) => {
-    const date = new Date(d);
-    date.setDate(date.getDate() - ((date.getDay() + 1) % 7));
-    date.setHours(0, 0, 0, 0);
-    return date;
-  }),
-  getWeekEnd: vi.fn().mockImplementation((ws: Date) => {
-    const end = new Date(ws);
-    end.setDate(end.getDate() + 6);
-    end.setHours(23, 59, 59, 999);
-    return end;
-  }),
-  getMonthStart: vi.fn().mockImplementation((d: Date) => new Date(d.getFullYear(), d.getMonth(), 1)),
-  getMonthEnd: vi.fn().mockImplementation((d: Date) => new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999)),
-  getTeamEffectiveStartDate: vi.fn().mockImplementation((d: Date) => new Date(d)),
-  getGameweekNumber: vi.fn().mockReturnValue(3),
-  getSeasonFirstSaturday: vi.fn().mockImplementation((d: Date) => {
+vi.mock('./_shared/utils/dates', () => {
+  const getSeasonFirstSaturdayImpl = (d: Date) => {
     const date = new Date(d);
     while (date.getDay() !== 6) date.setDate(date.getDate() + 1);
+    date.setHours(0, 0, 0, 0);
     return date;
-  }),
-  getFirstGameweekStart: vi.fn().mockImplementation((seasonStartDate: Date, firstGameweekStart?: Date | null) => {
+  };
+  const getFirstGameweekStartImpl = (seasonStartDate: Date, firstGameweekStart?: Date | null) => {
     if (firstGameweekStart) {
       const d = new Date(firstGameweekStart);
       d.setHours(0, 0, 0, 0);
       return d;
     }
-    const date = new Date(seasonStartDate);
-    while (date.getDay() !== 6) date.setDate(date.getDate() + 1);
-    return date;
-  }),
-}));
+    return getSeasonFirstSaturdayImpl(seasonStartDate);
+  };
+  const getTeamEffectiveStartDateImpl = (d: Date) => new Date(d);
+
+  return {
+    getWeekStart: vi.fn().mockImplementation((d: Date) => {
+      const date = new Date(d);
+      date.setDate(date.getDate() - ((date.getDay() + 1) % 7));
+      date.setHours(0, 0, 0, 0);
+      return date;
+    }),
+    getWeekEnd: vi.fn().mockImplementation((ws: Date) => {
+      const end = new Date(ws);
+      end.setDate(end.getDate() + 6);
+      end.setHours(23, 59, 59, 999);
+      return end;
+    }),
+    getMonthStart: vi.fn().mockImplementation((d: Date) => new Date(d.getFullYear(), d.getMonth(), 1)),
+    getMonthEnd: vi.fn().mockImplementation((d: Date) => new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999)),
+    getTeamEffectiveStartDate: vi.fn().mockImplementation(getTeamEffectiveStartDateImpl),
+    getGameweekNumber: vi.fn().mockReturnValue(3),
+    getSeasonFirstSaturday: vi.fn().mockImplementation(getSeasonFirstSaturdayImpl),
+    getFirstGameweekStart: vi.fn().mockImplementation(getFirstGameweekStartImpl),
+    hasUnlimitedTransfers: vi.fn().mockImplementation(
+      (seasonStartDate: Date | null, firstGameweekStart: Date | null, teamCreatedAt?: Date | null, now: Date = new Date()) => {
+        const isPreSeason = seasonStartDate ? now < seasonStartDate : false;
+        const firstGWDate = seasonStartDate ? getFirstGameweekStartImpl(seasonStartDate, firstGameweekStart) : null;
+        const isBeforeFirstGameweek = firstGWDate ? now < firstGWDate : false;
+        const teamEffective = teamCreatedAt !== undefined && teamCreatedAt !== null
+          ? getTeamEffectiveStartDateImpl(teamCreatedAt)
+          : null;
+        const isPreFirstGameWeek = teamEffective ? now < teamEffective : false;
+        return isPreSeason || isBeforeFirstGameweek || isPreFirstGameWeek;
+      }
+    ),
+  };
+});
 
 const mockSeason = {
   _id: 'season-1',
