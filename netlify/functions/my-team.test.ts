@@ -349,4 +349,135 @@ describe('my-team handler', () => {
     expect(body.data.team.period).toHaveProperty('weekStart');
     expect(body.data.team.period).toHaveProperty('weekEnd');
   });
+
+  describe('unlimitedTransfers flag', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    const preSeasonSeason = {
+      _id: 'season-pre',
+      name: '2026',
+      startDate: new Date('2026-04-01'),
+      endDate: new Date('2026-12-31'),
+      firstGameweekStart: new Date('2026-04-03T08:00:00Z'),
+      isActive: true,
+    };
+
+    const golfers = [
+      {
+        _id: golferId1,
+        firstName: 'Rory',
+        lastName: 'McIlroy',
+        picture: null,
+        price: 12_000_000,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      {
+        _id: golferId2,
+        firstName: 'Tiger',
+        lastName: 'Woods',
+        picture: null,
+        price: 13_000_000,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ];
+
+    it('returns unlimitedTransfers:true when before season startDate (pre-season)', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-03-15T12:00:00Z'));
+
+      vi.mocked(getActiveSeason).mockResolvedValue(preSeasonSeason as any);
+      setupDb();
+
+      const res = await handler(makeAuthEvent(), mockContext);
+      const body = parseBody(res!);
+
+      expect(res!.statusCode).toBe(200);
+      expect(body.data.hasTeam).toBe(false);
+      expect(body.data.unlimitedTransfers).toBe(true);
+    });
+
+    it('returns unlimitedTransfers:true when between season.startDate and firstGameweekStart', async () => {
+      // Season started March 1, GW1 starts April 3 — current date April 1 (before GW1)
+      const season = {
+        ...preSeasonSeason,
+        startDate: new Date('2026-03-01'),
+      };
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-04-01T12:00:00Z'));
+
+      vi.mocked(getActiveSeason).mockResolvedValue(season as any);
+
+      const pick = {
+        userId: userObjectId,
+        golferIds: [golferId1, golferId2],
+        captainId: null,
+        totalSpent: 25_000_000,
+        season: 2026,
+        createdAt: new Date('2026-03-15'),
+        updatedAt: new Date('2026-03-15'),
+      };
+      setupDb({ pick, golfers });
+
+      const res = await handler(makeAuthEvent(), mockContext);
+      const body = parseBody(res!);
+
+      expect(res!.statusCode).toBe(200);
+      expect(body.data.unlimitedTransfers).toBe(true);
+    });
+
+    it('returns unlimitedTransfers:false when after firstGameweekStart', async () => {
+      // Season started March 1, GW1 started April 3 — current date April 5 (after GW1)
+      const season = {
+        ...preSeasonSeason,
+        startDate: new Date('2026-03-01'),
+      };
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-04-05T12:00:00Z'));
+
+      vi.mocked(getActiveSeason).mockResolvedValue(season as any);
+
+      const pick = {
+        userId: userObjectId,
+        golferIds: [golferId1, golferId2],
+        captainId: null,
+        totalSpent: 25_000_000,
+        season: 2026,
+        createdAt: new Date('2026-03-01'),
+        updatedAt: new Date('2026-03-01'),
+      };
+      setupDb({ pick, golfers });
+
+      const res = await handler(makeAuthEvent(), mockContext);
+      const body = parseBody(res!);
+
+      expect(res!.statusCode).toBe(200);
+      expect(body.data.unlimitedTransfers).toBe(false);
+    });
+
+    it('returns unlimitedTransfers:true for no-team user when before firstGameweekStart', async () => {
+      // Season started March 1, GW1 starts April 3 — current date April 1
+      const season = {
+        ...preSeasonSeason,
+        startDate: new Date('2026-03-01'),
+      };
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-04-01T12:00:00Z'));
+
+      vi.mocked(getActiveSeason).mockResolvedValue(season as any);
+      setupDb(); // No pick
+
+      const res = await handler(makeAuthEvent(), mockContext);
+      const body = parseBody(res!);
+
+      expect(res!.statusCode).toBe(200);
+      expect(body.data.hasTeam).toBe(false);
+      expect(body.data.unlimitedTransfers).toBe(true);
+    });
+  });
 });

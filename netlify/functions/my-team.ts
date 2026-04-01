@@ -90,13 +90,15 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
         season: currentSeason,
       });
 
-    // Check if unlimited transfers apply (pre-season or pre-first-game-week)
+    // Check if unlimited transfers apply (pre-season, before GW1, or pre-first-game-week for new teams)
     const now = new Date();
     const seasonStartDate = activeSeason?.startDate ? new Date(activeSeason.startDate) : null;
     const isPreSeason = seasonStartDate ? now < seasonStartDate : false;
+    const firstGameweekStartDate = seasonStartDate ? getFirstGameweekStart(seasonStartDate, firstGW) : null;
+    const isBeforeFirstGameweek = firstGameweekStartDate ? now < firstGameweekStartDate : false;
     const teamEffectiveStart = pick ? getTeamEffectiveStartDate(pick.createdAt, firstGW) : null;
     const isPreFirstGameWeek = teamEffectiveStart ? now < teamEffectiveStart : false;
-    const unlimitedTransfers = isPreSeason || isPreFirstGameWeek;
+    const unlimitedTransfers = isPreSeason || isBeforeFirstGameweek || isPreFirstGameWeek;
 
     if (!pick) {
       return {
@@ -109,7 +111,7 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
             allowNewTeamCreation,
             maxTransfersPerWeek,
             transfersUsedThisWeek: 0,
-            unlimitedTransfers: isPreSeason,
+            unlimitedTransfers: isPreSeason || isBeforeFirstGameweek,
             team: null,
           },
         }),
