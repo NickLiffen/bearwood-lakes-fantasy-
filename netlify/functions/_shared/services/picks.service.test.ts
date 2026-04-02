@@ -3,6 +3,7 @@ import type { Db, MongoClient } from 'mongodb';
 import { connectToDatabase } from '../db';
 import { savePicks, getUserPicks, getPickHistory, getTransfersThisWeek } from './picks.service';
 import { getActiveSeason } from './seasons.service';
+import type { Season } from '@shared/types/season.types';
 
 vi.mock('../db', () => ({
   connectToDatabase: vi.fn(),
@@ -262,7 +263,7 @@ describe('picks.service', () => {
           startDate: new Date('2026-03-01'),
           firstGameweekStart: new Date('2026-04-03T08:00:00Z'),
           isActive: true,
-        } as any);
+        } as unknown as Season);
 
         // Existing pick (team created in the past, effective start has passed)
         const existingPick = {
@@ -314,7 +315,7 @@ describe('picks.service', () => {
           startDate: new Date('2026-03-01'),
           firstGameweekStart: new Date('2026-04-03T08:00:00Z'),
           isActive: true,
-        } as any);
+        } as unknown as Season);
 
         // Existing pick (team created well in the past)
         const existingPick = {

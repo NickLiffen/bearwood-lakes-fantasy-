@@ -13,6 +13,7 @@ import {
   corsHeaders,
 } from './middleware';
 import type { HandlerEvent, HandlerContext } from '@netlify/functions';
+import type { AuthenticatedEvent } from './middleware';
 
 vi.mock('./auth', () => ({
   verifyToken: vi.fn(),
@@ -382,8 +383,10 @@ describe('middleware', () => {
     it('returns response with ETag header on GET', async () => {
       const handler = vi.fn().mockResolvedValue({ statusCode: 200, body: '{"data":"auth"}' });
       const wrapped = withAuthETag(handler);
-      const event = makeEvent({ httpMethod: 'GET' }) as any;
-      event.user = { userId: 'u1', username: 'nick', role: 'user', phoneVerified: true };
+      const event = {
+        ...makeEvent({ httpMethod: 'GET' }),
+        user: { userId: 'u1', username: 'nick', role: 'user', phoneVerified: true },
+      } as AuthenticatedEvent;
 
       const result = await wrapped(event, mockContext);
 
@@ -398,16 +401,20 @@ describe('middleware', () => {
       const handler = vi.fn().mockResolvedValue({ statusCode: 200, body });
       const wrapped = withAuthETag(handler);
 
-      const event1 = makeEvent({ httpMethod: 'GET' }) as any;
-      event1.user = { userId: 'u1', username: 'nick', role: 'user', phoneVerified: true };
+      const event1 = {
+        ...makeEvent({ httpMethod: 'GET' }),
+        user: { userId: 'u1', username: 'nick', role: 'user', phoneVerified: true },
+      } as AuthenticatedEvent;
       const firstResult = await wrapped(event1, mockContext);
       const etag = firstResult.headers!['ETag'] as string;
 
-      const event2 = makeEvent({
-        httpMethod: 'GET',
-        headers: { 'if-none-match': etag },
-      }) as any;
-      event2.user = { userId: 'u1', username: 'nick', role: 'user', phoneVerified: true };
+      const event2 = {
+        ...makeEvent({
+          httpMethod: 'GET',
+          headers: { 'if-none-match': etag },
+        }),
+        user: { userId: 'u1', username: 'nick', role: 'user', phoneVerified: true },
+      } as AuthenticatedEvent;
       const result = await wrapped(event2, mockContext);
 
       expect(result.statusCode).toBe(304);
@@ -418,8 +425,10 @@ describe('middleware', () => {
     it('does not add ETag on non-GET methods', async () => {
       const handler = vi.fn().mockResolvedValue({ statusCode: 200, body: '{"ok":true}' });
       const wrapped = withAuthETag(handler);
-      const event = makeEvent({ httpMethod: 'POST' }) as any;
-      event.user = { userId: 'u1', username: 'nick', role: 'user', phoneVerified: true };
+      const event = {
+        ...makeEvent({ httpMethod: 'POST' }),
+        user: { userId: 'u1', username: 'nick', role: 'user', phoneVerified: true },
+      } as AuthenticatedEvent;
 
       const result = await wrapped(event, mockContext);
 
@@ -430,8 +439,10 @@ describe('middleware', () => {
     it('does not add ETag on non-200 responses', async () => {
       const handler = vi.fn().mockResolvedValue({ statusCode: 500, body: '{"error":"fail"}' });
       const wrapped = withAuthETag(handler);
-      const event = makeEvent({ httpMethod: 'GET' }) as any;
-      event.user = { userId: 'u1', username: 'nick', role: 'user', phoneVerified: true };
+      const event = {
+        ...makeEvent({ httpMethod: 'GET' }),
+        user: { userId: 'u1', username: 'nick', role: 'user', phoneVerified: true },
+      } as AuthenticatedEvent;
 
       const result = await wrapped(event, mockContext);
 
