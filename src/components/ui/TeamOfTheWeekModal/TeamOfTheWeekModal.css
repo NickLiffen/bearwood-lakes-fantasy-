@@ -1,0 +1,183 @@
+/* Team of the Week Modal Styles */
+
+.totw-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.totw-modal {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* Header */
+.totw-header {
+  background: linear-gradient(135deg, var(--primary-green, #00153c), var(--secondary-green, #0a2a5c));
+  border-radius: 16px 16px 0 0;
+  padding: 1.25rem 1.5rem;
+}
+
+.totw-header h2 {
+  font-family: var(--font-heading);
+  font-size: 1.25rem;
+  color: white;
+  margin: 0;
+}
+
+.totw-subtitle {
+  font-size: 0.85rem;
+  color: var(--accent-gold, #c9a227);
+  font-weight: 500;
+  margin-top: 0.25rem;
+  display: block;
+}
+
+/* Summary Banner */
+.totw-summary {
+  display: flex;
+  justify-content: space-around;
+  background: linear-gradient(135deg, #fef9e7, #fdf6e3);
+  border: 1px solid var(--accent-gold, #c9a227);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.totw-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.totw-stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--primary-green, #00153c);
+}
+
+.totw-stat-label {
+  font-size: 0.75rem;
+  color: var(--muted-text, #7c8787);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+
+/* Table wrapper */
+.totw-table {
+  margin-bottom: 0.75rem;
+}
+
+/* Caption */
+.totw-caption {
+  font-size: 0.8rem;
+  color: var(--muted-text, #7c8787);
+  text-align: center;
+  margin: 0;
+}
+
+/* Empty state */
+.totw-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  text-align: center;
+}
+
+.totw-empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.totw-empty h3 {
+  font-size: 1.1rem;
+  color: var(--dark-text, #1a1a2e);
+  margin: 0 0 0.5rem 0;
+}
+
+.totw-empty p {
+  color: var(--muted-text, #7c8787);
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* Team of the Week button (used in leaderboard section header) */
+.totw-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--accent-gold, #c9a227);
+  background: linear-gradient(135deg, #fef9e7, #fdf6e3);
+  color: var(--primary-green, #00153c);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.totw-btn:hover {
+  background: linear-gradient(135deg, var(--accent-gold, #c9a227), #d4af37);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(201, 162, 39, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .totw-modal {
+    max-height: 95vh;
+    border-radius: 12px 12px 0 0;
+    margin-top: auto;
+  }
+
+  .totw-header {
+    border-radius: 12px 12px 0 0;
+  }
+
+  .totw-summary {
+    padding: 0.75rem;
+  }
+
+  .totw-stat-value {
+    font-size: 1.25rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .totw-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .totw-modal {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .totw-header {
+    padding: 1rem;
+    border-radius: 16px 16px 0 0;
+  }
+}

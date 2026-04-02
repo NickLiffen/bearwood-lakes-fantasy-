@@ -113,6 +113,36 @@ export interface GolferListItem {
 }
 
 // ============================================
+// Team of the Week Types
+// ============================================
+
+// A golfer in the dream team (top 6 scorers of a completed week)
+export interface TeamOfTheWeekGolfer {
+  golfer: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    picture: string;
+    price: number;
+  };
+  weekPoints: number;
+  isCaptain: boolean;
+}
+
+// Full response for the team-of-week endpoint
+export interface TeamOfTheWeekResponse {
+  golfers: TeamOfTheWeekGolfer[];
+  totalPoints: number;
+  period: {
+    label: string;
+    startDate: string;
+    endDate: string;
+    gameweek: number | null;
+  };
+  tournamentCount: number;
+}
+
+// ============================================
 // User & Leaderboard Types
 // ============================================
 

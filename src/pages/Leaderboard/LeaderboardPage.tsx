@@ -6,6 +6,7 @@ import PageLayout from '../../components/layout/PageLayout';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import SeasonSelector from '../../components/ui/SeasonSelector';
 import TeamCompareModal from '../../components/ui/TeamCompareModal';
+import TeamOfTheWeekModal from '../../components/ui/TeamOfTheWeekModal';
 import DataTable, { Column } from '../../components/ui/DataTable';
 import PeriodNav from '../../components/ui/PeriodNav';
 import { useAuth } from '../../hooks/useAuth';
@@ -66,6 +67,7 @@ const LeaderboardPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [compareUserId, setCompareUserId] = useState<string | null>(null);
+  const [showTeamOfWeek, setShowTeamOfWeek] = useState(false);
   const [selectedSeason, setSelectedSeason] = useState<string>('2026');
 
   // Get user from useAuth hook for current user check
@@ -144,6 +146,7 @@ const LeaderboardPage: React.FC = () => {
     setWeeklyPage(1);
     setMonthlyPage(1);
     setSeasonPage(1);
+    setShowTeamOfWeek(false);
 
     const loadInitialData = async () => {
       setLoading(true);
@@ -412,6 +415,15 @@ const LeaderboardPage: React.FC = () => {
               {tournamentCount} tournament{tournamentCount !== 1 ? 's' : ''} · {entries.length}{' '}
               participants
             </span>
+            {type === 'week' && period && new Date(period.endDate) < new Date() && (
+              <button
+                className="totw-btn"
+                onClick={() => setShowTeamOfWeek(true)}
+                title="View the dream team for this gameweek"
+              >
+                ⭐ Team of the Week
+              </button>
+            )}
           </div>
           {showNavigation && period && (
             <PeriodNav
@@ -552,6 +564,15 @@ const LeaderboardPage: React.FC = () => {
       {/* Team Compare Modal */}
       {compareUserId && (
         <TeamCompareModal targetUserId={compareUserId} onClose={() => setCompareUserId(null)} />
+      )}
+
+      {/* Team of the Week Modal */}
+      {showTeamOfWeek && weeklyDate && (
+        <TeamOfTheWeekModal
+          date={weeklyDate}
+          season={selectedSeason}
+          onClose={() => setShowTeamOfWeek(false)}
+        />
       )}
     </PageLayout>
   );
