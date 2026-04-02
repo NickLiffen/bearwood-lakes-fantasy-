@@ -41,7 +41,7 @@ describe('golfers-create handler', () => {
 
   it('creates a golfer and returns 201', async () => {
     const createdGolfer = { id: 'g1', ...golferData, isActive: true, createdAt: new Date(), updatedAt: new Date() };
-    vi.mocked(createGolfer).mockResolvedValue(createdGolfer as any);
+    vi.mocked(createGolfer).mockResolvedValue(createdGolfer as unknown as Awaited<ReturnType<typeof createGolfer>>);
 
     const event = makeAuthEvent({
       httpMethod: 'POST',

@@ -1,5 +1,6 @@
 import { handler } from './tournaments-delete';
 import { makeAuthEvent, mockContext, parseBody } from './__test-utils__';
+import type { Score } from '@shared/types';
 
 vi.mock('./_shared/auth', () => ({
   verifyToken: vi.fn().mockReturnValue({
@@ -57,7 +58,7 @@ beforeEach(() => {
 
 describe('tournaments-delete handler', () => {
   it('deletes a tournament successfully', async () => {
-    mockDelete.mockResolvedValue(true as any);
+    mockDelete.mockResolvedValue(true);
 
     const res = await handler(
       makeAuthEvent({
@@ -77,7 +78,7 @@ describe('tournaments-delete handler', () => {
     mockGetScores.mockResolvedValue([
       { id: 's1', participated: true },
       { id: 's2', participated: true },
-    ] as any);
+    ] as unknown as Score[]);
 
     const res = await handler(
       makeAuthEvent({
@@ -96,8 +97,8 @@ describe('tournaments-delete handler', () => {
   it('allows deletion when scores exist but none participated', async () => {
     mockGetScores.mockResolvedValue([
       { id: 's1', participated: false },
-    ] as any);
-    mockDelete.mockResolvedValue(true as any);
+    ] as unknown as Score[]);
+    mockDelete.mockResolvedValue(true);
 
     const res = await handler(
       makeAuthEvent({
@@ -123,7 +124,7 @@ describe('tournaments-delete handler', () => {
   });
 
   it('returns 404 when tournament not found', async () => {
-    mockDelete.mockResolvedValue(false as any);
+    mockDelete.mockResolvedValue(false);
 
     const res = await handler(
       makeAuthEvent({

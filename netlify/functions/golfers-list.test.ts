@@ -66,7 +66,7 @@ const makeSeasonDoc = (name: string, isActive: boolean) => ({
 });
 
 describe('golfers-list handler', () => {
-  function setupMockDb(golfers: any[], tournaments: any[] = [], seasons: any[] = [], picks: any[] = []) {
+  function setupMockDb(golfers: Record<string, unknown>[], tournaments: Record<string, unknown>[] = [], seasons: Record<string, unknown>[] = [], picks: Record<string, unknown>[] = []) {
     const golfersCollection = {
       aggregate: vi.fn().mockReturnValue(mockAggregateCursor(golfers)),
       countDocuments: vi.fn().mockResolvedValue(golfers.length),

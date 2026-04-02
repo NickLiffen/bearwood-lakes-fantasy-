@@ -4,6 +4,7 @@ import { makeAuthEvent, mockContext, parseBody, createMockDb, mockCursor } from 
 import { connectToDatabase } from './_shared/db';
 import { getActiveSeason } from './_shared/services/seasons.service';
 import { getTransfersThisWeek } from './_shared/services/picks.service';
+import type { Season } from '@shared/types';
 
 const { mockVerifyToken } = vi.hoisted(() => ({
   mockVerifyToken: vi.fn(),
@@ -97,13 +98,13 @@ const tournamentId = new ObjectId();
 const userObjectId = new ObjectId('aaaaaaaaaaaaaaaaaaaaaaaa');
 
 function setupDb(overrides: {
-  pick?: any;
-  golfers?: any[];
-  tournaments?: any[];
-  scores?: any[];
-  settings?: any[];
-  pickHistory?: any[];
-  historyGolfers?: any[];
+  pick?: Record<string, unknown>;
+  golfers?: Record<string, unknown>[];
+  tournaments?: Record<string, unknown>[];
+  scores?: Record<string, unknown>[];
+  settings?: Record<string, unknown>[];
+  pickHistory?: Record<string, unknown>[];
+  historyGolfers?: Record<string, unknown>[];
 } = {}) {
   const settingsData = overrides.settings ?? [
     { key: 'transfersOpen', value: true },
@@ -120,7 +121,7 @@ function setupDb(overrides: {
     scores: { find: vi.fn().mockReturnValue(mockCursor(overrides.scores ?? [])) },
     settings: {
       findOne: vi.fn().mockImplementation(({ key }: { key: string }) =>
-        Promise.resolve(settingsData.find((s: any) => s.key === key) ?? null),
+        Promise.resolve(settingsData.find((s: { key: string }) => s.key === key) ?? null),
       ),
     },
     pickHistory: {
@@ -134,7 +135,7 @@ function setupDb(overrides: {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(getActiveSeason).mockResolvedValue(mockSeason as any);
+  vi.mocked(getActiveSeason).mockResolvedValue(mockSeason as unknown as Season);
   vi.mocked(getTransfersThisWeek).mockResolvedValue(0);
   mockVerifyToken.mockReturnValue({
     userId: userObjectId.toString(),
@@ -265,7 +266,7 @@ describe('my-team handler', () => {
     const body = parseBody(res!);
 
     // Captain golfer gets 2x multiplier on week/season points
-    const captainGolfer = body.data.team.golfers.find((g: any) => g.isCaptain);
+    const captainGolfer = body.data.team.golfers.find((g: { isCaptain: boolean }) => g.isCaptain);
     expect(captainGolfer).toBeDefined();
     expect(captainGolfer.isCaptain).toBe(true);
   });
@@ -410,7 +411,7 @@ describe('my-team handler', () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-03-15T12:00:00Z'));
 
-      vi.mocked(getActiveSeason).mockResolvedValue(preSeasonSeason as any);
+      vi.mocked(getActiveSeason).mockResolvedValue(preSeasonSeason as unknown as Season);
       setupDb();
 
       const res = await handler(makeAuthEvent(), mockContext);
@@ -430,7 +431,7 @@ describe('my-team handler', () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-04-01T12:00:00Z'));
 
-      vi.mocked(getActiveSeason).mockResolvedValue(season as any);
+      vi.mocked(getActiveSeason).mockResolvedValue(season as unknown as Season);
 
       const pick = {
         userId: userObjectId,
@@ -459,7 +460,7 @@ describe('my-team handler', () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-04-05T12:00:00Z'));
 
-      vi.mocked(getActiveSeason).mockResolvedValue(season as any);
+      vi.mocked(getActiveSeason).mockResolvedValue(season as unknown as Season);
 
       const pick = {
         userId: userObjectId,
@@ -488,7 +489,7 @@ describe('my-team handler', () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-04-01T12:00:00Z'));
 
-      vi.mocked(getActiveSeason).mockResolvedValue(season as any);
+      vi.mocked(getActiveSeason).mockResolvedValue(season as unknown as Season);
       setupDb(); // No pick
 
       const res = await handler(makeAuthEvent(), mockContext);

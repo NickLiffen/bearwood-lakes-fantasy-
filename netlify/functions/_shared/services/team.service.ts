@@ -4,14 +4,11 @@ import { ObjectId, type Db } from 'mongodb';
 import { GolferDocument, GOLFERS_COLLECTION, toGolfer } from '../models/Golfer';
 import { ScoreDocument } from '../models/Score';
 import { TournamentDocument } from '../models/Tournament';
-import { PickDocument } from '../models/Pick';
 import { PickHistoryDocument, PICK_HISTORY_COLLECTION } from '../models/Pick';
 import {
   getWeekStart,
-  getWeekEnd,
   getMonthStart,
   getMonthEnd,
-  getTeamEffectiveStartDate,
   getFirstGameweekStart,
 } from '../utils/dates';
 

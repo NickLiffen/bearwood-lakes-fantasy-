@@ -33,8 +33,8 @@ vi.mock('./_shared/utils/logger', () => ({
 const mockGetAppSettings = vi.fn();
 const mockSetSetting = vi.fn();
 vi.mock('./_shared/services/settings.service', () => ({
-  getAppSettings: (...args: any[]) => mockGetAppSettings(...args),
-  setSetting: (...args: any[]) => mockSetSetting(...args),
+  getAppSettings: (...args: unknown[]) => mockGetAppSettings(...args),
+  setSetting: (...args: unknown[]) => mockSetSetting(...args),
 }));
 
 describe('settings handler', () => {

@@ -32,11 +32,11 @@ vi.mock('./_shared/utils/logger', () => ({
 
 const mockCheckPhoneVerification = vi.fn();
 vi.mock('./_shared/services/verification.service', () => ({
-  checkPhoneVerification: (...args: any[]) => mockCheckPhoneVerification(...args),
+  checkPhoneVerification: (...args: unknown[]) => mockCheckPhoneVerification(...args),
 }));
 
 vi.mock('./_shared/validators/auth.validator', () => ({
-  validateBody: vi.fn().mockImplementation((_schema: any, body: any) => JSON.parse(body || '{}')),
+  validateBody: vi.fn().mockImplementation((_schema: unknown, body: string) => JSON.parse(body || '{}')),
   verifyPhoneSchema: {},
 }));
 

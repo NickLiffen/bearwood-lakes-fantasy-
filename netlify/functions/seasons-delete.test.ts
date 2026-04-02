@@ -32,7 +32,7 @@ vi.mock('./_shared/utils/logger', () => ({
 
 const mockDeleteSeason = vi.fn();
 vi.mock('./_shared/services/seasons.service', () => ({
-  deleteSeason: (...args: any[]) => mockDeleteSeason(...args),
+  deleteSeason: (...args: unknown[]) => mockDeleteSeason(...args),
 }));
 
 describe('seasons-delete handler', () => {

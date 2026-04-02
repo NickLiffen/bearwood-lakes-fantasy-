@@ -36,7 +36,7 @@ describe('golfers-update handler', () => {
       id: 'g1', firstName: 'Tiger', lastName: 'Woods', picture: 'pic.jpg',
       price: 6000000, isActive: true, createdAt: new Date(), updatedAt: new Date(),
     };
-    vi.mocked(updateGolfer).mockResolvedValue(updatedGolfer as any);
+    vi.mocked(updateGolfer).mockResolvedValue(updatedGolfer as unknown as Awaited<ReturnType<typeof updateGolfer>>);
 
     const event = makeAuthEvent({
       httpMethod: 'PUT',

@@ -23,8 +23,8 @@ vi.mock('./_shared/utils/logger', () => ({
 const mockGetLeagueById = vi.fn();
 const mockRegenerateInviteCode = vi.fn();
 vi.mock('./_shared/services/leagues.service', () => ({
-  getLeagueById: (...args: any[]) => mockGetLeagueById(...args),
-  regenerateInviteCode: (...args: any[]) => mockRegenerateInviteCode(...args),
+  getLeagueById: (...args: unknown[]) => mockGetLeagueById(...args),
+  regenerateInviteCode: (...args: unknown[]) => mockRegenerateInviteCode(...args),
 }));
 
 beforeEach(() => vi.clearAllMocks());

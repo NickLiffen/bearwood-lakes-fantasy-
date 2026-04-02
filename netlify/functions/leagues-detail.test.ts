@@ -2,7 +2,7 @@ import { handler } from './leagues-detail';
 import { makeAuthEvent, mockContext, parseBody, createMockDb, mockCursor } from './__test-utils__';
 import { connectToDatabase } from './_shared/db';
 import { getActiveSeason, getSeasonByName } from './_shared/services/seasons.service';
-import { getWeekStart, getMonthStart, getTeamEffectiveStartDate, getGameweekNumber } from './_shared/utils/dates';
+
 
 vi.mock('./_shared/auth', () => ({
   verifyToken: vi.fn().mockReturnValue({
@@ -68,8 +68,8 @@ vi.mock('./_shared/utils/dates', () => ({
 const mockGetLeagueById = vi.fn();
 const mockGetLeagueMembers = vi.fn();
 vi.mock('./_shared/services/leagues.service', () => ({
-  getLeagueById: (...args: any[]) => mockGetLeagueById(...args),
-  getLeagueMembers: (...args: any[]) => mockGetLeagueMembers(...args),
+  getLeagueById: (...args: unknown[]) => mockGetLeagueById(...args),
+  getLeagueMembers: (...args: unknown[]) => mockGetLeagueMembers(...args),
 }));
 
 const mockSeason = {
@@ -88,7 +88,7 @@ const mockLeague = {
   inviteCode: 'ABC123',
 };
 
-function setupCollections(picks: any[] = [], users: any[] = [], tournaments: any[] = [], scores: any[] = []) {
+function setupCollections(picks: Record<string, unknown>[] = [], users: Record<string, unknown>[] = [], tournaments: Record<string, unknown>[] = [], scores: Record<string, unknown>[] = []) {
   const picksCursor = mockCursor(picks);
   const usersCursor = mockCursor(users);
   const tournamentsCursor = mockCursor(tournaments);
@@ -105,7 +105,7 @@ function setupCollections(picks: any[] = [], users: any[] = [], tournaments: any
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(getActiveSeason).mockResolvedValue(mockSeason as any);
+  vi.mocked(getActiveSeason).mockResolvedValue(mockSeason as unknown as Awaited<ReturnType<typeof getActiveSeason>>);
   vi.mocked(getSeasonByName).mockResolvedValue(null);
   mockGetLeagueById.mockResolvedValue(mockLeague);
   mockGetLeagueMembers.mockResolvedValue([

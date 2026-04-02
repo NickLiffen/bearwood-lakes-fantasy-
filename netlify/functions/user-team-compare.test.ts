@@ -3,6 +3,7 @@ import { handler } from './user-team-compare';
 import { makeAuthEvent, mockContext, parseBody, createMockDb, mockCursor } from './__test-utils__';
 import { connectToDatabase } from './_shared/db';
 import { getActiveSeason } from './_shared/services/seasons.service';
+import type { Season } from '@shared/types';
 
 const { mockVerifyToken } = vi.hoisted(() => ({
   mockVerifyToken: vi.fn(),
@@ -46,19 +47,19 @@ const targetOnlyGolferId = new ObjectId();
 const tournamentId = new ObjectId();
 
 function setupDb(overrides: {
-  currentUser?: any;
-  targetUser?: any;
-  currentPick?: any;
-  targetPick?: any;
-  golfers?: any[];
-  tournaments?: any[];
-  scores?: any[];
+  currentUser?: Record<string, unknown>;
+  targetUser?: Record<string, unknown>;
+  currentPick?: Record<string, unknown>;
+  targetPick?: Record<string, unknown>;
+  golfers?: Record<string, unknown>[];
+  tournaments?: Record<string, unknown>[];
+  scores?: Record<string, unknown>[];
 } = {}) {
-  const usersMap = new Map<string, any>();
+  const usersMap = new Map<string, Record<string, unknown>>();
   if (overrides.currentUser) usersMap.set(currentUserId.toString(), overrides.currentUser);
   if (overrides.targetUser) usersMap.set(targetUserId.toString(), overrides.targetUser);
 
-  const picksMap = new Map<string, any>();
+  const picksMap = new Map<string, Record<string, unknown>>();
   if (overrides.currentPick) picksMap.set(currentUserId.toString(), overrides.currentPick);
   if (overrides.targetPick) picksMap.set(targetUserId.toString(), overrides.targetPick);
 
@@ -90,7 +91,7 @@ function setupDb(overrides: {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(getActiveSeason).mockResolvedValue(mockSeason as any);
+  vi.mocked(getActiveSeason).mockResolvedValue(mockSeason as unknown as Season);
   mockVerifyToken.mockReturnValue({
     userId: currentUserId.toString(),
     username: 'testplayer',

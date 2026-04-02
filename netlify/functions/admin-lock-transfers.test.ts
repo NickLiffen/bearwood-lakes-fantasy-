@@ -33,8 +33,8 @@ vi.mock('./_shared/utils/logger', () => ({
 const mockGetAppSettings = vi.fn();
 const mockSetTransfersOpen = vi.fn();
 vi.mock('./_shared/services/settings.service', () => ({
-  getAppSettings: (...args: any[]) => mockGetAppSettings(...args),
-  setTransfersOpen: (...args: any[]) => mockSetTransfersOpen(...args),
+  getAppSettings: (...args: unknown[]) => mockGetAppSettings(...args),
+  setTransfersOpen: (...args: unknown[]) => mockSetTransfersOpen(...args),
 }));
 
 describe('admin-lock-transfers handler', () => {

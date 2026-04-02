@@ -1,6 +1,7 @@
 import { ObjectId } from 'mongodb';
 import { handler } from './tournaments-list';
 import { makeEvent, makeAuthEvent, mockContext, parseBody, createMockDb, mockCursor } from './__test-utils__';
+import type { Tournament, Season } from '@shared/types';
 
 vi.mock('./_shared/auth', () => ({
   verifyToken: vi.fn(),
@@ -67,7 +68,7 @@ beforeEach(() => {
     isActive: true,
     createdAt: new Date(),
     updatedAt: new Date(),
-  } as any);
+  } as unknown as Season);
 });
 
 describe('tournaments-list handler', () => {
@@ -110,7 +111,7 @@ describe('tournaments-list handler', () => {
       makeTournament({ status: 'published' }),
       makeTournament({ status: 'complete' }),
     ];
-    mockGetAll.mockResolvedValue(allTournaments as any);
+    mockGetAll.mockResolvedValue(allTournaments as unknown as Tournament[]);
 
     const res = await handler(
       makeAuthEvent({ queryStringParameters: { allSeasons: 'true' } }),
@@ -126,8 +127,8 @@ describe('tournaments-list handler', () => {
     const inSeason = makeTournament({ startDate: new Date('2025-06-01') });
     const outOfSeason = makeTournament({ startDate: new Date('2024-06-01') });
     mockGetByStatus
-      .mockResolvedValueOnce([inSeason, outOfSeason] as any)
-      .mockResolvedValueOnce([] as any);
+      .mockResolvedValueOnce([inSeason, outOfSeason] as unknown as Tournament[])
+      .mockResolvedValueOnce([] as unknown as Tournament[]);
 
     const res = await handler(makeEvent(), mockContext);
     const body = parseBody(res);
@@ -135,13 +136,13 @@ describe('tournaments-list handler', () => {
   });
 
   it('filters by named season parameter', async () => {
-    mockGetByStatus.mockResolvedValue([makeTournament()] as any);
+    mockGetByStatus.mockResolvedValue([makeTournament()] as unknown as Tournament[]);
     mockGetSeasonByName.mockResolvedValue({
       id: 's1',
       name: '2025',
       ...seasonDates,
       isActive: true,
-    } as any);
+    } as unknown as Season);
 
     const res = await handler(
       makeEvent({ queryStringParameters: { season: '2025' } }),
@@ -152,8 +153,8 @@ describe('tournaments-list handler', () => {
   });
 
   it('returns empty array when no matching season found', async () => {
-    mockGetByStatus.mockResolvedValue([makeTournament()] as any);
-    mockGetActiveSeason.mockResolvedValue(null as any);
+    mockGetByStatus.mockResolvedValue([makeTournament()] as unknown as Tournament[]);
+    mockGetActiveSeason.mockResolvedValue(null);
 
     const res = await handler(makeEvent(), mockContext);
     const body = parseBody(res);
@@ -166,7 +167,7 @@ describe('tournaments-list handler', () => {
     const gid2 = new ObjectId();
 
     const tournament = makeTournament({ id: tid.toString(), status: 'published' });
-    mockGetByStatus.mockResolvedValue([tournament] as any);
+    mockGetByStatus.mockResolvedValue([tournament] as unknown as Tournament[]);
 
     const scores = [
       { tournamentId: tid, golferId: gid1, position: 1, participated: true, bonusPoints: 5, multipliedPoints: 100 },

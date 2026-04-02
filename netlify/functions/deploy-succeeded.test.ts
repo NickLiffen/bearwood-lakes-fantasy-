@@ -15,7 +15,7 @@ const mockClose = vi.fn().mockResolvedValue(undefined);
 const mockConnect = vi.fn().mockResolvedValue({ db: mockDb, close: mockClose });
 
 vi.mock('mongodb', () => ({
-  MongoClient: { connect: (...args: any[]) => mockConnect(...args) },
+  MongoClient: { connect: (...args: unknown[]) => mockConnect(...args) },
 }));
 
 vi.mock('bcryptjs', () => ({
@@ -75,7 +75,7 @@ describe('deploy-succeeded handler', () => {
   });
 
   it('skips admin insert when admin already exists (idempotent)', async () => {
-    mockFindOne.mockImplementation((_query: any) => {
+    mockFindOne.mockImplementation((_query: unknown) => {
       return Promise.resolve({ username: 'admin' });
     });
 

@@ -1,6 +1,7 @@
 import { ObjectId, type Db } from 'mongodb';
 import { getTeamGolferScores, getTeamTransferHistory } from './team.service';
 import type { GolferDocument } from '../models/Golfer';
+import type { Golfer2024Stats, Golfer2025Stats, Golfer2026Stats } from '@shared/types/golfer.types';
 import type { TournamentDocument } from '../models/Tournament';
 import type { ScoreDocument } from '../models/Score';
 
@@ -62,9 +63,9 @@ function makeGolfer(id: ObjectId, first: string, last: string): GolferDocument {
     picture: '',
     price: 10_000_000,
     isActive: true,
-    stats2024: {} as any,
-    stats2025: {} as any,
-    stats2026: {} as any,
+    stats2024: {} as Golfer2024Stats,
+    stats2025: {} as Golfer2025Stats,
+    stats2026: {} as Golfer2026Stats,
     createdAt: new Date('2025-01-01'),
     updatedAt: new Date('2025-01-01'),
   };
@@ -274,8 +275,8 @@ describe('getTeamTransferHistory', () => {
   const userId = new ObjectId().toString();
 
   function makeMockDb(
-    pickHistory: any[],
-    historyGolfers: any[],
+    pickHistory: Record<string, unknown>[],
+    historyGolfers: Record<string, unknown>[],
   ): Db {
     const cursorChain = {
       sort: vi.fn().mockReturnThis(),

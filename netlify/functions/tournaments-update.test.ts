@@ -1,5 +1,6 @@
 import { handler } from './tournaments-update';
 import { makeAuthEvent, mockContext, parseBody } from './__test-utils__';
+import type { Tournament } from '@shared/types';
 
 vi.mock('./_shared/auth', () => ({
   verifyToken: vi.fn().mockReturnValue({
@@ -57,7 +58,7 @@ beforeEach(() => {
 describe('tournaments-update handler', () => {
   it('updates a tournament successfully', async () => {
     const updated = { id: 't1', name: 'Updated Open', status: 'published' };
-    mockUpdate.mockResolvedValue(updated as any);
+    mockUpdate.mockResolvedValue(updated as unknown as Tournament);
 
     const res = await handler(
       makeAuthEvent({
@@ -74,7 +75,7 @@ describe('tournaments-update handler', () => {
   });
 
   it('recalculates scores when tournamentType changes', async () => {
-    mockUpdate.mockResolvedValue({ id: 't1' } as any);
+    mockUpdate.mockResolvedValue({ id: 't1' } as unknown as Tournament);
 
     await handler(
       makeAuthEvent({
@@ -87,7 +88,7 @@ describe('tournaments-update handler', () => {
   });
 
   it('recalculates scores when scoringFormat changes', async () => {
-    mockUpdate.mockResolvedValue({ id: 't1' } as any);
+    mockUpdate.mockResolvedValue({ id: 't1' } as unknown as Tournament);
 
     await handler(
       makeAuthEvent({
@@ -100,7 +101,7 @@ describe('tournaments-update handler', () => {
   });
 
   it('does not recalculate when only name changes', async () => {
-    mockUpdate.mockResolvedValue({ id: 't1' } as any);
+    mockUpdate.mockResolvedValue({ id: 't1' } as unknown as Tournament);
 
     await handler(
       makeAuthEvent({
@@ -125,7 +126,7 @@ describe('tournaments-update handler', () => {
   });
 
   it('returns 404 when tournament not found', async () => {
-    mockUpdate.mockResolvedValue(null as any);
+    mockUpdate.mockResolvedValue(null);
 
     const res = await handler(
       makeAuthEvent({

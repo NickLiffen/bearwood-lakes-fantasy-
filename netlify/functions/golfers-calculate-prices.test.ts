@@ -33,7 +33,7 @@ beforeEach(() => {
 describe('golfers-calculate-prices handler', () => {
   it('calculates prices and returns 200', async () => {
     const priceResult = { updated: 50, season: 2026 };
-    vi.mocked(calculateGolferPrices).mockResolvedValue(priceResult as any);
+    vi.mocked(calculateGolferPrices).mockResolvedValue(priceResult as unknown as Awaited<ReturnType<typeof calculateGolferPrices>>);
 
     const event = makeAuthEvent({
       httpMethod: 'POST',

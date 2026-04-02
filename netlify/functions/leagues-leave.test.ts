@@ -23,8 +23,8 @@ vi.mock('./_shared/utils/logger', () => ({
 const mockGetLeagueById = vi.fn();
 const mockLeaveLeague = vi.fn();
 vi.mock('./_shared/services/leagues.service', () => ({
-  getLeagueById: (...args: any[]) => mockGetLeagueById(...args),
-  leaveLeague: (...args: any[]) => mockLeaveLeague(...args),
+  getLeagueById: (...args: unknown[]) => mockGetLeagueById(...args),
+  leaveLeague: (...args: unknown[]) => mockLeaveLeague(...args),
 }));
 
 beforeEach(() => vi.clearAllMocks());

@@ -68,7 +68,7 @@ const golfersDocs = [
   { _id: gid3, firstName: 'Jon', lastName: 'Rahm', picture: 'jon.jpg' },
 ];
 
-function setupDb(tournamentDoc: any, scores = scoresDocs, golfers = golfersDocs) {
+function setupDb(tournamentDoc: Record<string, unknown>, scores = scoresDocs, golfers = golfersDocs) {
   const { mockDb } = createMockDb({
     tournaments: { findOne: vi.fn().mockResolvedValue(tournamentDoc) },
     scores: { find: vi.fn().mockReturnValue(mockCursor(scores)) },
@@ -79,7 +79,7 @@ function setupDb(tournamentDoc: any, scores = scoresDocs, golfers = golfersDocs)
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mockToTournament.mockImplementation((doc: any) => ({
+  mockToTournament.mockImplementation((doc) => ({
     id: doc._id.toString(),
     name: doc.name,
     startDate: doc.startDate,
@@ -91,7 +91,7 @@ beforeEach(() => {
     golferCountTier: doc.golferCountTier,
     season: doc.season,
     status: doc.status,
-    participatingGolferIds: (doc.participatingGolferIds || []).map((id: any) => id.toString()),
+    participatingGolferIds: (doc.participatingGolferIds || []).map((id) => id.toString()),
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   }));

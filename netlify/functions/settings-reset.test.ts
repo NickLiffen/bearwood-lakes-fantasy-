@@ -34,7 +34,7 @@ const mockDeleteMany = vi.fn();
 const mockCollection = vi.fn().mockReturnValue({ deleteMany: mockDeleteMany });
 vi.mock('./_shared/db', () => ({
   connectToDatabase: vi.fn().mockResolvedValue({
-    db: { collection: (...args: any[]) => mockCollection(...args) },
+    db: { collection: (...args: unknown[]) => mockCollection(...args) },
     client: {},
   }),
 }));
