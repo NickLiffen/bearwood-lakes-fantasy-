@@ -553,10 +553,19 @@ export async function getTournamentLeaderboard(
   return result;
 }
 
-const TEAM_OF_WEEK_CACHE_TTL = 3600; // 1  past weeks are immutablehour 
+const TEAM_OF_WEEK_CACHE_TTL = 3600; // 1 hour — past weeks are immutable
+
+async function cacheTeamOfWeek(key: string, data: TeamOfTheWeekResponse): Promise<void> {
+  try {
+    const redis = getRedisClient();
+    await redis.set(key, JSON.stringify(data), 'EX', TEAM_OF_WEEK_CACHE_TTL);
+  } catch {
+    // Redis unavailable — continue without caching
+  }
+}
 
 /**
- * Get the "Team of the  the 6 golfers who scored the most pointsWeek" 
+ * Get the "Team of the Week" — the 6 golfers who scored the most points
  * across all tournaments in a completed gameweek.
  *
  * The highest scorer is designated as the "dream captain" and their points
@@ -616,7 +625,7 @@ export async function getTeamOfTheWeek(
       },
       tournamentCount: 0,
     };
-    await setCachedLeaderboard(cacheKey, emptyResult);
+    await cacheTeamOfWeek(cacheKey, emptyResult);
     return emptyResult;
   }
 
@@ -630,7 +639,6 @@ export async function getTeamOfTheWeek(
         $match: {
           tournamentId: { $in: tournamentIds },
           participated: true,
-          multipliedPoints: { $gt: 0 },
         },
       },
       {
@@ -656,7 +664,7 @@ export async function getTeamOfTheWeek(
       },
       tournamentCount: tournaments.length,
     };
-    await setCachedLeaderboard(cacheKey, emptyResult);
+    await cacheTeamOfWeek(cacheKey, emptyResult);
     return emptyResult;
   }
 
@@ -669,7 +677,7 @@ export async function getTeamOfTheWeek(
 
   const golferMap = new Map(golferDocs.map((doc) => [doc._id.toString(), toGolfer(doc)]));
 
-  // Build the dream  highest scorer is the "dream captain"team 
+  // Build the dream team — highest scorer is the "dream captain"
   const dreamTeam: TeamOfTheWeekGolfer[] = golferScores.map((score, index) => {
     const golfer = golferMap.get(score._id.toString());
     return {
@@ -703,15 +711,7 @@ export async function getTeamOfTheWeek(
     tournamentCount: tournaments.length,
   };
 
-  await setCachedLeaderboard(cacheKey, result);
-
-  // Also set with the longer TTL since past weeks don't change
-  try {
-    const redis = getRedisClient();
-    await redis.expire(cacheKey, TEAM_OF_WEEK_CACHE_TTL);
-  } catch {
-    // Redis unavailable
-  }
+  await cacheTeamOfWeek(cacheKey, result);
 
   return result;
 }

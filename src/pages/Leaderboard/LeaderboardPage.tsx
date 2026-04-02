@@ -146,6 +146,7 @@ const LeaderboardPage: React.FC = () => {
     setWeeklyPage(1);
     setMonthlyPage(1);
     setSeasonPage(1);
+    setShowTeamOfWeek(false);
 
     const loadInitialData = async () => {
       setLoading(true);

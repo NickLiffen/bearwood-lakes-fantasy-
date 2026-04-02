@@ -120,4 +120,27 @@ describe('team-of-week handler', () => {
 
     expect(mockGetTeamOfTheWeek).toHaveBeenCalledWith('2026-01-05', 2026);
   });
+
+  it('returns 400 for invalid calendar date like 2026-99-99', async () => {
+    const res = await handler(
+      makeAuthEvent({ queryStringParameters: { date: '2026-99-99' } }),
+      mockContext,
+    );
+    const body = parseBody(res!);
+    expect(res!.statusCode).toBe(400);
+    expect(body.error).toContain('valid calendar date');
+  });
+
+  it('returns 500 when service throws an error', async () => {
+    mockGetTeamOfTheWeek.mockRejectedValue(new Error('DB connection failed'));
+
+    const res = await handler(
+      makeAuthEvent({ queryStringParameters: { date: '2026-03-25', season: '2026' } }),
+      mockContext,
+    );
+    const body = parseBody(res!);
+    expect(res!.statusCode).toBe(500);
+    expect(body.success).toBe(false);
+    expect(body.error).toBe('DB connection failed');
+  });
 });

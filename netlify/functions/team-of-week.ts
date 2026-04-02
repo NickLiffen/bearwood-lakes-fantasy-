@@ -31,36 +31,57 @@ export const handler = withVerifiedAuth(async (event) => {
     };
   }
 
-  let season: number;
-  if (seasonParam) {
-    season = parseInt(seasonParam, 10);
-    if (isNaN(season)) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ success: false, error: 'season must be a number' }),
-      };
-    }
-  } else {
-    const activeSeason = await getActiveSeason();
-    season = activeSeason
-      ? parseInt(activeSeason.name, 10) || new Date().getFullYear()
-      : new Date().getFullYear();
-  }
-
-  const result = await getTeamOfTheWeek(date, season);
-
-  if (result === null) {
+  // Validate that the date is a real calendar date
+  const parsedDate = new Date(date);
+  if (Number.isNaN(parsedDate.getTime())) {
     return {
       statusCode: 400,
       body: JSON.stringify({
         success: false,
-        error: 'Team of the Week is only available for completed gameweeks',
+        error: 'date must be a valid calendar date in YYYY-MM-DD format',
       }),
     };
   }
 
-  return {
-    statusCode: 200,
-    body: JSON.stringify({ success: true, data: result }),
-  };
+  try {
+    let season: number;
+    if (seasonParam) {
+      season = parseInt(seasonParam, 10);
+      if (isNaN(season)) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ success: false, error: 'season must be a number' }),
+        };
+      }
+    } else {
+      const activeSeason = await getActiveSeason();
+      season = activeSeason
+        ? parseInt(activeSeason.name, 10) || new Date().getFullYear()
+        : new Date().getFullYear();
+    }
+
+    const result = await getTeamOfTheWeek(date, season);
+
+    if (result === null) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({
+          success: false,
+          error: 'Team of the Week is only available for completed gameweeks',
+        }),
+      };
+    }
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ success: true, data: result }),
+    };
+  } catch (error) {
+    console.error('team-of-week error:', error);
+    const message = error instanceof Error ? error.message : 'Failed to fetch Team of the Week';
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ success: false, error: message }),
+    };
+  }
 }, 'read');

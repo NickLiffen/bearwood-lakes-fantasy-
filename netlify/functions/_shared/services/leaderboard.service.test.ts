@@ -5,6 +5,7 @@ import {
   getLeaderboard,
   getFullLeaderboard,
   getTournamentLeaderboard,
+  getTeamOfTheWeek,
   invalidateLeaderboardCache,
 } from './leaderboard.service';
 
@@ -19,6 +20,13 @@ vi.mock('../db', () => ({
 
 vi.mock('./seasons.service', () => ({
   getActiveSeason: vi.fn().mockResolvedValue({ id: '1', name: '2025', isActive: true }),
+  getSeasonByName: vi.fn().mockResolvedValue({
+    id: '1',
+    name: '2026',
+    isActive: true,
+    startDate: new Date('2026-01-01'),
+    firstGameweekStart: new Date('2026-01-03'),
+  }),
 }));
 
 vi.mock('../rateLimit', () => ({
@@ -34,6 +42,8 @@ vi.mock('../rateLimit', () => ({
 const mockTournamentsCollection = { find: vi.fn(), findOne: vi.fn() };
 const mockPicksCollection = { aggregate: vi.fn() };
 const mockUsersCollection = { find: vi.fn() };
+const mockScoresCollection = { aggregate: vi.fn() };
+const mockGolfersCollection = { find: vi.fn() };
 
 const chainHelper = <T>(items: T[]) => {
   const terminal = { toArray: vi.fn().mockResolvedValue(items) };
@@ -59,6 +69,8 @@ beforeEach(() => {
         if (name === 'users') return mockUsersCollection;
         if (name === 'picks') return mockPicksCollection;
         if (name === 'tournaments') return mockTournamentsCollection;
+        if (name === 'scores') return mockScoresCollection;
+        if (name === 'golfers') return mockGolfersCollection;
         return {};
       }),
     } as unknown as Db,
@@ -361,6 +373,119 @@ describe('leaderboard.service', () => {
       await invalidateLeaderboardCache(2025);
 
       expect(mockRedisDel).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('getTeamOfTheWeek', () => {
+    // Use a date far enough in the past to guarantee the week is completed
+    const pastDate = '2026-01-17'; // A Saturday in the past
+    const pastWeekStart = new Date('2026-01-17T00:00:00.000Z');
+
+    it('returns null for a non-completed (current/future) week', async () => {
+      // Use a date in the far future
+      const result = await getTeamOfTheWeek('2099-06-15', 2099);
+      expect(result).toBeNull();
+    });
+
+    it('returns empty result when no tournaments exist in the week', async () => {
+      mockTournamentsCollection.find.mockReturnValue(chainHelper([]));
+
+      const result = await getTeamOfTheWeek(pastDate, 2026);
+
+      expect(result).not.toBeNull();
+      expect(result!.golfers).toEqual([]);
+      expect(result!.totalPoints).toBe(0);
+      expect(result!.tournamentCount).toBe(0);
+      expect(result!.period.gameweek).toBeDefined();
+    });
+
+    it('returns empty result when no golfers scored in the week', async () => {
+      const tournamentId = new ObjectId();
+      mockTournamentsCollection.find.mockReturnValue(
+        chainHelper([{ _id: tournamentId, startDate: pastWeekStart }])
+      );
+      mockScoresCollection.aggregate.mockReturnValue(aggregateHelper([]));
+
+      const result = await getTeamOfTheWeek(pastDate, 2026);
+
+      expect(result).not.toBeNull();
+      expect(result!.golfers).toEqual([]);
+      expect(result!.tournamentCount).toBe(1);
+    });
+
+    it('returns top 6 golfers sorted by points with captain assigned', async () => {
+      const tournamentId = new ObjectId();
+      const g1 = new ObjectId();
+      const g2 = new ObjectId();
+      const g3 = new ObjectId();
+
+      mockTournamentsCollection.find.mockReturnValue(
+        chainHelper([{ _id: tournamentId, startDate: pastWeekStart }])
+      );
+
+      // Aggregation returns top scorers
+      mockScoresCollection.aggregate.mockReturnValue(
+        aggregateHelper([
+          { _id: g1, totalPoints: 20 },
+          { _id: g2, totalPoints: 15 },
+          { _id: g3, totalPoints: 10 },
+        ])
+      );
+
+      // Golfer details
+      mockGolfersCollection.find.mockReturnValue(
+        chainHelper([
+          { _id: g1, firstName: 'Tiger', lastName: 'Woods', picture: '', price: 10000000, isActive: true, stats2024: {}, stats2025: {}, stats2026: {}, createdAt: new Date(), updatedAt: new Date() },
+          { _id: g2, firstName: 'Rory', lastName: 'McIlroy', picture: '', price: 9000000, isActive: true, stats2024: {}, stats2025: {}, stats2026: {}, createdAt: new Date(), updatedAt: new Date() },
+          { _id: g3, firstName: 'Jon', lastName: 'Rahm', picture: '', price: 8000000, isActive: true, stats2024: {}, stats2025: {}, stats2026: {}, createdAt: new Date(), updatedAt: new Date() },
+        ])
+      );
+
+      const result = await getTeamOfTheWeek(pastDate, 2026);
+
+      expect(result).not.toBeNull();
+      expect(result!.golfers).toHaveLength(3);
+
+      // First golfer is captain
+      expect(result!.golfers[0].isCaptain).toBe(true);
+      expect(result!.golfers[0].weekPoints).toBe(20);
+      expect(result!.golfers[0].golfer.firstName).toBe('Tiger');
+
+      // Other golfers are not captain
+      expect(result!.golfers[1].isCaptain).toBe(false);
+      expect(result!.golfers[2].isCaptain).toBe(false);
+
+      // Total includes captain 2x: 20*2 + 15 + 10 = 65
+      expect(result!.totalPoints).toBe(65);
+      expect(result!.tournamentCount).toBe(1);
+    });
+
+    it('caches results with 1-hour TTL', async () => {
+      mockTournamentsCollection.find.mockReturnValue(chainHelper([]));
+
+      await getTeamOfTheWeek(pastDate, 2026);
+
+      expect(mockRedisSet).toHaveBeenCalledWith(
+        expect.stringContaining('team-of-week'),
+        expect.any(String),
+        'EX',
+        3600
+      );
+    });
+
+    it('returns cached data without DB queries', async () => {
+      const cachedData = {
+        golfers: [],
+        totalPoints: 0,
+        period: { label: 'Gameweek 1', startDate: '', endDate: '', gameweek: 1 },
+        tournamentCount: 0,
+      };
+      mockRedisGet.mockResolvedValue(JSON.stringify(cachedData));
+
+      const result = await getTeamOfTheWeek(pastDate, 2026);
+
+      expect(result).toEqual(cachedData);
+      expect(connectToDatabase).not.toHaveBeenCalled();
     });
   });
 });
