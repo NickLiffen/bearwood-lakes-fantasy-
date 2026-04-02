@@ -32,7 +32,7 @@ vi.mock('./_shared/utils/logger', () => ({
 
 const mockGetAppSettings = vi.fn();
 vi.mock('./_shared/services/settings.service', () => ({
-  getAppSettings: (...args: any[]) => mockGetAppSettings(...args),
+  getAppSettings: (...args: unknown[]) => mockGetAppSettings(...args),
 }));
 
 describe('settings-public handler', () => {

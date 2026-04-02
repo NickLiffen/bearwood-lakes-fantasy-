@@ -1,4 +1,5 @@
 import { handler } from './scheduled-recalculate';
+import type { HandlerEvent, HandlerContext } from '@netlify/functions';
 
 const mockToArray = vi.fn();
 const mockFind = vi.fn().mockReturnValue({ toArray: mockToArray });
@@ -11,14 +12,14 @@ const mockCollection = vi.fn().mockReturnValue({
 vi.mock('./_shared/db', () => ({
   connectToDatabase: vi.fn().mockResolvedValue({
     db: {
-      collection: (...args: any[]) => mockCollection(...args),
+      collection: (...args: unknown[]) => mockCollection(...args),
     },
   }),
 }));
 
 const mockRecalculate = vi.fn();
 vi.mock('./_shared/services/scores.service', () => ({
-  recalculateScoresForTournament: (...args: any[]) => mockRecalculate(...args),
+  recalculateScoresForTournament: (...args: unknown[]) => mockRecalculate(...args),
 }));
 
 vi.mock('./_shared/utils/logger', () => ({
@@ -43,7 +44,7 @@ describe('scheduled-recalculate handler', () => {
     mockToArray.mockResolvedValue(tournaments);
     mockRecalculate.mockResolvedValueOnce(5).mockResolvedValueOnce(3);
 
-    const res = await handler({} as any, {} as any, () => {});
+    const res = await handler({} as unknown as HandlerEvent, {} as unknown as HandlerContext, () => {});
 
     expect(res!.statusCode).toBe(200);
     const body = JSON.parse(res!.body!);
@@ -59,7 +60,7 @@ describe('scheduled-recalculate handler', () => {
   it('returns early when no tournaments flagged', async () => {
     mockToArray.mockResolvedValue([]);
 
-    const res = await handler({} as any, {} as any, () => {});
+    const res = await handler({} as unknown as HandlerEvent, {} as unknown as HandlerContext, () => {});
 
     expect(res!.statusCode).toBe(200);
     const body = JSON.parse(res!.body!);
@@ -71,7 +72,7 @@ describe('scheduled-recalculate handler', () => {
   it('handles errors gracefully', async () => {
     mockToArray.mockRejectedValue(new Error('DB connection failed'));
 
-    const res = await handler({} as any, {} as any, () => {});
+    const res = await handler({} as unknown as HandlerEvent, {} as unknown as HandlerContext, () => {});
 
     expect(res!.statusCode).toBe(500);
     const body = JSON.parse(res!.body!);

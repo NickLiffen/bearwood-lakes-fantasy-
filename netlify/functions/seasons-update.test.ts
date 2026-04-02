@@ -32,7 +32,7 @@ vi.mock('./_shared/utils/logger', () => ({
 
 const mockUpdateSeason = vi.fn();
 vi.mock('./_shared/services/seasons.service', () => ({
-  updateSeason: (...args: any[]) => mockUpdateSeason(...args),
+  updateSeason: (...args: unknown[]) => mockUpdateSeason(...args),
 }));
 
 describe('seasons-update handler', () => {

@@ -32,12 +32,12 @@ vi.mock('./_shared/utils/logger', () => ({
 
 const mockProcessSeasonUpload = vi.fn();
 vi.mock('./_shared/services/season-upload.service', () => ({
-  processSeasonUpload: (...args: any[]) => mockProcessSeasonUpload(...args),
+  processSeasonUpload: (...args: unknown[]) => mockProcessSeasonUpload(...args),
 }));
 
 vi.mock('./_shared/validators/season-upload.validator', () => ({
   seasonUploadSchema: {
-    parse: vi.fn().mockImplementation((data: any) => data),
+    parse: vi.fn().mockImplementation((data: unknown) => data),
   },
 }));
 

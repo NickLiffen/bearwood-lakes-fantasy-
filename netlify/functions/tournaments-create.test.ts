@@ -1,5 +1,6 @@
 import { handler } from './tournaments-create';
 import { makeAuthEvent, mockContext, parseBody } from './__test-utils__';
+import type { Tournament } from '@shared/types';
 
 vi.mock('./_shared/auth', () => ({
   verifyToken: vi.fn().mockReturnValue({
@@ -57,7 +58,7 @@ beforeEach(() => {
 
 describe('tournaments-create handler', () => {
   it('creates a tournament successfully', async () => {
-    mockCreate.mockResolvedValue({ id: 't1', ...validBody } as any);
+    mockCreate.mockResolvedValue({ id: 't1', ...validBody } as unknown as Tournament);
 
     const res = await handler(
       makeAuthEvent({

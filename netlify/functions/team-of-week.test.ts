@@ -21,7 +21,7 @@ vi.mock('./_shared/utils/logger', () => ({
 const mockGetTeamOfTheWeek = vi.fn();
 
 vi.mock('./_shared/services/leaderboard.service', () => ({
-  getTeamOfTheWeek: (...args: any[]) => mockGetTeamOfTheWeek(...args),
+  getTeamOfTheWeek: (...args: unknown[]) => mockGetTeamOfTheWeek(...args),
 }));
 
 vi.mock('./_shared/services/seasons.service', () => ({

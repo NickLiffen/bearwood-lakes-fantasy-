@@ -32,7 +32,7 @@ vi.mock('./_shared/utils/logger', () => ({
 
 const mockGetAllSeasons = vi.fn();
 vi.mock('./_shared/services/seasons.service', () => ({
-  getAllSeasons: (...args: any[]) => mockGetAllSeasons(...args),
+  getAllSeasons: (...args: unknown[]) => mockGetAllSeasons(...args),
 }));
 
 describe('seasons-list handler', () => {

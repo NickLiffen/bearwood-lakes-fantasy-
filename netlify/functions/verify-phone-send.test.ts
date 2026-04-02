@@ -32,7 +32,7 @@ vi.mock('./_shared/utils/logger', () => ({
 
 const mockSendPhoneVerification = vi.fn();
 vi.mock('./_shared/services/verification.service', () => ({
-  sendPhoneVerification: (...args: any[]) => mockSendPhoneVerification(...args),
+  sendPhoneVerification: (...args: unknown[]) => mockSendPhoneVerification(...args),
 }));
 
 describe('verify-phone-send handler', () => {

@@ -3,6 +3,7 @@ import { handler } from './user-profile';
 import { makeAuthEvent, mockContext, parseBody, createMockDb, mockCursor } from './__test-utils__';
 import { connectToDatabase } from './_shared/db';
 import { getActiveSeason } from './_shared/services/seasons.service';
+import type { Season } from '@shared/types';
 
 vi.mock('./_shared/auth', () => ({
   verifyToken: vi.fn().mockReturnValue({
@@ -49,14 +50,14 @@ const golferId2 = new ObjectId();
 const tournamentId = new ObjectId();
 
 function setupDb(overrides: {
-  user?: any;
-  pick?: any;
-  allPicks?: any[];
-  golfers?: any[];
-  tournaments?: any[];
-  scores?: any[];
-  pickHistory?: any[];
-  historyGolfers?: any[];
+  user?: Record<string, unknown>;
+  pick?: Record<string, unknown>;
+  allPicks?: Record<string, unknown>[];
+  golfers?: Record<string, unknown>[];
+  tournaments?: Record<string, unknown>[];
+  scores?: Record<string, unknown>[];
+  pickHistory?: Record<string, unknown>[];
+  historyGolfers?: Record<string, unknown>[];
 } = {}) {
   const { mockDb } = createMockDb({
     users: {
@@ -86,7 +87,7 @@ function setupDb(overrides: {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(getActiveSeason).mockResolvedValue(mockSeason as any);
+  vi.mocked(getActiveSeason).mockResolvedValue(mockSeason as unknown as Season);
 });
 
 describe('user-profile handler', () => {
