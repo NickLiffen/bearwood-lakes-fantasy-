@@ -171,7 +171,7 @@ const LeagueDetailPage: React.FC = () => {
 
     loadData();
     return () => { cancelled = true; };
-  }, [isAuthReady, id, selectedSeason, get, fetchPeriodData]);
+  }, [isAuthReady, id, selectedSeason, get, fetchPeriodData, season?.firstGameweekStart]);
 
   const handleWeekNavigation = async (direction: 'prev' | 'next') => {
     if (!weeklyData?.period) return;

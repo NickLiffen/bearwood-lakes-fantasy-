@@ -1,6 +1,5 @@
 // GET /.netlify/functions/leagues-detail?leagueId=X&period=week|month|season&date=ISO&season=2026
 
-import { ObjectId } from 'mongodb';
 import { withVerifiedAuth, apiResponse } from './_shared/middleware';
 import { getLeagueById, getLeagueMembers } from './_shared/services/leagues.service';
 import { connectToDatabase } from './_shared/db';

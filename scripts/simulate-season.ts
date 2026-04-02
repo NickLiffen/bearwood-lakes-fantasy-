@@ -23,7 +23,6 @@ import {
   getWeekStart,
   getWeekEnd,
   getTeamEffectiveStartDate,
-  getGameweekNumber,
 } from '../netlify/functions/_shared/utils/dates';
 import { BUDGET_CAP, MAX_GOLFERS } from '../shared/constants/rules';
 

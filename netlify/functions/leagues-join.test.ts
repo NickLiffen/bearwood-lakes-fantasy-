@@ -22,7 +22,7 @@ vi.mock('./_shared/utils/logger', () => ({
 
 const mockJoinLeague = vi.fn();
 vi.mock('./_shared/services/leagues.service', () => ({
-  joinLeague: (...args: any[]) => mockJoinLeague(...args),
+  joinLeague: (...args: unknown[]) => mockJoinLeague(...args),
 }));
 
 beforeEach(() => vi.clearAllMocks());

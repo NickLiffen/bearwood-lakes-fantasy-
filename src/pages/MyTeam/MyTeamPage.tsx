@@ -150,7 +150,7 @@ const MyTeamPage: React.FC = () => {
       const options = generateWeekOptions(teamData.team.teamEffectiveStart, season.startDate, season?.firstGameweekStart);
       setWeekOptions(options);
     }
-  }, [teamData?.team?.teamEffectiveStart, season?.startDate]);
+  }, [teamData?.team?.teamEffectiveStart, season?.startDate, season?.firstGameweekStart]);
 
   // Navigation handlers
   const handleWeekNavigation = (direction: 'prev' | 'next') => {

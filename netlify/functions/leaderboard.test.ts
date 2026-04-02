@@ -23,9 +23,9 @@ const mockGetFullLeaderboard = vi.fn();
 const mockGetTournamentLeaderboard = vi.fn();
 
 vi.mock('./_shared/services/leaderboard.service', () => ({
-  getLeaderboard: (...args: any[]) => mockGetLeaderboard(...args),
-  getFullLeaderboard: (...args: any[]) => mockGetFullLeaderboard(...args),
-  getTournamentLeaderboard: (...args: any[]) => mockGetTournamentLeaderboard(...args),
+  getLeaderboard: (...args: unknown[]) => mockGetLeaderboard(...args),
+  getFullLeaderboard: (...args: unknown[]) => mockGetFullLeaderboard(...args),
+  getTournamentLeaderboard: (...args: unknown[]) => mockGetTournamentLeaderboard(...args),
 }));
 
 beforeEach(() => vi.clearAllMocks());

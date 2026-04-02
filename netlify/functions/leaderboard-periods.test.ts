@@ -3,7 +3,7 @@ import { handler } from './leaderboard-periods';
 import { makeAuthEvent, mockContext, parseBody, createMockDb, mockCursor } from './__test-utils__';
 import { connectToDatabase } from './_shared/db';
 import { getActiveSeason, getSeasonByName } from './_shared/services/seasons.service';
-import { getWeekStart, getMonthStart, getTeamEffectiveStartDate, getGameweekNumber } from './_shared/utils/dates';
+
 
 vi.mock('./_shared/auth', () => ({
   verifyToken: vi.fn().mockReturnValue({
@@ -53,7 +53,7 @@ const mockSeason = {
   isActive: true,
 };
 
-function setupCollections(picks: any[] = [], users: any[] = [], tournaments: any[] = [], scores: any[] = []) {
+function setupCollections(picks: Record<string, unknown>[] = [], users: Record<string, unknown>[] = [], tournaments: Record<string, unknown>[] = [], scores: Record<string, unknown>[] = []) {
   const { mockDb } = createMockDb({
     picks: { find: vi.fn().mockReturnValue(mockCursor(picks)) },
     users: { find: vi.fn().mockReturnValue(mockCursor(users)) },
@@ -65,7 +65,7 @@ function setupCollections(picks: any[] = [], users: any[] = [], tournaments: any
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(getActiveSeason).mockResolvedValue(mockSeason as any);
+  vi.mocked(getActiveSeason).mockResolvedValue(mockSeason as unknown as Awaited<ReturnType<typeof getActiveSeason>>);
   vi.mocked(getSeasonByName).mockResolvedValue(null);
 });
 

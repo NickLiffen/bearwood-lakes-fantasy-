@@ -96,13 +96,6 @@ interface AggregatedPick {
   user?: { _id: ObjectId; username: string; firstName?: string; lastName?: string };
 }
 
-async function getCurrentSeason(): Promise<number> {
-  const activeSeason = await getActiveSeason();
-  return activeSeason
-    ? parseInt(activeSeason.name, 10) || new Date().getFullYear()
-    : new Date().getFullYear();
-}
-
 export async function getFullLeaderboard(season?: number): Promise<FullLeaderboardResponse> {
   const activeSeason = await getActiveSeason();
   const currentSeason = season ?? (activeSeason
