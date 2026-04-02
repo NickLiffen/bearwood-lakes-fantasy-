@@ -5,8 +5,9 @@ import { connectToDatabase } from '../db';
 import { USERS_COLLECTION } from '../models/User';
 import { PICKS_COLLECTION } from '../models/Pick';
 import { SCORES_COLLECTION } from '../models/Score';
+import { GolferDocument, GOLFERS_COLLECTION, toGolfer } from '../models/Golfer';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from '../models/Tournament';
-import type { LeaderboardEntry } from '../../../../shared/types';
+import type { LeaderboardEntry, TeamOfTheWeekResponse, TeamOfTheWeekGolfer } from '../../../../shared/types';
 import {
   getWeekStart,
   getWeekEnd,
@@ -14,8 +15,10 @@ import {
   getMonthEnd,
   getSeasonStart,
   getTeamEffectiveStartDate,
+  getGameweekNumber,
+  formatDateString,
 } from '../utils/dates';
-import { getActiveSeason } from './seasons.service';
+import { getActiveSeason, getSeasonByName } from './seasons.service';
 import { getRedisClient, getRedisKeyPrefix } from '../rateLimit';
 
 const LEADERBOARD_CACHE_TTL = 60; // 60 seconds
@@ -547,5 +550,168 @@ export async function getTournamentLeaderboard(
   });
 
   await setCachedLeaderboard(cacheKey, result);
+  return result;
+}
+
+const TEAM_OF_WEEK_CACHE_TTL = 3600; // 1  past weeks are immutablehour 
+
+/**
+ * Get the "Team of the  the 6 golfers who scored the most pointsWeek" 
+ * across all tournaments in a completed gameweek.
+ *
+ * The highest scorer is designated as the "dream captain" and their points
+ * are doubled in the total, mirroring the captain mechanic in the real game.
+ */
+export async function getTeamOfTheWeek(
+  date: string,
+  season: number
+): Promise<TeamOfTheWeekResponse | null> {
+  const seasonData = await getSeasonByName(String(season));
+  const firstGW = seasonData?.firstGameweekStart
+    ? new Date(seasonData.firstGameweekStart)
+    : null;
+  const seasonStartDate = seasonData?.startDate
+    ? new Date(seasonData.startDate)
+    : new Date(season, 0, 1);
+
+  const requestDate = new Date(date);
+  const weekStart = getWeekStart(requestDate, firstGW);
+  const weekEnd = getWeekEnd(weekStart, firstGW);
+
+  // Only allow completed weeks (week end must be in the past)
+  if (weekEnd >= new Date()) {
+    return null;
+  }
+
+  const weekKey = formatDateString(weekStart);
+  const cacheKey = leaderboardCacheKey('team-of-week', season, weekKey);
+
+  const cached = await getCachedLeaderboard<TeamOfTheWeekResponse>(cacheKey);
+  if (cached) return cached;
+
+  const { db } = await connectToDatabase();
+
+  // Get published/complete tournaments in the week date range
+  const tournaments = await db
+    .collection<TournamentDocument>(TOURNAMENTS_COLLECTION)
+    .find({
+      season,
+      status: { $in: ['published', 'complete'] },
+      startDate: { $gte: weekStart, $lte: weekEnd },
+    })
+    .project<{ _id: ObjectId }>({ _id: 1 })
+    .toArray();
+
+  const gameweek = getGameweekNumber(weekStart, seasonStartDate, firstGW);
+
+  if (tournaments.length === 0) {
+    const emptyResult: TeamOfTheWeekResponse = {
+      golfers: [],
+      totalPoints: 0,
+      period: {
+        label: `Gameweek ${gameweek}`,
+        startDate: weekStart.toISOString(),
+        endDate: weekEnd.toISOString(),
+        gameweek,
+      },
+      tournamentCount: 0,
+    };
+    await setCachedLeaderboard(cacheKey, emptyResult);
+    return emptyResult;
+  }
+
+  const tournamentIds = tournaments.map((t) => t._id);
+
+  // Aggregate scores per golfer across all tournaments in the week
+  const golferScores = await db
+    .collection(SCORES_COLLECTION)
+    .aggregate<{ _id: ObjectId; totalPoints: number }>([
+      {
+        $match: {
+          tournamentId: { $in: tournamentIds },
+          participated: true,
+          multipliedPoints: { $gt: 0 },
+        },
+      },
+      {
+        $group: {
+          _id: '$golferId',
+          totalPoints: { $sum: '$multipliedPoints' },
+        },
+      },
+      { $sort: { totalPoints: -1 } },
+      { $limit: 6 },
+    ])
+    .toArray();
+
+  if (golferScores.length === 0) {
+    const emptyResult: TeamOfTheWeekResponse = {
+      golfers: [],
+      totalPoints: 0,
+      period: {
+        label: `Gameweek ${gameweek}`,
+        startDate: weekStart.toISOString(),
+        endDate: weekEnd.toISOString(),
+        gameweek,
+      },
+      tournamentCount: tournaments.length,
+    };
+    await setCachedLeaderboard(cacheKey, emptyResult);
+    return emptyResult;
+  }
+
+  // Fetch golfer details for the top scorers
+  const golferIds = golferScores.map((s) => s._id);
+  const golferDocs = await db
+    .collection<GolferDocument>(GOLFERS_COLLECTION)
+    .find({ _id: { $in: golferIds } })
+    .toArray();
+
+  const golferMap = new Map(golferDocs.map((doc) => [doc._id.toString(), toGolfer(doc)]));
+
+  // Build the dream  highest scorer is the "dream captain"team 
+  const dreamTeam: TeamOfTheWeekGolfer[] = golferScores.map((score, index) => {
+    const golfer = golferMap.get(score._id.toString());
+    return {
+      golfer: {
+        id: score._id.toString(),
+        firstName: golfer?.firstName || 'Unknown',
+        lastName: golfer?.lastName || '',
+        picture: golfer?.picture || '',
+        price: golfer?.price || 0,
+      },
+      weekPoints: score.totalPoints,
+      isCaptain: index === 0,
+    };
+  });
+
+  // Total: captain's points doubled + rest as-is
+  const totalPoints = dreamTeam.reduce(
+    (sum, g) => sum + g.weekPoints * (g.isCaptain ? 2 : 1),
+    0
+  );
+
+  const result: TeamOfTheWeekResponse = {
+    golfers: dreamTeam,
+    totalPoints,
+    period: {
+      label: `Gameweek ${gameweek}`,
+      startDate: weekStart.toISOString(),
+      endDate: weekEnd.toISOString(),
+      gameweek,
+    },
+    tournamentCount: tournaments.length,
+  };
+
+  await setCachedLeaderboard(cacheKey, result);
+
+  // Also set with the longer TTL since past weeks don't change
+  try {
+    const redis = getRedisClient();
+    await redis.expire(cacheKey, TEAM_OF_WEEK_CACHE_TTL);
+  } catch {
+    // Redis unavailable
+  }
+
   return result;
 }
