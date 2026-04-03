@@ -343,8 +343,10 @@ export async function getPickHistory(userId: string): Promise<PickHistory[]> {
  */
 export async function cancelPendingChanges(userId: string): Promise<void> {
   const { db } = await connectToDatabase();
-  const currentSeason = await getCurrentSeason();
   const activeSeason = await getActiveSeason();
+  const currentSeason = activeSeason
+    ? parseInt(activeSeason.name, 10) || new Date().getFullYear()
+    : new Date().getFullYear();
   const firstGW = activeSeason?.firstGameweekStart
     ? new Date(activeSeason.firstGameweekStart)
     : null;
