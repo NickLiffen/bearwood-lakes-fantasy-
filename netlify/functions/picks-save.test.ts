@@ -39,7 +39,7 @@ describe('picks-save handler', () => {
     const captainId = 'g1';
     mockValidateBody.mockReturnValue({ golferIds, captainId });
     const savedPicks = { golferIds, captainId, totalSpent: 30_000_000 };
-    mockSavePicks.mockResolvedValue(savedPicks);
+    mockSavePicks.mockResolvedValue({ pick: savedPicks, deferred: false });
 
     const event = makeAuthEvent({
       httpMethod: 'POST',
@@ -51,6 +51,7 @@ describe('picks-save handler', () => {
     expect(res!.statusCode).toBe(200);
     expect(body.success).toBe(true);
     expect(body.data).toEqual(savedPicks);
+    expect(body.deferred).toBe(false);
     expect(mockSavePicks).toHaveBeenCalledWith('user-admin-1', golferIds, 'Team selection', captainId);
   });
 

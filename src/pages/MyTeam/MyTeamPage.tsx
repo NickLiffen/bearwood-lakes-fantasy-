@@ -193,31 +193,43 @@ const MyTeamPage: React.FC = () => {
     const golfer = teamData.team.golfers.find((g) => g.golfer.id === golferId);
     const golferName = golfer ? `${golfer.golfer.firstName} ${golfer.golfer.lastName}` : '';
 
-    // Optimistic update — instant UI feedback
-    setTeamData((prev) => {
-      if (!prev?.team) return prev;
-      return {
-        ...prev,
-        team: {
-          ...prev.team,
-          captainId: newCaptainId,
-          golfers: prev.team.golfers.map((g) => ({
-            ...g,
-            isCaptain: g.golfer.id === newCaptainId,
-          })),
-        },
-      };
-    });
+    const willBeDeferred = !teamData.unlimitedTransfers;
 
-    // Show toast + dismiss banner permanently on first captain set
-    if (newCaptainId) {
-      setToast({ message: `👑 Captain Set: ${golferName}`, type: 'success' });
-      if (!captainBannerDismissed) {
-        setCaptainBannerDismissed(true);
-        localStorage.setItem('captainBannerDismissed', 'true');
-      }
+    if (willBeDeferred) {
+      // Deferred: update pendingChanges, keep current captain unchanged
+      setTeamData((prev) => {
+        if (!prev?.team) return prev;
+        return {
+          ...prev,
+          pendingChanges: {
+            pendingGolferIds: prev.pendingChanges?.pendingGolferIds || null,
+            pendingCaptainId: newCaptainId,
+            pendingChangedAt: new Date().toISOString(),
+          },
+        };
+      });
     } else {
-      setToast({ message: `👑 Captain Removed`, type: 'warning' });
+      // Immediate: optimistic update to captain
+      setTeamData((prev) => {
+        if (!prev?.team) return prev;
+        return {
+          ...prev,
+          team: {
+            ...prev.team,
+            captainId: newCaptainId,
+            golfers: prev.team.golfers.map((g) => ({
+              ...g,
+              isCaptain: g.golfer.id === newCaptainId,
+            })),
+          },
+        };
+      });
+    }
+
+    // Dismiss captain hint banner on first captain set
+    if (newCaptainId && !captainBannerDismissed) {
+      setCaptainBannerDismissed(true);
+      localStorage.setItem('captainBannerDismissed', 'true');
     }
 
     setSavingCaptain(true);
@@ -227,7 +239,24 @@ const MyTeamPage: React.FC = () => {
         captainId: newCaptainId,
       });
 
-      if (!response.success) {
+      if (response.success) {
+        // Show toast based on whether the change was deferred
+        if (willBeDeferred) {
+          if (newCaptainId) {
+            setToast({ message: `👑 Captain scheduled for next gameweek: ${golferName}`, type: 'success' });
+          } else {
+            setToast({ message: `👑 Captain removal scheduled for next gameweek`, type: 'success' });
+          }
+        } else {
+          if (newCaptainId) {
+            setToast({ message: `👑 Captain Set: ${golferName}`, type: 'success' });
+          } else {
+            setToast({ message: `👑 Captain Removed`, type: 'warning' });
+          }
+        }
+        // Re-fetch to sync with authoritative server state
+        fetchTeam(selectedDate);
+      } else {
         fetchTeam(selectedDate);
         setToast({ message: 'Failed to set captain', type: 'warning' });
       }
