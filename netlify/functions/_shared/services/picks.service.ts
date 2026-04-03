@@ -130,7 +130,7 @@ export async function savePicks(
   reason: string = 'Team selection',
   captainId?: string | null,
   season?: number
-): Promise<Pick> {
+): Promise<{ pick: Pick; deferred: boolean }> {
   const { db } = await connectToDatabase();
   const picksCollection = db.collection<PickDocument>(PICKS_COLLECTION);
   const historyCollection = db.collection<PickHistoryDocument>(PICK_HISTORY_COLLECTION);
@@ -315,7 +315,7 @@ export async function savePicks(
   }
 
   const pick = await getUserPicks(userId);
-  return pick!;
+  return { pick: pick!, deferred: isDeferred };
 }
 
 export async function getPickHistory(userId: string): Promise<PickHistory[]> {

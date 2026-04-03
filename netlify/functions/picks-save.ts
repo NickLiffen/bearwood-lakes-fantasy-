@@ -11,11 +11,11 @@ export const handler = withVerifiedAuth(async (event: AuthenticatedEvent) => {
 
   try {
     const { golferIds, captainId } = validateBody(savePicksSchema, event.body);
-    const picks = await savePicks(event.user.userId, golferIds, 'Team selection', captainId);
+    const { pick: picks, deferred } = await savePicks(event.user.userId, golferIds, 'Team selection', captainId);
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ success: true, data: picks }),
+      body: JSON.stringify({ success: true, data: picks, deferred }),
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to save picks';
