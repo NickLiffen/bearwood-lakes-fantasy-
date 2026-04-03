@@ -34,6 +34,7 @@ import ScoresAdminPage from './pages/Admin/Scores';
 import UsersAdminPage from './pages/Admin/Users';
 import SettingsAdminPage from './pages/Admin/Settings';
 import SeasonUploadPage from './pages/Admin/SeasonUpload';
+import TournamentUploadPage from './pages/Admin/TournamentUpload';
 import LeaguesAdminPage from './pages/Admin/Leagues';
 import SeasonsAdminPage from './pages/Admin/Seasons';
 
@@ -342,6 +343,14 @@ const AppRoutes: React.FC = () => {
         element={
           <AdminRoute>
             <SeasonUploadPage />
+          </AdminRoute>
+        }
+      />
+      <Route
+        path="/admin/tournament-upload"
+        element={
+          <AdminRoute>
+            <TournamentUploadPage />
           </AdminRoute>
         }
       />
