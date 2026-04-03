@@ -189,6 +189,12 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
             <span className="nav-icon">📤</span> Season Upload
           </Link>
           <Link
+            to="/admin/tournament-upload"
+            className={`admin-mobile-nav-link ${isActive('/admin/tournament-upload') ? 'active' : ''}`}
+          >
+            <span className="nav-icon">📄</span> Tournament Upload
+          </Link>
+          <Link
             to="/admin/settings"
             className={`admin-mobile-nav-link ${isActive('/admin/settings') ? 'active' : ''}`}
           >
@@ -264,6 +270,13 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
             >
               <span className="nav-icon">📤</span>
               Season Upload
+            </Link>
+            <Link
+              to="/admin/tournament-upload"
+              className={`admin-nav-link ${isActive('/admin/tournament-upload') ? 'active' : ''}`}
+            >
+              <span className="nav-icon">📄</span>
+              Tournament Upload
             </Link>
             <Link
               to="/admin/settings"
