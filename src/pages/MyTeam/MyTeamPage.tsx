@@ -108,9 +108,11 @@ const MyTeamPage: React.FC = () => {
   useDocumentTitle('My Team');
 
   const fetchTeam = useCallback(
-    async (date?: string) => {
-      setLoading(true);
-      setError(null);
+    async (date?: string, { silent = false } = {}) => {
+      if (!silent) {
+        setLoading(true);
+        setError(null);
+      }
 
       try {
         const endpoint = date ? `my-team?date=${date}` : 'my-team';
@@ -126,13 +128,15 @@ const MyTeamPage: React.FC = () => {
             const weekStart = new Date(response.data.team.period.weekStart);
             setSelectedDate(formatDateString(weekStart));
           }
-        } else {
+        } else if (!silent) {
           setError(response.error || 'Failed to load team');
         }
-        setLoading(false);
+        if (!silent) setLoading(false);
       } catch {
-        setError('Failed to load your team. Please try again.');
-        setLoading(false);
+        if (!silent) {
+          setError('Failed to load your team. Please try again.');
+          setLoading(false);
+        }
       }
     },
     [get]
@@ -195,6 +199,9 @@ const MyTeamPage: React.FC = () => {
 
     const willBeDeferred = !teamData.unlimitedTransfers;
 
+    // Snapshot state before optimistic update so we can revert on failure
+    const previousTeamData = teamData;
+
     if (willBeDeferred) {
       // Deferred: update pendingChanges, keep current captain unchanged
       setTeamData((prev) => {
@@ -254,14 +261,15 @@ const MyTeamPage: React.FC = () => {
             setToast({ message: `👑 Captain Removed`, type: 'warning' });
           }
         }
-        // Re-fetch to sync with authoritative server state
-        fetchTeam(selectedDate);
+        // Re-fetch to sync with authoritative server state (silent to avoid spinner flash)
+        fetchTeam(selectedDate, { silent: true });
       } else {
-        fetchTeam(selectedDate);
+        // Revert optimistic update so UI reflects the actual server state
+        setTeamData(previousTeamData);
         setToast({ message: 'Failed to set captain', type: 'warning' });
       }
     } catch {
-      fetchTeam(selectedDate);
+      setTeamData(previousTeamData);
       setToast({ message: 'Failed to set captain', type: 'warning' });
     } finally {
       setSavingCaptain(false);
