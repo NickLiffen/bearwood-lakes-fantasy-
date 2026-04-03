@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import './TeamHistory.css';
 
 interface HistoryEntry {
@@ -12,7 +12,6 @@ interface HistoryEntry {
 
 interface TeamHistoryProps {
   history: HistoryEntry[];
-  pageSize?: number;
 }
 
 const formatDateTime = (dateStr: string): string => {
@@ -25,21 +24,15 @@ const formatDateTime = (dateStr: string): string => {
   });
 };
 
-const TeamHistory: React.FC<TeamHistoryProps> = ({ history, pageSize = 10 }) => {
-  const [page, setPage] = useState(1);
-
+const TeamHistory: React.FC<TeamHistoryProps> = ({ history }) => {
   if (history.length === 0) return null;
-
-  const totalPages = Math.ceil(history.length / pageSize);
-  const startIdx = (page - 1) * pageSize;
-  const pageEntries = history.slice(startIdx, startIdx + pageSize);
 
   return (
     <div className="team-history">
       <h2>📜 Team History</h2>
       <div className="history-timeline">
-        {pageEntries.map((entry, index) => (
-          <div key={startIdx + index} className="history-entry">
+        {history.map((entry, index) => (
+          <div key={index} className="history-entry">
             <div className="history-date">{formatDateTime(entry.changedAt)}</div>
             <div className="history-content">
               <span className="history-reason">{entry.reason}</span>
@@ -67,27 +60,6 @@ const TeamHistory: React.FC<TeamHistoryProps> = ({ history, pageSize = 10 }) => 
           </div>
         ))}
       </div>
-      {totalPages > 1 && (
-        <div className="history-pagination">
-          <button
-            className="history-page-btn"
-            disabled={page <= 1}
-            onClick={() => setPage(page - 1)}
-          >
-            ← Prev
-          </button>
-          <span className="history-page-info">
-            Page {page} of {totalPages}
-          </span>
-          <button
-            className="history-page-btn"
-            disabled={page >= totalPages}
-            onClick={() => setPage(page + 1)}
-          >
-            Next →
-          </button>
-        </div>
-      )}
     </div>
   );
 };

@@ -241,7 +241,7 @@ export async function getTeamTransferHistory(
     };
   });
 
-  return formattedHistory.filter(
-    (h) => h.addedGolfers.length > 0 || h.removedGolfers.length > 0,
-  );
+  return formattedHistory
+    .filter((h) => h.addedGolfers.length > 0 || h.removedGolfers.length > 0)
+    .slice(0, 10);
 }
