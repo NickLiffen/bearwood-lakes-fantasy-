@@ -343,14 +343,32 @@ export async function getPickHistory(userId: string): Promise<PickHistory[]> {
  */
 export async function cancelPendingChanges(userId: string): Promise<void> {
   const { db } = await connectToDatabase();
-  const currentSeason = await getCurrentSeason();
+  const activeSeason = await getActiveSeason();
+  const currentSeason = activeSeason
+    ? parseInt(activeSeason.name, 10) || new Date().getFullYear()
+    : new Date().getFullYear();
+  const firstGW = activeSeason?.firstGameweekStart
+    ? new Date(activeSeason.firstGameweekStart)
+    : null;
+  const weekStart = getWeekStart(new Date(), firstGW);
+  const userObjectId = new ObjectId(userId);
+
+  // Clear pending fields on the picks document
   await db.collection<PickDocument>(PICKS_COLLECTION).updateOne(
-    { userId: new ObjectId(userId), season: currentSeason },
+    { userId: userObjectId, season: currentSeason },
     {
       $unset: { pendingGolferIds: '', pendingCaptainId: '', pendingChangedAt: '' },
       $set: { updatedAt: new Date() },
     }
   );
+
+  // Remove scheduled history entries for the current week so the transfer count resets
+  await db.collection<PickHistoryDocument>(PICK_HISTORY_COLLECTION).deleteMany({
+    userId: userObjectId,
+    season: currentSeason,
+    changedAt: { $gte: weekStart },
+    reason: { $in: ['Scheduled transfer', 'Scheduled captain change'] },
+  });
 }
 
 /**

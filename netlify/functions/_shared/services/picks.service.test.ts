@@ -1,7 +1,7 @@
 import { ObjectId } from 'mongodb';
 import type { Db, MongoClient } from 'mongodb';
 import { connectToDatabase } from '../db';
-import { savePicks, getUserPicks, getPickHistory, getTransfersThisWeek } from './picks.service';
+import { savePicks, getUserPicks, getPickHistory, getTransfersThisWeek, cancelPendingChanges } from './picks.service';
 import { getActiveSeason } from './seasons.service';
 import type { Season } from '@shared/types/season.types';
 
@@ -23,6 +23,7 @@ const mockHistoryCollection = {
   insertOne: vi.fn(),
   find: vi.fn(),
   countDocuments: vi.fn(),
+  deleteMany: vi.fn(),
 };
 
 const mockGolfersCollection = {
@@ -416,6 +417,32 @@ describe('picks.service', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0].reason).toBe('Transfer');
+    });
+  });
+
+  describe('cancelPendingChanges', () => {
+    it('clears pending fields and deletes scheduled history entries', async () => {
+      mockPicksCollection.updateOne.mockResolvedValue({ modifiedCount: 1 });
+      mockHistoryCollection.deleteMany.mockResolvedValue({ deletedCount: 1 });
+
+      await cancelPendingChanges(userId.toString());
+
+      // Should clear pending fields on the picks document
+      expect(mockPicksCollection.updateOne).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: expect.any(ObjectId) }),
+        expect.objectContaining({
+          $unset: { pendingGolferIds: '', pendingCaptainId: '', pendingChangedAt: '' },
+        }),
+      );
+
+      // Should delete scheduled history entries for the current week
+      expect(mockHistoryCollection.deleteMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: expect.any(ObjectId),
+          reason: { $in: ['Scheduled transfer', 'Scheduled captain change'] },
+          changedAt: expect.objectContaining({ $gte: expect.any(Date) }),
+        }),
+      );
     });
   });
 });
