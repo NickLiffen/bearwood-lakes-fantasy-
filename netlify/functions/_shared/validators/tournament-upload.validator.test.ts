@@ -70,10 +70,29 @@ describe('tournamentUploadSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('rejects golfer with negative rawScore', () => {
+  it('rejects golfer with negative rawScore for stableford', () => {
     const result = tournamentUploadSchema.safeParse({
       ...validPayload,
+      scoringFormat: 'stableford',
       golfers: [{ position: 1, firstName: 'Test', lastName: 'Player', rawScore: -1 }],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it('accepts golfer with negative rawScore for medal', () => {
+    const result = tournamentUploadSchema.safeParse({
+      ...validPayload,
+      tournamentType: 'weekday_medal',
+      scoringFormat: 'medal',
+      golfers: [{ position: 1, firstName: 'Test', lastName: 'Player', rawScore: -1 }],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects invalid date format', () => {
+    const result = tournamentUploadSchema.safeParse({
+      ...validPayload,
+      date: '3 April 2026',
     });
     expect(result.success).toBe(false);
   });

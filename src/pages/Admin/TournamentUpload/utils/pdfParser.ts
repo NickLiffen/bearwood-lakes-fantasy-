@@ -125,8 +125,8 @@ export function parseTournamentText(rawText: string): ParsedTournament {
   let scoringFormat: 'stableford' | 'medal' = 'stableford';
   const golfers: ParsedGolfer[] = [];
 
-  // Data row pattern: "1 Ashley Brinsford 46 £130.00" or "1 Ashley Brinsford 46 £0.00"
-  const dataRowRegex = /^(\d+)\s+(.+?)\s+(\d+)\s+£[\d,.]+$/;
+  // Data row pattern: supports positive scores (stableford) and negative scores (medal)
+  const dataRowRegex = /^(\d+)\s+(.+?)\s+(-?\d+)\s+£[\d,.]+$/;
 
   // Date pattern: "3 April 2026"
   const datePattern = /^\d{1,2}\s+\w+\s+\d{4}$/;

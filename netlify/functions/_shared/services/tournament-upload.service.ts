@@ -72,8 +72,9 @@ export async function processTournamentUpload(
 
   const now = new Date();
 
-  // Parse the tournament date
-  const tournamentDate = new Date(data.date);
+  // Parse the tournament date using local-date construction to avoid UTC off-by-one issues
+  const [year, month, day] = data.date.split('-').map(Number);
+  const tournamentDate = new Date(year, month - 1, day);
 
   // Find the matching season
   const allSeasons = await seasonsCol.find({}).sort({ startDate: -1 }).toArray();
@@ -95,9 +96,9 @@ export async function processTournamentUpload(
   const isMultiDay = data.isMultiDay;
   const tier = getGolferCountTier(data.golfers.length);
 
-  // Check if tournament already exists (by name + season)
+  // Check if tournament already exists (case-insensitive name match within season)
   const existingTournament = await tournamentsCol.findOne({
-    name: data.name,
+    name: { $regex: new RegExp(`^${escapeRegex(data.name.trim())}$`, 'i') },
     season: seasonNumber,
   });
 

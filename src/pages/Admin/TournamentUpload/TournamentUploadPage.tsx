@@ -58,6 +58,7 @@ const TournamentUploadPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [results, setResults] = useState<UploadResult | null>(null);
+  const [golfersLoaded, setGolfersLoaded] = useState(false);
 
   // Fetch existing golfers for matching
   const fetchExistingGolfers = useCallback(async () => {
@@ -66,6 +67,7 @@ const TournamentUploadPage: React.FC = () => {
     if (response.success && response.data) {
       setExistingGolfers(response.data);
     }
+    setGolfersLoaded(true);
   }, [get, isAuthReady]);
 
   useEffect(() => {
@@ -103,6 +105,11 @@ const TournamentUploadPage: React.FC = () => {
 
     setFileName(file.name);
     setParsing(true);
+
+    // Wait for golfer list to load if not yet ready
+    if (!golfersLoaded) {
+      await fetchExistingGolfers();
+    }
 
     try {
       const parsed = await parsePdfTournament(file);
@@ -467,11 +474,15 @@ const TournamentUploadPage: React.FC = () => {
                           type="number"
                           className="form-input"
                           value={golfer.rawScore}
-                          min={0}
                           style={{ width: '60px', padding: '0.25rem' }}
-                          onChange={(e) =>
-                            updateGolfer(index, 'rawScore', parseInt(e.target.value, 10) || 0)
-                          }
+                          onChange={(e) => {
+                            const { value } = e.target;
+                            if (value === '') return;
+                            const parsed = parseInt(value, 10);
+                            if (!Number.isNaN(parsed)) {
+                              updateGolfer(index, 'rawScore', parsed);
+                            }
+                          }}
                         />
                       </td>
                       <td>

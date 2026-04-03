@@ -134,4 +134,21 @@ Total Purse Allocated: £265.00`;
     const result = parseTournamentText(textWithTotal);
     expect(result.golfers).toHaveLength(1);
   });
+
+  it('handles negative scores for medal format', () => {
+    const medalText = `Weekend Medal 05/04/2026
+5 April 2026
+Individual Medal
+Pos. Player Nett Score Purse
+1 John Smith -2 £50.00
+2 Jane Doe 0 £30.00
+3 Bob Brown 3 £20.00`;
+
+    const result = parseTournamentText(medalText);
+    expect(result.golfers).toHaveLength(3);
+    expect(result.golfers[0].rawScore).toBe(-2);
+    expect(result.golfers[1].rawScore).toBe(0);
+    expect(result.golfers[2].rawScore).toBe(3);
+    expect(result.scoringFormat).toBe('medal');
+  });
 });
