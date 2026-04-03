@@ -35,6 +35,7 @@ const TeamGolferTable: React.FC<TeamGolferTableProps> = ({
         if (isOwnTeam && onSetCaptain) {
           return (
             <button
+              type="button"
               className={`captain-toggle ${data.isCaptain ? 'active' : ''}`}
               onClick={(e) => {
                 e.stopPropagation();
