@@ -199,6 +199,9 @@ const MyTeamPage: React.FC = () => {
 
     const willBeDeferred = !teamData.unlimitedTransfers;
 
+    // Snapshot state before optimistic update so we can revert on failure
+    const previousTeamData = teamData;
+
     if (willBeDeferred) {
       // Deferred: update pendingChanges, keep current captain unchanged
       setTeamData((prev) => {
@@ -261,11 +264,12 @@ const MyTeamPage: React.FC = () => {
         // Re-fetch to sync with authoritative server state (silent to avoid spinner flash)
         fetchTeam(selectedDate, { silent: true });
       } else {
-        fetchTeam(selectedDate, { silent: true });
+        // Revert optimistic update so UI reflects the actual server state
+        setTeamData(previousTeamData);
         setToast({ message: 'Failed to set captain', type: 'warning' });
       }
     } catch {
-      fetchTeam(selectedDate, { silent: true });
+      setTeamData(previousTeamData);
       setToast({ message: 'Failed to set captain', type: 'warning' });
     } finally {
       setSavingCaptain(false);
