@@ -83,10 +83,15 @@ async function withLocalStorageLock<T>(fn: () => Promise<T>): Promise<T> {
   for (let i = 0; i < 50; i++) {
     const existing = localStorage.getItem(LOCK_KEY);
     if (existing) {
-      const parsed = JSON.parse(existing);
-      if (Date.now() - parsed.ts < LOCK_LEASE_MS) {
-        await new Promise((r) => setTimeout(r, 100));
-        continue;
+      try {
+        const parsed = JSON.parse(existing);
+        if (Date.now() - parsed.ts < LOCK_LEASE_MS) {
+          await new Promise((r) => setTimeout(r, 100));
+          continue;
+        }
+      } catch {
+        // Corrupted lock value — treat as expired
+        localStorage.removeItem(LOCK_KEY);
       }
     }
     break;
@@ -98,12 +103,17 @@ async function withLocalStorageLock<T>(fn: () => Promise<T>): Promise<T> {
   await new Promise((r) => setTimeout(r, 10));
   const check = localStorage.getItem(LOCK_KEY);
   if (check) {
-    const parsed = JSON.parse(check);
-    if (parsed.id !== lockId) {
-      // Lost the lock race — wait briefly and read the new token from storage
-      await new Promise((r) => setTimeout(r, LOCK_LEASE_MS));
-      // Return a "success" by throwing a special value the caller handles
-      throw new LockLostError();
+    try {
+      const parsed = JSON.parse(check);
+      if (parsed.id !== lockId) {
+        // Lost the lock race — wait briefly and read the new token from storage
+        await new Promise((r) => setTimeout(r, LOCK_LEASE_MS));
+        throw new LockLostError();
+      }
+    } catch (e) {
+      if (e instanceof LockLostError) throw e;
+      // Corrupted — remove and proceed as if we have the lock
+      localStorage.removeItem(LOCK_KEY);
     }
   }
 
@@ -112,8 +122,13 @@ async function withLocalStorageLock<T>(fn: () => Promise<T>): Promise<T> {
   } finally {
     const current = localStorage.getItem(LOCK_KEY);
     if (current) {
-      const parsed = JSON.parse(current);
-      if (parsed.id === lockId) {
+      try {
+        const parsed = JSON.parse(current);
+        if (parsed.id === lockId) {
+          localStorage.removeItem(LOCK_KEY);
+        }
+      } catch {
+        // Corrupted lock — clean it up
         localStorage.removeItem(LOCK_KEY);
       }
     }

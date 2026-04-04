@@ -102,16 +102,19 @@ export async function validateRefreshToken(refreshToken: string): Promise<User> 
       throw new RefreshError('Refresh token expired', 'TOKEN_EXPIRED');
     }
 
-    // Token exists but is revoked — check for rotation race
-    if (
-      revokedToken.revokedAt &&
-      revokedToken.replacedByHash &&
-      now.getTime() - revokedToken.revokedAt.getTime() < ROTATION_GRACE_MS
-    ) {
-      throw new RefreshError(
-        'Token was just rotated by another session — retry with updated cookie',
-        'ROTATION_RACE'
-      );
+    // Token exists but is revoked — check for rotation race.
+    // `replacedByHash` may be written in a separate update after revocation,
+    // so treat any very recent revoke as retryable even if lineage is not yet present.
+    if (revokedToken.revokedAt) {
+      const revokedRecently =
+        now.getTime() - revokedToken.revokedAt.getTime() < ROTATION_GRACE_MS;
+
+      if (revokedRecently) {
+        throw new RefreshError(
+          'Token was just rotated by another session — retry with updated cookie',
+          'ROTATION_RACE'
+        );
+      }
     }
 
     throw new RefreshError('Refresh token has been revoked', 'TOKEN_INVALID');

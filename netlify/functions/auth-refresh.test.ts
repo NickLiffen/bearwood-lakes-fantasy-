@@ -177,4 +177,25 @@ describe('auth-refresh', () => {
     expect(result.statusCode).toBe(405);
     expect(parseBody(result).error).toBe('Method not allowed');
   });
+
+  it('returns 500 without clearing cookie on unexpected errors', async () => {
+    vi.mocked(getRefreshTokenFromCookie).mockReturnValue('some-token');
+    vi.mocked(refreshAccessToken).mockRejectedValue(new Error('MongoDB connection failed'));
+
+    const event = makeEvent({
+      httpMethod: 'POST',
+      headers: {
+        cookie: 'refresh_token=some-token',
+        origin: 'http://localhost:3000',
+      },
+    });
+
+    const result = await handler(event, mockContext);
+
+    expect(result.statusCode).toBe(500);
+    const body = parseBody(result);
+    expect(body.code).toBe('INTERNAL_ERROR');
+    // Must NOT clear the cookie — this is a transient failure
+    expect(clearRefreshTokenCookie).not.toHaveBeenCalled();
+  });
 });

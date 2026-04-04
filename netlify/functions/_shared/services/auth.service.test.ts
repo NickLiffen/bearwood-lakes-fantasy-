@@ -246,7 +246,7 @@ describe('auth.service', () => {
       });
     });
 
-    it('throws ROTATION_RACE when token was just rotated by another tab', async () => {
+    it('throws ROTATION_RACE when token was just revoked (even without replacedByHash yet)', async () => {
       const now = new Date();
       mockTokensCollection.findOneAndUpdate.mockResolvedValue(null);
       mockTokensCollection.findOne.mockResolvedValue({
@@ -254,8 +254,7 @@ describe('auth.service', () => {
         tokenHash: 'hashed-refresh-token',
         userId: new ObjectId().toString(),
         expiresAt: new Date('2099-01-01'),
-        revokedAt: now, // just revoked
-        replacedByHash: 'successor-token-hash', // rotation lineage present
+        revokedAt: now, // just revoked — replacedByHash may not be written yet
       });
 
       await expect(validateRefreshToken('raced-token')).rejects.toThrow(RefreshError);
@@ -264,14 +263,14 @@ describe('auth.service', () => {
       });
     });
 
-    it('throws TOKEN_INVALID when token revoked without rotation lineage', async () => {
+    it('throws TOKEN_INVALID when token was revoked long ago', async () => {
       mockTokensCollection.findOneAndUpdate.mockResolvedValue(null);
       mockTokensCollection.findOne.mockResolvedValue({
         _id: new ObjectId(),
         tokenHash: 'hashed-refresh-token',
         userId: new ObjectId().toString(),
         expiresAt: new Date('2099-01-01'),
-        revokedAt: new Date(), // revoked but no replacedByHash — not a race
+        revokedAt: new Date(Date.now() - 10000), // revoked 10s ago — outside grace window
       });
 
       await expect(validateRefreshToken('revoked-token')).rejects.toThrow(RefreshError);
@@ -301,10 +300,17 @@ describe('auth.service', () => {
     it('issues new token pair after consuming old refresh token', async () => {
       const userId = new ObjectId();
       const tokenDocId = new ObjectId();
+
+      // Return different hashes for old vs new token to verify rotation lineage
+      vi.mocked(hashRefreshToken)
+        .mockReturnValueOnce('old-token-hash') // old token lookup in validateRefreshToken
+        .mockReturnValueOnce('new-token-hash') // new token stored in storeRefreshToken
+        .mockReturnValueOnce('old-token-hash'); // old token lookup for replacedByHash update
+
       // Atomic consume succeeds
       mockTokensCollection.findOneAndUpdate.mockResolvedValue({
         _id: tokenDocId,
-        tokenHash: 'hashed-refresh-token',
+        tokenHash: 'old-token-hash',
         userId: userId.toString(),
         expiresAt: new Date('2099-01-01'),
       });
@@ -328,10 +334,10 @@ describe('auth.service', () => {
       // Atomic consume + new token stored + rotation lineage update
       expect(mockTokensCollection.findOneAndUpdate).toHaveBeenCalled();
       expect(mockTokensCollection.insertOne).toHaveBeenCalled();
-      // Rotation lineage (replacedByHash) stored on old token
+      // Rotation lineage: old token should reference the new token's hash
       expect(mockTokensCollection.updateOne).toHaveBeenCalledWith(
-        { tokenHash: 'hashed-refresh-token' },
-        { $set: { replacedByHash: 'hashed-refresh-token' } }
+        { tokenHash: 'old-token-hash' },
+        { $set: { replacedByHash: 'new-token-hash' } }
       );
     });
   });
