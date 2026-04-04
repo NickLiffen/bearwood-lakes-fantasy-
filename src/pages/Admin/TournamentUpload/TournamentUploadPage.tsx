@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import AdminLayout from '../../../components/AdminLayout/AdminLayout';
 import { useApiClient } from '../../../hooks/useApiClient';
 import { useDocumentTitle } from '../../../hooks/useDocumentTitle';
-import { parsePdfTournament, type ParsedGolfer } from './utils/pdfParser';
+import type { ParsedGolfer } from './utils/pdfParser';
 import {
   TOURNAMENT_TYPE_CONFIG,
   type TournamentType,
@@ -112,15 +112,31 @@ const TournamentUploadPage: React.FC = () => {
     }
 
     try {
-      const parsed = await parsePdfTournament(file);
+      // Read PDF as base64 and send to server for parsing
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const dataUrl = reader.result as string;
+          resolve(dataUrl.split(',')[1]); // strip "data:...;base64," prefix
+        };
+        reader.onerror = () => reject(new Error('Failed to read PDF file'));
+        reader.readAsDataURL(file);
+      });
 
-      if (parsed.golfers.length === 0) {
-        setParseError(
-          'No golfer data found in the PDF. Please check the file is an ECG leaderboard.'
-        );
+      const response = await post<{
+        name: string;
+        date: string;
+        scoringFormat: 'stableford' | 'medal';
+        golfers: ParsedGolfer[];
+      }>('tournament-parse-pdf', { pdf: base64 });
+
+      if (!response.success || !response.data) {
+        setParseError(response.error || 'Failed to parse PDF. Is this an ECG leaderboard?');
         setParsing(false);
         return;
       }
+
+      const parsed = response.data;
 
       // Populate review form
       setTournamentName(parsed.name || file.name.replace('.pdf', ''));
