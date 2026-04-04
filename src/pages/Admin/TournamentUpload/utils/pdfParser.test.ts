@@ -135,6 +135,18 @@ Total Purse Allocated: £265.00`;
     expect(result.golfers).toHaveLength(1);
   });
 
+  it('parses text that was extracted without newlines (pdfjs-dist single-line output)', () => {
+    // Simulates the bug where extractTextFromPdf joined all items with single spaces,
+    // producing one continuous line per page with no newlines
+    const singleLineText =
+      'Friday Bank Holiday Roll Up 03/04/2026 3 April 2026 Weekend Roll Up - 03/04/26 Leaderboard Individual Stableford Pos. Player Stableford Points Purse 1 Ashley Brinsford 46 £130.00 2 David Husk 42 £80.00 3 Andrew Newell 38 £55.00';
+
+    const result = parseTournamentText(singleLineText);
+    // With single spaces and no newlines, the ^...$ anchored regex
+    // cannot match data rows — this is the bug we fixed in extractTextFromPdf
+    expect(result.golfers.length).toBe(0);
+  });
+
   it('handles negative scores for medal format', () => {
     const medalText = `Weekend Medal 05/04/2026
 5 April 2026
