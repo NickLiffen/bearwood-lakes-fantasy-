@@ -147,6 +147,15 @@ export const getTeamEffectiveStartDate = (
     return new Date(2000, 0, 1);
   }
 
+  // If team was created before GW1 kickoff, start earning from GW1
+  if (firstGameweekStart) {
+    const gw1 = new Date(firstGameweekStart);
+    gw1.setHours(0, 0, 0, 0);
+    if (date < gw1) {
+      return gw1;
+    }
+  }
+
   return getNextWeekStart(date, firstGameweekStart);
 };
 

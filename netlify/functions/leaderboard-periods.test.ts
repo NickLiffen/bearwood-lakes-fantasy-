@@ -38,8 +38,17 @@ vi.mock('./_shared/utils/dates', () => ({
     date.setHours(0, 0, 0, 0);
     return date;
   }),
+  getWeekEnd: vi.fn().mockImplementation((weekStart: Date) => {
+    const end = new Date(weekStart);
+    end.setDate(end.getDate() + 7);
+    end.setMilliseconds(end.getMilliseconds() - 1);
+    return end;
+  }),
   getMonthStart: vi.fn().mockImplementation((d: Date) => {
     return new Date(d.getFullYear(), d.getMonth(), 1);
+  }),
+  getMonthEnd: vi.fn().mockImplementation((d: Date) => {
+    return new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
   }),
   getTeamEffectiveStartDate: vi.fn().mockImplementation((d: Date) => new Date(d)),
   getGameweekNumber: vi.fn().mockReturnValue(5),

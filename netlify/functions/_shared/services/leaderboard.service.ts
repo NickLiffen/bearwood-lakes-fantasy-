@@ -299,10 +299,10 @@ export async function getLeaderboard(season?: number): Promise<LeaderboardEntry[
 
   const { db } = await connectToDatabase();
 
-  // Get published tournament IDs and dates (projected, small query)
+  // Get published/complete tournament IDs and dates (projected, small query)
   const publishedTournaments = await db
     .collection<TournamentDocument>(TOURNAMENTS_COLLECTION)
-    .find({ status: 'published', season: currentSeason })
+    .find({ status: { $in: ['published', 'complete'] }, season: currentSeason })
     .project<{ _id: ObjectId; startDate: Date }>({ _id: 1, startDate: 1 })
     .toArray();
 
@@ -437,7 +437,7 @@ export async function getTournamentLeaderboard(
       { projection: { status: 1, startDate: 1 } }
     );
 
-  if (!tournament || tournament.status !== 'published') {
+  if (!tournament || !['published', 'complete'].includes(tournament.status)) {
     return [];
   }
 

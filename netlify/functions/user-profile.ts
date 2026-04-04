@@ -10,7 +10,7 @@ import { PickDocument, PICKS_COLLECTION, PickHistoryDocument, PICK_HISTORY_COLLE
 import { GolferDocument, GOLFERS_COLLECTION, toGolfer } from './_shared/models/Golfer';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
-import { getWeekStart, getMonthStart, getSeasonStart, getTeamEffectiveStartDate } from './_shared/utils/dates';
+import { getWeekStart, getMonthStart, getMonthEnd, getSeasonStart, getTeamEffectiveStartDate, getWeekEnd } from './_shared/utils/dates';
 import { getActiveSeason } from './_shared/services/seasons.service';
 
 export const handler: Handler = withVerifiedAuth(async (event) => {
@@ -59,6 +59,7 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
     // Get current season
     const activeSeason = await getActiveSeason();
     const currentSeason = activeSeason ? (parseInt(activeSeason.name, 10) || new Date().getFullYear()) : new Date().getFullYear();
+    const firstGW = activeSeason?.firstGameweekStart ? new Date(activeSeason.firstGameweekStart) : null;
 
     // Get user's pick for current season
     const pick = await db
@@ -140,16 +141,16 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
       golferScoresMap.get(golferId)!.push(score);
     }
 
-    // Time boundaries - use targetDate for week calculations
+    // Time boundaries - use targetDate for week calculations, pass firstGW for correct GW1 handling
     const now = new Date();
-    const weekStart = getWeekStart(targetDate);
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 7);
+    const weekStart = getWeekStart(targetDate, firstGW);
+    const weekEnd = getWeekEnd(weekStart, firstGW);
     const monthStart = getMonthStart(now);
-    const seasonStart = getSeasonStart();
+    const monthEnd = getMonthEnd(now);
+    const seasonStart = getSeasonStart(currentSeason);
 
     // Team can only earn points from tournaments after team creation
-    const teamEffectiveStart = getTeamEffectiveStartDate(pick.createdAt);
+    const teamEffectiveStart = getTeamEffectiveStartDate(pick.createdAt, firstGW);
 
     // Build golfer data with scores
     const captainIdString = pick.captainId?.toString();
@@ -177,11 +178,11 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
       // Filter by time period (only tournaments after team was created)
       const weekScores = formattedScores.filter((s) => {
         const date = new Date(s.tournamentDate);
-        return date >= weekStart && date < weekEnd && date >= teamEffectiveStart;
+        return date >= weekStart && date <= weekEnd && date >= teamEffectiveStart;
       });
       const monthScores = formattedScores.filter((s) => {
         const date = new Date(s.tournamentDate);
-        return date >= monthStart && date >= teamEffectiveStart;
+        return date >= monthStart && date <= monthEnd && date >= teamEffectiveStart;
       });
       const seasonScores = formattedScores.filter((s) => {
         const date = new Date(s.tournamentDate);
@@ -223,7 +224,7 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
       .toArray();
 
     // Calculate rankings (simplified - in production this would be more efficient)
-    const allUserPoints = await calculateAllUserPoints(db, allPicks, tournaments, currentSeason, weekStart, monthStart, seasonStart);
+    const allUserPoints = await calculateAllUserPoints(db, allPicks, tournaments, currentSeason, weekStart, weekEnd, monthStart, monthEnd, seasonStart, firstGW);
     
     const weekRank = calculateUserRank(userId, allUserPoints, 'weekPoints');
     const monthRank = calculateUserRank(userId, allUserPoints, 'monthPoints');
@@ -291,7 +292,7 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
     );
 
     // Calculate period navigation info
-    const currentWeek = getWeekStart(new Date());
+    const currentWeek = getWeekStart(new Date(), firstGW);
     // Use teamEffectiveStart for navigation - can only go back to first week team could earn points
     const hasPrevious = weekStart > teamEffectiveStart;
     const hasNext = weekStart < currentWeek;
@@ -363,8 +364,11 @@ async function calculateAllUserPoints(
   tournaments: TournamentDocument[],
   _currentSeason: number,
   weekStart: Date,
+  weekEnd: Date,
   monthStart: Date,
-  seasonStart: Date
+  monthEnd: Date,
+  seasonStart: Date,
+  firstGW?: Date | null
 ): Promise<Map<string, { weekPoints: number; monthPoints: number; seasonPoints: number }>> {
   const allGolferIds = new Set<string>();
   for (const pick of picks) {
@@ -402,7 +406,7 @@ async function calculateAllUserPoints(
     let seasonPoints = 0;
 
     // Only count points from tournaments after team was created
-    const teamEffectiveStart = getTeamEffectiveStartDate(pick.createdAt);
+    const teamEffectiveStart = getTeamEffectiveStartDate(pick.createdAt, firstGW);
     const captainIdString = pick.captainId?.toString();
 
     for (const golferId of pick.golferIds) {
@@ -422,8 +426,8 @@ async function calculateAllUserPoints(
         const points = (score.multipliedPoints || 0) * captainMultiplier;
 
         if (tournamentDate >= seasonStart) seasonPoints += points;
-        if (tournamentDate >= monthStart) monthPoints += points;
-        if (tournamentDate >= weekStart) weekPoints += points;
+        if (tournamentDate >= monthStart && tournamentDate <= monthEnd) monthPoints += points;
+        if (tournamentDate >= weekStart && tournamentDate <= weekEnd) weekPoints += points;
       }
     }
 

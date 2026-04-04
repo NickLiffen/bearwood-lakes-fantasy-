@@ -9,7 +9,7 @@ import { UserDocument, USERS_COLLECTION } from './_shared/models/User';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
 import { getActiveSeason, getSeasonByName } from './_shared/services/seasons.service';
-import { getWeekStart, getMonthStart, getTeamEffectiveStartDate, getGameweekNumber } from './_shared/utils/dates';
+import { getWeekStart, getMonthStart, getTeamEffectiveStartDate, getGameweekNumber, getWeekEnd as getWeekEndShared, getMonthEnd } from './_shared/utils/dates';
 import { getRedisClient, getRedisKeyPrefix } from './_shared/rateLimit';
 
 const PERIODS_CACHE_TTL = 60; // 60 seconds
@@ -79,18 +79,10 @@ interface LeadersResponse {
   seasonInfo: PeriodInfo;
 }
 
-// Get Sunday of the week containing the given date
+// Use shared getWeekEnd from dates.ts (handles GW1 extended duration)
 function getWeekEnd(date: Date, firstGameweekStart?: Date | null): Date {
   const weekStart = getWeekStart(date, firstGameweekStart);
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekStart.getDate() + 6);
-  weekEnd.setHours(23, 59, 59, 999);
-  return weekEnd;
-}
-
-// Get last day of the month
-function getMonthEnd(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
+  return getWeekEndShared(weekStart, firstGameweekStart);
 }
 
 // Format week label
@@ -153,6 +145,7 @@ async function calculateLeaderboard(
 
     // Team only earns points from tournaments starting on or after their effective start date
     const teamEffectiveStart = getTeamEffectiveStartDate(pick.createdAt, firstGameweekStart);
+    const captainIdStr = pick.captainId?.toString();
 
     let points = 0;
     const eventsSet = new Set<string>();
@@ -166,7 +159,8 @@ async function calculateLeaderboard(
         const tournamentDate = tournamentDateMap.get(tournamentId);
         if (tournamentDate && tournamentDate < teamEffectiveStart) continue;
 
-        points += score.multipliedPoints || 0;
+        const isCaptain = score.golferId.toString() === captainIdStr;
+        points += (score.multipliedPoints || 0) * (isCaptain ? 2 : 1);
         if (score.participated) {
           eventsSet.add(tournamentId);
         }

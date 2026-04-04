@@ -422,6 +422,30 @@ describe('GW1 Friday start (firstGameweekStart override)', () => {
       expect(result.getDate()).toBe(11); // Sat Apr 11
       expect(result.getHours()).toBe(8);
     });
+
+    it('returns GW1 start for team created before GW1 kickoff', () => {
+      // Team created April 1 (Wed), GW1 starts April 3 (Fri)
+      // Should earn points from GW1, not GW2
+      const result = getTeamEffectiveStartDate(new Date(2026, 3, 1), firstGW);
+      expect(result.getMonth()).toBe(3); // April
+      expect(result.getDate()).toBe(3); // Apr 3 (GW1 start)
+      expect(result.getHours()).toBe(0);
+    });
+
+    it('returns GW1 start for team created in the week before GW1', () => {
+      // Team created March 30 (Mon), GW1 starts April 3 (Fri)
+      const result = getTeamEffectiveStartDate(new Date(2026, 2, 30), firstGW);
+      expect(result.getMonth()).toBe(3); // April
+      expect(result.getDate()).toBe(3); // Apr 3 (GW1 start)
+      expect(result.getHours()).toBe(0);
+    });
+
+    it('returns GW1 start for team created well before GW1', () => {
+      // Team created March 1, GW1 starts April 3
+      const result = getTeamEffectiveStartDate(new Date(2026, 2, 1), firstGW);
+      expect(result.getMonth()).toBe(3); // April
+      expect(result.getDate()).toBe(3); // GW1 start
+    });
   });
 });
 
