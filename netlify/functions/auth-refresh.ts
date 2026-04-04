@@ -2,7 +2,7 @@
 // Refresh access token using refresh token from httpOnly cookie
 
 import type { Handler } from '@netlify/functions';
-import { refreshAccessToken } from './_shared/services/auth.service';
+import { refreshAccessToken, RefreshError } from './_shared/services/auth.service';
 import { withCors } from './_shared/middleware';
 import {
   getRefreshTokenFromCookie,
@@ -10,6 +10,14 @@ import {
   clearRefreshTokenCookie,
   getClientInfo,
 } from './_shared/utils/cookies';
+
+// Error codes that mean the cookie is definitively invalid and should be cleared
+const DEFINITIVE_FAILURE_CODES = new Set([
+  'NO_REFRESH_TOKEN',
+  'TOKEN_EXPIRED',
+  'TOKEN_INVALID',
+  'USER_NOT_FOUND',
+]);
 
 export const handler: Handler = async (event) => {
   const requestOrigin = event.headers.origin;
@@ -36,7 +44,14 @@ export const handler: Handler = async (event) => {
       return withCors(
         {
           statusCode: 401,
-          body: JSON.stringify({ success: false, error: 'No refresh token provided' }),
+          headers: {
+            'Set-Cookie': clearRefreshTokenCookie(),
+          },
+          body: JSON.stringify({
+            success: false,
+            error: 'No refresh token provided',
+            code: 'NO_REFRESH_TOKEN',
+          }),
         },
         requestOrigin
       );
@@ -65,16 +80,23 @@ export const handler: Handler = async (event) => {
       requestOrigin
     );
   } catch (error) {
+    const isRefreshError = error instanceof RefreshError;
+    const code = isRefreshError ? error.code : 'TOKEN_INVALID';
     const message = error instanceof Error ? error.message : 'Token refresh failed';
+    const statusCode = code === 'ROTATION_RACE' ? 409 : 401;
 
-    // Clear the invalid cookie
+    // Only clear the cookie for definitive failures.
+    // For ROTATION_RACE, the winning tab's Set-Cookie has already updated it — don't wipe it.
+    const headers: Record<string, string> = {};
+    if (DEFINITIVE_FAILURE_CODES.has(code)) {
+      headers['Set-Cookie'] = clearRefreshTokenCookie();
+    }
+
     return withCors(
       {
-        statusCode: 401,
-        headers: {
-          'Set-Cookie': clearRefreshTokenCookie(),
-        },
-        body: JSON.stringify({ success: false, error: message }),
+        statusCode,
+        headers,
+        body: JSON.stringify({ success: false, error: message, code }),
       },
       requestOrigin
     );

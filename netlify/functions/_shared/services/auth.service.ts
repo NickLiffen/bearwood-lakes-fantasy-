@@ -18,6 +18,27 @@ export interface AuthResponseWithRefresh extends AuthResponse {
   refreshToken: string;
 }
 
+/** Machine-readable error codes for refresh failures */
+export type RefreshErrorCode =
+  | 'NO_REFRESH_TOKEN'
+  | 'TOKEN_EXPIRED'
+  | 'TOKEN_INVALID'
+  | 'ROTATION_RACE'
+  | 'USER_NOT_FOUND';
+
+export class RefreshError extends Error {
+  constructor(
+    message: string,
+    public readonly code: RefreshErrorCode
+  ) {
+    super(message);
+    this.name = 'RefreshError';
+  }
+}
+
+// Grace window for rotation race detection (ms)
+const ROTATION_GRACE_MS = 2000;
+
 /**
  * Store refresh token in database
  */
@@ -26,7 +47,7 @@ async function storeRefreshToken(
   refreshToken: string,
   userAgent?: string,
   ipAddress?: string
-): Promise<void> {
+): Promise<string> {
   const { db } = await connectToDatabase();
   const collection = db.collection<RefreshTokenDocument>(REFRESH_TOKENS_COLLECTION);
 
@@ -41,11 +62,14 @@ async function storeRefreshToken(
     userAgent,
     ipAddress,
   });
+
+  return tokenHash;
 }
 
 /**
- * Validate and consume a refresh token
- * Returns the user if valid, throws if invalid
+ * Atomically consume a refresh token and return the user.
+ * Uses findOneAndUpdate to prevent two concurrent requests from both succeeding.
+ * If the token was recently rotated by another tab, throws ROTATION_RACE.
  */
 export async function validateRefreshToken(refreshToken: string): Promise<User> {
   const { db } = await connectToDatabase();
@@ -55,26 +79,50 @@ export async function validateRefreshToken(refreshToken: string): Promise<User> 
   const tokenHash = hashRefreshToken(refreshToken);
   const now = new Date();
 
-  // Find valid token (not expired, not revoked)
-  const tokenDoc = await tokensCollection.findOne({
-    tokenHash,
-    expiresAt: { $gt: now },
-    revokedAt: { $exists: false },
-  });
+  // Atomically find and revoke the token — only one concurrent request can win
+  const result = await tokensCollection.findOneAndUpdate(
+    {
+      tokenHash,
+      expiresAt: { $gt: now },
+      revokedAt: { $exists: false },
+    },
+    { $set: { revokedAt: now } },
+    { returnDocument: 'before' }
+  );
 
-  if (!tokenDoc) {
-    throw new Error('Invalid or expired refresh token');
+  if (!result) {
+    // Token not found as valid — check if it was recently rotated (race condition)
+    const revokedToken = await tokensCollection.findOne({ tokenHash });
+
+    if (!revokedToken) {
+      throw new RefreshError('Refresh token not found', 'TOKEN_INVALID');
+    }
+
+    if (revokedToken.expiresAt <= now) {
+      throw new RefreshError('Refresh token expired', 'TOKEN_EXPIRED');
+    }
+
+    // Token exists but is revoked — check for rotation race
+    if (
+      revokedToken.revokedAt &&
+      revokedToken.replacedByHash &&
+      now.getTime() - revokedToken.revokedAt.getTime() < ROTATION_GRACE_MS
+    ) {
+      throw new RefreshError(
+        'Token was just rotated by another session — retry with updated cookie',
+        'ROTATION_RACE'
+      );
+    }
+
+    throw new RefreshError('Refresh token has been revoked', 'TOKEN_INVALID');
   }
 
   // Get user
-  const userDoc = await usersCollection.findOne({ _id: new ObjectId(tokenDoc.userId) });
+  const userDoc = await usersCollection.findOne({ _id: new ObjectId(result.userId) });
 
   if (!userDoc) {
-    throw new Error('User not found');
+    throw new RefreshError('User not found', 'USER_NOT_FOUND');
   }
-
-  // Revoke the used token (rotation)
-  await tokensCollection.updateOne({ _id: tokenDoc._id }, { $set: { revokedAt: now } });
 
   return toUser(userDoc);
 }
@@ -203,22 +251,29 @@ export async function loginUser(
 }
 
 /**
- * Refresh the access token using a valid refresh token
+ * Refresh the access token using a valid refresh token.
+ * Stores rotation lineage (replacedByHash) so concurrent requests can detect races.
  */
 export async function refreshAccessToken(
   refreshToken: string,
   userAgent?: string,
   ipAddress?: string
 ): Promise<AuthResponseWithRefresh> {
-  // Validate and consume the old refresh token
+  // Validate and atomically consume the old refresh token
   const user = await validateRefreshToken(refreshToken);
 
   // Generate new tokens
   const newAccessToken = generateAccessToken(user);
   const newRefreshToken = generateRefreshToken();
 
-  // Store new refresh token
-  await storeRefreshToken(user.id, newRefreshToken, userAgent, ipAddress);
+  // Store new refresh token and get its hash
+  const newTokenHash = await storeRefreshToken(user.id, newRefreshToken, userAgent, ipAddress);
+
+  // Record rotation lineage on the old token so race detection works
+  const { db } = await connectToDatabase();
+  const tokensCollection = db.collection<RefreshTokenDocument>(REFRESH_TOKENS_COLLECTION);
+  const oldTokenHash = hashRefreshToken(refreshToken);
+  await tokensCollection.updateOne({ tokenHash: oldTokenHash }, { $set: { replacedByHash: newTokenHash } });
 
   return { user, token: newAccessToken, refreshToken: newRefreshToken };
 }
