@@ -9,7 +9,13 @@ import { UserDocument, USERS_COLLECTION } from './_shared/models/User';
 import { PickDocument, PICKS_COLLECTION } from './_shared/models/Pick';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
-import { getWeekStart, getWeekEnd, getMonthStart, getMonthEnd, getSeasonStart } from './_shared/utils/dates';
+import {
+  getWeekStart,
+  getWeekEnd,
+  getMonthStart,
+  getMonthEnd,
+  getSeasonStart,
+} from './_shared/utils/dates';
 import { calculatePickPoints } from './_shared/utils/scoring';
 import { getActiveSeason } from './_shared/services/seasons.service';
 
@@ -36,20 +42,27 @@ export const handler: Handler = withVerifiedAuth(async () => {
 
     // Get current season from active season
     const activeSeason = await getActiveSeason();
-    const currentSeason = activeSeason ? (parseInt(activeSeason.name, 10) || new Date().getFullYear()) : new Date().getFullYear();
-    const firstGW = activeSeason?.firstGameweekStart ? new Date(activeSeason.firstGameweekStart) : null;
+    const currentSeason = activeSeason
+      ? parseInt(activeSeason.name, 10) || new Date().getFullYear()
+      : new Date().getFullYear();
+    const firstGW = activeSeason?.firstGameweekStart
+      ? new Date(activeSeason.firstGameweekStart)
+      : null;
 
     // Parallelize independent queries for faster response
     const [users, picks, tournaments] = await Promise.all([
       db.collection<UserDocument>(USERS_COLLECTION).find({}).toArray(),
       db.collection<PickDocument>(PICKS_COLLECTION).find({ season: currentSeason }).toArray(),
-      db.collection<TournamentDocument>(TOURNAMENTS_COLLECTION).find({
-        status: { $in: ['published', 'complete'] },
-        season: currentSeason,
-      }).toArray(),
+      db
+        .collection<TournamentDocument>(TOURNAMENTS_COLLECTION)
+        .find({
+          status: { $in: ['published', 'complete'] },
+          season: currentSeason,
+        })
+        .toArray(),
     ]);
 
-    const pickMap = new Map(picks.map(p => [p.userId.toString(), p]));
+    const pickMap = new Map(picks.map((p) => [p.userId.toString(), p]));
 
     // Get all golfer IDs from picks
     const allGolferIds = new Set<string>();
@@ -59,13 +72,13 @@ export const handler: Handler = withVerifiedAuth(async () => {
       }
     }
 
-    const tournamentIds = tournaments.map(t => t._id);
+    const tournamentIds = tournaments.map((t) => t._id);
 
     // Get all scores for golfers in picks
     const scores = await db
       .collection<ScoreDocument>(SCORES_COLLECTION)
       .find({
-        golferId: { $in: Array.from(allGolferIds).map(id => new ObjectId(id)) },
+        golferId: { $in: Array.from(allGolferIds).map((id) => new ObjectId(id)) },
         tournamentId: { $in: tournamentIds },
       })
       .toArray();
@@ -82,7 +95,7 @@ export const handler: Handler = withVerifiedAuth(async () => {
 
     // Create tournament date lookup
     const tournamentDates = new Map(
-      tournaments.map(t => [t._id.toString(), new Date(t.startDate)])
+      tournaments.map((t) => [t._id.toString(), new Date(t.startDate)])
     );
 
     // Time boundaries
@@ -107,7 +120,7 @@ export const handler: Handler = withVerifiedAuth(async () => {
 
     for (const user of users) {
       const pick = pickMap.get(user._id.toString());
-      
+
       if (!pick) {
         userPointsList.push({
           userId: user._id.toString(),
@@ -118,7 +131,13 @@ export const handler: Handler = withVerifiedAuth(async () => {
         continue;
       }
 
-      const points = calculatePickPoints(pick, scoresByGolferTournament, tournamentDates, boundaries, firstGW);
+      const points = calculatePickPoints(
+        pick,
+        scoresByGolferTournament,
+        tournamentDates,
+        boundaries,
+        firstGW
+      );
 
       userPointsList.push({
         userId: user._id.toString(),
@@ -128,13 +147,13 @@ export const handler: Handler = withVerifiedAuth(async () => {
 
     // Calculate ranks
     const weekRanks = [...userPointsList]
-      .filter(u => pickMap.has(u.userId))
+      .filter((u) => pickMap.has(u.userId))
       .sort((a, b) => b.weekPoints - a.weekPoints);
     const monthRanks = [...userPointsList]
-      .filter(u => pickMap.has(u.userId))
+      .filter((u) => pickMap.has(u.userId))
       .sort((a, b) => b.monthPoints - a.monthPoints);
     const seasonRanks = [...userPointsList]
-      .filter(u => pickMap.has(u.userId))
+      .filter((u) => pickMap.has(u.userId))
       .sort((a, b) => b.seasonPoints - a.seasonPoints);
 
     const weekRankMap = new Map(weekRanks.map((u, i) => [u.userId, i + 1]));
@@ -142,10 +161,10 @@ export const handler: Handler = withVerifiedAuth(async () => {
     const seasonRankMap = new Map(seasonRanks.map((u, i) => [u.userId, i + 1]));
 
     // Build response
-    const fantasyUsers: FantasyUser[] = users.map(user => {
+    const fantasyUsers: FantasyUser[] = users.map((user) => {
       const userId = user._id.toString();
       const pick = pickMap.get(userId);
-      const points = userPointsList.find(u => u.userId === userId)!;
+      const points = userPointsList.find((u) => u.userId === userId)!;
       const hasTeam = !!pick;
 
       return {

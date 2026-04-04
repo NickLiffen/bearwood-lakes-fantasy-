@@ -10,7 +10,13 @@ import { PickDocument, PICKS_COLLECTION } from './_shared/models/Pick';
 import { GolferDocument, GOLFERS_COLLECTION, toGolfer } from './_shared/models/Golfer';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
-import { getWeekStart, getWeekEnd, getMonthStart, getMonthEnd, getTeamEffectiveStartDate } from './_shared/utils/dates';
+import {
+  getWeekStart,
+  getWeekEnd,
+  getMonthStart,
+  getMonthEnd,
+  getTeamEffectiveStartDate,
+} from './_shared/utils/dates';
 import { getActiveSeason } from './_shared/services/seasons.service';
 import { calculateGolferContribution, type TimeBoundaries } from './_shared/utils/scoring';
 
@@ -59,9 +65,15 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
 
     // Get current season
     const activeSeason = await getActiveSeason();
-    const currentSeason = activeSeason ? (parseInt(activeSeason.name, 10) || new Date().getFullYear()) : new Date().getFullYear();
-    const firstGW = activeSeason?.firstGameweekStart ? new Date(activeSeason.firstGameweekStart) : null;
-    const seasonStartDate = activeSeason ? new Date(activeSeason.startDate) : new Date(`${currentSeason}-01-01`);
+    const currentSeason = activeSeason
+      ? parseInt(activeSeason.name, 10) || new Date().getFullYear()
+      : new Date().getFullYear();
+    const firstGW = activeSeason?.firstGameweekStart
+      ? new Date(activeSeason.firstGameweekStart)
+      : null;
+    const seasonStartDate = activeSeason
+      ? new Date(activeSeason.startDate)
+      : new Date(`${currentSeason}-01-01`);
 
     // Get both users
     const [currentUser, targetUser] = await Promise.all([
@@ -91,19 +103,19 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
     // Get all unique golfer IDs from both teams
     const allGolferIds = new Set<string>();
     if (currentPick) {
-      currentPick.golferIds.forEach(id => allGolferIds.add(id.toString()));
+      currentPick.golferIds.forEach((id) => allGolferIds.add(id.toString()));
     }
     if (targetPick) {
-      targetPick.golferIds.forEach(id => allGolferIds.add(id.toString()));
+      targetPick.golferIds.forEach((id) => allGolferIds.add(id.toString()));
     }
 
     // Get all golfers
     const golfers = await db
       .collection<GolferDocument>(GOLFERS_COLLECTION)
-      .find({ _id: { $in: Array.from(allGolferIds).map(id => new ObjectId(id)) } })
+      .find({ _id: { $in: Array.from(allGolferIds).map((id) => new ObjectId(id)) } })
       .toArray();
 
-    const golferMap = new Map(golfers.map(g => [g._id.toString(), g]));
+    const golferMap = new Map(golfers.map((g) => [g._id.toString(), g]));
 
     // Get published tournaments
     const tournaments = await db
@@ -114,14 +126,16 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
       })
       .toArray();
 
-    const tournamentDates = new Map(tournaments.map(t => [t._id.toString(), new Date(t.startDate)]));
-    const tournamentIds = tournaments.map(t => t._id);
+    const tournamentDates = new Map(
+      tournaments.map((t) => [t._id.toString(), new Date(t.startDate)])
+    );
+    const tournamentIds = tournaments.map((t) => t._id);
 
     // Get all scores
     const scores = await db
       .collection<ScoreDocument>(SCORES_COLLECTION)
       .find({
-        golferId: { $in: Array.from(allGolferIds).map(id => new ObjectId(id)) },
+        golferId: { $in: Array.from(allGolferIds).map((id) => new ObjectId(id)) },
         tournamentId: { $in: tournamentIds },
       })
       .toArray();
@@ -154,25 +168,38 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
     // Helper: per-golfer points with captain multiplier and effective start date
     function getGolferPointsForTeam(
       golferId: string,
-      pick: PickDocument,
+      pick: PickDocument
     ): { weekPoints: number; monthPoints: number; seasonPoints: number } {
       const golferScores = scoresByGolfer.get(golferId) || [];
       const isCaptain = golferId === pick.captainId?.toString();
       const teamEffectiveStart = getTeamEffectiveStartDate(pick.createdAt, firstGW);
-      return calculateGolferContribution(golferScores, tournamentDates, boundaries, isCaptain, teamEffectiveStart);
+      return calculateGolferContribution(
+        golferScores,
+        tournamentDates,
+        boundaries,
+        isCaptain,
+        teamEffectiveStart
+      );
     }
 
     // Helper: raw golfer points (no captain, no effective start — for shared/unique comparison)
-    function getRawGolferPoints(golferId: string): { weekPoints: number; monthPoints: number; seasonPoints: number } {
+    function getRawGolferPoints(golferId: string): {
+      weekPoints: number;
+      monthPoints: number;
+      seasonPoints: number;
+    } {
       const golferScores = scoresByGolfer.get(golferId) || [];
-      return calculateGolferContribution(golferScores, tournamentDates, boundaries, false, seasonStartDate);
+      return calculateGolferContribution(
+        golferScores,
+        tournamentDates,
+        boundaries,
+        false,
+        seasonStartDate
+      );
     }
 
     // Build team summaries
-    function buildTeamSummary(
-      user: UserDocument,
-      pick: PickDocument | null
-    ): TeamSummary {
+    function buildTeamSummary(user: UserDocument, pick: PickDocument | null): TeamSummary {
       if (!pick) {
         return {
           userId: user._id.toString(),
@@ -185,14 +212,16 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
         };
       }
 
-      const golfersWithPoints: GolferWithPoints[] = pick.golferIds.map(golferId => {
-        const golfer = golferMap.get(golferId.toString())!;
-        const points = getGolferPointsForTeam(golferId.toString(), pick);
-        return {
-          golfer: toGolfer(golfer),
-          ...points,
-        };
-      }).sort((a, b) => b.seasonPoints - a.seasonPoints);
+      const golfersWithPoints: GolferWithPoints[] = pick.golferIds
+        .map((golferId) => {
+          const golfer = golferMap.get(golferId.toString())!;
+          const points = getGolferPointsForTeam(golferId.toString(), pick);
+          return {
+            golfer: toGolfer(golfer),
+            ...points,
+          };
+        })
+        .sort((a, b) => b.seasonPoints - a.seasonPoints);
 
       return {
         userId: user._id.toString(),
@@ -214,27 +243,27 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
     const targetTeam = buildTeamSummary(targetUser, targetPick);
 
     // Find shared and unique golfers
-    const currentGolferIds = new Set(currentPick?.golferIds.map(id => id.toString()) || []);
-    const targetGolferIds = new Set(targetPick?.golferIds.map(id => id.toString()) || []);
+    const currentGolferIds = new Set(currentPick?.golferIds.map((id) => id.toString()) || []);
+    const targetGolferIds = new Set(targetPick?.golferIds.map((id) => id.toString()) || []);
 
-    const sharedGolferIds = [...currentGolferIds].filter(id => targetGolferIds.has(id));
-    const uniqueToCurrentIds = [...currentGolferIds].filter(id => !targetGolferIds.has(id));
-    const uniqueToTargetIds = [...targetGolferIds].filter(id => !currentGolferIds.has(id));
+    const sharedGolferIds = [...currentGolferIds].filter((id) => targetGolferIds.has(id));
+    const uniqueToCurrentIds = [...currentGolferIds].filter((id) => !targetGolferIds.has(id));
+    const uniqueToTargetIds = [...targetGolferIds].filter((id) => !currentGolferIds.has(id));
 
     // Build comparison data
-    const sharedGolfers = sharedGolferIds.map(id => {
+    const sharedGolfers = sharedGolferIds.map((id) => {
       const golfer = golferMap.get(id)!;
       const points = getRawGolferPoints(id);
       return { golfer: toGolfer(golfer), ...points };
     });
 
-    const uniqueToCurrent = uniqueToCurrentIds.map(id => {
+    const uniqueToCurrent = uniqueToCurrentIds.map((id) => {
       const golfer = golferMap.get(id)!;
       const points = getRawGolferPoints(id);
       return { golfer: toGolfer(golfer), ...points };
     });
 
-    const uniqueToTarget = uniqueToTargetIds.map(id => {
+    const uniqueToTarget = uniqueToTargetIds.map((id) => {
       const golfer = golferMap.get(id)!;
       const points = getRawGolferPoints(id);
       return { golfer: toGolfer(golfer), ...points };

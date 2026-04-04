@@ -25,8 +25,8 @@ const handler = withAdmin(async (event: AuthenticatedEvent) => {
 
     // Check if tournament has scores associated with it
     const existingScores = await getScoresForTournament(id);
-    const participatedScores = existingScores.filter(s => s.participated);
-    
+    const participatedScores = existingScores.filter((s) => s.participated);
+
     if (participatedScores.length > 0) {
       return {
         statusCode: 400,

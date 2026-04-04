@@ -65,7 +65,7 @@ describe('tournaments-update handler', () => {
         httpMethod: 'PUT',
         body: JSON.stringify({ id: 't1', name: 'Updated Open' }),
       }),
-      mockContext,
+      mockContext
     );
     expect(res.statusCode).toBe(200);
     const body = parseBody(res);
@@ -82,7 +82,7 @@ describe('tournaments-update handler', () => {
         httpMethod: 'PUT',
         body: JSON.stringify({ id: 't1', tournamentType: 'medal_individual' }),
       }),
-      mockContext,
+      mockContext
     );
     expect(mockRecalc).toHaveBeenCalledWith('t1');
   });
@@ -95,7 +95,7 @@ describe('tournaments-update handler', () => {
         httpMethod: 'PUT',
         body: JSON.stringify({ id: 't1', scoringFormat: 'medal' }),
       }),
-      mockContext,
+      mockContext
     );
     expect(mockRecalc).toHaveBeenCalledWith('t1');
   });
@@ -108,7 +108,7 @@ describe('tournaments-update handler', () => {
         httpMethod: 'PUT',
         body: JSON.stringify({ id: 't1', name: 'New Name' }),
       }),
-      mockContext,
+      mockContext
     );
     expect(mockRecalc).not.toHaveBeenCalled();
   });
@@ -119,7 +119,7 @@ describe('tournaments-update handler', () => {
         httpMethod: 'PUT',
         body: JSON.stringify({ name: 'No ID' }),
       }),
-      mockContext,
+      mockContext
     );
     expect(res.statusCode).toBe(400);
     expect(parseBody(res).error).toContain('id is required');
@@ -133,17 +133,14 @@ describe('tournaments-update handler', () => {
         httpMethod: 'PUT',
         body: JSON.stringify({ id: 'nonexistent' }),
       }),
-      mockContext,
+      mockContext
     );
     expect(res.statusCode).toBe(404);
     expect(parseBody(res).error).toBe('Tournament not found');
   });
 
   it('returns 405 for non-PUT methods', async () => {
-    const res = await handler(
-      makeAuthEvent({ httpMethod: 'GET' }),
-      mockContext,
-    );
+    const res = await handler(makeAuthEvent({ httpMethod: 'GET' }), mockContext);
     expect(res.statusCode).toBe(405);
   });
 
@@ -160,7 +157,7 @@ describe('tournaments-update handler', () => {
         httpMethod: 'PUT',
         body: JSON.stringify({ id: 't1', name: 'Nope' }),
       }),
-      mockContext,
+      mockContext
     );
     expect(res.statusCode).toBe(403);
   });
@@ -173,7 +170,7 @@ describe('tournaments-update handler', () => {
         httpMethod: 'PUT',
         body: JSON.stringify({ id: 't1', name: 'Boom' }),
       }),
-      mockContext,
+      mockContext
     );
     expect(res.statusCode).toBe(500);
     expect(parseBody(res).error).toBe('Failed to update tournament');

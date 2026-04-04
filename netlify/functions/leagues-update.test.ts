@@ -3,16 +3,27 @@ import { makeAuthEvent, mockContext, parseBody } from './__test-utils__';
 
 vi.mock('./_shared/auth', () => ({
   verifyToken: vi.fn().mockReturnValue({
-    userId: 'user-player-1', username: 'testplayer', role: 'player', phoneVerified: true,
+    userId: 'user-player-1',
+    username: 'testplayer',
+    role: 'player',
+    phoneVerified: true,
   }),
 }));
 vi.mock('./_shared/rateLimit', () => ({
   checkRateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 99, resetAt: new Date() }),
-  RateLimitConfig: { default: { windowMs: 60000, maxRequests: 100 }, read: { windowMs: 60000, maxRequests: 120 }, write: { windowMs: 60000, maxRequests: 30 }, admin: { windowMs: 60000, maxRequests: 60 } },
+  RateLimitConfig: {
+    default: { windowMs: 60000, maxRequests: 100 },
+    read: { windowMs: 60000, maxRequests: 120 },
+    write: { windowMs: 60000, maxRequests: 30 },
+    admin: { windowMs: 60000, maxRequests: 60 },
+  },
   getRateLimitKeyFromEvent: vi.fn().mockReturnValue('ratelimit:key'),
   rateLimitHeaders: vi.fn().mockReturnValue({}),
   rateLimitExceededResponse: vi.fn(),
-  getRedisClient: vi.fn().mockReturnValue({ get: vi.fn().mockResolvedValue(null), set: vi.fn().mockResolvedValue('OK') }),
+  getRedisClient: vi.fn().mockReturnValue({
+    get: vi.fn().mockResolvedValue(null),
+    set: vi.fn().mockResolvedValue('OK'),
+  }),
   getRedisKeyPrefix: vi.fn().mockReturnValue('test:'),
 }));
 vi.mock('./_shared/utils/logger', () => ({
@@ -58,7 +69,10 @@ describe('leagues-update handler', () => {
     expect(res.statusCode).toBe(200);
     expect(body.success).toBe(true);
     expect(body.data).toEqual(updated);
-    expect(mockUpdateLeague).toHaveBeenCalledWith('league-1', { name: 'Updated League', description: 'New desc' });
+    expect(mockUpdateLeague).toHaveBeenCalledWith('league-1', {
+      name: 'Updated League',
+      description: 'New desc',
+    });
   });
 
   it('returns 404 when league not found', async () => {

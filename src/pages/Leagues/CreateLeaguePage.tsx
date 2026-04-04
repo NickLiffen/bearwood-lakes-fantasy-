@@ -71,7 +71,10 @@ const CreateLeaguePage: React.FC = () => {
 
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: '1rem' }}>
-              <label htmlFor="league-name" style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
+              <label
+                htmlFor="league-name"
+                style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}
+              >
                 League Name *
               </label>
               <input
@@ -93,7 +96,10 @@ const CreateLeaguePage: React.FC = () => {
             </div>
 
             <div style={{ marginBottom: '1.5rem' }}>
-              <label htmlFor="league-desc" style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}>
+              <label
+                htmlFor="league-desc"
+                style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem' }}
+              >
                 Description (optional)
               </label>
               <textarea
@@ -123,11 +129,7 @@ const CreateLeaguePage: React.FC = () => {
               >
                 Cancel
               </button>
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={saving || !name.trim()}
-              >
+              <button type="submit" className="btn btn-primary" disabled={saving || !name.trim()}>
                 {saving ? 'Creating...' : 'Create League'}
               </button>
             </div>

@@ -44,7 +44,11 @@ describe('scheduled-recalculate handler', () => {
     mockToArray.mockResolvedValue(tournaments);
     mockRecalculate.mockResolvedValueOnce(5).mockResolvedValueOnce(3);
 
-    const res = await handler({} as unknown as HandlerEvent, {} as unknown as HandlerContext, () => {});
+    const res = await handler(
+      {} as unknown as HandlerEvent,
+      {} as unknown as HandlerContext,
+      () => {}
+    );
 
     expect(res!.statusCode).toBe(200);
     const body = JSON.parse(res!.body!);
@@ -60,7 +64,11 @@ describe('scheduled-recalculate handler', () => {
   it('returns early when no tournaments flagged', async () => {
     mockToArray.mockResolvedValue([]);
 
-    const res = await handler({} as unknown as HandlerEvent, {} as unknown as HandlerContext, () => {});
+    const res = await handler(
+      {} as unknown as HandlerEvent,
+      {} as unknown as HandlerContext,
+      () => {}
+    );
 
     expect(res!.statusCode).toBe(200);
     const body = JSON.parse(res!.body!);
@@ -72,7 +80,11 @@ describe('scheduled-recalculate handler', () => {
   it('handles errors gracefully', async () => {
     mockToArray.mockRejectedValue(new Error('DB connection failed'));
 
-    const res = await handler({} as unknown as HandlerEvent, {} as unknown as HandlerContext, () => {});
+    const res = await handler(
+      {} as unknown as HandlerEvent,
+      {} as unknown as HandlerContext,
+      () => {}
+    );
 
     expect(res!.statusCode).toBe(500);
     const body = JSON.parse(res!.body!);

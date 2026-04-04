@@ -65,7 +65,7 @@ describe('tournaments-delete handler', () => {
         httpMethod: 'DELETE',
         body: JSON.stringify({ id: 't1' }),
       }),
-      mockContext,
+      mockContext
     );
     expect(res.statusCode).toBe(200);
     const body = parseBody(res);
@@ -85,7 +85,7 @@ describe('tournaments-delete handler', () => {
         httpMethod: 'DELETE',
         body: JSON.stringify({ id: 't1' }),
       }),
-      mockContext,
+      mockContext
     );
     expect(res.statusCode).toBe(400);
     const body = parseBody(res);
@@ -95,9 +95,7 @@ describe('tournaments-delete handler', () => {
   });
 
   it('allows deletion when scores exist but none participated', async () => {
-    mockGetScores.mockResolvedValue([
-      { id: 's1', participated: false },
-    ] as unknown as Score[]);
+    mockGetScores.mockResolvedValue([{ id: 's1', participated: false }] as unknown as Score[]);
     mockDelete.mockResolvedValue(true);
 
     const res = await handler(
@@ -105,7 +103,7 @@ describe('tournaments-delete handler', () => {
         httpMethod: 'DELETE',
         body: JSON.stringify({ id: 't1' }),
       }),
-      mockContext,
+      mockContext
     );
     expect(res.statusCode).toBe(200);
     expect(mockDelete).toHaveBeenCalledWith('t1');
@@ -117,7 +115,7 @@ describe('tournaments-delete handler', () => {
         httpMethod: 'DELETE',
         body: JSON.stringify({}),
       }),
-      mockContext,
+      mockContext
     );
     expect(res.statusCode).toBe(400);
     expect(parseBody(res).error).toContain('id is required');
@@ -131,17 +129,14 @@ describe('tournaments-delete handler', () => {
         httpMethod: 'DELETE',
         body: JSON.stringify({ id: 'nonexistent' }),
       }),
-      mockContext,
+      mockContext
     );
     expect(res.statusCode).toBe(404);
     expect(parseBody(res).error).toBe('Tournament not found');
   });
 
   it('returns 405 for non-DELETE methods', async () => {
-    const res = await handler(
-      makeAuthEvent({ httpMethod: 'GET' }),
-      mockContext,
-    );
+    const res = await handler(makeAuthEvent({ httpMethod: 'GET' }), mockContext);
     expect(res.statusCode).toBe(405);
   });
 
@@ -158,7 +153,7 @@ describe('tournaments-delete handler', () => {
         httpMethod: 'DELETE',
         body: JSON.stringify({ id: 't1' }),
       }),
-      mockContext,
+      mockContext
     );
     expect(res.statusCode).toBe(403);
   });
@@ -171,7 +166,7 @@ describe('tournaments-delete handler', () => {
         httpMethod: 'DELETE',
         body: JSON.stringify({ id: 't1' }),
       }),
-      mockContext,
+      mockContext
     );
     expect(res.statusCode).toBe(500);
   });

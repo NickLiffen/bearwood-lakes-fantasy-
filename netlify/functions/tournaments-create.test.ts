@@ -65,22 +65,17 @@ describe('tournaments-create handler', () => {
         httpMethod: 'POST',
         body: JSON.stringify(validBody),
       }),
-      mockContext,
+      mockContext
     );
     expect(res.statusCode).toBe(201);
     const body = parseBody(res);
     expect(body.success).toBe(true);
     expect(body.message).toBe('Tournament created successfully');
-    expect(mockCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ name: 'The Open' }),
-    );
+    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({ name: 'The Open' }));
   });
 
   it('returns 405 for non-POST methods', async () => {
-    const res = await handler(
-      makeAuthEvent({ httpMethod: 'GET' }),
-      mockContext,
-    );
+    const res = await handler(makeAuthEvent({ httpMethod: 'GET' }), mockContext);
     expect(res.statusCode).toBe(405);
   });
 
@@ -90,7 +85,7 @@ describe('tournaments-create handler', () => {
         httpMethod: 'POST',
         body: JSON.stringify({ name: 'Incomplete' }),
       }),
-      mockContext,
+      mockContext
     );
     expect(res.statusCode).toBe(400);
     expect(parseBody(res).error).toContain('required');
@@ -109,7 +104,7 @@ describe('tournaments-create handler', () => {
         httpMethod: 'POST',
         body: JSON.stringify(validBody),
       }),
-      mockContext,
+      mockContext
     );
     expect(res.statusCode).toBe(403);
     expect(parseBody(res).error).toContain('Insufficient permissions');
@@ -123,7 +118,7 @@ describe('tournaments-create handler', () => {
         httpMethod: 'POST',
         body: JSON.stringify(validBody),
       }),
-      mockContext,
+      mockContext
     );
     expect(res.statusCode).toBe(500);
     expect(parseBody(res).error).toBe('Failed to create tournament');

@@ -11,7 +11,12 @@ export const handler = withVerifiedAuth(async (event: AuthenticatedEvent) => {
 
   try {
     const { golferIds, captainId } = validateBody(savePicksSchema, event.body);
-    const { pick: picks, deferred } = await savePicks(event.user.userId, golferIds, 'Team selection', captainId);
+    const { pick: picks, deferred } = await savePicks(
+      event.user.userId,
+      golferIds,
+      'Team selection',
+      captainId
+    );
 
     return {
       statusCode: 200,

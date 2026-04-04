@@ -20,33 +20,30 @@ vi.mock('../utils/dates', () => ({
   }),
   getMonthStart: vi
     .fn()
-    .mockImplementation(
-      (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1),
-    ),
+    .mockImplementation((d: Date) => new Date(d.getFullYear(), d.getMonth(), 1)),
   getMonthEnd: vi
     .fn()
     .mockImplementation(
-      (d: Date) =>
-        new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999),
+      (d: Date) => new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999)
     ),
-  getTeamEffectiveStartDate: vi
-    .fn()
-    .mockImplementation((d: Date) => new Date(d)),
+  getTeamEffectiveStartDate: vi.fn().mockImplementation((d: Date) => new Date(d)),
   getSeasonFirstSaturday: vi.fn().mockImplementation((d: Date) => {
     const date = new Date(d);
     while (date.getDay() !== 6) date.setDate(date.getDate() + 1);
     return date;
   }),
-  getFirstGameweekStart: vi.fn().mockImplementation((seasonStartDate: Date, firstGameweekStart?: Date | null) => {
-    if (firstGameweekStart) {
-      const d = new Date(firstGameweekStart);
-      d.setHours(0, 0, 0, 0);
-      return d;
-    }
-    const date = new Date(seasonStartDate);
-    while (date.getDay() !== 6) date.setDate(date.getDate() + 1);
-    return date;
-  }),
+  getFirstGameweekStart: vi
+    .fn()
+    .mockImplementation((seasonStartDate: Date, firstGameweekStart?: Date | null) => {
+      if (firstGameweekStart) {
+        const d = new Date(firstGameweekStart);
+        d.setHours(0, 0, 0, 0);
+        return d;
+      }
+      const date = new Date(seasonStartDate);
+      while (date.getDay() !== 6) date.setDate(date.getDate() + 1);
+      return date;
+    }),
 }));
 
 // Helpers
@@ -71,11 +68,7 @@ function makeGolfer(id: ObjectId, first: string, last: string): GolferDocument {
   };
 }
 
-function makeTournament(
-  id: ObjectId,
-  name: string,
-  startDate: Date,
-): TournamentDocument {
+function makeTournament(id: ObjectId, name: string, startDate: Date): TournamentDocument {
   return {
     _id: id,
     name,
@@ -94,11 +87,7 @@ function makeTournament(
   } as TournamentDocument;
 }
 
-function makeScore(
-  gId: ObjectId,
-  tId: ObjectId,
-  multipliedPoints: number,
-): ScoreDocument {
+function makeScore(gId: ObjectId, tId: ObjectId, multipliedPoints: number): ScoreDocument {
   return {
     _id: new ObjectId(),
     golferId: gId,
@@ -124,9 +113,7 @@ describe('getTeamGolferScores', () => {
   it('computes week, month, and season points for golfers', () => {
     const golfers = [makeGolfer(golferId1, 'Rory', 'McIlroy')];
     // Tournament within the selected week
-    const tournaments = [
-      makeTournament(tournamentId1, 'The Masters', new Date('2025-01-05')),
-    ];
+    const tournaments = [makeTournament(tournamentId1, 'The Masters', new Date('2025-01-05'))];
     const scores = [makeScore(golferId1, tournamentId1, 50)];
 
     const result = getTeamGolferScores(
@@ -137,7 +124,7 @@ describe('getTeamGolferScores', () => {
       null,
       selectedWeekStart,
       selectedWeekEnd,
-      teamEffectiveStart,
+      teamEffectiveStart
     );
 
     expect(result).toHaveLength(1);
@@ -151,9 +138,7 @@ describe('getTeamGolferScores', () => {
 
   it('applies captain 2x multiplier', () => {
     const golfers = [makeGolfer(golferId1, 'Rory', 'McIlroy')];
-    const tournaments = [
-      makeTournament(tournamentId1, 'PGA', new Date('2025-01-05')),
-    ];
+    const tournaments = [makeTournament(tournamentId1, 'PGA', new Date('2025-01-05'))];
     const scores = [makeScore(golferId1, tournamentId1, 40)];
 
     const result = getTeamGolferScores(
@@ -164,7 +149,7 @@ describe('getTeamGolferScores', () => {
       golferId1.toString(), // captain
       selectedWeekStart,
       selectedWeekEnd,
-      teamEffectiveStart,
+      teamEffectiveStart
     );
 
     expect(result[0].isCaptain).toBe(true);
@@ -175,9 +160,7 @@ describe('getTeamGolferScores', () => {
   it('excludes scores before teamEffectiveStart', () => {
     const lateTeamStart = new Date('2025-01-06');
     const golfers = [makeGolfer(golferId1, 'Rory', 'McIlroy')];
-    const tournaments = [
-      makeTournament(tournamentId1, 'Early T', new Date('2025-01-05')),
-    ];
+    const tournaments = [makeTournament(tournamentId1, 'Early T', new Date('2025-01-05'))];
     const scores = [makeScore(golferId1, tournamentId1, 100)];
 
     const result = getTeamGolferScores(
@@ -188,7 +171,7 @@ describe('getTeamGolferScores', () => {
       null,
       selectedWeekStart,
       selectedWeekEnd,
-      lateTeamStart,
+      lateTeamStart
     );
 
     expect(result[0].weekPoints).toBe(0);
@@ -214,7 +197,7 @@ describe('getTeamGolferScores', () => {
       null,
       selectedWeekStart,
       selectedWeekEnd,
-      teamEffectiveStart,
+      teamEffectiveStart
     );
 
     expect(result[0].weekPoints).toBe(30);
@@ -226,9 +209,7 @@ describe('getTeamGolferScores', () => {
       makeGolfer(golferId1, 'Low', 'Scorer'),
       makeGolfer(golferId2, 'High', 'Scorer'),
     ];
-    const tournaments = [
-      makeTournament(tournamentId1, 'T1', new Date('2025-01-06')),
-    ];
+    const tournaments = [makeTournament(tournamentId1, 'T1', new Date('2025-01-06'))];
     const scores = [
       makeScore(golferId1, tournamentId1, 10),
       makeScore(golferId2, tournamentId1, 90),
@@ -242,7 +223,7 @@ describe('getTeamGolferScores', () => {
       null,
       selectedWeekStart,
       selectedWeekEnd,
-      teamEffectiveStart,
+      teamEffectiveStart
     );
 
     expect(result[0].golfer.firstName).toBe('High');
@@ -259,7 +240,7 @@ describe('getTeamGolferScores', () => {
       null,
       selectedWeekStart,
       selectedWeekEnd,
-      teamEffectiveStart,
+      teamEffectiveStart
     );
 
     expect(result[0].weekPoints).toBe(0);
@@ -276,7 +257,7 @@ describe('getTeamTransferHistory', () => {
 
   function makeMockDb(
     pickHistory: Record<string, unknown>[],
-    historyGolfers: Record<string, unknown>[],
+    historyGolfers: Record<string, unknown>[]
   ): Db {
     const cursorChain = {
       sort: vi.fn().mockReturnThis(),
@@ -333,12 +314,8 @@ describe('getTeamTransferHistory', () => {
     // First entry (transfer): added B, removed C
     const transfer = result[0];
     expect(transfer.reason).toBe('transfer');
-    expect(transfer.addedGolfers).toEqual([
-      { id: golferB.toString(), name: 'Tiger Woods' },
-    ]);
-    expect(transfer.removedGolfers).toEqual([
-      { id: golferC.toString(), name: 'Phil Mickelson' },
-    ]);
+    expect(transfer.addedGolfers).toEqual([{ id: golferB.toString(), name: 'Tiger Woods' }]);
+    expect(transfer.removedGolfers).toEqual([{ id: golferC.toString(), name: 'Phil Mickelson' }]);
 
     // Second entry (initial): added A and C (no previous)
     const initial = result[1];
@@ -373,9 +350,7 @@ describe('getTeamTransferHistory', () => {
       },
     ];
 
-    const historyGolfers = [
-      { _id: golferA, firstName: 'Rory', lastName: 'McIlroy' },
-    ];
+    const historyGolfers = [{ _id: golferA, firstName: 'Rory', lastName: 'McIlroy' }];
 
     const db = makeMockDb(pickHistory, historyGolfers);
     const result = await getTeamTransferHistory(db, userId, 2025);

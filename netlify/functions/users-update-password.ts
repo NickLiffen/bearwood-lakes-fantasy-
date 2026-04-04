@@ -21,14 +21,20 @@ const handler = withVerifiedAuth(async (event: AuthenticatedEvent) => {
     if (!currentPassword || !newPassword) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ success: false, error: 'currentPassword and newPassword are required' }),
+        body: JSON.stringify({
+          success: false,
+          error: 'currentPassword and newPassword are required',
+        }),
       };
     }
 
     if (newPassword.length < 8) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ success: false, error: 'New password must be at least 8 characters' }),
+        body: JSON.stringify({
+          success: false,
+          error: 'New password must be at least 8 characters',
+        }),
       };
     }
 

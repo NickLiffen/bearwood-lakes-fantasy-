@@ -23,7 +23,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: 
+  background-image:
     radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.05) 0%, transparent 50%),
     radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.08) 0%, transparent 40%),
     radial-gradient(circle at 40% 40%, rgba(201, 162, 39, 0.1) 0%, transparent 30%);
@@ -59,7 +59,7 @@
   background: white;
   border-radius: 16px;
   padding: 2.5rem;
-  box-shadow: 
+  box-shadow:
     0 20px 40px rgba(0, 0, 0, 0.2),
     0 0 0 1px rgba(255, 255, 255, 0.1);
 }

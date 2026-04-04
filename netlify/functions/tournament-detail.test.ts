@@ -1,6 +1,13 @@
 import { ObjectId } from 'mongodb';
 import { handler } from './tournament-detail';
-import { makeEvent, makeAuthEvent, mockContext, parseBody, createMockDb, mockCursor } from './__test-utils__';
+import {
+  makeEvent,
+  makeAuthEvent,
+  mockContext,
+  parseBody,
+  createMockDb,
+  mockCursor,
+} from './__test-utils__';
 
 vi.mock('./_shared/auth', () => ({
   verifyToken: vi.fn(),
@@ -57,9 +64,39 @@ function makeTournamentDoc(overrides: Record<string, unknown> = {}) {
 }
 
 const scoresDocs = [
-  { _id: new ObjectId(), tournamentId: tid, golferId: gid1, position: 1, participated: true, rawScore: 68, basePoints: 50, bonusPoints: 10, multipliedPoints: 120 },
-  { _id: new ObjectId(), tournamentId: tid, golferId: gid2, position: 2, participated: true, rawScore: 70, basePoints: 40, bonusPoints: 5, multipliedPoints: 90 },
-  { _id: new ObjectId(), tournamentId: tid, golferId: gid3, position: null, participated: true, rawScore: 75, basePoints: 30, bonusPoints: 0, multipliedPoints: 60 },
+  {
+    _id: new ObjectId(),
+    tournamentId: tid,
+    golferId: gid1,
+    position: 1,
+    participated: true,
+    rawScore: 68,
+    basePoints: 50,
+    bonusPoints: 10,
+    multipliedPoints: 120,
+  },
+  {
+    _id: new ObjectId(),
+    tournamentId: tid,
+    golferId: gid2,
+    position: 2,
+    participated: true,
+    rawScore: 70,
+    basePoints: 40,
+    bonusPoints: 5,
+    multipliedPoints: 90,
+  },
+  {
+    _id: new ObjectId(),
+    tournamentId: tid,
+    golferId: gid3,
+    position: null,
+    participated: true,
+    rawScore: 75,
+    basePoints: 30,
+    bonusPoints: 0,
+    multipliedPoints: 60,
+  },
 ];
 
 const golfersDocs = [
@@ -68,7 +105,11 @@ const golfersDocs = [
   { _id: gid3, firstName: 'Jon', lastName: 'Rahm', picture: 'jon.jpg' },
 ];
 
-function setupDb(tournamentDoc: Record<string, unknown>, scores = scoresDocs, golfers = golfersDocs) {
+function setupDb(
+  tournamentDoc: Record<string, unknown>,
+  scores = scoresDocs,
+  golfers = golfersDocs
+) {
   const { mockDb } = createMockDb({
     tournaments: { findOne: vi.fn().mockResolvedValue(tournamentDoc) },
     scores: { find: vi.fn().mockReturnValue(mockCursor(scores)) },
@@ -118,7 +159,7 @@ describe('tournament-detail handler', () => {
   it('returns 400 for invalid ObjectId', async () => {
     const res = await handler(
       makeEvent({ queryStringParameters: { id: 'not-valid' } }),
-      mockContext,
+      mockContext
     );
     expect(res.statusCode).toBe(400);
     expect(parseBody(res).error).toBe('Invalid tournament ID format');
@@ -128,7 +169,7 @@ describe('tournament-detail handler', () => {
     setupDb(null);
     const res = await handler(
       makeEvent({ queryStringParameters: { id: tid.toString() } }),
-      mockContext,
+      mockContext
     );
     expect(res.statusCode).toBe(404);
     expect(parseBody(res).error).toBe('Tournament not found');
@@ -138,7 +179,7 @@ describe('tournament-detail handler', () => {
     setupDb(makeTournamentDoc({ status: 'draft' }));
     const res = await handler(
       makeEvent({ queryStringParameters: { id: tid.toString() } }),
-      mockContext,
+      mockContext
     );
     expect(res.statusCode).toBe(404);
   });
@@ -154,7 +195,7 @@ describe('tournament-detail handler', () => {
 
     const res = await handler(
       makeAuthEvent({ queryStringParameters: { id: tid.toString() } }),
-      mockContext,
+      mockContext
     );
     expect(res.statusCode).toBe(200);
     const body = parseBody(res);
@@ -166,7 +207,7 @@ describe('tournament-detail handler', () => {
 
     const res = await handler(
       makeEvent({ queryStringParameters: { id: tid.toString() } }),
-      mockContext,
+      mockContext
     );
     expect(res.statusCode).toBe(200);
     const body = parseBody(res);
@@ -195,7 +236,7 @@ describe('tournament-detail handler', () => {
     mockConnect.mockRejectedValue(new Error('DB down'));
     const res = await handler(
       makeEvent({ queryStringParameters: { id: tid.toString() } }),
-      mockContext,
+      mockContext
     );
     expect(res.statusCode).toBe(500);
     expect(parseBody(res).error).toBe('Failed to fetch tournament details');

@@ -78,11 +78,13 @@ export async function handler(event: { body: string }) {
     // Seed initial settings
     const settings = [{ key: 'transfersOpen', value: false }];
     for (const setting of settings) {
-      await db.collection('settings').updateOne(
-        { key: setting.key },
-        { $setOnInsert: { key: setting.key, value: setting.value, updatedAt: new Date() } },
-        { upsert: true }
-      );
+      await db
+        .collection('settings')
+        .updateOne(
+          { key: setting.key },
+          { $setOnInsert: { key: setting.key, value: setting.value, updatedAt: new Date() } },
+          { upsert: true }
+        );
     }
 
     // Seed active season

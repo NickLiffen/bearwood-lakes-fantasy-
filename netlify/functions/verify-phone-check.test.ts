@@ -36,7 +36,9 @@ vi.mock('./_shared/services/verification.service', () => ({
 }));
 
 vi.mock('./_shared/validators/auth.validator', () => ({
-  validateBody: vi.fn().mockImplementation((_schema: unknown, body: string) => JSON.parse(body || '{}')),
+  validateBody: vi
+    .fn()
+    .mockImplementation((_schema: unknown, body: string) => JSON.parse(body || '{}')),
   verifyPhoneSchema: {},
 }));
 

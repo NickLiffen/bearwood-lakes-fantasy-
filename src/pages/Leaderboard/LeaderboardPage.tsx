@@ -82,7 +82,6 @@ const LeaderboardPage: React.FC = () => {
   const [monthlyPage, setMonthlyPage] = useState(1);
   const [seasonPage, setSeasonPage] = useState(1);
 
-
   const fetchPeriodData = useCallback(
     async (period: 'week' | 'month' | 'season', date?: string) => {
       if (!selectedSeason) return null;
@@ -139,7 +138,12 @@ const LeaderboardPage: React.FC = () => {
 
           if (leadersResponse.data.currentWeek) {
             setWeeklyDate(
-              formatDateString(getSaturdayOfWeek(new Date(leadersResponse.data.currentWeek.startDate), season?.firstGameweekStart))
+              formatDateString(
+                getSaturdayOfWeek(
+                  new Date(leadersResponse.data.currentWeek.startDate),
+                  season?.firstGameweekStart
+                )
+              )
             );
           }
           if (leadersResponse.data.currentMonth) {
@@ -308,9 +312,24 @@ const LeaderboardPage: React.FC = () => {
 
           {/* Leader Cards */}
           <div className="leaders-section">
-            <LeaderCard leader={leaders?.weeklyLeader || null} title="Weekly Leader" emoji="📅" isCurrentUser={isCurrentUser} />
-            <LeaderCard leader={leaders?.monthlyLeader || null} title="Monthly Leader" emoji="📆" isCurrentUser={isCurrentUser} />
-            <LeaderCard leader={leaders?.seasonLeader || null} title="Season Leader" emoji="🏆" isCurrentUser={isCurrentUser} />
+            <LeaderCard
+              leader={leaders?.weeklyLeader || null}
+              title="Weekly Leader"
+              emoji="📅"
+              isCurrentUser={isCurrentUser}
+            />
+            <LeaderCard
+              leader={leaders?.monthlyLeader || null}
+              title="Monthly Leader"
+              emoji="📆"
+              isCurrentUser={isCurrentUser}
+            />
+            <LeaderCard
+              leader={leaders?.seasonLeader || null}
+              title="Season Leader"
+              emoji="🏆"
+              isCurrentUser={isCurrentUser}
+            />
           </div>
 
           {/* Weekly Table */}
@@ -325,20 +344,28 @@ const LeaderboardPage: React.FC = () => {
             emptyMessage="No tournaments this week yet."
             titleExtra={
               weeklyPeriod && new Date(weeklyPeriod.endDate) < new Date() ? (
-                <button className="totw-btn" onClick={() => setShowTeamOfWeek(true)} title="View the dream team for this gameweek">
+                <button
+                  className="totw-btn"
+                  onClick={() => setShowTeamOfWeek(true)}
+                  title="View the dream team for this gameweek"
+                >
                   ⭐ Team of the Week
                 </button>
               ) : undefined
             }
-            periodNav={weeklyPeriod ? {
-              id: 'week-period-select',
-              options: weekOptions,
-              selectedDate: weeklyDate,
-              hasPrevious: weeklyPeriod.hasPrevious,
-              hasNext: weeklyPeriod.hasNext,
-              onNavigate: handleWeekNavigation,
-              onSelect: handleWeekSelect,
-            } : undefined}
+            periodNav={
+              weeklyPeriod
+                ? {
+                    id: 'week-period-select',
+                    options: weekOptions,
+                    selectedDate: weeklyDate,
+                    hasPrevious: weeklyPeriod.hasPrevious,
+                    hasNext: weeklyPeriod.hasNext,
+                    onNavigate: handleWeekNavigation,
+                    onSelect: handleWeekSelect,
+                  }
+                : undefined
+            }
           />
 
           {/* Monthly Table */}
@@ -351,15 +378,19 @@ const LeaderboardPage: React.FC = () => {
             isCurrentUser={isCurrentUser}
             metaText={`${monthlyData?.tournamentCount || 0} tournament${(monthlyData?.tournamentCount || 0) !== 1 ? 's' : ''} · ${monthlyData?.entries?.length || 0} participants`}
             emptyMessage="No tournaments this month yet."
-            periodNav={monthlyPeriod ? {
-              id: 'month-period-select',
-              options: monthOptions,
-              selectedDate: monthlyDate,
-              hasPrevious: monthlyPeriod.hasPrevious,
-              hasNext: monthlyPeriod.hasNext,
-              onNavigate: handleMonthNavigation,
-              onSelect: handleMonthSelect,
-            } : undefined}
+            periodNav={
+              monthlyPeriod
+                ? {
+                    id: 'month-period-select',
+                    options: monthOptions,
+                    selectedDate: monthlyDate,
+                    hasPrevious: monthlyPeriod.hasPrevious,
+                    hasNext: monthlyPeriod.hasNext,
+                    onNavigate: handleMonthNavigation,
+                    onSelect: handleMonthSelect,
+                  }
+                : undefined
+            }
           />
 
           {/* Season Table */}

@@ -35,9 +35,9 @@ export const handler: Handler = withAdmin(async (event) => {
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ 
-        success: true, 
-        message: `Golfer deleted successfully${deletedScoresCount > 0 ? ` (${deletedScoresCount} scores also removed)` : ''}` 
+      body: JSON.stringify({
+        success: true,
+        message: `Golfer deleted successfully${deletedScoresCount > 0 ? ` (${deletedScoresCount} scores also removed)` : ''}`,
       }),
     };
   } catch (error) {

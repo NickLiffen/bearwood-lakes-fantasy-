@@ -44,7 +44,7 @@ export function calculatePickPoints(
   scoresByGolferTournament: Map<string, Map<string, ScoreLike>>,
   tournamentDates: Map<string, Date>,
   boundaries: TimeBoundaries,
-  firstGW?: Date | null,
+  firstGW?: Date | null
 ): PickPointsResult {
   let weekPoints = 0;
   let monthPoints = 0;
@@ -94,7 +94,7 @@ export function calculateGolferContribution(
   tournamentDates: Map<string, Date>,
   boundaries: TimeBoundaries,
   isCaptain: boolean,
-  teamEffectiveStart: Date,
+  teamEffectiveStart: Date
 ): PickPointsResult {
   const captainMultiplier = isCaptain ? 2 : 1;
   let weekPoints = 0;

@@ -4,12 +4,20 @@ import { makeAuthEvent, mockContext, parseBody } from './__test-utils__';
 
 vi.mock('./_shared/auth', () => ({
   verifyToken: vi.fn().mockReturnValue({
-    userId: 'user-admin-1', username: 'testadmin', role: 'admin', phoneVerified: true,
+    userId: 'user-admin-1',
+    username: 'testadmin',
+    role: 'admin',
+    phoneVerified: true,
   }),
 }));
 vi.mock('./_shared/rateLimit', () => ({
   checkRateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 99, resetAt: new Date() }),
-  RateLimitConfig: { admin: { windowMs: 60000, maxRequests: 60 }, default: { windowMs: 60000, maxRequests: 100 }, read: { windowMs: 60000, maxRequests: 120 }, write: { windowMs: 60000, maxRequests: 30 } },
+  RateLimitConfig: {
+    admin: { windowMs: 60000, maxRequests: 60 },
+    default: { windowMs: 60000, maxRequests: 100 },
+    read: { windowMs: 60000, maxRequests: 120 },
+    write: { windowMs: 60000, maxRequests: 30 },
+  },
   getRateLimitKeyFromEvent: vi.fn().mockReturnValue('ratelimit:key'),
   rateLimitHeaders: vi.fn().mockReturnValue({}),
   rateLimitExceededResponse: vi.fn(),
@@ -20,7 +28,10 @@ vi.mock('./_shared/utils/logger', () => ({
 }));
 
 const {
-  mockUsersCollection, mockPicksCollection, mockTournamentsCollection, mockScoresCollection,
+  mockUsersCollection,
+  mockPicksCollection,
+  mockTournamentsCollection,
+  mockScoresCollection,
   mockDb,
 } = vi.hoisted(() => {
   const mockUsersCollection = { find: vi.fn() };
@@ -34,9 +45,17 @@ const {
     tournaments: mockTournamentsCollection,
     scores: mockScoresCollection,
   };
-  const mockDb = { collection: vi.fn().mockImplementation((name: string) => collectionMap[name] || {}) };
+  const mockDb = {
+    collection: vi.fn().mockImplementation((name: string) => collectionMap[name] || {}),
+  };
 
-  return { mockUsersCollection, mockPicksCollection, mockTournamentsCollection, mockScoresCollection, mockDb };
+  return {
+    mockUsersCollection,
+    mockPicksCollection,
+    mockTournamentsCollection,
+    mockScoresCollection,
+    mockDb,
+  };
 });
 
 vi.mock('./_shared/db', () => ({
@@ -71,7 +90,13 @@ describe('users-fantasy handler', () => {
 
     mockUsersCollection.find.mockReturnValue({
       toArray: vi.fn().mockResolvedValue([
-        { _id: userId1, firstName: 'Alice', lastName: 'A', username: 'alice', createdAt: new Date() },
+        {
+          _id: userId1,
+          firstName: 'Alice',
+          lastName: 'A',
+          username: 'alice',
+          createdAt: new Date(),
+        },
         { _id: userId2, firstName: 'Bob', lastName: 'B', username: 'bob', createdAt: new Date() },
       ]),
     });
@@ -89,9 +114,11 @@ describe('users-fantasy handler', () => {
     });
 
     mockTournamentsCollection.find.mockReturnValue({
-      toArray: vi.fn().mockResolvedValue([
-        { _id: tournamentId1, startDate: '2024-06-01', status: 'published', season: 2024 },
-      ]),
+      toArray: vi
+        .fn()
+        .mockResolvedValue([
+          { _id: tournamentId1, startDate: '2024-06-01', status: 'published', season: 2024 },
+        ]),
     });
 
     mockScoresCollection.find.mockReturnValue({
@@ -171,7 +198,8 @@ describe('users-fantasy handler', () => {
 
   it('excludes tournaments outside week/month boundaries', async () => {
     // Set narrow boundaries: week is Jan 1-7, month is Jan 1-31
-    const { getWeekStart, getWeekEnd, getMonthStart, getMonthEnd } = await import('./_shared/utils/dates');
+    const { getWeekStart, getWeekEnd, getMonthStart, getMonthEnd } =
+      await import('./_shared/utils/dates');
     (getWeekStart as ReturnType<typeof vi.fn>).mockReturnValue(new Date('2024-01-01'));
     (getWeekEnd as ReturnType<typeof vi.fn>).mockReturnValue(new Date('2024-01-07T23:59:59.999Z'));
     (getMonthStart as ReturnType<typeof vi.fn>).mockReturnValue(new Date('2024-01-01'));

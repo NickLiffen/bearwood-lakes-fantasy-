@@ -3,12 +3,20 @@ import { makeAuthEvent, mockContext, parseBody } from './__test-utils__';
 
 vi.mock('./_shared/auth', () => ({
   verifyToken: vi.fn().mockReturnValue({
-    userId: 'user-player-1', username: 'testplayer', role: 'player', phoneVerified: true,
+    userId: 'user-player-1',
+    username: 'testplayer',
+    role: 'player',
+    phoneVerified: true,
   }),
 }));
 vi.mock('./_shared/rateLimit', () => ({
   checkRateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 99, resetAt: new Date() }),
-  RateLimitConfig: { default: { windowMs: 60000, maxRequests: 100 }, read: { windowMs: 60000, maxRequests: 120 }, write: { windowMs: 60000, maxRequests: 30 }, admin: { windowMs: 60000, maxRequests: 60 } },
+  RateLimitConfig: {
+    default: { windowMs: 60000, maxRequests: 100 },
+    read: { windowMs: 60000, maxRequests: 120 },
+    write: { windowMs: 60000, maxRequests: 30 },
+    admin: { windowMs: 60000, maxRequests: 60 },
+  },
   getRateLimitKeyFromEvent: vi.fn().mockReturnValue('ratelimit:key'),
   rateLimitHeaders: vi.fn().mockReturnValue({}),
   rateLimitExceededResponse: vi.fn(),
@@ -49,7 +57,7 @@ describe('leaderboard handler', () => {
 
     const res = await handler(
       makeAuthEvent({ queryStringParameters: { view: 'full' } }),
-      mockContext,
+      mockContext
     );
     const body = parseBody(res!);
 
@@ -64,7 +72,7 @@ describe('leaderboard handler', () => {
 
     const res = await handler(
       makeAuthEvent({ queryStringParameters: { tournamentId: 'tourn-1' } }),
-      mockContext,
+      mockContext
     );
     const body = parseBody(res!);
 

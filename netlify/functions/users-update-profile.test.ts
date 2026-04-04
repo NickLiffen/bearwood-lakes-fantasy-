@@ -3,12 +3,20 @@ import { makeAuthEvent, mockContext, parseBody } from './__test-utils__';
 
 vi.mock('./_shared/auth', () => ({
   verifyToken: vi.fn().mockReturnValue({
-    userId: 'aaaaaaaaaaaaaaaaaaaaaaaa', username: 'testadmin', role: 'admin', phoneVerified: true,
+    userId: 'aaaaaaaaaaaaaaaaaaaaaaaa',
+    username: 'testadmin',
+    role: 'admin',
+    phoneVerified: true,
   }),
 }));
 vi.mock('./_shared/rateLimit', () => ({
   checkRateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 99, resetAt: new Date() }),
-  RateLimitConfig: { admin: { windowMs: 60000, maxRequests: 60 }, default: { windowMs: 60000, maxRequests: 100 }, read: { windowMs: 60000, maxRequests: 120 }, write: { windowMs: 60000, maxRequests: 30 } },
+  RateLimitConfig: {
+    admin: { windowMs: 60000, maxRequests: 60 },
+    default: { windowMs: 60000, maxRequests: 100 },
+    read: { windowMs: 60000, maxRequests: 120 },
+    write: { windowMs: 60000, maxRequests: 30 },
+  },
   getRateLimitKeyFromEvent: vi.fn().mockReturnValue('ratelimit:key'),
   rateLimitHeaders: vi.fn().mockReturnValue({}),
   rateLimitExceededResponse: vi.fn(),

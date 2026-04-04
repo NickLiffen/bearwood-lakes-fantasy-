@@ -157,8 +157,7 @@ function calculatePrice(stats2024: GolferSeasonStats, stats2025: GolferSeasonSta
   const total36Plus = stats2024.timesScored36Plus + stats2025.timesScored36Plus;
 
   // Composite score (additive, uncapped)
-  const compositeScore =
-    totalPlayed * 1.0 + totalWins * 8 + totalPodiums * 3 + total36Plus * 2;
+  const compositeScore = totalPlayed * 1.0 + totalWins * 8 + totalPodiums * 3 + total36Plus * 2;
 
   // Normalize against a reasonable max composite (40 tournaments, 10 wins, 15 podiums, 15 bonuses)
   const maxComposite = 40 * 1.0 + 10 * 8 + 15 * 3 + 15 * 2;

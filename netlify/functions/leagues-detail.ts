@@ -8,7 +8,14 @@ import { UserDocument, USERS_COLLECTION } from './_shared/models/User';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
 import { getActiveSeason, getSeasonByName } from './_shared/services/seasons.service';
-import { getWeekStart, getWeekEnd as getWeekEndUtil, getMonthStart, getMonthEnd, getGameweekNumber, getFirstGameweekStart } from './_shared/utils/dates';
+import {
+  getWeekStart,
+  getWeekEnd as getWeekEndUtil,
+  getMonthStart,
+  getMonthEnd,
+  getGameweekNumber,
+  getFirstGameweekStart,
+} from './_shared/utils/dates';
 import {
   calculateLeaderboard,
   rankEntries,
@@ -43,16 +50,23 @@ export const handler = withVerifiedAuth(async (event) => {
 
     const activeSeason = seasonParam ? await getSeasonByName(seasonParam) : await getActiveSeason();
     const fallbackYear = new Date().getFullYear();
-    const seasonStartDate = activeSeason ? new Date(activeSeason.startDate) : new Date(`${fallbackYear}-01-01`);
-    const seasonEndDate = activeSeason ? new Date(activeSeason.endDate) : new Date(`${fallbackYear}-12-31`);
+    const seasonStartDate = activeSeason
+      ? new Date(activeSeason.startDate)
+      : new Date(`${fallbackYear}-01-01`);
+    const seasonEndDate = activeSeason
+      ? new Date(activeSeason.endDate)
+      : new Date(`${fallbackYear}-12-31`);
     seasonEndDate.setHours(23, 59, 59, 999);
     const currentSeason = activeSeason ? parseInt(activeSeason.name) || fallbackYear : fallbackYear;
-    const firstGW = activeSeason?.firstGameweekStart ? new Date(activeSeason.firstGameweekStart) : null;
+    const firstGW = activeSeason?.firstGameweekStart
+      ? new Date(activeSeason.firstGameweekStart)
+      : null;
 
     const { db } = await connectToDatabase();
     const memberSet = new Set(league.memberIds);
 
-    const picks = await db.collection<PickDocument>(PICKS_COLLECTION)
+    const picks = await db
+      .collection<PickDocument>(PICKS_COLLECTION)
       .find({ season: currentSeason })
       .project({ userId: 1, golferIds: 1, captainId: 1, totalSpent: 1, createdAt: 1 })
       .toArray();
@@ -71,20 +85,52 @@ export const handler = withVerifiedAuth(async (event) => {
         members,
         entries: [],
         leaders: {
-          weeklyLeader: null, monthlyLeader: null, seasonLeader: null,
-          currentWeek: { type: 'week', startDate: weekStart.toISOString(), endDate: weekEnd.toISOString(), label: formatWeekLabel(weekStart, weekEnd, getGameweekNumber(weekStart, seasonStartDate, firstGW)), hasPrevious: false, hasNext: false },
-          currentMonth: { type: 'month', startDate: monthStart.toISOString(), endDate: monthEnd.toISOString(), label: formatMonthLabel(monthStart), hasPrevious: false, hasNext: false },
-          seasonInfo: { type: 'season', startDate: seasonStartDate.toISOString(), endDate: seasonEndDate.toISOString(), label: `${currentSeason} Season`, hasPrevious: false, hasNext: false },
+          weeklyLeader: null,
+          monthlyLeader: null,
+          seasonLeader: null,
+          currentWeek: {
+            type: 'week',
+            startDate: weekStart.toISOString(),
+            endDate: weekEnd.toISOString(),
+            label: formatWeekLabel(
+              weekStart,
+              weekEnd,
+              getGameweekNumber(weekStart, seasonStartDate, firstGW)
+            ),
+            hasPrevious: false,
+            hasNext: false,
+          },
+          currentMonth: {
+            type: 'month',
+            startDate: monthStart.toISOString(),
+            endDate: monthEnd.toISOString(),
+            label: formatMonthLabel(monthStart),
+            hasPrevious: false,
+            hasNext: false,
+          },
+          seasonInfo: {
+            type: 'season',
+            startDate: seasonStartDate.toISOString(),
+            endDate: seasonEndDate.toISOString(),
+            label: `${currentSeason} Season`,
+            hasPrevious: false,
+            hasNext: false,
+          },
         },
         tournamentCount: 0,
       });
     }
 
     const userIds = memberPicks.map((p) => p.userId);
-    const users = await db.collection<UserDocument>(USERS_COLLECTION).find({ _id: { $in: userIds } }).project({ passwordHash: 0 }).toArray();
+    const users = await db
+      .collection<UserDocument>(USERS_COLLECTION)
+      .find({ _id: { $in: userIds } })
+      .project({ passwordHash: 0 })
+      .toArray();
     const userMap = new Map(users.map((u) => [u._id.toString(), u]));
 
-    const publishedTournaments = await db.collection<TournamentDocument>(TOURNAMENTS_COLLECTION)
+    const publishedTournaments = await db
+      .collection<TournamentDocument>(TOURNAMENTS_COLLECTION)
       .find({ season: currentSeason, status: { $in: ['published', 'complete'] } })
       .project({ _id: 1, startDate: 1, status: 1, season: 1, name: 1 })
       .toArray();
@@ -95,12 +141,14 @@ export const handler = withVerifiedAuth(async (event) => {
     });
 
     const tournamentIds = seasonTournaments.map((t) => t._id);
-    const allScores = tournamentIds.length > 0
-      ? await db.collection<ScoreDocument>(SCORES_COLLECTION)
-          .find({ tournamentId: { $in: tournamentIds } })
-          .project({ golferId: 1, tournamentId: 1, multipliedPoints: 1, participated: 1 })
-          .toArray()
-      : [];
+    const allScores =
+      tournamentIds.length > 0
+        ? await db
+            .collection<ScoreDocument>(SCORES_COLLECTION)
+            .find({ tournamentId: { $in: tournamentIds } })
+            .project({ golferId: 1, tournamentId: 1, multipliedPoints: 1, participated: 1 })
+            .toArray()
+        : [];
 
     const members = await getLeagueMembers(league);
     const now = new Date();
@@ -109,18 +157,65 @@ export const handler = withVerifiedAuth(async (event) => {
     if (action === 'leaders') {
       const weekStart = getWeekStart(now, firstGW);
       const weekEnd = getWeekEnd(weekStart, firstGW);
-      const prevWeekStart = new Date(weekStart); prevWeekStart.setDate(prevWeekStart.getDate() - 7);
-      const prevWeekEnd = new Date(weekEnd); prevWeekEnd.setDate(prevWeekEnd.getDate() - 7);
+      const prevWeekStart = new Date(weekStart);
+      prevWeekStart.setDate(prevWeekStart.getDate() - 7);
+      const prevWeekEnd = new Date(weekEnd);
+      prevWeekEnd.setDate(prevWeekEnd.getDate() - 7);
       const monthStart = getMonthStart(now);
       const monthEnd = getMonthEnd(now);
       const prevMonthStart = getMonthStart(new Date(now.getFullYear(), now.getMonth() - 1, 1));
       const prevMonthEnd = getMonthEnd(new Date(now.getFullYear(), now.getMonth() - 1, 1));
 
-      const weekData = calculateLeaderboard(picks, userMap, seasonTournaments, allScores, weekStart, weekEnd, firstGW, memberSet);
-      const prevWeekData = calculateLeaderboard(picks, userMap, seasonTournaments, allScores, prevWeekStart, prevWeekEnd, firstGW, memberSet);
-      const monthData = calculateLeaderboard(picks, userMap, seasonTournaments, allScores, monthStart, monthEnd, firstGW, memberSet);
-      const prevMonthData = calculateLeaderboard(picks, userMap, seasonTournaments, allScores, prevMonthStart, prevMonthEnd, firstGW, memberSet);
-      const seasonData = calculateLeaderboard(picks, userMap, seasonTournaments, allScores, seasonStartDate, seasonEndDate, firstGW, memberSet);
+      const weekData = calculateLeaderboard(
+        picks,
+        userMap,
+        seasonTournaments,
+        allScores,
+        weekStart,
+        weekEnd,
+        firstGW,
+        memberSet
+      );
+      const prevWeekData = calculateLeaderboard(
+        picks,
+        userMap,
+        seasonTournaments,
+        allScores,
+        prevWeekStart,
+        prevWeekEnd,
+        firstGW,
+        memberSet
+      );
+      const monthData = calculateLeaderboard(
+        picks,
+        userMap,
+        seasonTournaments,
+        allScores,
+        monthStart,
+        monthEnd,
+        firstGW,
+        memberSet
+      );
+      const prevMonthData = calculateLeaderboard(
+        picks,
+        userMap,
+        seasonTournaments,
+        allScores,
+        prevMonthStart,
+        prevMonthEnd,
+        firstGW,
+        memberSet
+      );
+      const seasonData = calculateLeaderboard(
+        picks,
+        userMap,
+        seasonTournaments,
+        allScores,
+        seasonStartDate,
+        seasonEndDate,
+        firstGW,
+        memberSet
+      );
 
       const weekRanked = rankEntries(weekData.entries, prevWeekData.entries);
       const monthRanked = rankEntries(monthData.entries, prevMonthData.entries);
@@ -133,28 +228,68 @@ export const handler = withVerifiedAuth(async (event) => {
           weeklyLeader: weekRanked.find((e) => e.rank === 1) || null,
           monthlyLeader: monthRanked.find((e) => e.rank === 1) || null,
           seasonLeader: seasonRanked.find((e) => e.rank === 1) || null,
-          currentWeek: { type: 'week', startDate: weekStart.toISOString(), endDate: weekEnd.toISOString(), label: formatWeekLabel(weekStart, weekEnd, getGameweekNumber(weekStart, seasonStartDate, firstGW)), gameweek: getGameweekNumber(weekStart, seasonStartDate, firstGW), hasPrevious: weekStart > getFirstGameweekStart(seasonStartDate, firstGW), hasNext: weekEnd < now },
-          currentMonth: { type: 'month', startDate: monthStart.toISOString(), endDate: monthEnd.toISOString(), label: formatMonthLabel(monthStart), hasPrevious: monthStart > getFirstGameweekStart(seasonStartDate, firstGW), hasNext: monthEnd < now },
-          seasonInfo: { type: 'season', startDate: seasonStartDate.toISOString(), endDate: seasonEndDate.toISOString(), label: `${currentSeason} Season`, hasPrevious: false, hasNext: false },
+          currentWeek: {
+            type: 'week',
+            startDate: weekStart.toISOString(),
+            endDate: weekEnd.toISOString(),
+            label: formatWeekLabel(
+              weekStart,
+              weekEnd,
+              getGameweekNumber(weekStart, seasonStartDate, firstGW)
+            ),
+            gameweek: getGameweekNumber(weekStart, seasonStartDate, firstGW),
+            hasPrevious: weekStart > getFirstGameweekStart(seasonStartDate, firstGW),
+            hasNext: weekEnd < now,
+          },
+          currentMonth: {
+            type: 'month',
+            startDate: monthStart.toISOString(),
+            endDate: monthEnd.toISOString(),
+            label: formatMonthLabel(monthStart),
+            hasPrevious: monthStart > getFirstGameweekStart(seasonStartDate, firstGW),
+            hasNext: monthEnd < now,
+          },
+          seasonInfo: {
+            type: 'season',
+            startDate: seasonStartDate.toISOString(),
+            endDate: seasonEndDate.toISOString(),
+            label: `${currentSeason} Season`,
+            hasPrevious: false,
+            hasNext: false,
+          },
         },
       });
     }
 
     // Period leaderboard
     const referenceDate = dateParam ? new Date(dateParam) : now;
-    let periodStart: Date, periodEnd: Date, prevPeriodStart: Date, prevPeriodEnd: Date, periodLabel: string;
+    let periodStart: Date,
+      periodEnd: Date,
+      prevPeriodStart: Date,
+      prevPeriodEnd: Date,
+      periodLabel: string;
 
     if (period === 'week') {
       periodStart = getWeekStart(referenceDate, firstGW);
       periodEnd = getWeekEnd(periodStart, firstGW);
-      prevPeriodStart = new Date(periodStart); prevPeriodStart.setDate(prevPeriodStart.getDate() - 7);
-      prevPeriodEnd = new Date(periodEnd); prevPeriodEnd.setDate(prevPeriodEnd.getDate() - 7);
-      periodLabel = formatWeekLabel(periodStart, periodEnd, getGameweekNumber(periodStart, seasonStartDate, firstGW));
+      prevPeriodStart = new Date(periodStart);
+      prevPeriodStart.setDate(prevPeriodStart.getDate() - 7);
+      prevPeriodEnd = new Date(periodEnd);
+      prevPeriodEnd.setDate(prevPeriodEnd.getDate() - 7);
+      periodLabel = formatWeekLabel(
+        periodStart,
+        periodEnd,
+        getGameweekNumber(periodStart, seasonStartDate, firstGW)
+      );
     } else if (period === 'month') {
       periodStart = getMonthStart(referenceDate);
       periodEnd = getMonthEnd(referenceDate);
-      prevPeriodStart = getMonthStart(new Date(referenceDate.getFullYear(), referenceDate.getMonth() - 1, 1));
-      prevPeriodEnd = getMonthEnd(new Date(referenceDate.getFullYear(), referenceDate.getMonth() - 1, 1));
+      prevPeriodStart = getMonthStart(
+        new Date(referenceDate.getFullYear(), referenceDate.getMonth() - 1, 1)
+      );
+      prevPeriodEnd = getMonthEnd(
+        new Date(referenceDate.getFullYear(), referenceDate.getMonth() - 1, 1)
+      );
       periodLabel = formatMonthLabel(periodStart);
     } else {
       periodStart = seasonStartDate;
@@ -164,15 +299,35 @@ export const handler = withVerifiedAuth(async (event) => {
       periodLabel = `${currentSeason} Season`;
     }
 
-    const currentData = calculateLeaderboard(picks, userMap, seasonTournaments, allScores, periodStart, periodEnd, firstGW, memberSet);
-    const previousData = period !== 'season'
-      ? calculateLeaderboard(picks, userMap, seasonTournaments, allScores, prevPeriodStart, prevPeriodEnd, firstGW, memberSet)
-      : null;
+    const currentData = calculateLeaderboard(
+      picks,
+      userMap,
+      seasonTournaments,
+      allScores,
+      periodStart,
+      periodEnd,
+      firstGW,
+      memberSet
+    );
+    const previousData =
+      period !== 'season'
+        ? calculateLeaderboard(
+            picks,
+            userMap,
+            seasonTournaments,
+            allScores,
+            prevPeriodStart,
+            prevPeriodEnd,
+            firstGW,
+            memberSet
+          )
+        : null;
 
     const ranked = rankEntries(currentData.entries, previousData?.entries || null);
 
     const firstGameweekAnchor = getFirstGameweekStart(seasonStartDate, firstGW);
-    let hasPrevious = false, hasNext = false;
+    let hasPrevious = false,
+      hasNext = false;
     if (period === 'week') {
       hasPrevious = periodStart > firstGameweekAnchor;
       hasNext = periodEnd < getWeekEnd(getWeekStart(now, firstGW), firstGW);
@@ -186,9 +341,14 @@ export const handler = withVerifiedAuth(async (event) => {
       members,
       entries: ranked,
       period: {
-        type: period, startDate: periodStart.toISOString(), endDate: periodEnd.toISOString(),
-        label: periodLabel, gameweek: period === 'week' ? getGameweekNumber(periodStart, seasonStartDate, firstGW) : undefined,
-        hasPrevious, hasNext,
+        type: period,
+        startDate: periodStart.toISOString(),
+        endDate: periodEnd.toISOString(),
+        label: periodLabel,
+        gameweek:
+          period === 'week' ? getGameweekNumber(periodStart, seasonStartDate, firstGW) : undefined,
+        hasPrevious,
+        hasNext,
       },
       tournamentCount: currentData.tournamentCount,
     });

@@ -3,13 +3,24 @@
 import { z } from 'zod';
 
 export const createLeagueSchema = z.object({
-  name: z.string().min(1, 'League name is required').max(50, 'League name must be 50 characters or less'),
-  description: z.string().max(200, 'Description must be 200 characters or less').optional().default(''),
+  name: z
+    .string()
+    .min(1, 'League name is required')
+    .max(50, 'League name must be 50 characters or less'),
+  description: z
+    .string()
+    .max(200, 'Description must be 200 characters or less')
+    .optional()
+    .default(''),
 });
 
 export const updateLeagueSchema = z.object({
   id: z.string().min(1, 'League ID is required'),
-  name: z.string().min(1, 'League name is required').max(50, 'League name must be 50 characters or less').optional(),
+  name: z
+    .string()
+    .min(1, 'League name is required')
+    .max(50, 'League name must be 50 characters or less')
+    .optional(),
   description: z.string().max(200, 'Description must be 200 characters or less').optional(),
 });
 

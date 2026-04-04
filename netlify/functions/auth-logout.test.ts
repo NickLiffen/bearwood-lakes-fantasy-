@@ -39,9 +39,7 @@ describe('auth-logout', () => {
 
     expect(result.statusCode).toBe(200);
     expect(parseBody(result).success).toBe(true);
-    expect(result.headers!['Set-Cookie']).toBe(
-      'refresh_token=; HttpOnly; Max-Age=0; Path=/'
-    );
+    expect(result.headers!['Set-Cookie']).toBe('refresh_token=; HttpOnly; Max-Age=0; Path=/');
     expect(revokeRefreshToken).toHaveBeenCalledWith('refresh-token-123');
     expect(withCors).toHaveBeenCalled();
   });

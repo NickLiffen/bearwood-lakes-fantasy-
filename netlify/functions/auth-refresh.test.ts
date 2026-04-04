@@ -63,11 +63,7 @@ describe('auth-refresh', () => {
     expect(body.data.user).toEqual({ id: 'u1', username: 'nick' });
     expect(result.headers!['Set-Cookie']).toBe('refresh_token=new-token; HttpOnly');
     expect(setRefreshTokenCookie).toHaveBeenCalledWith('new-refresh-token');
-    expect(refreshAccessToken).toHaveBeenCalledWith(
-      'old-refresh-token',
-      'test-agent',
-      '127.0.0.1'
-    );
+    expect(refreshAccessToken).toHaveBeenCalledWith('old-refresh-token', 'test-agent', '127.0.0.1');
     expect(withCors).toHaveBeenCalled();
   });
 
@@ -106,9 +102,7 @@ describe('auth-refresh', () => {
     const body = parseBody(result);
     expect(body.error).toBe('Refresh token expired');
     expect(body.code).toBe('TOKEN_EXPIRED');
-    expect(result.headers!['Set-Cookie']).toBe(
-      'refresh_token=; HttpOnly; Max-Age=0; Path=/'
-    );
+    expect(result.headers!['Set-Cookie']).toBe('refresh_token=; HttpOnly; Max-Age=0; Path=/');
     expect(clearRefreshTokenCookie).toHaveBeenCalled();
   });
 
@@ -125,9 +119,7 @@ describe('auth-refresh', () => {
     expect(result.statusCode).toBe(401);
     const body = parseBody(result);
     expect(body.code).toBe('NO_REFRESH_TOKEN');
-    expect(result.headers!['Set-Cookie']).toBe(
-      'refresh_token=; HttpOnly; Max-Age=0; Path=/'
-    );
+    expect(result.headers!['Set-Cookie']).toBe('refresh_token=; HttpOnly; Max-Age=0; Path=/');
   });
 
   it('returns 409 without clearing cookie on ROTATION_RACE', async () => {

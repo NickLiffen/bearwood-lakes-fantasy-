@@ -34,7 +34,10 @@ export const handler = withAdmin(async (event) => {
       .toArray();
 
     const userMap = new Map(
-      users.map((u) => [u._id.toString(), { firstName: u.firstName, lastName: u.lastName, username: u.username }])
+      users.map((u) => [
+        u._id.toString(),
+        { firstName: u.firstName, lastName: u.lastName, username: u.username },
+      ])
     );
 
     const result = leagues.map((league) => ({
@@ -47,7 +50,11 @@ export const handler = withAdmin(async (event) => {
       createdAt: league.createdAt,
       admin: {
         userId: league.adminId.toString(),
-        ...userMap.get(league.adminId.toString()) || { firstName: 'Unknown', lastName: '', username: 'unknown' },
+        ...(userMap.get(league.adminId.toString()) || {
+          firstName: 'Unknown',
+          lastName: '',
+          username: 'unknown',
+        }),
       },
       members: league.memberIds.map((id) => {
         const userId = id.toString();

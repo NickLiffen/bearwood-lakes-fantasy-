@@ -100,9 +100,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
             </Link>
             <span className="admin-user">
               {user.firstName}{' '}
-              <span className="admin-badge">
-                {user.role === 'admin' ? 'Admin' : 'Uploader'}
-              </span>
+              <span className="admin-badge">{user.role === 'admin' ? 'Admin' : 'Uploader'}</span>
             </span>
             <button onClick={handleLogout} className="btn-logout">
               Logout
@@ -141,9 +139,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
         <div className="admin-mobile-menu-header">
           <span className="admin-mobile-greeting">
             {user.firstName}{' '}
-            <span className="admin-badge">
-              {user.role === 'admin' ? 'Admin' : 'Uploader'}
-            </span>
+            <span className="admin-badge">{user.role === 'admin' ? 'Admin' : 'Uploader'}</span>
           </span>
         </div>
         <div className="admin-mobile-menu-links">

@@ -11,7 +11,14 @@ import { GolferDocument, GOLFERS_COLLECTION } from './_shared/models/Golfer';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
 import { SettingDocument, SETTINGS_COLLECTION } from './_shared/models/Settings';
-import { getWeekStart, getWeekEnd, getTeamEffectiveStartDate, getGameweekNumber, getFirstGameweekStart, hasUnlimitedTransfers } from './_shared/utils/dates';
+import {
+  getWeekStart,
+  getWeekEnd,
+  getTeamEffectiveStartDate,
+  getGameweekNumber,
+  getFirstGameweekStart,
+  hasUnlimitedTransfers,
+} from './_shared/utils/dates';
 import { getTransfersThisWeek, applyPendingChanges } from './_shared/services/picks.service';
 import { getActiveSeason } from './_shared/services/seasons.service';
 import { getTeamGolferScores, getTeamTransferHistory } from './_shared/services/team.service';
@@ -19,7 +26,11 @@ import { getTeamGolferScores, getTeamTransferHistory } from './_shared/services/
 /**
  * Format week label like "Jan 4 - Jan 10"
  */
-function formatWeekLabel(weekStart: Date, gameweek?: number | null, firstGameweekStart?: Date | null): string {
+function formatWeekLabel(
+  weekStart: Date,
+  gameweek?: number | null,
+  firstGameweekStart?: Date | null
+): string {
   const weekEnd = getWeekEnd(weekStart, firstGameweekStart);
 
   const startMonth = weekStart.toLocaleDateString('en-US', { month: 'short' });
@@ -27,9 +38,10 @@ function formatWeekLabel(weekStart: Date, gameweek?: number | null, firstGamewee
   const endMonth = weekEnd.toLocaleDateString('en-US', { month: 'short' });
   const endDay = weekEnd.getDate();
 
-  const dateRange = startMonth === endMonth
-    ? `${startMonth} ${startDay} - ${endDay}`
-    : `${startMonth} ${startDay} - ${endMonth} ${endDay}`;
+  const dateRange =
+    startMonth === endMonth
+      ? `${startMonth} ${startDay} - ${endDay}`
+      : `${startMonth} ${startDay} - ${endMonth} ${endDay}`;
 
   if (gameweek && gameweek > 0) {
     return `Gameweek ${gameweek}: ${dateRange}`;
@@ -54,15 +66,23 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
     }
 
     // Get active season and parallelize settings queries
-    const [activeSeason, transfersSetting, newTeamSetting, maxTransfersSetting] = await Promise.all([
-      getActiveSeason(),
-      db.collection<SettingDocument>(SETTINGS_COLLECTION).findOne({ key: 'transfersOpen' }),
-      db.collection<SettingDocument>(SETTINGS_COLLECTION).findOne({ key: 'allowNewTeamCreation' }),
-      db.collection<SettingDocument>(SETTINGS_COLLECTION).findOne({ key: 'maxTransfersPerWeek' }),
-    ]);
+    const [activeSeason, transfersSetting, newTeamSetting, maxTransfersSetting] = await Promise.all(
+      [
+        getActiveSeason(),
+        db.collection<SettingDocument>(SETTINGS_COLLECTION).findOne({ key: 'transfersOpen' }),
+        db
+          .collection<SettingDocument>(SETTINGS_COLLECTION)
+          .findOne({ key: 'allowNewTeamCreation' }),
+        db.collection<SettingDocument>(SETTINGS_COLLECTION).findOne({ key: 'maxTransfersPerWeek' }),
+      ]
+    );
 
-    const currentSeason = activeSeason ? (parseInt(activeSeason.name, 10) || new Date().getFullYear()) : new Date().getFullYear();
-    const firstGW = activeSeason?.firstGameweekStart ? new Date(activeSeason.firstGameweekStart) : null;
+    const currentSeason = activeSeason
+      ? parseInt(activeSeason.name, 10) || new Date().getFullYear()
+      : new Date().getFullYear();
+    const firstGW = activeSeason?.firstGameweekStart
+      ? new Date(activeSeason.firstGameweekStart)
+      : null;
 
     // If season hasn't started yet and no specific date requested, default to GW1
     if (!dateParam && activeSeason) {
@@ -83,12 +103,10 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
     await applyPendingChanges(event.user.userId);
 
     // Get user's picks for current season (re-read after potential apply)
-    const pick = await db
-      .collection<PickDocument>(PICKS_COLLECTION)
-      .findOne({
-        userId: new ObjectId(event.user.userId),
-        season: currentSeason,
-      });
+    const pick = await db.collection<PickDocument>(PICKS_COLLECTION).findOne({
+      userId: new ObjectId(event.user.userId),
+      season: currentSeason,
+    });
 
     // Check if unlimited transfers apply (pre-season, before GW1, or pre-first-game-week for new teams)
     const now = new Date();
@@ -97,7 +115,7 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
       seasonStartDate,
       firstGW,
       pick?.createdAt,
-      now,
+      now
     );
 
     if (!pick) {
@@ -130,7 +148,7 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
       .collection<TournamentDocument>(TOURNAMENTS_COLLECTION)
       .find({
         status: { $in: ['published', 'complete'] },
-        season: currentSeason
+        season: currentSeason,
       })
       .toArray();
 
@@ -164,7 +182,8 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
     // Navigation constraints — can't go before season's first Saturday
     const previousWeekStart = new Date(selectedWeekStart);
     previousWeekStart.setDate(previousWeekStart.getDate() - 7);
-    const earliestWeek = teamEffectiveStartDate > seasonFirstSat ? teamEffectiveStartDate : seasonFirstSat;
+    const earliestWeek =
+      teamEffectiveStartDate > seasonFirstSat ? teamEffectiveStartDate : seasonFirstSat;
     const hasPrevious = previousWeekStart >= earliestWeek;
 
     // Can go forward if we're not already on or past the current week
@@ -182,8 +201,8 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
           selectedWeekStart,
           selectedWeekEnd,
           teamEffectiveStartDate,
-          firstGW,
-        ),
+          firstGW
+        )
       ),
       getTeamTransferHistory(db, event.user.userId, currentSeason),
     ]);
@@ -214,8 +233,16 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
             period: {
               weekStart: selectedWeekStart.toISOString(),
               weekEnd: selectedWeekEnd.toISOString(),
-              label: formatWeekLabel(selectedWeekStart, activeSeason ? getGameweekNumber(selectedWeekStart, new Date(activeSeason.startDate), firstGW) : null, firstGW),
-              gameweek: activeSeason ? getGameweekNumber(selectedWeekStart, new Date(activeSeason.startDate), firstGW) : null,
+              label: formatWeekLabel(
+                selectedWeekStart,
+                activeSeason
+                  ? getGameweekNumber(selectedWeekStart, new Date(activeSeason.startDate), firstGW)
+                  : null,
+                firstGW
+              ),
+              gameweek: activeSeason
+                ? getGameweekNumber(selectedWeekStart, new Date(activeSeason.startDate), firstGW)
+                : null,
               hasPrevious,
               hasNext,
             },

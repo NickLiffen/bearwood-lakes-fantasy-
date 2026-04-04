@@ -24,7 +24,8 @@ export function toPick(doc: PickDocument): Pick {
     golferIds: doc.golferIds.map((id) => id.toString()),
     captainId: doc.captainId?.toString() || null,
     pendingGolferIds: doc.pendingGolferIds?.map((id) => id.toString()),
-    pendingCaptainId: doc.pendingCaptainId !== undefined ? (doc.pendingCaptainId?.toString() || null) : undefined,
+    pendingCaptainId:
+      doc.pendingCaptainId !== undefined ? doc.pendingCaptainId?.toString() || null : undefined,
     pendingChangedAt: doc.pendingChangedAt,
     totalSpent: doc.totalSpent,
     season: doc.season,

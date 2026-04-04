@@ -24,17 +24,18 @@ async function main() {
   // Store as local time (consistent with how the app uses setHours(8,0,0,0) everywhere)
   const firstGameweekStart = new Date(2026, 3, 3, 8, 0, 0); // Fri Apr 3, 2026 8am local
 
-  const result = await db.collection('seasons').updateOne(
-    { name: '2026' },
-    { $set: { firstGameweekStart, updatedAt: new Date() } }
-  );
+  const result = await db
+    .collection('seasons')
+    .updateOne({ name: '2026' }, { $set: { firstGameweekStart, updatedAt: new Date() } });
 
   if (result.matchedCount === 0) {
     console.error('No 2026 season found in the database.');
   } else if (result.modifiedCount === 0) {
     console.log('2026 season already has firstGameweekStart set.');
   } else {
-    console.log(`✅ Updated 2026 season with firstGameweekStart: ${firstGameweekStart.toISOString()}`);
+    console.log(
+      `✅ Updated 2026 season with firstGameweekStart: ${firstGameweekStart.toISOString()}`
+    );
   }
 
   // Verify

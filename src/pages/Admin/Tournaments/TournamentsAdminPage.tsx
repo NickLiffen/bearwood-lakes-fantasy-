@@ -434,104 +434,104 @@ const TournamentsAdminPage: React.FC = () => {
           </div>
         ) : (
           <div className="admin-table-wrapper">
-          <table className="admin-table admin-table-card">
-            <thead>
-              <tr>
-                <th>Tournament</th>
-                <th>Dates</th>
-                <th>Type</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tournaments.map((tournament) => (
-                <tr key={tournament.id}>
-                  <td data-label="Tournament">
-                    <button
-                      onClick={() => handleViewTournament(tournament)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        padding: 0,
-                        fontWeight: 500,
-                        color: 'var(--primary-green)',
-                        cursor: 'pointer',
-                        textDecoration: 'underline',
-                        textUnderlineOffset: '2px',
-                      }}
-                    >
-                      {tournament.name}
-                    </button>
-                  </td>
-                  <td data-label="Dates">
-                    {formatDate(tournament.startDate)} – {formatDate(tournament.endDate)}
-                  </td>
-                  <td data-label="Type">
-                    <span
-                      style={{
-                        background:
-                          TOURNAMENT_TYPE_CONFIG[tournament.tournamentType].multiplier >= 4
-                            ? '#7c3aed'
-                            : TOURNAMENT_TYPE_CONFIG[tournament.tournamentType].multiplier >= 2
-                              ? 'var(--accent-gold)'
-                              : 'transparent',
-                        color:
-                          TOURNAMENT_TYPE_CONFIG[tournament.tournamentType].multiplier >= 4
-                            ? 'white'
-                            : TOURNAMENT_TYPE_CONFIG[tournament.tournamentType].multiplier >= 2
-                              ? '#1a1a1a'
-                              : '#6b7280',
-                        padding: '0.25rem 0.5rem',
-                        borderRadius: '4px',
-                        fontWeight: 600,
-                        fontSize: '0.8rem',
-                      }}
-                    >
-                      {tournament.multiplier}x {getTournamentTypeLabel(tournament.tournamentType)}
-                    </span>
-                  </td>
-                  <td data-label="Status">{getStatusBadge(tournament.status)}</td>
-                  <td data-label="">
-                    <div className="table-actions">
+            <table className="admin-table admin-table-card">
+              <thead>
+                <tr>
+                  <th>Tournament</th>
+                  <th>Dates</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tournaments.map((tournament) => (
+                  <tr key={tournament.id}>
+                    <td data-label="Tournament">
                       <button
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => handleOpenModal(tournament)}
-                      >
-                        Edit
-                      </button>
-                      {tournament.status === 'draft' && (
-                        <button
-                          className="btn btn-primary btn-sm"
-                          onClick={() => handleStatusChange(tournament, 'published')}
-                        >
-                          Publish
-                        </button>
-                      )}
-                      {tournament.status === 'published' && (
-                        <button
-                          className="btn btn-primary btn-sm"
-                          onClick={() => handleStatusChange(tournament, 'complete')}
-                        >
-                          Mark Complete
-                        </button>
-                      )}
-                      <button
-                        className="btn btn-danger btn-sm"
-                        onClick={() => handleDeleteTournament(tournament)}
+                        onClick={() => handleViewTournament(tournament)}
                         style={{
-                          background: '#dc2626',
-                          color: 'white',
+                          background: 'none',
+                          border: 'none',
+                          padding: 0,
+                          fontWeight: 500,
+                          color: 'var(--primary-green)',
+                          cursor: 'pointer',
+                          textDecoration: 'underline',
+                          textUnderlineOffset: '2px',
                         }}
                       >
-                        Delete
+                        {tournament.name}
                       </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    </td>
+                    <td data-label="Dates">
+                      {formatDate(tournament.startDate)} – {formatDate(tournament.endDate)}
+                    </td>
+                    <td data-label="Type">
+                      <span
+                        style={{
+                          background:
+                            TOURNAMENT_TYPE_CONFIG[tournament.tournamentType].multiplier >= 4
+                              ? '#7c3aed'
+                              : TOURNAMENT_TYPE_CONFIG[tournament.tournamentType].multiplier >= 2
+                                ? 'var(--accent-gold)'
+                                : 'transparent',
+                          color:
+                            TOURNAMENT_TYPE_CONFIG[tournament.tournamentType].multiplier >= 4
+                              ? 'white'
+                              : TOURNAMENT_TYPE_CONFIG[tournament.tournamentType].multiplier >= 2
+                                ? '#1a1a1a'
+                                : '#6b7280',
+                          padding: '0.25rem 0.5rem',
+                          borderRadius: '4px',
+                          fontWeight: 600,
+                          fontSize: '0.8rem',
+                        }}
+                      >
+                        {tournament.multiplier}x {getTournamentTypeLabel(tournament.tournamentType)}
+                      </span>
+                    </td>
+                    <td data-label="Status">{getStatusBadge(tournament.status)}</td>
+                    <td data-label="">
+                      <div className="table-actions">
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => handleOpenModal(tournament)}
+                        >
+                          Edit
+                        </button>
+                        {tournament.status === 'draft' && (
+                          <button
+                            className="btn btn-primary btn-sm"
+                            onClick={() => handleStatusChange(tournament, 'published')}
+                          >
+                            Publish
+                          </button>
+                        )}
+                        {tournament.status === 'published' && (
+                          <button
+                            className="btn btn-primary btn-sm"
+                            onClick={() => handleStatusChange(tournament, 'complete')}
+                          >
+                            Mark Complete
+                          </button>
+                        )}
+                        <button
+                          className="btn btn-danger btn-sm"
+                          onClick={() => handleDeleteTournament(tournament)}
+                          style={{
+                            background: '#dc2626',
+                            color: 'white',
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

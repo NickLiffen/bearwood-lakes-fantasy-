@@ -2,7 +2,10 @@
 // Uses unpdf (serverless-friendly) with position-based text reconstruction
 
 import { getDocumentProxy } from 'unpdf';
-import type { ParsedGolfer, ParsedTournament } from '../../../../shared/types/parsed-tournament.types';
+import type {
+  ParsedGolfer,
+  ParsedTournament,
+} from '../../../../shared/types/parsed-tournament.types';
 
 export type { ParsedGolfer, ParsedTournament };
 

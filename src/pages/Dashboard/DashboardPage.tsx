@@ -98,90 +98,95 @@ const CountdownTimer = memo(
       };
     }, [seasonStartDate, firstGameweekStart]);
 
-  const [deadlineInfo, setDeadlineInfo] = useState(() => getDeadline());
-  const [timeRemaining, setTimeRemaining] = useState<TimeRemaining>(() => {
-    const total = deadlineInfo.date.getTime() - Date.now();
-    return {
-      days: Math.floor(total / (1000 * 60 * 60 * 24)),
-      hours: Math.floor((total / (1000 * 60 * 60)) % 24),
-      minutes: Math.floor((total / (1000 * 60)) % 60),
-      seconds: Math.floor((total / 1000) % 60),
-    };
-  });
+    const [deadlineInfo, setDeadlineInfo] = useState(() => getDeadline());
+    const [timeRemaining, setTimeRemaining] = useState<TimeRemaining>(() => {
+      const total = deadlineInfo.date.getTime() - Date.now();
+      return {
+        days: Math.floor(total / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((total / (1000 * 60 * 60)) % 24),
+        minutes: Math.floor((total / (1000 * 60)) % 60),
+        seconds: Math.floor((total / 1000) % 60),
+      };
+    });
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const info = getDeadline();
-      setDeadlineInfo(info);
-      const total = info.date.getTime() - Date.now();
+    useEffect(() => {
+      const timer = setInterval(() => {
+        const info = getDeadline();
+        setDeadlineInfo(info);
+        const total = info.date.getTime() - Date.now();
 
-      if (total <= 0) {
-        const newInfo = getDeadline();
-        setDeadlineInfo(newInfo);
-        const newTotal = newInfo.date.getTime() - Date.now();
-        setTimeRemaining({
-          days: Math.floor(newTotal / (1000 * 60 * 60 * 24)),
-          hours: Math.floor((newTotal / (1000 * 60 * 60)) % 24),
-          minutes: Math.floor((newTotal / (1000 * 60)) % 60),
-          seconds: Math.floor((newTotal / 1000) % 60),
-        });
-      } else {
-        setTimeRemaining({
-          days: Math.floor(total / (1000 * 60 * 60 * 24)),
-          hours: Math.floor((total / (1000 * 60 * 60)) % 24),
-          minutes: Math.floor((total / (1000 * 60)) % 60),
-          seconds: Math.floor((total / 1000) % 60),
-        });
-      }
-    }, 1000);
+        if (total <= 0) {
+          const newInfo = getDeadline();
+          setDeadlineInfo(newInfo);
+          const newTotal = newInfo.date.getTime() - Date.now();
+          setTimeRemaining({
+            days: Math.floor(newTotal / (1000 * 60 * 60 * 24)),
+            hours: Math.floor((newTotal / (1000 * 60 * 60)) % 24),
+            minutes: Math.floor((newTotal / (1000 * 60)) % 60),
+            seconds: Math.floor((newTotal / 1000) % 60),
+          });
+        } else {
+          setTimeRemaining({
+            days: Math.floor(total / (1000 * 60 * 60 * 24)),
+            hours: Math.floor((total / (1000 * 60 * 60)) % 24),
+            minutes: Math.floor((total / (1000 * 60)) % 60),
+            seconds: Math.floor((total / 1000) % 60),
+          });
+        }
+      }, 1000);
 
-    return () => clearInterval(timer);
-  }, [getDeadline]);
+      return () => clearInterval(timer);
+    }, [getDeadline]);
 
-  const seasonStartFormatted = deadlineInfo.isSeasonCountdown
-    ? deadlineInfo.date.toLocaleDateString('en-GB', {
-        weekday: 'long',
-        month: 'long',
-        day: 'numeric',
-        year: 'numeric',
-      })
-    : null;
+    const seasonStartFormatted = deadlineInfo.isSeasonCountdown
+      ? deadlineInfo.date.toLocaleDateString('en-GB', {
+          weekday: 'long',
+          month: 'long',
+          day: 'numeric',
+          year: 'numeric',
+        })
+      : null;
 
-  return (
-    <section className="countdown-section">
-      <div className="countdown-header">
-        <span className="countdown-icon">&#9200;</span>
-        <h2>{deadlineInfo.isSeasonCountdown ? 'Season Countdown' : 'Weekly Deadline'}</h2>
-      </div>
-      <p className="countdown-subtitle">
-        {deadlineInfo.isSeasonCountdown
-          ? `Get your team in before ${seasonStartFormatted} at 8am`
-          : `Get your team in before ${deadlineInfo.date.toLocaleDateString('en-GB', { weekday: 'long' })} 8am`}
-      </p>
-      <div className="countdown-timer">
-        <div className="countdown-unit">
-          <span className="countdown-value">{timeRemaining.days}</span>
-          <span className="countdown-label">Days</span>
+    return (
+      <section className="countdown-section">
+        <div className="countdown-header">
+          <span className="countdown-icon">&#9200;</span>
+          <h2>{deadlineInfo.isSeasonCountdown ? 'Season Countdown' : 'Weekly Deadline'}</h2>
         </div>
-        <div className="countdown-separator">:</div>
-        <div className="countdown-unit">
-          <span className="countdown-value">{String(timeRemaining.hours).padStart(2, '0')}</span>
-          <span className="countdown-label">Hours</span>
+        <p className="countdown-subtitle">
+          {deadlineInfo.isSeasonCountdown
+            ? `Get your team in before ${seasonStartFormatted} at 8am`
+            : `Get your team in before ${deadlineInfo.date.toLocaleDateString('en-GB', { weekday: 'long' })} 8am`}
+        </p>
+        <div className="countdown-timer">
+          <div className="countdown-unit">
+            <span className="countdown-value">{timeRemaining.days}</span>
+            <span className="countdown-label">Days</span>
+          </div>
+          <div className="countdown-separator">:</div>
+          <div className="countdown-unit">
+            <span className="countdown-value">{String(timeRemaining.hours).padStart(2, '0')}</span>
+            <span className="countdown-label">Hours</span>
+          </div>
+          <div className="countdown-separator">:</div>
+          <div className="countdown-unit">
+            <span className="countdown-value">
+              {String(timeRemaining.minutes).padStart(2, '0')}
+            </span>
+            <span className="countdown-label">Mins</span>
+          </div>
+          <div className="countdown-separator">:</div>
+          <div className="countdown-unit">
+            <span className="countdown-value">
+              {String(timeRemaining.seconds).padStart(2, '0')}
+            </span>
+            <span className="countdown-label">Secs</span>
+          </div>
         </div>
-        <div className="countdown-separator">:</div>
-        <div className="countdown-unit">
-          <span className="countdown-value">{String(timeRemaining.minutes).padStart(2, '0')}</span>
-          <span className="countdown-label">Mins</span>
-        </div>
-        <div className="countdown-separator">:</div>
-        <div className="countdown-unit">
-          <span className="countdown-value">{String(timeRemaining.seconds).padStart(2, '0')}</span>
-          <span className="countdown-label">Secs</span>
-        </div>
-      </div>
-    </section>
-  );
-});
+      </section>
+    );
+  }
+);
 
 CountdownTimer.displayName = 'CountdownTimer';
 
@@ -255,7 +260,10 @@ const DashboardPage: React.FC = () => {
     let cancelled = false;
     try {
       const teamRes = await get<MyTeamResponse>('my-team');
-      if (teamRes.cancelled) { cancelled = true; return; }
+      if (teamRes.cancelled) {
+        cancelled = true;
+        return;
+      }
       if (teamRes.success && teamRes.data) {
         setTeamData(teamRes.data);
       }
@@ -277,7 +285,10 @@ const DashboardPage: React.FC = () => {
     let cancelled = false;
     try {
       const usersRes = await get<FantasyUser[]>('users-fantasy');
-      if (usersRes.cancelled) { cancelled = true; return; }
+      if (usersRes.cancelled) {
+        cancelled = true;
+        return;
+      }
       if (usersRes.success && usersRes.data) {
         setLeaderboardData(usersRes.data.slice(0, 5));
       }
@@ -299,7 +310,10 @@ const DashboardPage: React.FC = () => {
     let cancelled = false;
     try {
       const tournamentsRes = await get<Tournament[]>('tournaments-list');
-      if (tournamentsRes.cancelled) { cancelled = true; return; }
+      if (tournamentsRes.cancelled) {
+        cancelled = true;
+        return;
+      }
       if (tournamentsRes.success && tournamentsRes.data) {
         // Only show complete tournaments (those with scores), most recent first
         const recent = tournamentsRes.data

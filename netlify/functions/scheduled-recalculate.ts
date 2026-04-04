@@ -35,10 +35,12 @@ export const handler: Handler = async () => {
       totalUpdated += updated;
 
       // Clear the flag
-      await db.collection<TournamentDocument>(TOURNAMENTS_COLLECTION).updateOne(
-        { _id: tournament._id },
-        { $set: { needsRecalculation: false, updatedAt: new Date() } }
-      );
+      await db
+        .collection<TournamentDocument>(TOURNAMENTS_COLLECTION)
+        .updateOne(
+          { _id: tournament._id },
+          { $set: { needsRecalculation: false, updatedAt: new Date() } }
+        );
 
       logger.info('Recalculated tournament', {
         tournamentId: tournament._id.toString(),

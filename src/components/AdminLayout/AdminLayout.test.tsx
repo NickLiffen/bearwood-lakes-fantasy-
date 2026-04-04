@@ -17,10 +17,7 @@ describe('AdminLayout', () => {
     // (rendering hangs due to useEffect navigation in test env)
     const fs = await import('fs');
     const path = await import('path');
-    const source = fs.readFileSync(
-      path.resolve(__dirname, 'AdminLayout.tsx'),
-      'utf-8'
-    );
+    const source = fs.readFileSync(path.resolve(__dirname, 'AdminLayout.tsx'), 'utf-8');
 
     // Burger button with ARIA
     expect(source).toContain('admin-mobile-menu-btn');
@@ -49,6 +46,6 @@ describe('AdminLayout', () => {
     expect(source).toContain("key === 'Escape'");
 
     // Body scroll lock
-    expect(source).toContain("document.body.style.overflow");
+    expect(source).toContain('document.body.style.overflow');
   });
 });

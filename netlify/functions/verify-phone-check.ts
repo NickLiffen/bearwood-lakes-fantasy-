@@ -15,12 +15,7 @@ export const handler = withAuth(async (event) => {
     const { code } = validateBody(verifyPhoneSchema, event.body);
     const { userAgent, ipAddress } = getClientInfo(event.headers);
 
-    const result = await checkPhoneVerification(
-      event.user.userId,
-      code,
-      userAgent,
-      ipAddress
-    );
+    const result = await checkPhoneVerification(event.user.userId, code, userAgent, ipAddress);
 
     // Set new refresh token cookie
     const cookieHeader = setRefreshTokenCookie(result.refreshToken);

@@ -33,7 +33,9 @@ const LeagueJoinPage: React.FC = () => {
     };
 
     joinLeague();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [isAuthReady, code, post, navigate]);
 
   if (error) {
@@ -44,7 +46,10 @@ const LeagueJoinPage: React.FC = () => {
             <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>😕</div>
             <h2>Couldn't Join League</h2>
             <p style={{ color: '#6b7280', marginBottom: '1.5rem' }}>{error}</p>
-            <button className="btn btn-primary" onClick={() => navigate('/leagues', { replace: true })}>
+            <button
+              className="btn btn-primary"
+              onClick={() => navigate('/leagues', { replace: true })}
+            >
               Go to Leagues
             </button>
           </div>

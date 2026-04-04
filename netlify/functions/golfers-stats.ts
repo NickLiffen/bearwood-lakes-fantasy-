@@ -34,28 +34,28 @@ export const handler: Handler = async (event) => {
   try {
     // Get all scores for this golfer
     const scores = await getScoresForGolfer(golferId);
-    
+
     // Get all tournaments to filter for published only (or completed)
     const tournaments = await getAllTournaments();
     const publishedTournamentIds = new Set(
       tournaments
-        .filter(t => t.status === 'published' || t.status === 'complete')
-        .map(t => t.id)
+        .filter((t) => t.status === 'published' || t.status === 'complete')
+        .map((t) => t.id)
     );
 
     // Filter scores to only include those from published/complete tournaments
-    const relevantScores = scores.filter(s => 
-      s.participated && publishedTournamentIds.has(s.tournamentId)
+    const relevantScores = scores.filter(
+      (s) => s.participated && publishedTournamentIds.has(s.tournamentId)
     );
 
     // Calculate stats
     const stats: GolferStats = {
       tournamentsPlayed: relevantScores.length,
       totalPoints: relevantScores.reduce((sum, s) => sum + s.multipliedPoints, 0),
-      firstPlaceFinishes: relevantScores.filter(s => s.position === 1).length,
-      secondPlaceFinishes: relevantScores.filter(s => s.position === 2).length,
-      thirdPlaceFinishes: relevantScores.filter(s => s.position === 3).length,
-      timesBonusScored: relevantScores.filter(s => s.bonusPoints > 0).length,
+      firstPlaceFinishes: relevantScores.filter((s) => s.position === 1).length,
+      secondPlaceFinishes: relevantScores.filter((s) => s.position === 2).length,
+      thirdPlaceFinishes: relevantScores.filter((s) => s.position === 3).length,
+      timesBonusScored: relevantScores.filter((s) => s.bonusPoints > 0).length,
     };
 
     return {

@@ -6,7 +6,10 @@ import { processTournamentUpload } from './_shared/services/tournament-upload.se
 import { tournamentUploadSchema } from './_shared/validators/tournament-upload.validator';
 import { z } from 'zod';
 
-export const handler = withRole('admin', 'tournament_uploader')(async (event) => {
+export const handler = withRole(
+  'admin',
+  'tournament_uploader'
+)(async (event) => {
   if (event.httpMethod !== 'POST') {
     return apiResponse(405, null, 'Method not allowed');
   }

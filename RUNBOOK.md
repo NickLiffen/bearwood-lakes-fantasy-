@@ -6,14 +6,14 @@ Quick-reference commands and step-by-step recovery for Bearwood Lakes Fantasy Go
 
 ## Quick Reference
 
-| Action | Command |
-|--------|---------|
-| **Backup database** | `npm run db:backup` |
-| **Restore database** | `npm run db:restore scripts/backups/<dir>` |
-| **Lock transfers** | Admin Panel → Settings → Lock transfers |
-| **Rollback deploy** | Netlify Dashboard → Deploys → click old deploy → "Publish deploy" |
-| **View function logs** | Netlify Dashboard → Functions → select function |
-| **Health check** | `curl https://your-site.netlify.app/api/health` |
+| Action                 | Command                                                           |
+| ---------------------- | ----------------------------------------------------------------- |
+| **Backup database**    | `npm run db:backup`                                               |
+| **Restore database**   | `npm run db:restore scripts/backups/<dir>`                        |
+| **Lock transfers**     | Admin Panel → Settings → Lock transfers                           |
+| **Rollback deploy**    | Netlify Dashboard → Deploys → click old deploy → "Publish deploy" |
+| **View function logs** | Netlify Dashboard → Functions → select function                   |
+| **Health check**       | `curl https://your-site.netlify.app/api/health`                   |
 
 ---
 
@@ -80,12 +80,12 @@ Quick-reference commands and step-by-step recovery for Bearwood Lakes Fantasy Go
 
 ## Environment Variables Checklist
 
-| Variable | What breaks if wrong |
-|----------|---------------------|
-| `MONGODB_URI` | **All API calls fail** — entire app is dead |
-| `JWT_SECRET` | All existing tokens invalidate — every user logged out |
-| `REDIS_URL` | Rate limiting + settings cache break (app works but unprotected) |
-| `TWILIO_*` | Phone verification fails — new registrations blocked |
+| Variable      | What breaks if wrong                                             |
+| ------------- | ---------------------------------------------------------------- |
+| `MONGODB_URI` | **All API calls fail** — entire app is dead                      |
+| `JWT_SECRET`  | All existing tokens invalidate — every user logged out           |
+| `REDIS_URL`   | Rate limiting + settings cache break (app works but unprotected) |
+| `TWILIO_*`    | Phone verification fails — new registrations blocked             |
 
 ---
 

@@ -4,7 +4,11 @@
 import type { Handler, HandlerEvent } from '@netlify/functions';
 import { ObjectId } from 'mongodb';
 import { connectToDatabase } from './_shared/db';
-import { TournamentDocument, TOURNAMENTS_COLLECTION, toTournament } from './_shared/models/Tournament';
+import {
+  TournamentDocument,
+  TOURNAMENTS_COLLECTION,
+  toTournament,
+} from './_shared/models/Tournament';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { GolferDocument, GOLFERS_COLLECTION } from './_shared/models/Golfer';
 import { verifyToken } from './_shared/auth';
@@ -118,17 +122,17 @@ const handler: Handler = async (event: HandlerEvent) => {
       .toArray();
 
     // Get all golfers who participated
-    const golferIds = scores.map(s => s.golferId);
+    const golferIds = scores.map((s) => s.golferId);
     const golfers = await db
       .collection<GolferDocument>(GOLFERS_COLLECTION)
       .find({ _id: { $in: golferIds } })
       .toArray();
 
     // Create golfer lookup map
-    const golferMap = new Map(golfers.map(g => [g._id.toString(), g]));
+    const golferMap = new Map(golfers.map((g) => [g._id.toString(), g]));
 
     // Build scores with golfer info
-    const mappedScores = scores.map(score => {
+    const mappedScores = scores.map((score) => {
       const golfer = golferMap.get(score.golferId.toString());
       if (!golfer) return null;
 
@@ -188,12 +192,13 @@ const handler: Handler = async (event: HandlerEvent) => {
     }
 
     // Calculate stats
-    const participatedScores = golferScores.filter(s => s.participated);
-    const bonusScorerCount = golferScores.filter(s => s.bonusPoints > 0).length;
+    const participatedScores = golferScores.filter((s) => s.participated);
+    const bonusScorerCount = golferScores.filter((s) => s.bonusPoints > 0).length;
     const totalPoints = participatedScores.reduce((sum, s) => sum + s.multipliedPoints, 0);
-    const averagePoints = participatedScores.length > 0
-      ? Math.round((totalPoints / participatedScores.length) * 10) / 10
-      : 0;
+    const averagePoints =
+      participatedScores.length > 0
+        ? Math.round((totalPoints / participatedScores.length) * 10) / 10
+        : 0;
 
     const stats = {
       totalParticipants: participatedScores.length,

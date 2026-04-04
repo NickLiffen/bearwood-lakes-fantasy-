@@ -724,94 +724,97 @@ const GolfersAdminPage: React.FC = () => {
           </div>
         ) : (
           <div className="admin-table-wrapper">
-          <table className="admin-table admin-table-card">
-            <thead>
-              <tr>
-                <th>Golfer</th>
-                <th>Price</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Golfers.map((Golfer) => (
-                <tr key={Golfer.id}>
-                  <td data-label="Golfer">
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.75rem',
-                        cursor: 'pointer',
-                      }}
-                      onClick={() => handleViewGolfer(Golfer)}
-                    >
-                      {Golfer.picture ? (
-                        <img
-                          src={Golfer.picture}
-                          alt={`${Golfer.firstName} ${Golfer.lastName}`}
-                          loading="lazy"
+            <table className="admin-table admin-table-card">
+              <thead>
+                <tr>
+                  <th>Golfer</th>
+                  <th>Price</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Golfers.map((Golfer) => (
+                  <tr key={Golfer.id}>
+                    <td data-label="Golfer">
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.75rem',
+                          cursor: 'pointer',
+                        }}
+                        onClick={() => handleViewGolfer(Golfer)}
+                      >
+                        {Golfer.picture ? (
+                          <img
+                            src={Golfer.picture}
+                            alt={`${Golfer.firstName} ${Golfer.lastName}`}
+                            loading="lazy"
+                            style={{
+                              width: '40px',
+                              height: '40px',
+                              borderRadius: '50%',
+                              objectFit: 'cover',
+                            }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: '40px',
+                              height: '40px',
+                              borderRadius: '50%',
+                              background: '#e5e7eb',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            🏌️
+                          </div>
+                        )}
+                        <span
                           style={{
-                            width: '40px',
-                            height: '40px',
-                            borderRadius: '50%',
-                            objectFit: 'cover',
-                          }}
-                        />
-                      ) : (
-                        <div
-                          style={{
-                            width: '40px',
-                            height: '40px',
-                            borderRadius: '50%',
-                            background: '#e5e7eb',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
+                            fontWeight: 500,
+                            color: 'var(--primary-green)',
+                            textDecoration: 'underline',
                           }}
                         >
-                          🏌️
-                        </div>
-                      )}
-                      <span
-                        style={{
-                          fontWeight: 500,
-                          color: 'var(--primary-green)',
-                          textDecoration: 'underline',
-                        }}
-                      >
-                        {Golfer.firstName} {Golfer.lastName}
+                          {Golfer.firstName} {Golfer.lastName}
+                        </span>
+                      </div>
+                    </td>
+                    <td
+                      data-label="Price"
+                      style={{ fontWeight: 600, color: 'var(--primary-green)' }}
+                    >
+                      {formatPrice(Golfer.price)}
+                    </td>
+                    <td data-label="Status">
+                      <span className={`badge ${Golfer.isActive ? 'badge-success' : 'badge-gray'}`}>
+                        {Golfer.isActive ? 'Active' : 'Inactive'}
                       </span>
-                    </div>
-                  </td>
-                  <td data-label="Price" style={{ fontWeight: 600, color: 'var(--primary-green)' }}>
-                    {formatPrice(Golfer.price)}
-                  </td>
-                  <td data-label="Status">
-                    <span className={`badge ${Golfer.isActive ? 'badge-success' : 'badge-gray'}`}>
-                      {Golfer.isActive ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
-                  <td data-label="">
-                    <div className="table-actions">
-                      <button
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => handleOpenModal(Golfer)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        className="btn btn-danger btn-sm"
-                        onClick={() => handleOpenDeleteModal(Golfer)}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    </td>
+                    <td data-label="">
+                      <div className="table-actions">
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => handleOpenModal(Golfer)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="btn btn-danger btn-sm"
+                          onClick={() => handleOpenDeleteModal(Golfer)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

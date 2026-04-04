@@ -151,7 +151,11 @@ const MyTeamPage: React.FC = () => {
   // Generate week options when both team data and season data are available
   useEffect(() => {
     if (teamData?.team?.teamEffectiveStart && season?.startDate) {
-      const options = generateWeekOptions(teamData.team.teamEffectiveStart, season.startDate, season?.firstGameweekStart);
+      const options = generateWeekOptions(
+        teamData.team.teamEffectiveStart,
+        season.startDate,
+        season?.firstGameweekStart
+      );
       setWeekOptions(options);
     }
   }, [teamData?.team?.teamEffectiveStart, season?.startDate, season?.firstGameweekStart]);
@@ -250,9 +254,15 @@ const MyTeamPage: React.FC = () => {
         // Show toast based on whether the change was deferred
         if (willBeDeferred) {
           if (newCaptainId) {
-            setToast({ message: `👑 Captain scheduled for next gameweek: ${golferName}`, type: 'success' });
+            setToast({
+              message: `👑 Captain scheduled for next gameweek: ${golferName}`,
+              type: 'success',
+            });
           } else {
-            setToast({ message: `👑 Captain removal scheduled for next gameweek`, type: 'success' });
+            setToast({
+              message: `👑 Captain removal scheduled for next gameweek`,
+              type: 'success',
+            });
           }
         } else {
           if (newCaptainId) {
@@ -415,24 +425,31 @@ const MyTeamPage: React.FC = () => {
                 <span className="banner-icon">🔄</span>
                 <div className="banner-text">
                   <h3>Scheduled for Next Gameweek</h3>
-                  {teamData.pendingChanges.pendingGolferIds && team && (() => {
-                    const currentIds = new Set(team.golfers.map((g) => g.golfer.id));
-                    const pendingIds = new Set(teamData.pendingChanges!.pendingGolferIds!);
-                    const added = [...pendingIds].filter((id) => !currentIds.has(id));
-                    const removed = [...currentIds].filter((id) => !pendingIds.has(id));
-                    if (added.length === 0 && removed.length === 0) return null;
-                    return (
-                      <p>
-                        {removed.length > 0 && (
-                          <>Swapping out {removed.length} golfer{removed.length > 1 ? 's' : ''}</>
-                        )}
-                        {removed.length > 0 && added.length > 0 && ' → '}
-                        {added.length > 0 && (
-                          <>{removed.length === 0 ? 'A' : 'a'}dding {added.length} golfer{added.length > 1 ? 's' : ''}</>
-                        )}
-                      </p>
-                    );
-                  })()}
+                  {teamData.pendingChanges.pendingGolferIds &&
+                    team &&
+                    (() => {
+                      const currentIds = new Set(team.golfers.map((g) => g.golfer.id));
+                      const pendingIds = new Set(teamData.pendingChanges!.pendingGolferIds!);
+                      const added = [...pendingIds].filter((id) => !currentIds.has(id));
+                      const removed = [...currentIds].filter((id) => !pendingIds.has(id));
+                      if (added.length === 0 && removed.length === 0) return null;
+                      return (
+                        <p>
+                          {removed.length > 0 && (
+                            <>
+                              Swapping out {removed.length} golfer{removed.length > 1 ? 's' : ''}
+                            </>
+                          )}
+                          {removed.length > 0 && added.length > 0 && ' → '}
+                          {added.length > 0 && (
+                            <>
+                              {removed.length === 0 ? 'A' : 'a'}dding {added.length} golfer
+                              {added.length > 1 ? 's' : ''}
+                            </>
+                          )}
+                        </p>
+                      );
+                    })()}
                   {teamData.pendingChanges.pendingCaptainId !== null &&
                     teamData.pendingChanges.pendingCaptainId !== team?.captainId && (
                       <p>Captain change scheduled</p>

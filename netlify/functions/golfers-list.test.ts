@@ -1,14 +1,29 @@
 import { handler } from './golfers-list';
-import { makeAuthEvent, mockContext, parseBody, createMockDb, mockAggregateCursor, mockCursor } from './__test-utils__';
+import {
+  makeAuthEvent,
+  mockContext,
+  parseBody,
+  createMockDb,
+  mockAggregateCursor,
+  mockCursor,
+} from './__test-utils__';
 
 vi.mock('./_shared/auth', () => ({
   verifyToken: vi.fn().mockReturnValue({
-    userId: 'user-admin-1', username: 'testadmin', role: 'admin', phoneVerified: true,
+    userId: 'user-admin-1',
+    username: 'testadmin',
+    role: 'admin',
+    phoneVerified: true,
   }),
 }));
 vi.mock('./_shared/rateLimit', () => ({
   checkRateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 99, resetAt: new Date() }),
-  RateLimitConfig: { admin: { windowMs: 60000, maxRequests: 60 }, default: { windowMs: 60000, maxRequests: 100 }, read: { windowMs: 60000, maxRequests: 120 }, write: { windowMs: 60000, maxRequests: 30 } },
+  RateLimitConfig: {
+    admin: { windowMs: 60000, maxRequests: 60 },
+    default: { windowMs: 60000, maxRequests: 100 },
+    read: { windowMs: 60000, maxRequests: 120 },
+    write: { windowMs: 60000, maxRequests: 30 },
+  },
   getRateLimitKeyFromEvent: vi.fn().mockReturnValue('ratelimit:key'),
   rateLimitHeaders: vi.fn().mockReturnValue({}),
   rateLimitExceededResponse: vi.fn(),
@@ -29,7 +44,9 @@ vi.mock('./_shared/utils/perf', () => ({
   }),
 }));
 vi.mock('./_shared/utils/response', async () => {
-  const actual = await vi.importActual<typeof import('./_shared/utils/response')>('./_shared/utils/response');
+  const actual = await vi.importActual<typeof import('./_shared/utils/response')>(
+    './_shared/utils/response'
+  );
   return actual;
 });
 
@@ -47,9 +64,30 @@ const makeGolferDoc = (id: string, firstName: string, lastName: string) => ({
   picture: 'pic.jpg',
   price: 5000000,
   isActive: true,
-  stats2024: { timesPlayed: 0, timesFinished1st: 0, timesFinished2nd: 0, timesFinished3rd: 0, timesScored36Plus: 0, timesScored32Plus: 0 },
-  stats2025: { timesPlayed: 0, timesFinished1st: 0, timesFinished2nd: 0, timesFinished3rd: 0, timesScored36Plus: 0, timesScored32Plus: 0 },
-  stats2026: { timesPlayed: 0, timesFinished1st: 0, timesFinished2nd: 0, timesFinished3rd: 0, timesScored36Plus: 0, timesScored32Plus: 0 },
+  stats2024: {
+    timesPlayed: 0,
+    timesFinished1st: 0,
+    timesFinished2nd: 0,
+    timesFinished3rd: 0,
+    timesScored36Plus: 0,
+    timesScored32Plus: 0,
+  },
+  stats2025: {
+    timesPlayed: 0,
+    timesFinished1st: 0,
+    timesFinished2nd: 0,
+    timesFinished3rd: 0,
+    timesScored36Plus: 0,
+    timesScored32Plus: 0,
+  },
+  stats2026: {
+    timesPlayed: 0,
+    timesFinished1st: 0,
+    timesFinished2nd: 0,
+    timesFinished3rd: 0,
+    timesScored36Plus: 0,
+    timesScored32Plus: 0,
+  },
   createdAt: new Date(),
   updatedAt: new Date(),
   scores: [],
@@ -66,7 +104,12 @@ const makeSeasonDoc = (name: string, isActive: boolean) => ({
 });
 
 describe('golfers-list handler', () => {
-  function setupMockDb(golfers: Record<string, unknown>[], tournaments: Record<string, unknown>[] = [], seasons: Record<string, unknown>[] = [], picks: Record<string, unknown>[] = []) {
+  function setupMockDb(
+    golfers: Record<string, unknown>[],
+    tournaments: Record<string, unknown>[] = [],
+    seasons: Record<string, unknown>[] = [],
+    picks: Record<string, unknown>[] = []
+  ) {
     const golfersCollection = {
       aggregate: vi.fn().mockReturnValue(mockAggregateCursor(golfers)),
       countDocuments: vi.fn().mockResolvedValue(golfers.length),

@@ -34,28 +34,31 @@ export const handler = withVerifiedAuth(async (event: AuthenticatedEvent) => {
     // First, get published tournaments and seasons
     const [allPublishedTournaments, allSeasons] = await timer.measure('tournaments-query', () =>
       Promise.all([
-        db.collection<TournamentDocument>(TOURNAMENTS_COLLECTION)
+        db
+          .collection<TournamentDocument>(TOURNAMENTS_COLLECTION)
           .find({ status: { $in: ['published', 'complete'] } })
           .toArray(),
-        db.collection<SeasonDocument>(SEASONS_COLLECTION)
-          .find({}).sort({ startDate: -1 }).toArray(),
+        db
+          .collection<SeasonDocument>(SEASONS_COLLECTION)
+          .find({})
+          .sort({ startDate: -1 })
+          .toArray(),
       ])
     );
 
     // Separate 2026 tournaments for existing stats
-    const tournaments2026 = allPublishedTournaments.filter(t => t.season === 2026);
-    const tournament2026IdSet = new Set(tournaments2026.map(t => t._id.toString()));
+    const tournaments2026 = allPublishedTournaments.filter((t) => t.season === 2026);
+    const tournament2026IdSet = new Set(tournaments2026.map((t) => t._id.toString()));
 
-    const publishedTournamentIds = allPublishedTournaments.map(t => t._id);
-    const tournamentDateMap = new Map(allPublishedTournaments.map(t => [t._id.toString(), new Date(t.startDate)]));
+    const publishedTournamentIds = allPublishedTournaments.map((t) => t._id);
+    const tournamentDateMap = new Map(
+      allPublishedTournaments.map((t) => [t._id.toString(), new Date(t.startDate)])
+    );
 
     // Use aggregation to fetch golfers with their scores in a single query
     const aggregationPipeline: object[] = [
       // Stage 1: Pagination (if applicable)
-      ...(isPaginated ? [
-        { $skip: (page - 1) * limit },
-        { $limit: limit }
-      ] : []),
+      ...(isPaginated ? [{ $skip: (page - 1) * limit }, { $limit: limit }] : []),
 
       // Stage 2: Lookup scores for each golfer (only from published tournaments)
       {
@@ -67,8 +70,8 @@ export const handler = withVerifiedAuth(async (event: AuthenticatedEvent) => {
               $match: {
                 $expr: { $eq: ['$golferId', '$$golferId'] },
                 tournamentId: { $in: publishedTournamentIds },
-                participated: true
-              }
+                participated: true,
+              },
             },
             {
               $project: {
@@ -76,23 +79,21 @@ export const handler = withVerifiedAuth(async (event: AuthenticatedEvent) => {
                 position: 1,
                 multipliedPoints: 1,
                 bonusPoints: 1,
-                rawScore: 1
-              }
-            }
+                rawScore: 1,
+              },
+            },
           ],
-          as: 'scores'
-        }
-      }
+          as: 'scores',
+        },
+      },
     ];
 
     const [golfersWithScores, totalCount] = await timer.measure('aggregation-query', () =>
       Promise.all([
-        db.collection<GolferDocument>(GOLFERS_COLLECTION)
-          .aggregate(aggregationPipeline)
-          .toArray(),
+        db.collection<GolferDocument>(GOLFERS_COLLECTION).aggregate(aggregationPipeline).toArray(),
         isPaginated
           ? db.collection<GolferDocument>(GOLFERS_COLLECTION).countDocuments({})
-          : Promise.resolve(0)
+          : Promise.resolve(0),
       ])
     );
 
@@ -103,25 +104,27 @@ export const handler = withVerifiedAuth(async (event: AuthenticatedEvent) => {
       const seasonEnd = new Date(season.endDate);
       const ids = new Set(
         allPublishedTournaments
-          .filter(t => {
+          .filter((t) => {
             const d = new Date(t.startDate);
             return d >= seasonStart && d <= seasonEnd;
           })
-          .map(t => t._id.toString())
+          .map((t) => t._id.toString())
       );
       seasonTournamentMap.set(season.name, ids);
     }
 
     // Calculate ownership percentages from active season picks
-    const activeSeason = allSeasons.find(s => s.isActive);
+    const activeSeason = allSeasons.find((s) => s.isActive);
     const activeSeasonNumber = activeSeason ? parseInt(activeSeason.name) || 0 : 0;
-    const useOwnership = !seasonParam || seasonParam === 'overall' || seasonParam === activeSeason?.name;
+    const useOwnership =
+      !seasonParam || seasonParam === 'overall' || seasonParam === activeSeason?.name;
 
     const ownershipMap = new Map<string, number>();
     let totalPicks = 0;
 
     if (useOwnership && activeSeasonNumber > 0) {
-      const picks = await db.collection(PICKS_COLLECTION)
+      const picks = await db
+        .collection(PICKS_COLLECTION)
         .find({ season: activeSeasonNumber })
         .toArray();
       totalPicks = picks.length;
@@ -137,34 +140,38 @@ export const handler = withVerifiedAuth(async (event: AuthenticatedEvent) => {
 
     // Process results and calculate stats
     const golfersResult = golfersWithScores.map((doc) => {
-      const golferDoc = doc as GolferDocument & { scores: Array<{
-        tournamentId: ObjectId;
-        position: number | null;
-        multipliedPoints: number;
-        bonusPoints: number;
-        rawScore: number | null;
-      }> };
+      const golferDoc = doc as GolferDocument & {
+        scores: Array<{
+          tournamentId: ObjectId;
+          position: number | null;
+          multipliedPoints: number;
+          bonusPoints: number;
+          rawScore: number | null;
+        }>;
+      };
 
       const golfer = toGolfer(golferDoc);
       const scores = golferDoc.scores || [];
 
       // Add tournament dates to ALL scores for period filtering
-      const scoresWithDates = scores.map(s => ({
+      const scoresWithDates = scores.map((s) => ({
         ...s,
         rawScore: s.rawScore,
-        tournamentDate: tournamentDateMap.get(s.tournamentId.toString()) || new Date(0)
+        tournamentDate: tournamentDateMap.get(s.tournamentId.toString()) || new Date(0),
       }));
 
       // Filter to 2026 scores for existing stats
-      const scores2026 = scoresWithDates.filter(s => tournament2026IdSet.has(s.tournamentId.toString()));
+      const scores2026 = scoresWithDates.filter((s) =>
+        tournament2026IdSet.has(s.tournamentId.toString())
+      );
 
       const stats2026 = {
         timesPlayed: scores2026.length,
-        timesFinished1st: scores2026.filter(s => s.position === 1).length,
-        timesFinished2nd: scores2026.filter(s => s.position === 2).length,
-        timesFinished3rd: scores2026.filter(s => s.position === 3).length,
-        timesScored36Plus: scores2026.filter(s => (s.rawScore ?? 0) >= 36).length,
-        timesScored32Plus: scores2026.filter(s => (s.rawScore ?? 0) >= 32).length,
+        timesFinished1st: scores2026.filter((s) => s.position === 1).length,
+        timesFinished2nd: scores2026.filter((s) => s.position === 2).length,
+        timesFinished3rd: scores2026.filter((s) => s.position === 3).length,
+        timesScored36Plus: scores2026.filter((s) => (s.rawScore ?? 0) >= 36).length,
+        timesScored32Plus: scores2026.filter((s) => (s.rawScore ?? 0) >= 32).length,
       };
 
       // Calculate form (avg pts over last 5 events) and season total
@@ -174,31 +181,38 @@ export const handler = withVerifiedAuth(async (event: AuthenticatedEvent) => {
 
       if (seasonParam === 'overall') {
         // Overall: form from last 5 events across all seasons
-        formScores = [...scoresWithDates].sort((a, b) => b.tournamentDate.getTime() - a.tournamentDate.getTime()).slice(0, FORM_EVENTS);
+        formScores = [...scoresWithDates]
+          .sort((a, b) => b.tournamentDate.getTime() - a.tournamentDate.getTime())
+          .slice(0, FORM_EVENTS);
         seasonScores = scoresWithDates;
       } else if (seasonParam) {
-        const matchedSeason = allSeasons.find(s => s.name === seasonParam);
+        const matchedSeason = allSeasons.find((s) => s.name === seasonParam);
         if (matchedSeason) {
           const sStart = new Date(matchedSeason.startDate);
           const sEnd = new Date(matchedSeason.endDate);
           const seasonFilteredScores = scoresWithDates.filter(
-            s => s.tournamentDate >= sStart && s.tournamentDate <= sEnd
+            (s) => s.tournamentDate >= sStart && s.tournamentDate <= sEnd
           );
-          formScores = [...seasonFilteredScores].sort((a, b) => b.tournamentDate.getTime() - a.tournamentDate.getTime()).slice(0, FORM_EVENTS);
+          formScores = [...seasonFilteredScores]
+            .sort((a, b) => b.tournamentDate.getTime() - a.tournamentDate.getTime())
+            .slice(0, FORM_EVENTS);
           seasonScores = seasonFilteredScores;
         } else {
           formScores = [];
-          seasonScores = scoresWithDates.filter(s => s.tournamentDate >= seasonStart);
+          seasonScores = scoresWithDates.filter((s) => s.tournamentDate >= seasonStart);
         }
       } else {
         // Default: current season
-        const currentSeasonScores = scoresWithDates.filter(s => s.tournamentDate >= seasonStart);
-        formScores = [...currentSeasonScores].sort((a, b) => b.tournamentDate.getTime() - a.tournamentDate.getTime()).slice(0, FORM_EVENTS);
+        const currentSeasonScores = scoresWithDates.filter((s) => s.tournamentDate >= seasonStart);
+        formScores = [...currentSeasonScores]
+          .sort((a, b) => b.tournamentDate.getTime() - a.tournamentDate.getTime())
+          .slice(0, FORM_EVENTS);
         seasonScores = currentSeasonScores;
       }
 
       const formTotal = formScores.reduce((sum, s) => sum + (s.multipliedPoints || 0), 0);
-      const form = formScores.length > 0 ? Math.round((formTotal / formScores.length) * 10) / 10 : 0;
+      const form =
+        formScores.length > 0 ? Math.round((formTotal / formScores.length) * 10) / 10 : 0;
 
       const points = {
         form,
@@ -210,14 +224,15 @@ export const handler = withVerifiedAuth(async (event: AuthenticatedEvent) => {
       for (const season of allSeasons) {
         const seasonTournamentIds = seasonTournamentMap.get(season.name) || new Set<string>();
 
-        const seasonGolferScores = scores.filter(
-          s => seasonTournamentIds.has(s.tournamentId.toString())
+        const seasonGolferScores = scores.filter((s) =>
+          seasonTournamentIds.has(s.tournamentId.toString())
         );
 
         if (seasonGolferScores.length === 0 && !season.isActive) continue;
 
         const totalPoints = seasonGolferScores.reduce(
-          (sum, s) => sum + (s.multipliedPoints || 0), 0
+          (sum, s) => sum + (s.multipliedPoints || 0),
+          0
         );
 
         seasonStats.push({
@@ -226,20 +241,18 @@ export const handler = withVerifiedAuth(async (event: AuthenticatedEvent) => {
           startDate: season.startDate,
           endDate: season.endDate,
           timesPlayed: seasonGolferScores.length,
-          timesFinished1st: seasonGolferScores.filter(s => s.position === 1).length,
-          timesFinished2nd: seasonGolferScores.filter(s => s.position === 2).length,
-          timesFinished3rd: seasonGolferScores.filter(s => s.position === 3).length,
-          timesScored36Plus: seasonGolferScores.filter(s => (s.rawScore ?? 0) >= 36).length,
-          timesScored32Plus: seasonGolferScores.filter(s => (s.rawScore ?? 0) >= 32).length,
+          timesFinished1st: seasonGolferScores.filter((s) => s.position === 1).length,
+          timesFinished2nd: seasonGolferScores.filter((s) => s.position === 2).length,
+          timesFinished3rd: seasonGolferScores.filter((s) => s.position === 3).length,
+          timesScored36Plus: seasonGolferScores.filter((s) => (s.rawScore ?? 0) >= 36).length,
+          timesScored32Plus: seasonGolferScores.filter((s) => (s.rawScore ?? 0) >= 32).length,
           totalPoints,
         });
       }
 
       // Calculate ownership percentage
       const pickCount = ownershipMap.get(golfer.id) || 0;
-      const selectedPercentage = totalPicks > 0
-        ? Math.round((pickCount / totalPicks) * 100)
-        : 0;
+      const selectedPercentage = totalPicks > 0 ? Math.round((pickCount / totalPicks) * 100) : 0;
 
       return {
         ...golfer,

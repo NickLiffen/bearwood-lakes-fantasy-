@@ -198,26 +198,135 @@ interface PickDoc {
 // ── Name pools ─────────────────────────────────────────────────────────────────
 
 const FIRST_NAMES = [
-  'James', 'William', 'Oliver', 'Thomas', 'Harry', 'George', 'Charlie', 'Jack',
-  'Edward', 'Henry', 'Samuel', 'Daniel', 'David', 'Michael', 'Richard', 'Robert',
-  'Andrew', 'Peter', 'Christopher', 'Matthew', 'Stephen', 'Paul', 'Mark', 'Simon',
-  'Jonathan', 'Nicholas', 'Timothy', 'Patrick', 'Graham', 'Colin', 'Stuart', 'Alan',
-  'Brian', 'Keith', 'Derek', 'Malcolm', 'Trevor', 'Nigel', 'Clive', 'Roger',
-  'Emma', 'Sophie', 'Charlotte', 'Victoria', 'Elizabeth', 'Sarah', 'Catherine',
-  'Rebecca', 'Rachel', 'Laura', 'Jessica', 'Hannah', 'Claire', 'Louise', 'Helen',
-  'Jennifer', 'Amanda', 'Susan', 'Patricia', 'Margaret', 'Caroline', 'Fiona',
-  'Geoffrey', 'Bernard', 'Harold', 'Kenneth', 'Ronald', 'Norman', 'Douglas',
-  'Raymond', 'Stanley', 'Albert', 'Arthur', 'Ernest', 'Frederick', 'Walter',
+  'James',
+  'William',
+  'Oliver',
+  'Thomas',
+  'Harry',
+  'George',
+  'Charlie',
+  'Jack',
+  'Edward',
+  'Henry',
+  'Samuel',
+  'Daniel',
+  'David',
+  'Michael',
+  'Richard',
+  'Robert',
+  'Andrew',
+  'Peter',
+  'Christopher',
+  'Matthew',
+  'Stephen',
+  'Paul',
+  'Mark',
+  'Simon',
+  'Jonathan',
+  'Nicholas',
+  'Timothy',
+  'Patrick',
+  'Graham',
+  'Colin',
+  'Stuart',
+  'Alan',
+  'Brian',
+  'Keith',
+  'Derek',
+  'Malcolm',
+  'Trevor',
+  'Nigel',
+  'Clive',
+  'Roger',
+  'Emma',
+  'Sophie',
+  'Charlotte',
+  'Victoria',
+  'Elizabeth',
+  'Sarah',
+  'Catherine',
+  'Rebecca',
+  'Rachel',
+  'Laura',
+  'Jessica',
+  'Hannah',
+  'Claire',
+  'Louise',
+  'Helen',
+  'Jennifer',
+  'Amanda',
+  'Susan',
+  'Patricia',
+  'Margaret',
+  'Caroline',
+  'Fiona',
+  'Geoffrey',
+  'Bernard',
+  'Harold',
+  'Kenneth',
+  'Ronald',
+  'Norman',
+  'Douglas',
+  'Raymond',
+  'Stanley',
+  'Albert',
+  'Arthur',
+  'Ernest',
+  'Frederick',
+  'Walter',
 ];
 
 const LAST_NAMES = [
-  'Smith', 'Jones', 'Williams', 'Brown', 'Taylor', 'Davies', 'Wilson', 'Evans',
-  'Thomas', 'Johnson', 'Roberts', 'Walker', 'Wright', 'Robinson', 'Thompson',
-  'White', 'Hughes', 'Edwards', 'Green', 'Hall', 'Lewis', 'Harris', 'Clarke',
-  'Patel', 'Jackson', 'Wood', 'Turner', 'Martin', 'Cooper', 'Hill', 'Ward',
-  'Morris', 'King', 'Watson', 'Baker', 'Price', 'Bennett', 'Gray', 'Hamilton',
-  'Collins', 'Fraser', 'Murray', 'Simpson', 'Henderson', 'Ross', 'Campbell',
-  'Stewart', 'Marshall', 'Grant', 'Morgan',
+  'Smith',
+  'Jones',
+  'Williams',
+  'Brown',
+  'Taylor',
+  'Davies',
+  'Wilson',
+  'Evans',
+  'Thomas',
+  'Johnson',
+  'Roberts',
+  'Walker',
+  'Wright',
+  'Robinson',
+  'Thompson',
+  'White',
+  'Hughes',
+  'Edwards',
+  'Green',
+  'Hall',
+  'Lewis',
+  'Harris',
+  'Clarke',
+  'Patel',
+  'Jackson',
+  'Wood',
+  'Turner',
+  'Martin',
+  'Cooper',
+  'Hill',
+  'Ward',
+  'Morris',
+  'King',
+  'Watson',
+  'Baker',
+  'Price',
+  'Bennett',
+  'Gray',
+  'Hamilton',
+  'Collins',
+  'Fraser',
+  'Murray',
+  'Simpson',
+  'Henderson',
+  'Ross',
+  'Campbell',
+  'Stewart',
+  'Marshall',
+  'Grant',
+  'Morgan',
 ];
 
 const EMPTY_STATS: GolferStats = {
@@ -358,9 +467,16 @@ function getGolferCountTier(count: number): GolferCountTier {
 // ── Validators ─────────────────────────────────────────────────────────────────
 
 async function validateScoring(db: Db, tournamentId: ObjectId): Promise<ValidationResult> {
-  const result: ValidationResult = { name: 'Scoring arithmetic', passed: true, errors: [], warnings: [] };
+  const result: ValidationResult = {
+    name: 'Scoring arithmetic',
+    passed: true,
+    errors: [],
+    warnings: [],
+  };
 
-  const tournament = await db.collection<TournamentDoc>(TOURNAMENTS_COLLECTION).findOne({ _id: tournamentId });
+  const tournament = await db
+    .collection<TournamentDoc>(TOURNAMENTS_COLLECTION)
+    .findOne({ _id: tournamentId });
   if (!tournament) {
     result.passed = false;
     result.errors.push(`Tournament ${tournamentId} not found`);
@@ -370,7 +486,11 @@ async function validateScoring(db: Db, tournamentId: ObjectId): Promise<Validati
   const scores = await db.collection<ScoreDoc>(SCORES_COLLECTION).find({ tournamentId }).toArray();
   for (const s of scores) {
     const expectedBase = getBasePointsForPosition(s.position);
-    const expectedBonus = getBonusPoints(s.rawScore, tournament.scoringFormat, tournament.isMultiDay);
+    const expectedBonus = getBonusPoints(
+      s.rawScore,
+      tournament.scoringFormat,
+      tournament.isMultiDay
+    );
     const expectedMultiplied = (expectedBase + expectedBonus) * tournament.multiplier;
 
     if (s.basePoints !== expectedBase) {
@@ -397,7 +517,12 @@ async function validateScoring(db: Db, tournamentId: ObjectId): Promise<Validati
 }
 
 async function validateTeamSize(db: Db): Promise<ValidationResult> {
-  const result: ValidationResult = { name: 'Team size (exactly 6)', passed: true, errors: [], warnings: [] };
+  const result: ValidationResult = {
+    name: 'Team size (exactly 6)',
+    passed: true,
+    errors: [],
+    warnings: [],
+  };
 
   const picks = await db.collection<PickDoc>(PICKS_COLLECTION).find().toArray();
   for (const p of picks) {
@@ -427,10 +552,14 @@ async function validateBudget(db: Db, golfers: GolferDoc[]): Promise<ValidationR
 
     if (computed > BUDGET_CAP) {
       result.passed = false;
-      result.errors.push(`Pick ${p._id}: spent £${computed.toLocaleString()}, exceeds cap £${BUDGET_CAP.toLocaleString()}`);
+      result.errors.push(
+        `Pick ${p._id}: spent £${computed.toLocaleString()}, exceeds cap £${BUDGET_CAP.toLocaleString()}`
+      );
     }
     if (p.totalSpent !== computed) {
-      result.warnings.push(`Pick ${p._id}: stored totalSpent=${p.totalSpent}, computed=${computed}`);
+      result.warnings.push(
+        `Pick ${p._id}: stored totalSpent=${p.totalSpent}, computed=${computed}`
+      );
     }
   }
 
@@ -438,7 +567,12 @@ async function validateBudget(db: Db, golfers: GolferDoc[]): Promise<ValidationR
 }
 
 async function validateNoDuplicates(db: Db): Promise<ValidationResult> {
-  const result: ValidationResult = { name: 'No duplicate golfers', passed: true, errors: [], warnings: [] };
+  const result: ValidationResult = {
+    name: 'No duplicate golfers',
+    passed: true,
+    errors: [],
+    warnings: [],
+  };
 
   const picks = await db.collection<PickDoc>(PICKS_COLLECTION).find().toArray();
   for (const p of picks) {
@@ -454,7 +588,12 @@ async function validateNoDuplicates(db: Db): Promise<ValidationResult> {
 }
 
 async function validateCaptainOnTeam(db: Db): Promise<ValidationResult> {
-  const result: ValidationResult = { name: 'Captain on team', passed: true, errors: [], warnings: [] };
+  const result: ValidationResult = {
+    name: 'Captain on team',
+    passed: true,
+    errors: [],
+    warnings: [],
+  };
 
   const picks = await db.collection<PickDoc>(PICKS_COLLECTION).find().toArray();
   for (const p of picks) {
@@ -470,11 +609,13 @@ async function validateCaptainOnTeam(db: Db): Promise<ValidationResult> {
   return result;
 }
 
-function validateEffectiveStartDate(
-  user: UserDoc,
-  firstGW: Date
-): ValidationResult {
-  const result: ValidationResult = { name: 'Effective start date', passed: true, errors: [], warnings: [] };
+function validateEffectiveStartDate(user: UserDoc, firstGW: Date): ValidationResult {
+  const result: ValidationResult = {
+    name: 'Effective start date',
+    passed: true,
+    errors: [],
+    warnings: [],
+  };
 
   const effective = getTeamEffectiveStartDate(user.createdAt, firstGW);
   const userWeekStart = getWeekStart(user.createdAt, firstGW);
@@ -547,7 +688,12 @@ async function validateDeferredChanges(
   expectedPendingGolferIds?: ObjectId[],
   expectedPendingCaptainId?: ObjectId | null
 ): Promise<ValidationResult> {
-  const result: ValidationResult = { name: 'Deferred changes set', passed: true, errors: [], warnings: [] };
+  const result: ValidationResult = {
+    name: 'Deferred changes set',
+    passed: true,
+    errors: [],
+    warnings: [],
+  };
 
   const pick = await db.collection<PickDoc>(PICKS_COLLECTION).findOne({ userId });
   if (!pick) {
@@ -582,7 +728,12 @@ async function validatePendingApplied(
   appliedUserIds: ObjectId[],
   _weekStart: Date
 ): Promise<ValidationResult> {
-  const result: ValidationResult = { name: 'Pending changes applied', passed: true, errors: [], warnings: [] };
+  const result: ValidationResult = {
+    name: 'Pending changes applied',
+    passed: true,
+    errors: [],
+    warnings: [],
+  };
 
   for (const userId of appliedUserIds) {
     const pick = await db.collection<PickDoc>(PICKS_COLLECTION).findOne({ userId });
@@ -609,16 +760,24 @@ async function validatePendingApplied(
   return result;
 }
 
-async function validateTransferLimit(db: Db, userId: ObjectId, weekStart: Date, weekEnd: Date): Promise<ValidationResult> {
-  const result: ValidationResult = { name: 'Transfer limit', passed: true, errors: [], warnings: [] };
+async function validateTransferLimit(
+  db: Db,
+  userId: ObjectId,
+  weekStart: Date,
+  weekEnd: Date
+): Promise<ValidationResult> {
+  const result: ValidationResult = {
+    name: 'Transfer limit',
+    passed: true,
+    errors: [],
+    warnings: [],
+  };
 
-  const historyCount = await db
-    .collection(PICK_HISTORY_COLLECTION)
-    .countDocuments({
-      userId,
-      changedAt: { $gte: weekStart, $lte: weekEnd },
-      reason: { $regex: /^Transfer/ },
-    });
+  const historyCount = await db.collection(PICK_HISTORY_COLLECTION).countDocuments({
+    userId,
+    changedAt: { $gte: weekStart, $lte: weekEnd },
+    reason: { $regex: /^Transfer/ },
+  });
 
   if (historyCount > 1) {
     result.passed = false;
@@ -629,7 +788,12 @@ async function validateTransferLimit(db: Db, userId: ObjectId, weekStart: Date, 
 }
 
 function validateTransferLock(transfersOpen: boolean): ValidationResult {
-  const result: ValidationResult = { name: 'Transfer lock', passed: true, errors: [], warnings: [] };
+  const result: ValidationResult = {
+    name: 'Transfer lock',
+    passed: true,
+    errors: [],
+    warnings: [],
+  };
 
   if (transfersOpen) {
     result.passed = false;
@@ -650,23 +814,33 @@ function validateCaptainLocked(transfersOpen: boolean): ValidationResult {
   return result;
 }
 
-async function validateCaptainFree(db: Db, userId: ObjectId, weekStart: Date, weekEnd: Date): Promise<ValidationResult> {
-  const result: ValidationResult = { name: 'Captain change free', passed: true, errors: [], warnings: [] };
+async function validateCaptainFree(
+  db: Db,
+  userId: ObjectId,
+  weekStart: Date,
+  weekEnd: Date
+): Promise<ValidationResult> {
+  const result: ValidationResult = {
+    name: 'Captain change free',
+    passed: true,
+    errors: [],
+    warnings: [],
+  };
 
   // Captain changes should not appear as transfers in pickHistory
-  const captainTransfers = await db
-    .collection(PICK_HISTORY_COLLECTION)
-    .countDocuments({
-      userId,
-      changedAt: { $gte: weekStart, $lte: weekEnd },
-      reason: { $regex: /^Captain/ },
-    });
+  const captainTransfers = await db.collection(PICK_HISTORY_COLLECTION).countDocuments({
+    userId,
+    changedAt: { $gte: weekStart, $lte: weekEnd },
+    reason: { $regex: /^Captain/ },
+  });
 
   // Captain changes don't consume transfer slots — they're tracked separately
   // Just verify they exist but don't count as "Transfer" reason
   if (captainTransfers > 0) {
     // That's fine — they're tracked but shouldn't block transfers
-    result.warnings.push(`User ${userId}: ${captainTransfers} captain change(s) tracked (not counted as transfer)`);
+    result.warnings.push(
+      `User ${userId}: ${captainTransfers} captain change(s) tracked (not counted as transfer)`
+    );
   }
 
   return result;
@@ -677,7 +851,12 @@ function validateWeekBoundaries(
   weekStart: Date,
   weekEnd: Date
 ): ValidationResult {
-  const result: ValidationResult = { name: 'Week boundaries', passed: true, errors: [], warnings: [] };
+  const result: ValidationResult = {
+    name: 'Week boundaries',
+    passed: true,
+    errors: [],
+    warnings: [],
+  };
 
   if (tournament.startDate < weekStart || tournament.startDate > weekEnd) {
     result.passed = false;
@@ -690,7 +869,12 @@ function validateWeekBoundaries(
 }
 
 function validateGW1Friday(weekStart: Date): ValidationResult {
-  const result: ValidationResult = { name: 'GW1 starts Friday', passed: true, errors: [], warnings: [] };
+  const result: ValidationResult = {
+    name: 'GW1 starts Friday',
+    passed: true,
+    errors: [],
+    warnings: [],
+  };
 
   // Apr 3 2026 is a Friday (day 5)
   if (weekStart.getDay() !== 5) {
@@ -701,9 +885,7 @@ function validateGW1Friday(weekStart: Date): ValidationResult {
   }
   if (weekStart.getDate() !== 3 || weekStart.getMonth() !== 3) {
     result.passed = false;
-    result.errors.push(
-      `GW1 weekStart is ${weekStart.toISOString()}, expected Apr 3`
-    );
+    result.errors.push(`GW1 weekStart is ${weekStart.toISOString()}, expected Apr 3`);
   }
 
   return result;
@@ -717,7 +899,12 @@ function validateLeaderboardWeek(
   weekEnd: Date,
   firstGW: Date
 ): ValidationResult {
-  const result: ValidationResult = { name: 'Leaderboard (week)', passed: true, errors: [], warnings: [] };
+  const result: ValidationResult = {
+    name: 'Leaderboard (week)',
+    passed: true,
+    errors: [],
+    warnings: [],
+  };
 
   const weekTournaments = tournaments.filter(
     (t) => t.startDate >= weekStart && t.startDate <= weekEnd
@@ -766,7 +953,12 @@ function validateLeaderboardSeason(
   allScores: ScoreDoc[],
   firstGW: Date
 ): ValidationResult {
-  const result: ValidationResult = { name: 'Leaderboard (season)', passed: true, errors: [], warnings: [] };
+  const result: ValidationResult = {
+    name: 'Leaderboard (season)',
+    passed: true,
+    errors: [],
+    warnings: [],
+  };
 
   const scoreMap = new Map<string, ScoreDoc[]>();
   for (const s of allScores) {
@@ -806,7 +998,12 @@ function validateLeaderboardSeason(
 }
 
 function validateCaptainDoubling(pick: PickDoc, scores: ScoreDoc[]): ValidationResult {
-  const result: ValidationResult = { name: 'Captain doubling', passed: true, errors: [], warnings: [] };
+  const result: ValidationResult = {
+    name: 'Captain doubling',
+    passed: true,
+    errors: [],
+    warnings: [],
+  };
 
   if (!pick.captainId) {
     result.warnings.push(`Pick ${pick._id}: no captain set`);
@@ -858,7 +1055,9 @@ async function main() {
 
   console.log(`\n${BOLD}🏌️  Bearwood Fantasy — Season Simulation${RESET}`);
   console.log(`   Database: ${SIM_DB}`);
-  console.log(`   Season:   ${SEASON_YEAR} (${GAMEWEEKS} gameweeks, ${TOTAL_GOLFERS} golfers, ${TOTAL_USERS} users)\n`);
+  console.log(
+    `   Season:   ${SEASON_YEAR} (${GAMEWEEKS} gameweeks, ${TOTAL_GOLFERS} golfers, ${TOTAL_USERS} users)\n`
+  );
 
   const confirmed = await confirmRun();
   if (!confirmed) {
@@ -880,7 +1079,9 @@ async function main() {
     await db.collection(USERS_COLLECTION).createIndex({ username: 1 }, { unique: true });
     await db.collection(USERS_COLLECTION).createIndex({ email: 1 }, { unique: true });
     await db.collection(PICKS_COLLECTION).createIndex({ userId: 1, season: 1 }, { unique: true });
-    await db.collection(SCORES_COLLECTION).createIndex({ tournamentId: 1, golferId: 1 }, { unique: true });
+    await db
+      .collection(SCORES_COLLECTION)
+      .createIndex({ tournamentId: 1, golferId: 1 }, { unique: true });
     await db.collection(TOURNAMENTS_COLLECTION).createIndex({ season: 1, startDate: 1 });
     await db.collection(PICK_HISTORY_COLLECTION).createIndex({ userId: 1, changedAt: 1 });
 
@@ -1051,10 +1252,9 @@ async function main() {
           unsetFields.pendingCaptainId = '';
           unsetFields.pendingChangedAt = '';
 
-          await db.collection(PICKS_COLLECTION).updateOne(
-            { _id: pick._id },
-            { $set: updateFields, $unset: unsetFields }
-          );
+          await db
+            .collection(PICKS_COLLECTION)
+            .updateOne({ _id: pick._id }, { $set: updateFields, $unset: unsetFields });
 
           appliedUserIds.push(pick.userId);
           pendingApplied++;
@@ -1069,7 +1269,9 @@ async function main() {
       const weekTournaments: TournamentDoc[] = [];
       for (let t = 0; t < TOURNAMENTS_PER_WEEK; t++) {
         const isWeekendMedal = t === 2;
-        const tournamentType: TournamentType = isWeekendMedal ? 'weekend_medal' : 'rollup_stableford';
+        const tournamentType: TournamentType = isWeekendMedal
+          ? 'weekend_medal'
+          : 'rollup_stableford';
         const config = TOURNAMENT_TYPE_CONFIG[tournamentType];
         const scoringFormat = config.forcedScoringFormat || config.defaultScoringFormat;
 
@@ -1187,7 +1389,9 @@ async function main() {
         // 10.6. Validate new users
         for (const user of newUsers) {
           validations.push(validateEffectiveStartDate(user, FIRST_GW_START));
-          validations.push(await validateNewTeamZeroPastPoints(db, user._id, weekStart, FIRST_GW_START));
+          validations.push(
+            await validateNewTeamZeroPastPoints(db, user._id, weekStart, FIRST_GW_START)
+          );
         }
       }
 
@@ -1196,7 +1400,10 @@ async function main() {
         (u) => u.createdAt < weekStart // Only users who existed before this week
       );
 
-      const transferUsers = shuffle(eligibleForTransfer).slice(0, Math.min(5, eligibleForTransfer.length));
+      const transferUsers = shuffle(eligibleForTransfer).slice(
+        0,
+        Math.min(5, eligibleForTransfer.length)
+      );
       for (const user of transferUsers) {
         const pick = await db.collection<PickDoc>(PICKS_COLLECTION).findOne({ userId: user._id });
         if (!pick) continue;
@@ -1238,10 +1445,7 @@ async function main() {
           setFields.pendingCaptainId = pendingCaptainId;
         }
 
-        await db.collection(PICKS_COLLECTION).updateOne(
-          { _id: pick._id },
-          { $set: setFields }
-        );
+        await db.collection(PICKS_COLLECTION).updateOne({ _id: pick._id }, { $set: setFields });
 
         // Record in pick history
         let newSpent = 0;
@@ -1265,7 +1469,10 @@ async function main() {
       }
 
       // 10.8. Simulate deferred captain changes (3 random users)
-      const captainChangeUsers = shuffle(eligibleForTransfer).slice(0, Math.min(3, eligibleForTransfer.length));
+      const captainChangeUsers = shuffle(eligibleForTransfer).slice(
+        0,
+        Math.min(3, eligibleForTransfer.length)
+      );
       for (const user of captainChangeUsers) {
         const pick = await db.collection<PickDoc>(PICKS_COLLECTION).findOne({ userId: user._id });
         if (!pick || pick.golferIds.length === 0) continue;
@@ -1306,20 +1513,20 @@ async function main() {
       }
 
       // 10.9. Test transfer lock
-      await db.collection(SETTINGS_COLLECTION).updateOne(
-        { key: 'transfersOpen' },
-        { $set: { value: false, updatedAt: new Date() } }
-      );
+      await db
+        .collection(SETTINGS_COLLECTION)
+        .updateOne({ key: 'transfersOpen' }, { $set: { value: false, updatedAt: new Date() } });
 
-      const lockSetting = await db.collection(SETTINGS_COLLECTION).findOne({ key: 'transfersOpen' });
+      const lockSetting = await db
+        .collection(SETTINGS_COLLECTION)
+        .findOne({ key: 'transfersOpen' });
       validations.push(validateTransferLock(lockSetting?.value as boolean));
       validations.push(validateCaptainLocked(lockSetting?.value as boolean));
 
       // Restore
-      await db.collection(SETTINGS_COLLECTION).updateOne(
-        { key: 'transfersOpen' },
-        { $set: { value: true, updatedAt: new Date() } }
-      );
+      await db
+        .collection(SETTINGS_COLLECTION)
+        .updateOne({ key: 'transfersOpen' }, { $set: { value: true, updatedAt: new Date() } });
 
       // 10.10. Validate transfer limits for users who transferred
       for (const user of transferUsers) {
@@ -1335,7 +1542,14 @@ async function main() {
       // 10.12. Validate leaderboard
       const allPicks = await db.collection<PickDoc>(PICKS_COLLECTION).find().toArray();
       validations.push(
-        validateLeaderboardWeek(allPicks, weekTournaments, allScores, weekStart, weekEnd, FIRST_GW_START)
+        validateLeaderboardWeek(
+          allPicks,
+          weekTournaments,
+          allScores,
+          weekStart,
+          weekEnd,
+          FIRST_GW_START
+        )
       );
       validations.push(
         validateLeaderboardSeason(allPicks, allTournaments, allScores, FIRST_GW_START)
@@ -1378,7 +1592,9 @@ async function main() {
 
     console.log(`\n${'═'.repeat(55)}`);
     console.log(`${BOLD}  BEARWOOD FANTASY — SEASON SIMULATION REPORT${RESET}`);
-    console.log(`  ${GAMEWEEKS} Gameweeks │ ${allTournaments.length} Tournaments │ ${allUsers.length} Users`);
+    console.log(
+      `  ${GAMEWEEKS} Gameweeks │ ${allTournaments.length} Tournaments │ ${allUsers.length} Users`
+    );
     console.log(`${'═'.repeat(55)}\n`);
 
     let totalPassed = 0;
@@ -1414,7 +1630,9 @@ async function main() {
     // Category summary
     console.log(`${BOLD}Validation Summary${RESET}`);
     console.log(`${'─'.repeat(55)}`);
-    console.log(`${'Rule'.padEnd(30)} ${'Total'.padStart(6)} ${'Pass'.padStart(6)} ${'Fail'.padStart(6)}`);
+    console.log(
+      `${'Rule'.padEnd(30)} ${'Total'.padStart(6)} ${'Pass'.padStart(6)} ${'Fail'.padStart(6)}`
+    );
     console.log(`${'─'.repeat(55)}`);
 
     for (const [name, stats] of Object.entries(categoryStats)) {

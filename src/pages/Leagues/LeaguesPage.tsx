@@ -68,7 +68,9 @@ const LeaguesPage: React.FC = () => {
     };
 
     fetchLeagues();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [get, isAuthReady]);
 
   if ((loading || leagues === null) && !error) {
@@ -93,7 +95,11 @@ const LeaguesPage: React.FC = () => {
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button
                   className="btn btn-secondary"
-                  onClick={() => { setShowJoinModal(true); setJoinCode(''); setJoinError(''); }}
+                  onClick={() => {
+                    setShowJoinModal(true);
+                    setJoinCode('');
+                    setJoinError('');
+                  }}
                 >
                   Join League
                 </button>
@@ -102,9 +108,7 @@ const LeaguesPage: React.FC = () => {
                 </Link>
               </div>
             </div>
-            <p className="leagues-page-subtitle">
-              Compete against friends in private leagues
-            </p>
+            <p className="leagues-page-subtitle">Compete against friends in private leagues</p>
           </div>
 
           {error && <div className="error-message">{error}</div>}
@@ -123,11 +127,7 @@ const LeaguesPage: React.FC = () => {
           {leagues && leagues.length > 0 && (
             <div className="leagues-grid">
               {leagues.map((league) => (
-                <Link
-                  key={league.id}
-                  to={`/leagues/${league.id}`}
-                  className="league-card"
-                >
+                <Link key={league.id} to={`/leagues/${league.id}`} className="league-card">
                   <div className="league-card-header">
                     <h3>{league.name}</h3>
                     <span className="league-member-count">
@@ -199,7 +199,10 @@ const LeaguesPage: React.FC = () => {
               type="text"
               value={joinCode}
               onChange={(e) => {
-                const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
+                const val = e.target.value
+                  .toUpperCase()
+                  .replace(/[^A-Z0-9]/g, '')
+                  .slice(0, 6);
                 setJoinCode(val);
                 setJoinError('');
               }}

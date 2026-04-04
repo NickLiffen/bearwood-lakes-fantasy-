@@ -7,12 +7,7 @@ import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import { fileURLToPath } from 'url';
 import * as path from 'path';
-import {
-  MIN_PRICE,
-  MAX_PRICE,
-  POWER_EXPONENT,
-  calculatePrice,
-} from '../shared/constants/pricing';
+import { MIN_PRICE, MAX_PRICE, POWER_EXPONENT, calculatePrice } from '../shared/constants/pricing';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,7 +25,9 @@ const doBackup = args.includes('--backup');
 async function updatePrices() {
   console.log('💰 Updating Golfer Prices (v2 — Convex Power Curve)');
   console.log(`   Database: ${MONGODB_DB_NAME}`);
-  console.log(`   Floor: £${(MIN_PRICE / 1e6).toFixed(1)}M | Ceiling: £${(MAX_PRICE / 1e6).toFixed(1)}M | Exponent: ${POWER_EXPONENT}`);
+  console.log(
+    `   Floor: £${(MIN_PRICE / 1e6).toFixed(1)}M | Ceiling: £${(MAX_PRICE / 1e6).toFixed(1)}M | Exponent: ${POWER_EXPONENT}`
+  );
   if (isDryRun) console.log('   🔍 DRY RUN — no database writes');
   console.log();
 
@@ -68,7 +65,9 @@ async function updatePrices() {
     const currentMin = sorted[sorted.length - 1].price;
     const currentRange = currentMax - currentMin || 1;
 
-    console.log(`📈 Current price range: £${(currentMin / 1e6).toFixed(1)}M – £${(currentMax / 1e6).toFixed(1)}M\n`);
+    console.log(
+      `📈 Current price range: £${(currentMin / 1e6).toFixed(1)}M – £${(currentMax / 1e6).toFixed(1)}M\n`
+    );
 
     // Calculate new prices based on current price ranking
     interface PriceUpdate {
@@ -98,7 +97,9 @@ async function updatePrices() {
 
     // Verify ranking preservation
     const sortedByNew = [...updates].sort((a, b) => b.newPrice - a.newPrice);
-    sortedByNew.forEach((u, i) => { u.newRank = i + 1; });
+    sortedByNew.forEach((u, i) => {
+      u.newRank = i + 1;
+    });
 
     let rankingPreserved = true;
     for (const u of updates) {
@@ -129,7 +130,9 @@ async function updatePrices() {
     }
 
     // Ranking check
-    console.log(`\n🏅 Ranking preserved: ${rankingPreserved ? '✅ Yes' : '❌ No (see warnings above)'}`);
+    console.log(
+      `\n🏅 Ranking preserved: ${rankingPreserved ? '✅ Yes' : '❌ No (see warnings above)'}`
+    );
 
     // Tier distribution
     console.log('\n📊 New tier distribution:');
@@ -162,13 +165,17 @@ async function updatePrices() {
           .reduce((sum, u) => sum + u.newPrice, 0);
         if (teamNewCost > 50_000_000) {
           overBudget++;
-          console.log(`   ⚠️  User ${pick.userId}: £${(teamNewCost / 1e6).toFixed(1)}M (over by £${((teamNewCost - 50_000_000) / 1e6).toFixed(1)}M)`);
+          console.log(
+            `   ⚠️  User ${pick.userId}: £${(teamNewCost / 1e6).toFixed(1)}M (over by £${((teamNewCost - 50_000_000) / 1e6).toFixed(1)}M)`
+          );
         }
       }
       if (overBudget === 0) {
         console.log('   ✅ No teams exceed budget');
       } else {
-        console.log(`   ⚠️  ${overBudget} team(s) would exceed budget (enforced at next transfer window)`);
+        console.log(
+          `   ⚠️  ${overBudget} team(s) would exceed budget (enforced at next transfer window)`
+        );
       }
     }
 

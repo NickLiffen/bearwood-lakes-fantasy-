@@ -84,13 +84,11 @@ const handler: Handler = async (event: HandlerEvent) => {
       if (seasonParam === 'overall') {
         // Show all tournaments across all seasons — no date filtering
       } else {
-        const season = seasonParam
-          ? await getSeasonByName(seasonParam)
-          : await getActiveSeason();
+        const season = seasonParam ? await getSeasonByName(seasonParam) : await getActiveSeason();
         if (season) {
           const seasonStart = new Date(season.startDate);
           const seasonEnd = new Date(season.endDate);
-          tournaments = tournaments.filter(t => {
+          tournaments = tournaments.filter((t) => {
             const tStart = new Date(t.startDate);
             return tStart >= seasonStart && tStart <= seasonEnd;
           });
@@ -106,7 +104,7 @@ const handler: Handler = async (event: HandlerEvent) => {
       const { db } = await connectToDatabase();
 
       // Get all tournament IDs
-      const tournamentIds = tournaments.map(t => new ObjectId(t.id));
+      const tournamentIds = tournaments.map((t) => new ObjectId(t.id));
 
       // Fetch all scores for these tournaments (only podium positions and 36+ check)
       const scores = await db
@@ -117,22 +115,25 @@ const handler: Handler = async (event: HandlerEvent) => {
         .toArray();
 
       // Get unique golfer IDs from podium scores
-      const podiumScores = scores.filter(s => s.position && s.position <= 3);
-      const golferIds = [...new Set(podiumScores.map(s => s.golferId.toString()))];
+      const podiumScores = scores.filter((s) => s.position && s.position <= 3);
+      const golferIds = [...new Set(podiumScores.map((s) => s.golferId.toString()))];
 
       // Fetch golfers
       const golfers = await db
         .collection<GolferDocument>(GOLFERS_COLLECTION)
-        .find({ _id: { $in: golferIds.map(id => new ObjectId(id)) } })
+        .find({ _id: { $in: golferIds.map((id) => new ObjectId(id)) } })
         .toArray();
 
       // Create golfer lookup
       const golferMap = new Map(
-        golfers.map(g => [g._id.toString(), {
-          id: g._id.toString(),
-          firstName: g.firstName,
-          lastName: g.lastName
-        }])
+        golfers.map((g) => [
+          g._id.toString(),
+          {
+            id: g._id.toString(),
+            firstName: g.firstName,
+            lastName: g.lastName,
+          },
+        ])
       );
 
       // Group scores by tournament
@@ -146,7 +147,7 @@ const handler: Handler = async (event: HandlerEvent) => {
       }
 
       // Enhance tournaments with results
-      const enhancedTournaments: TournamentWithResults[] = tournaments.map(tournament => {
+      const enhancedTournaments: TournamentWithResults[] = tournaments.map((tournament) => {
         const tournamentScores = scoresByTournament.get(tournament.id) || [];
 
         let first: PodiumGolfer | null = null;

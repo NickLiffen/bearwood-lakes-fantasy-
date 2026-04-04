@@ -15,7 +15,12 @@ export const handler = withVerifiedAuth(async (event) => {
     return apiResponse(200, league);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Failed to join league';
-    if (message.includes('Invalid invite') || message.includes('already a member') || message.includes('full') || message.includes('only be in')) {
+    if (
+      message.includes('Invalid invite') ||
+      message.includes('already a member') ||
+      message.includes('full') ||
+      message.includes('only be in')
+    ) {
       return apiResponse(400, null, message);
     }
     return apiResponse(500, null, message);
