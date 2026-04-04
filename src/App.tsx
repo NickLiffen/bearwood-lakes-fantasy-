@@ -38,7 +38,7 @@ import TournamentUploadPage from './pages/Admin/TournamentUpload';
 import LeaguesAdminPage from './pages/Admin/Leagues';
 import SeasonsAdminPage from './pages/Admin/Seasons';
 
-// Protected route wrapper for admin pages
+// Protected route wrapper for admin pages (full admin only)
 const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isAdmin, user, loading } = useAuth();
 
@@ -55,6 +55,29 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }
 
   if (!isAdmin) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+// Protected route wrapper for admin portal pages accessible by admin + tournament_uploader
+const AdminPortalRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, canAccessAdmin, user, loading } = useAuth();
+
+  if (loading) {
+    return <LoadingSpinner text="Loading..." />;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user && user.phoneNumber && !user.phoneVerified) {
+    return <Navigate to="/verify-phone" replace />;
+  }
+
+  if (!canAccessAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -277,9 +300,9 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/admin"
         element={
-          <AdminRoute>
+          <AdminPortalRoute>
             <AdminOverviewPage />
-          </AdminRoute>
+          </AdminPortalRoute>
         }
       />
       <Route
@@ -349,9 +372,9 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/admin/tournament-upload"
         element={
-          <AdminRoute>
+          <AdminPortalRoute>
             <TournamentUploadPage />
-          </AdminRoute>
+          </AdminPortalRoute>
         }
       />
     </Routes>

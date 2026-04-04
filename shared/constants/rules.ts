@@ -11,7 +11,13 @@ export const MIN_PLAYERS = MIN_GOLFERS;
 export const ROLES = {
   ADMIN: 'admin',
   USER: 'user',
+  TOURNAMENT_UPLOADER: 'tournament_uploader',
 } as const;
+
+import type { UserRole } from '@shared/types';
+
+/** Roles that can access the admin portal */
+export const ADMIN_PORTAL_ROLES: readonly UserRole[] = [ROLES.ADMIN, ROLES.TOURNAMENT_UPLOADER];
 
 export const PASSWORD_MIN_LENGTH = 8;
 export const USERNAME_MIN_LENGTH = 3;

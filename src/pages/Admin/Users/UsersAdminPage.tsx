@@ -6,6 +6,7 @@ import LoadingSpinner from '../../../components/ui/LoadingSpinner';
 import { useAuth } from '../../../hooks/useAuth';
 import { useApiClient } from '../../../hooks/useApiClient';
 import { useDocumentTitle } from '../../../hooks/useDocumentTitle';
+import type { UserRole } from '@shared/types';
 
 interface User {
   id: string;
@@ -13,7 +14,7 @@ interface User {
   lastName: string;
   username: string;
   email: string;
-  role: 'admin' | 'user';
+  role: UserRole;
   createdAt: string;
 }
 
@@ -67,7 +68,7 @@ const UsersAdminPage: React.FC = () => {
     }
   }, [isAuthReady, fetchUsers]);
 
-  const handleRoleChange = async (user: User, newRole: 'admin' | 'user') => {
+  const handleRoleChange = async (user: User, newRole: UserRole) => {
     if (user.id === currentUserId) {
       setError('You cannot change your own role');
       setTimeout(() => setError(''), 3000);
@@ -82,7 +83,13 @@ const UsersAdminPage: React.FC = () => {
 
       if (!response.success) throw new Error(response.error || 'Failed to update role');
 
-      setSuccess(`${user.username} is now ${newRole === 'admin' ? 'an Admin' : 'a User'}`);
+      const roleLabel =
+        newRole === 'admin'
+          ? 'an Admin'
+          : newRole === 'tournament_uploader'
+            ? 'a Tournament Uploader'
+            : 'a User';
+      setSuccess(`${user.username} is now ${roleLabel}`);
       fetchUsers();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
@@ -186,6 +193,7 @@ const UsersAdminPage: React.FC = () => {
   };
 
   const adminCount = users.filter((u) => u.role === 'admin').length;
+  const uploaderCount = users.filter((u) => u.role === 'tournament_uploader').length;
   const userCount = users.filter((u) => u.role === 'user').length;
 
   return (
@@ -209,6 +217,11 @@ const UsersAdminPage: React.FC = () => {
           <div className="stat-box-icon">🛡️</div>
           <div className="stat-box-value">{adminCount}</div>
           <div className="stat-box-label">Administrators</div>
+        </div>
+        <div className="stat-box">
+          <div className="stat-box-icon">📄</div>
+          <div className="stat-box-value">{uploaderCount}</div>
+          <div className="stat-box-label">Uploaders</div>
         </div>
       </div>
 
@@ -259,11 +272,13 @@ const UsersAdminPage: React.FC = () => {
                           background:
                             user.role === 'admin'
                               ? 'linear-gradient(135deg, var(--primary-green), var(--secondary-green))'
-                              : '#e5e7eb',
+                              : user.role === 'tournament_uploader'
+                                ? 'linear-gradient(135deg, #3b82f6, #60a5fa)'
+                                : '#e5e7eb',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          color: user.role === 'admin' ? 'white' : '#6b7280',
+                          color: user.role !== 'user' ? 'white' : '#6b7280',
                           fontWeight: 600,
                           fontSize: '0.9rem',
                         }}
@@ -304,9 +319,13 @@ const UsersAdminPage: React.FC = () => {
                   <td style={{ color: '#6b7280' }}>{user.email}</td>
                   <td>
                     <span
-                      className={`badge ${user.role === 'admin' ? 'badge-warning' : 'badge-gray'}`}
+                      className={`badge ${user.role === 'admin' ? 'badge-warning' : user.role === 'tournament_uploader' ? 'badge-info' : 'badge-gray'}`}
                     >
-                      {user.role === 'admin' ? '🛡️ Admin' : 'User'}
+                      {user.role === 'admin'
+                        ? '🛡️ Admin'
+                        : user.role === 'tournament_uploader'
+                          ? '📄 Uploader'
+                          : 'User'}
                     </span>
                   </td>
                   <td style={{ color: '#6b7280' }}>{formatDate(user.createdAt)}</td>
@@ -337,13 +356,36 @@ const UsersAdminPage: React.FC = () => {
                             >
                               Remove Admin
                             </button>
+                          ) : user.role === 'tournament_uploader' ? (
+                            <>
+                              <button
+                                className="btn btn-primary btn-sm"
+                                onClick={() => handleRoleChange(user, 'admin')}
+                              >
+                                Make Admin
+                              </button>
+                              <button
+                                className="btn btn-secondary btn-sm"
+                                onClick={() => handleRoleChange(user, 'user')}
+                              >
+                                Make User
+                              </button>
+                            </>
                           ) : (
-                            <button
-                              className="btn btn-primary btn-sm"
-                              onClick={() => handleRoleChange(user, 'admin')}
-                            >
-                              Make Admin
-                            </button>
+                            <>
+                              <button
+                                className="btn btn-primary btn-sm"
+                                onClick={() => handleRoleChange(user, 'admin')}
+                              >
+                                Make Admin
+                              </button>
+                              <button
+                                className="btn btn-secondary btn-sm"
+                                onClick={() => handleRoleChange(user, 'tournament_uploader')}
+                              >
+                                Make Uploader
+                              </button>
+                            </>
                           )}
                           <button
                             className="btn btn-sm"
@@ -407,11 +449,13 @@ const UsersAdminPage: React.FC = () => {
                     background:
                       viewingUser.role === 'admin'
                         ? 'linear-gradient(135deg, var(--primary-green), var(--secondary-green))'
-                        : '#e5e7eb',
+                        : viewingUser.role === 'tournament_uploader'
+                          ? 'linear-gradient(135deg, #3b82f6, #60a5fa)'
+                          : '#e5e7eb',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    color: viewingUser.role === 'admin' ? 'white' : '#6b7280',
+                    color: viewingUser.role !== 'user' ? 'white' : '#6b7280',
                     fontWeight: 700,
                     fontSize: '1.5rem',
                   }}
@@ -427,9 +471,13 @@ const UsersAdminPage: React.FC = () => {
                     @{viewingUser.username}
                   </div>
                   <span
-                    className={`badge ${viewingUser.role === 'admin' ? 'badge-warning' : 'badge-gray'}`}
+                    className={`badge ${viewingUser.role === 'admin' ? 'badge-warning' : viewingUser.role === 'tournament_uploader' ? 'badge-info' : 'badge-gray'}`}
                   >
-                    {viewingUser.role === 'admin' ? '🛡️ Admin' : 'User'}
+                    {viewingUser.role === 'admin'
+                      ? '🛡️ Admin'
+                      : viewingUser.role === 'tournament_uploader'
+                        ? '📄 Uploader'
+                        : 'User'}
                   </span>
                 </div>
               </div>
@@ -522,16 +570,48 @@ const UsersAdminPage: React.FC = () => {
                       >
                         Remove Admin
                       </button>
+                    ) : viewingUser.role === 'tournament_uploader' ? (
+                      <>
+                        <button
+                          className="btn btn-primary btn-sm"
+                          onClick={() => {
+                            handleCloseViewModal();
+                            handleRoleChange(viewingUser, 'admin');
+                          }}
+                        >
+                          Make Admin
+                        </button>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => {
+                            handleCloseViewModal();
+                            handleRoleChange(viewingUser, 'user');
+                          }}
+                        >
+                          Make User
+                        </button>
+                      </>
                     ) : (
-                      <button
-                        className="btn btn-primary btn-sm"
-                        onClick={() => {
-                          handleCloseViewModal();
-                          handleRoleChange(viewingUser, 'admin');
-                        }}
-                      >
-                        Make Admin
-                      </button>
+                      <>
+                        <button
+                          className="btn btn-primary btn-sm"
+                          onClick={() => {
+                            handleCloseViewModal();
+                            handleRoleChange(viewingUser, 'admin');
+                          }}
+                        >
+                          Make Admin
+                        </button>
+                        <button
+                          className="btn btn-secondary btn-sm"
+                          onClick={() => {
+                            handleCloseViewModal();
+                            handleRoleChange(viewingUser, 'tournament_uploader');
+                          }}
+                        >
+                          Make Uploader
+                        </button>
+                      </>
                     )}
                     <button
                       className="btn btn-sm"

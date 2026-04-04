@@ -33,13 +33,14 @@ describe('team size constants', () => {
 });
 
 describe('ROLES', () => {
-  it('has ADMIN and USER', () => {
+  it('has ADMIN, USER, and TOURNAMENT_UPLOADER', () => {
     expect(ROLES.ADMIN).toBe('admin');
     expect(ROLES.USER).toBe('user');
+    expect(ROLES.TOURNAMENT_UPLOADER).toBe('tournament_uploader');
   });
 
-  it('has exactly 2 roles', () => {
-    expect(Object.keys(ROLES)).toHaveLength(2);
+  it('has exactly 3 roles', () => {
+    expect(Object.keys(ROLES)).toHaveLength(3);
   });
 });
 

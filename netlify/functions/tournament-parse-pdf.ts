@@ -1,12 +1,12 @@
-// POST /.netlify/functions/tournament-parse-pdf (Admin only)
+// POST /.netlify/functions/tournament-parse-pdf (Admin + Tournament Uploader)
 // Accepts a base64-encoded PDF, extracts tournament data server-side
 
-import { withAdmin, apiResponse } from './_shared/middleware';
+import { withRole, apiResponse } from './_shared/middleware';
 import { parsePdfBuffer } from './_shared/services/pdf-parser.service';
 import { tournamentParsePdfSchema } from './_shared/validators/tournament-parse-pdf.validator';
 import { z } from 'zod';
 
-export const handler = withAdmin(async (event) => {
+export const handler = withRole('admin', 'tournament_uploader')(async (event) => {
   if (event.httpMethod !== 'POST') {
     return apiResponse(405, null, 'Method not allowed');
   }
