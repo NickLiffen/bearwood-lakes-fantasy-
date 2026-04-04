@@ -52,6 +52,18 @@ vi.mock('./_shared/utils/dates', () => ({
   }),
   getTeamEffectiveStartDate: vi.fn().mockImplementation((d: Date) => new Date(d)),
   getGameweekNumber: vi.fn().mockReturnValue(5),
+  getFirstGameweekStart: vi.fn().mockImplementation((seasonStart: Date, firstGW?: Date | null) => {
+    if (firstGW) {
+      const d = new Date(firstGW);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+    // Fallback: first Saturday on or after seasonStart
+    const d = new Date(seasonStart);
+    while (d.getDay() !== 6) d.setDate(d.getDate() + 1);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }),
 }));
 
 const mockSeason = {
@@ -242,6 +254,34 @@ describe('leaderboard-periods handler', () => {
     expect(res!.statusCode).toBe(200);
     expect(body.data.period).toHaveProperty('hasPrevious');
     expect(body.data.period).toHaveProperty('hasNext');
+  });
+
+  it('hasPrevious is false on GW1 when firstGameweekStart differs from season start', async () => {
+    const userId = new ObjectId();
+    // Season starts Jan 1 but firstGameweekStart is April 5 (a Saturday)
+    const seasonWithFirstGW = {
+      ...mockSeason,
+      firstGameweekStart: new Date('2025-04-05'),
+    };
+    vi.mocked(getActiveSeason).mockResolvedValue(seasonWithFirstGW as unknown as Awaited<ReturnType<typeof getActiveSeason>>);
+
+    setupCollections(
+      [{ userId, golferIds: [], captainId: null, totalSpent: 0, season: 2025, createdAt: new Date('2025-01-01') }],
+      [{ _id: userId, username: 'gw1', firstName: 'GW1', lastName: 'Test' }],
+      [],
+      [],
+    );
+
+    // Request with date on GW1 itself (April 5, 2025 — a Saturday)
+    const res = await handler(
+      makeAuthEvent({ queryStringParameters: { period: 'week', date: '2025-04-05' } }),
+      mockContext,
+    );
+    const body = parseBody(res!);
+
+    expect(res!.statusCode).toBe(200);
+    // On GW1, there is no previous gameweek to navigate to
+    expect(body.data.period.hasPrevious).toBe(false);
   });
 
   it('returns 500 on error', async () => {

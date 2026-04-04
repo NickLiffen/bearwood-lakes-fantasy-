@@ -9,7 +9,7 @@ import { UserDocument, USERS_COLLECTION } from './_shared/models/User';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
 import { getActiveSeason, getSeasonByName } from './_shared/services/seasons.service';
-import { getWeekStart, getMonthStart, getGameweekNumber, getWeekEnd as getWeekEndShared, getMonthEnd } from './_shared/utils/dates';
+import { getWeekStart, getMonthStart, getGameweekNumber, getWeekEnd as getWeekEndShared, getMonthEnd, getFirstGameweekStart } from './_shared/utils/dates';
 import { getRedisClient, getRedisKeyPrefix } from './_shared/rateLimit';
 import {
   calculateLeaderboard,
@@ -137,7 +137,7 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
                 endDate: weekEnd.toISOString(),
                 label: formatWeekLabel(weekStart, weekEnd, getGameweekNumber(weekStart, seasonStartDate, firstGW)),
                 gameweek: getGameweekNumber(weekStart, seasonStartDate, firstGW),
-                hasPrevious: weekStart > seasonStartDate,
+                hasPrevious: weekStart > getFirstGameweekStart(seasonStartDate, firstGW),
                 hasNext: false,
               },
               currentMonth: {
@@ -145,7 +145,7 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
                 startDate: monthStart.toISOString(),
                 endDate: monthEnd.toISOString(),
                 label: formatMonthLabel(monthStart),
-                hasPrevious: monthStart > seasonStartDate,
+                hasPrevious: monthStart > getFirstGameweekStart(seasonStartDate, firstGW),
                 hasNext: false,
               },
               seasonInfo: {
@@ -236,7 +236,7 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
           endDate: weekEnd.toISOString(),
           label: formatWeekLabel(weekStart, weekEnd, getGameweekNumber(weekStart, seasonStartDate, firstGW)),
           gameweek: getGameweekNumber(weekStart, seasonStartDate, firstGW),
-          hasPrevious: weekStart > seasonStartDate,
+          hasPrevious: weekStart > getFirstGameweekStart(seasonStartDate, firstGW),
           hasNext: weekEnd < now,
         },
         currentMonth: {
@@ -244,7 +244,7 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
           startDate: monthStart.toISOString(),
           endDate: monthEnd.toISOString(),
           label: formatMonthLabel(monthStart),
-          hasPrevious: monthStart > seasonStartDate,
+          hasPrevious: monthStart > getFirstGameweekStart(seasonStartDate, firstGW),
           hasNext: monthEnd < now,
         },
         seasonInfo: {
@@ -304,14 +304,15 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
     const ranked = rankEntries(currentData.entries, previousData?.entries || null);
     
     // Determine navigation
+    const firstGameweekAnchor = getFirstGameweekStart(seasonStartDate, firstGW);
     let hasPrevious = false;
     let hasNext = false;
     
     if (period === 'week') {
-      hasPrevious = periodStart > seasonStartDate;
+      hasPrevious = periodStart > firstGameweekAnchor;
       hasNext = periodEnd < getWeekEnd(now, firstGW);
     } else if (period === 'month') {
-      hasPrevious = periodStart > seasonStartDate;
+      hasPrevious = periodStart > firstGameweekAnchor;
       hasNext = periodEnd < getMonthEnd(now);
     }
     
