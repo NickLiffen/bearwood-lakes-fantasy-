@@ -10,7 +10,7 @@ import { PickDocument, PICKS_COLLECTION, PickHistoryDocument, PICK_HISTORY_COLLE
 import { GolferDocument, GOLFERS_COLLECTION, toGolfer } from './_shared/models/Golfer';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
-import { getWeekStart, getMonthStart, getMonthEnd, getSeasonStart, getTeamEffectiveStartDate, getWeekEnd, getFirstGameweekStart } from './_shared/utils/dates';
+import { getWeekStart, getMonthStart, getMonthEnd, getSeasonStart, getTeamEffectiveStartDate, getWeekEnd } from './_shared/utils/dates';
 import { getActiveSeason } from './_shared/services/seasons.service';
 
 export const handler: Handler = withVerifiedAuth(async (event) => {
@@ -147,7 +147,7 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
     const weekEnd = getWeekEnd(weekStart, firstGW);
     const monthStart = getMonthStart(now);
     const monthEnd = getMonthEnd(now);
-    const seasonStart = getSeasonStart();
+    const seasonStart = getSeasonStart(currentSeason);
 
     // Team can only earn points from tournaments after team creation
     const teamEffectiveStart = getTeamEffectiveStartDate(pick.createdAt, firstGW);

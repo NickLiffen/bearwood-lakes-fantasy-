@@ -9,7 +9,7 @@ import { UserDocument, USERS_COLLECTION } from './_shared/models/User';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
 import { getActiveSeason, getSeasonByName } from './_shared/services/seasons.service';
-import { getWeekStart, getMonthStart, getTeamEffectiveStartDate, getGameweekNumber, getWeekEnd as getWeekEndShared } from './_shared/utils/dates';
+import { getWeekStart, getMonthStart, getTeamEffectiveStartDate, getGameweekNumber, getWeekEnd as getWeekEndShared, getMonthEnd } from './_shared/utils/dates';
 import { getRedisClient, getRedisKeyPrefix } from './_shared/rateLimit';
 
 const PERIODS_CACHE_TTL = 60; // 60 seconds
@@ -83,11 +83,6 @@ interface LeadersResponse {
 function getWeekEnd(date: Date, firstGameweekStart?: Date | null): Date {
   const weekStart = getWeekStart(date, firstGameweekStart);
   return getWeekEndShared(weekStart, firstGameweekStart);
-}
-
-// Get last day of the month
-function getMonthEnd(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
 }
 
 // Format week label
