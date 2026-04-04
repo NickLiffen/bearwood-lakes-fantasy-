@@ -9,8 +9,16 @@ import { UserDocument, USERS_COLLECTION } from './_shared/models/User';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
 import { getActiveSeason, getSeasonByName } from './_shared/services/seasons.service';
-import { getWeekStart, getMonthStart, getTeamEffectiveStartDate, getGameweekNumber, getWeekEnd as getWeekEndShared, getMonthEnd } from './_shared/utils/dates';
+import { getWeekStart, getMonthStart, getGameweekNumber, getWeekEnd as getWeekEndShared } from './_shared/utils/dates';
 import { getRedisClient, getRedisKeyPrefix } from './_shared/rateLimit';
+import {
+  calculateLeaderboard,
+  rankEntries,
+  formatWeekLabel,
+  formatMonthLabel,
+  getMonthEnd,
+  type RankedLeaderboardEntry,
+} from './_shared/utils/leaderboard-calculator';
 
 const PERIODS_CACHE_TTL = 60; // 60 seconds
 
@@ -40,20 +48,6 @@ async function setCache<T>(key: string, data: T): Promise<void> {
   }
 }
 
-interface LeaderboardEntry {
-  rank: number;
-  oldRank: number | null; // Previous period rank (null = NEW)
-  movement: 'up' | 'down' | 'same' | 'new';
-  movementAmount: number;
-  userId: string;
-  firstName: string;
-  lastName: string;
-  username: string;
-  points: number;
-  teamValue: number;
-  eventsPlayed: number;
-}
-
 interface PeriodInfo {
   type: 'week' | 'month' | 'season';
   startDate: string;
@@ -65,177 +59,23 @@ interface PeriodInfo {
 }
 
 interface LeaderboardResponse {
-  entries: LeaderboardEntry[];
-  period: PeriodInfo;
+  entries: RankedLeaderboardEntry[];
+  period: PeriodInfo | null;
   tournamentCount: number;
 }
 
 interface LeadersResponse {
-  weeklyLeader: LeaderboardEntry | null;
-  monthlyLeader: LeaderboardEntry | null;
-  seasonLeader: LeaderboardEntry | null;
+  weeklyLeader: RankedLeaderboardEntry | null;
+  monthlyLeader: RankedLeaderboardEntry | null;
+  seasonLeader: RankedLeaderboardEntry | null;
   currentWeek: PeriodInfo;
   currentMonth: PeriodInfo;
   seasonInfo: PeriodInfo;
 }
 
-// Use shared getWeekEnd from dates.ts (handles GW1 extended duration)
 function getWeekEnd(date: Date, firstGameweekStart?: Date | null): Date {
   const weekStart = getWeekStart(date, firstGameweekStart);
   return getWeekEndShared(weekStart, firstGameweekStart);
-}
-
-// Format week label
-function formatWeekLabel(start: Date, end: Date, gameweek?: number): string {
-  const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
-  const dateRange = `${start.toLocaleDateString('en-GB', options)} - ${end.toLocaleDateString('en-GB', options)}`;
-  if (gameweek && gameweek > 0) {
-    return `Gameweek ${gameweek}: ${dateRange}`;
-  }
-  return dateRange;
-}
-
-// Format month label
-function formatMonthLabel(date: Date): string {
-  return date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
-}
-
-async function calculateLeaderboard(
-  picks: PickDocument[],
-  userMap: Map<string, UserDocument>,
-  tournaments: TournamentDocument[],
-  allScores: ScoreDocument[],
-  periodStart: Date,
-  periodEnd: Date,
-  firstGameweekStart?: Date | null
-): Promise<{ entries: Array<{ userId: string; user: UserDocument; points: number; teamValue: number; events: number }>; tournamentCount: number }> {
-  
-  // Filter tournaments within the period
-  const periodTournaments = tournaments.filter(t => {
-    const startDate = new Date(t.startDate);
-    return startDate >= periodStart && startDate <= periodEnd;
-  });
-
-  const periodTournamentIds = new Set(periodTournaments.map(t => t._id.toString()));
-
-  // Create tournament date lookup
-  const tournamentDateMap = new Map<string, Date>();
-  for (const t of periodTournaments) {
-    tournamentDateMap.set(t._id.toString(), new Date(t.startDate));
-  }
-
-  // Create score lookup
-  const scoresByPlayerAndTournament = new Map<string, Map<string, ScoreDocument>>();
-  for (const score of allScores) {
-    if (!periodTournamentIds.has(score.tournamentId.toString())) continue;
-
-    const golferId = score.golferId.toString();
-    if (!scoresByPlayerAndTournament.has(golferId)) {
-      scoresByPlayerAndTournament.set(golferId, new Map());
-    }
-    scoresByPlayerAndTournament.get(golferId)!.set(score.tournamentId.toString(), score);
-  }
-
-  // Calculate points for each user
-  const entries: Array<{ userId: string; user: UserDocument; points: number; teamValue: number; events: number }> = [];
-
-  for (const pick of picks) {
-    const user = userMap.get(pick.userId.toString());
-    if (!user) continue;
-
-    // Team only earns points from tournaments starting on or after their effective start date
-    const teamEffectiveStart = getTeamEffectiveStartDate(pick.createdAt, firstGameweekStart);
-    const captainIdStr = pick.captainId?.toString();
-
-    let points = 0;
-    const eventsSet = new Set<string>();
-
-    for (const golferId of pick.golferIds) {
-      const playerScores = scoresByPlayerAndTournament.get(golferId.toString());
-      if (!playerScores) continue;
-
-      for (const [tournamentId, score] of playerScores) {
-        // Skip tournaments before team's effective start date
-        const tournamentDate = tournamentDateMap.get(tournamentId);
-        if (tournamentDate && tournamentDate < teamEffectiveStart) continue;
-
-        const isCaptain = score.golferId.toString() === captainIdStr;
-        points += (score.multipliedPoints || 0) * (isCaptain ? 2 : 1);
-        if (score.participated) {
-          eventsSet.add(tournamentId);
-        }
-      }
-    }
-
-    entries.push({
-      userId: pick.userId.toString(),
-      user,
-      points,
-      teamValue: pick.totalSpent,
-      events: eventsSet.size,
-    });
-  }
-
-  return { entries, tournamentCount: periodTournaments.length };
-}
-
-function rankEntries(
-  currentEntries: Array<{ userId: string; user: UserDocument; points: number; teamValue: number; events: number }>,
-  previousEntries: Array<{ userId: string; user: UserDocument; points: number; teamValue: number; events: number }> | null
-): LeaderboardEntry[] {
-  // Sort by points descending
-  const sorted = [...currentEntries].sort((a, b) => b.points - a.points);
-  
-  // Create previous rank lookup
-  const previousRankMap = new Map<string, number>();
-  if (previousEntries) {
-    const prevSorted = [...previousEntries].sort((a, b) => b.points - a.points);
-    let prevRank = 1;
-    prevSorted.forEach((entry, index) => {
-      if (index > 0 && entry.points < prevSorted[index - 1].points) {
-        prevRank = index + 1;
-      }
-      previousRankMap.set(entry.userId, prevRank);
-    });
-  }
-  
-  // Assign ranks with ties
-  let currentRank = 1;
-  return sorted.map((entry, index) => {
-    if (index > 0 && entry.points < sorted[index - 1].points) {
-      currentRank = index + 1;
-    }
-    
-    const oldRank = previousRankMap.get(entry.userId) ?? null;
-    let movement: 'up' | 'down' | 'same' | 'new' = 'new';
-    let movementAmount = 0;
-    
-    if (oldRank !== null) {
-      if (oldRank > currentRank) {
-        movement = 'up';
-        movementAmount = oldRank - currentRank;
-      } else if (oldRank < currentRank) {
-        movement = 'down';
-        movementAmount = currentRank - oldRank;
-      } else {
-        movement = 'same';
-      }
-    }
-    
-    return {
-      rank: currentRank,
-      oldRank,
-      movement,
-      movementAmount,
-      userId: entry.userId,
-      firstName: entry.user.firstName,
-      lastName: entry.user.lastName,
-      username: entry.user.username,
-      points: entry.points,
-      teamValue: entry.teamValue,
-      eventsPlayed: entry.events,
-    };
-  });
 }
 
 export const handler: Handler = withVerifiedAuth(async (event) => {

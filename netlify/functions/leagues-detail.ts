@@ -8,134 +8,17 @@ import { UserDocument, USERS_COLLECTION } from './_shared/models/User';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
 import { getActiveSeason, getSeasonByName } from './_shared/services/seasons.service';
-import { getWeekStart, getWeekEnd as getWeekEndUtil, getMonthStart, getTeamEffectiveStartDate, getGameweekNumber } from './_shared/utils/dates';
+import { getWeekStart, getWeekEnd as getWeekEndUtil, getMonthStart, getGameweekNumber } from './_shared/utils/dates';
+import {
+  calculateLeaderboard,
+  rankEntries,
+  formatWeekLabel,
+  formatMonthLabel,
+  getMonthEnd,
+} from './_shared/utils/leaderboard-calculator';
 
 function getWeekEnd(date: Date, firstGameweekStart?: Date | null): Date {
   return getWeekEndUtil(date, firstGameweekStart);
-}
-
-function getMonthEnd(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
-}
-
-function formatWeekLabel(start: Date, end: Date, gameweek?: number): string {
-  const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
-  const dateRange = `${start.toLocaleDateString('en-GB', options)} - ${end.toLocaleDateString('en-GB', options)}`;
-  return gameweek && gameweek > 0 ? `Gameweek ${gameweek}: ${dateRange}` : dateRange;
-}
-
-function formatMonthLabel(date: Date): string {
-  return date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
-}
-
-interface LeaderboardEntry {
-  rank: number;
-  oldRank: number | null;
-  movement: 'up' | 'down' | 'same' | 'new';
-  movementAmount: number;
-  userId: string;
-  firstName: string;
-  lastName: string;
-  username: string;
-  points: number;
-  teamValue: number;
-  eventsPlayed: number;
-}
-
-function calculateLeaderboard(
-  picks: PickDocument[],
-  userMap: Map<string, UserDocument>,
-  tournaments: TournamentDocument[],
-  allScores: ScoreDocument[],
-  periodStart: Date,
-  periodEnd: Date,
-  memberSet: Set<string>,
-  firstGameweekStart?: Date | null
-) {
-  const periodTournaments = tournaments.filter((t) => {
-    const startDate = new Date(t.startDate);
-    return startDate >= periodStart && startDate <= periodEnd;
-  });
-
-  const periodTournamentIds = new Set(periodTournaments.map((t) => t._id.toString()));
-  const tournamentDateMap = new Map<string, Date>();
-  for (const t of periodTournaments) {
-    tournamentDateMap.set(t._id.toString(), new Date(t.startDate));
-  }
-
-  const scoresByPlayerAndTournament = new Map<string, Map<string, ScoreDocument>>();
-  for (const score of allScores) {
-    if (!periodTournamentIds.has(score.tournamentId.toString())) continue;
-    const golferId = score.golferId.toString();
-    if (!scoresByPlayerAndTournament.has(golferId)) {
-      scoresByPlayerAndTournament.set(golferId, new Map());
-    }
-    scoresByPlayerAndTournament.get(golferId)!.set(score.tournamentId.toString(), score);
-  }
-
-  const entries: Array<{ userId: string; user: UserDocument; points: number; teamValue: number; events: number }> = [];
-
-  for (const pick of picks) {
-    const userId = pick.userId.toString();
-    if (!memberSet.has(userId)) continue;
-    const user = userMap.get(userId);
-    if (!user) continue;
-
-    const teamEffectiveStart = getTeamEffectiveStartDate(pick.createdAt, firstGameweekStart);
-    let points = 0;
-    const eventsSet = new Set<string>();
-
-    for (const golferId of pick.golferIds) {
-      const playerScores = scoresByPlayerAndTournament.get(golferId.toString());
-      if (!playerScores) continue;
-      for (const [tournamentId, score] of playerScores) {
-        const tournamentDate = tournamentDateMap.get(tournamentId);
-        if (tournamentDate && tournamentDate < teamEffectiveStart) continue;
-        points += score.multipliedPoints || 0;
-        if (score.participated) eventsSet.add(tournamentId);
-      }
-    }
-
-    entries.push({ userId, user, points, teamValue: pick.totalSpent, events: eventsSet.size });
-  }
-
-  return { entries, tournamentCount: periodTournaments.length };
-}
-
-function rankEntries(
-  currentEntries: Array<{ userId: string; user: UserDocument; points: number; teamValue: number; events: number }>,
-  previousEntries: Array<{ userId: string; user: UserDocument; points: number; teamValue: number; events: number }> | null
-): LeaderboardEntry[] {
-  const sorted = [...currentEntries].sort((a, b) => b.points - a.points);
-
-  const previousRankMap = new Map<string, number>();
-  if (previousEntries) {
-    const prevSorted = [...previousEntries].sort((a, b) => b.points - a.points);
-    let prevRank = 1;
-    prevSorted.forEach((entry, index) => {
-      if (index > 0 && entry.points < prevSorted[index - 1].points) prevRank = index + 1;
-      previousRankMap.set(entry.userId, prevRank);
-    });
-  }
-
-  let currentRank = 1;
-  return sorted.map((entry, index) => {
-    if (index > 0 && entry.points < sorted[index - 1].points) currentRank = index + 1;
-    const oldRank = previousRankMap.get(entry.userId) ?? null;
-    let movement: 'up' | 'down' | 'same' | 'new' = 'new';
-    let movementAmount = 0;
-    if (oldRank !== null) {
-      if (oldRank > currentRank) { movement = 'up'; movementAmount = oldRank - currentRank; }
-      else if (oldRank < currentRank) { movement = 'down'; movementAmount = currentRank - oldRank; }
-      else { movement = 'same'; }
-    }
-    return {
-      rank: currentRank, oldRank, movement, movementAmount,
-      userId: entry.userId, firstName: entry.user.firstName, lastName: entry.user.lastName,
-      username: entry.user.username, points: entry.points, teamValue: entry.teamValue,
-      eventsPlayed: entry.events,
-    };
-  });
 }
 
 export const handler = withVerifiedAuth(async (event) => {
@@ -234,11 +117,11 @@ export const handler = withVerifiedAuth(async (event) => {
       const prevMonthStart = getMonthStart(new Date(now.getFullYear(), now.getMonth() - 1, 1));
       const prevMonthEnd = getMonthEnd(new Date(now.getFullYear(), now.getMonth() - 1, 1));
 
-      const weekData = calculateLeaderboard(picks, userMap, seasonTournaments, allScores, weekStart, weekEnd, memberSet, firstGW);
-      const prevWeekData = calculateLeaderboard(picks, userMap, seasonTournaments, allScores, prevWeekStart, prevWeekEnd, memberSet, firstGW);
-      const monthData = calculateLeaderboard(picks, userMap, seasonTournaments, allScores, monthStart, monthEnd, memberSet, firstGW);
-      const prevMonthData = calculateLeaderboard(picks, userMap, seasonTournaments, allScores, prevMonthStart, prevMonthEnd, memberSet, firstGW);
-      const seasonData = calculateLeaderboard(picks, userMap, seasonTournaments, allScores, seasonStartDate, seasonEndDate, memberSet, firstGW);
+      const weekData = calculateLeaderboard(picks, userMap, seasonTournaments, allScores, weekStart, weekEnd, firstGW, memberSet);
+      const prevWeekData = calculateLeaderboard(picks, userMap, seasonTournaments, allScores, prevWeekStart, prevWeekEnd, firstGW, memberSet);
+      const monthData = calculateLeaderboard(picks, userMap, seasonTournaments, allScores, monthStart, monthEnd, firstGW, memberSet);
+      const prevMonthData = calculateLeaderboard(picks, userMap, seasonTournaments, allScores, prevMonthStart, prevMonthEnd, firstGW, memberSet);
+      const seasonData = calculateLeaderboard(picks, userMap, seasonTournaments, allScores, seasonStartDate, seasonEndDate, firstGW, memberSet);
 
       const weekRanked = rankEntries(weekData.entries, prevWeekData.entries);
       const monthRanked = rankEntries(monthData.entries, prevMonthData.entries);
@@ -282,9 +165,9 @@ export const handler = withVerifiedAuth(async (event) => {
       periodLabel = `${currentSeason} Season`;
     }
 
-    const currentData = calculateLeaderboard(picks, userMap, seasonTournaments, allScores, periodStart, periodEnd, memberSet, firstGW);
+    const currentData = calculateLeaderboard(picks, userMap, seasonTournaments, allScores, periodStart, periodEnd, firstGW, memberSet);
     const previousData = period !== 'season'
-      ? calculateLeaderboard(picks, userMap, seasonTournaments, allScores, prevPeriodStart, prevPeriodEnd, memberSet, firstGW)
+      ? calculateLeaderboard(picks, userMap, seasonTournaments, allScores, prevPeriodStart, prevPeriodEnd, firstGW, memberSet)
       : null;
 
     const ranked = rankEntries(currentData.entries, previousData?.entries || null);
