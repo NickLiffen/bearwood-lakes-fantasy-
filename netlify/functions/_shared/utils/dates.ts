@@ -174,9 +174,9 @@ export const getMonthEnd = (date: Date = new Date()): Date => {
 };
 
 /**
- * Get start of the season (January 1st at 8am of the given year)
+ * Get start of the season (January 1st at WEEK_START_HOUR of the given year)
  */
-export const getSeasonStart = (year: number = 2026): Date => {
+export const getSeasonStart = (year: number = new Date().getFullYear()): Date => {
   return new Date(year, 0, 1, WEEK_START_HOUR, 0, 0, 0);
 };
 

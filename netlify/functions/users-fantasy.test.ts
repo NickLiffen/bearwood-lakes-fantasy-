@@ -49,7 +49,9 @@ vi.mock('./_shared/services/seasons.service', () => ({
 
 vi.mock('./_shared/utils/dates', () => ({
   getWeekStart: vi.fn().mockReturnValue(new Date('2024-01-01')),
+  getWeekEnd: vi.fn().mockReturnValue(new Date('2024-12-31T23:59:59.999Z')),
   getMonthStart: vi.fn().mockReturnValue(new Date('2024-01-01')),
+  getMonthEnd: vi.fn().mockReturnValue(new Date('2024-12-31T23:59:59.999Z')),
   getSeasonStart: vi.fn().mockReturnValue(new Date('2024-01-01')),
   getTeamEffectiveStartDate: vi.fn().mockReturnValue(new Date('2024-01-01')),
 }));
@@ -135,5 +137,69 @@ describe('users-fantasy handler', () => {
     expect(alice.seasonRank).toBe(1);
     expect(alice.weekRank).toBe(1);
     expect(alice.monthRank).toBe(1);
+  });
+
+  it('applies captain 2x multiplier to points', async () => {
+    // Alice has golfer1 as captain
+    mockPicksCollection.find.mockReturnValue({
+      toArray: vi.fn().mockResolvedValue([
+        {
+          userId: userId1,
+          golferIds: [golferId1, golferId2],
+          captainId: golferId1,
+          totalSpent: 20_000_000,
+          season: 2024,
+          createdAt: new Date('2024-01-01'),
+        },
+      ]),
+    });
+
+    mockScoresCollection.find.mockReturnValue({
+      toArray: vi.fn().mockResolvedValue([
+        { golferId: golferId1, tournamentId: tournamentId1, multipliedPoints: 10 },
+        { golferId: golferId2, tournamentId: tournamentId1, multipliedPoints: 5 },
+      ]),
+    });
+
+    const res = await handler(makeAuthEvent(), mockContext);
+    const body = parseBody(res!);
+
+    const alice = body.data.find((u: { username: string }) => u.username === 'alice');
+    // Captain golfer1 gets 2x (20), non-captain golfer2 gets 1x (5) = 25
+    expect(alice.seasonPoints).toBe(25);
+  });
+
+  it('excludes tournaments outside week/month boundaries', async () => {
+    // Set narrow boundaries: week is Jan 1-7, month is Jan 1-31
+    const { getWeekStart, getWeekEnd, getMonthStart, getMonthEnd } = await import('./_shared/utils/dates');
+    (getWeekStart as ReturnType<typeof vi.fn>).mockReturnValue(new Date('2024-01-01'));
+    (getWeekEnd as ReturnType<typeof vi.fn>).mockReturnValue(new Date('2024-01-07T23:59:59.999Z'));
+    (getMonthStart as ReturnType<typeof vi.fn>).mockReturnValue(new Date('2024-01-01'));
+    (getMonthEnd as ReturnType<typeof vi.fn>).mockReturnValue(new Date('2024-01-31T23:59:59.999Z'));
+
+    const tournamentId2 = new ObjectId();
+
+    // Tournament 1 on Jan 3 (in week + month), Tournament 2 on Feb 15 (outside both)
+    mockTournamentsCollection.find.mockReturnValue({
+      toArray: vi.fn().mockResolvedValue([
+        { _id: tournamentId1, startDate: '2024-01-03', status: 'published', season: 2024 },
+        { _id: tournamentId2, startDate: '2024-02-15', status: 'published', season: 2024 },
+      ]),
+    });
+
+    mockScoresCollection.find.mockReturnValue({
+      toArray: vi.fn().mockResolvedValue([
+        { golferId: golferId1, tournamentId: tournamentId1, multipliedPoints: 10 },
+        { golferId: golferId1, tournamentId: tournamentId2, multipliedPoints: 20 },
+      ]),
+    });
+
+    const res = await handler(makeAuthEvent(), mockContext);
+    const body = parseBody(res!);
+
+    const alice = body.data.find((u: { username: string }) => u.username === 'alice');
+    expect(alice.weekPoints).toBe(10); // Only tournament 1
+    expect(alice.monthPoints).toBe(10); // Only tournament 1
+    expect(alice.seasonPoints).toBe(30); // Both tournaments
   });
 });

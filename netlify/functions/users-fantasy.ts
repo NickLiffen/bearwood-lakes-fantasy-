@@ -9,7 +9,8 @@ import { UserDocument, USERS_COLLECTION } from './_shared/models/User';
 import { PickDocument, PICKS_COLLECTION } from './_shared/models/Pick';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
-import { getWeekStart, getMonthStart, getSeasonStart, getTeamEffectiveStartDate } from './_shared/utils/dates';
+import { getWeekStart, getWeekEnd, getMonthStart, getMonthEnd, getSeasonStart } from './_shared/utils/dates';
+import { calculatePickPoints } from './_shared/utils/scoring';
 import { getActiveSeason } from './_shared/services/seasons.service';
 
 interface FantasyUser {
@@ -87,8 +88,12 @@ export const handler: Handler = withVerifiedAuth(async () => {
     // Time boundaries
     const now = new Date();
     const weekStart = getWeekStart(now, firstGW);
+    const weekEnd = getWeekEnd(weekStart, firstGW);
     const monthStart = getMonthStart(now);
-    const seasonStart = getSeasonStart();
+    const monthEnd = getMonthEnd(now);
+    const seasonStart = getSeasonStart(currentSeason);
+
+    const boundaries = { weekStart, weekEnd, monthStart, monthEnd, seasonStart };
 
     // Calculate points for each user
     interface UserPoints {
@@ -113,43 +118,11 @@ export const handler: Handler = withVerifiedAuth(async () => {
         continue;
       }
 
-      let weekPoints = 0;
-      let monthPoints = 0;
-      let seasonPoints = 0;
-
-      // Team only earns points from tournaments starting on or after their effective start date
-      const teamEffectiveStart = getTeamEffectiveStartDate(pick.createdAt, firstGW);
-
-      for (const golferId of pick.golferIds) {
-        const golferScores = scoresByGolferTournament.get(golferId.toString());
-        if (!golferScores) continue;
-
-        for (const [tournamentId, score] of golferScores) {
-          const tournamentDate = tournamentDates.get(tournamentId);
-          if (!tournamentDate) continue;
-
-          // Skip tournaments before team's effective start date
-          if (tournamentDate < teamEffectiveStart) continue;
-
-          const points = score.multipliedPoints || 0;
-
-          if (tournamentDate >= seasonStart) {
-            seasonPoints += points;
-          }
-          if (tournamentDate >= monthStart) {
-            monthPoints += points;
-          }
-          if (tournamentDate >= weekStart) {
-            weekPoints += points;
-          }
-        }
-      }
+      const points = calculatePickPoints(pick, scoresByGolferTournament, tournamentDates, boundaries, firstGW);
 
       userPointsList.push({
         userId: user._id.toString(),
-        weekPoints,
-        monthPoints,
-        seasonPoints,
+        ...points,
       });
     }
 

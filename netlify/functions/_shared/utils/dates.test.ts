@@ -195,9 +195,9 @@ describe('getSeasonStart', () => {
     expect(result.getHours()).toBe(0);
   });
 
-  it('defaults to 2026', () => {
+  it('defaults to current year', () => {
     const result = getSeasonStart();
-    expect(result.getFullYear()).toBe(2026);
+    expect(result.getFullYear()).toBe(new Date().getFullYear());
   });
 });
 
