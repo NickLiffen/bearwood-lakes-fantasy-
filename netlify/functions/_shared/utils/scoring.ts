@@ -24,7 +24,9 @@ export interface PickPointsResult {
  *
  * Applies:
  *  - captain 2x multiplier
- *  - team effective start date filtering (skip tournaments before team was created)
+ *  - team effective start date filtering (skip tournaments before the team's effective
+ *    start date as determined by `getTeamEffectiveStartDate()`, including first-gameweek
+ *    special-casing)
  *  - proper upper bounds on week and month time windows
  */
 export function calculatePickPoints(
