@@ -61,7 +61,7 @@
     "globals": "^17.1.0",
     "jsdom": "^29.0.1",
     "jsonwebtoken": "^9.0.2",
-    "mongodb": "^6.16.0",
+    "mongodb": "^7.1.1",
     "prettier": "^3.5.3",
     "ts-node": "^10.9.2",
     "tsx": "^4.21.0",
