@@ -63,7 +63,7 @@ const TournamentUploadPage: React.FC = () => {
   // Fetch existing golfers for matching
   const fetchExistingGolfers = useCallback(async () => {
     if (!isAuthReady) return;
-    const response = await get<ExistingGolfer[]>('golfers-list');
+    const response = await get<ExistingGolfer[]>('golfers-list?all=true');
     if (response.success && response.data) {
       setExistingGolfers(response.data);
     }
