@@ -3,6 +3,8 @@
 
 import { withAdmin, apiResponse } from './_shared/middleware';
 import { parsePdfBuffer } from './_shared/services/pdf-parser.service';
+import { tournamentParsePdfSchema } from './_shared/validators/tournament-parse-pdf.validator';
+import { z } from 'zod';
 
 export const handler = withAdmin(async (event) => {
   if (event.httpMethod !== 'POST') {
@@ -10,12 +12,8 @@ export const handler = withAdmin(async (event) => {
   }
 
   try {
-    const body = JSON.parse(event.body || '{}');
-    const { pdf } = body;
-
-    if (!pdf || typeof pdf !== 'string') {
-      return apiResponse(400, null, 'Missing or invalid "pdf" field. Expected base64-encoded PDF.');
-    }
+    const rawBody = JSON.parse(event.body || '{}');
+    const { pdf } = tournamentParsePdfSchema.parse(rawBody);
 
     const buffer = Buffer.from(pdf, 'base64');
 
@@ -36,6 +34,11 @@ export const handler = withAdmin(async (event) => {
 
     return apiResponse(200, result);
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      const messages = error.errors.map((e) => e.message).join('; ');
+      return apiResponse(422, null, messages);
+    }
+
     const message =
       error instanceof Error ? error.message : 'Failed to parse PDF. Is this an ECG leaderboard?';
     return apiResponse(400, null, message);

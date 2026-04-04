@@ -113,10 +113,15 @@ const TournamentUploadPage: React.FC = () => {
 
     try {
       // Read PDF as base64 and send to server for parsing
-      const arrayBuffer = await file.arrayBuffer();
-      const base64 = btoa(
-        new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
-      );
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const dataUrl = reader.result as string;
+          resolve(dataUrl.split(',')[1]); // strip "data:...;base64," prefix
+        };
+        reader.onerror = () => reject(new Error('Failed to read PDF file'));
+        reader.readAsDataURL(file);
+      });
 
       const response = await post<{
         name: string;

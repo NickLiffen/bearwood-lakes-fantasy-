@@ -2,20 +2,9 @@
 // Uses pdfjs-dist with position-based text reconstruction for reliable line detection
 
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
+import type { ParsedGolfer, ParsedTournament } from '../../../../shared/types/parsed-tournament.types';
 
-export interface ParsedGolfer {
-  position: number;
-  firstName: string;
-  lastName: string;
-  rawScore: number;
-}
-
-export interface ParsedTournament {
-  name: string;
-  date: string; // ISO date string (YYYY-MM-DD)
-  scoringFormat: 'stableford' | 'medal';
-  golfers: ParsedGolfer[];
-}
+export type { ParsedGolfer, ParsedTournament };
 
 interface TextItem {
   x: number;
@@ -36,49 +25,52 @@ export async function extractTextFromPdfBuffer(buffer: Buffer): Promise<string> 
   const doc = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
   const pageTexts: string[] = [];
 
-  for (let i = 1; i <= doc.numPages; i++) {
-    const page = await doc.getPage(i);
-    const content = await page.getTextContent();
+  try {
+    for (let i = 1; i <= doc.numPages; i++) {
+      const page = await doc.getPage(i);
+      const content = await page.getTextContent();
 
-    const items: TextItem[] = [];
-    for (const rawItem of content.items) {
-      if (!('str' in rawItem)) continue;
-      const s = (rawItem as { str: string }).str.trim();
-      if (!s) continue;
-      const transform = (rawItem as { transform: number[] }).transform;
-      items.push({ x: transform[4], y: transform[5], text: s });
-    }
-
-    // Sort by Y descending (PDF coordinates go bottom-up, so top of page = highest Y)
-    items.sort((a, b) => b.y - a.y);
-
-    // Cluster items into rows using Y tolerance
-    const rows: TextItem[][] = [];
-    let currentRow: TextItem[] = [];
-    let currentY: number | null = null;
-
-    for (const item of items) {
-      if (currentY === null || Math.abs(item.y - currentY) > Y_TOLERANCE) {
-        if (currentRow.length > 0) rows.push(currentRow);
-        currentRow = [item];
-        currentY = item.y;
-      } else {
-        currentRow.push(item);
+      const items: TextItem[] = [];
+      for (const rawItem of content.items) {
+        if (!('str' in rawItem)) continue;
+        const s = (rawItem as { str: string }).str.trim();
+        if (!s) continue;
+        const transform = (rawItem as { transform: number[] }).transform;
+        items.push({ x: transform[4], y: transform[5], text: s });
       }
+
+      // Sort by Y descending (PDF coordinates go bottom-up, so top of page = highest Y)
+      items.sort((a, b) => b.y - a.y);
+
+      // Cluster items into rows using Y tolerance
+      const rows: TextItem[][] = [];
+      let currentRow: TextItem[] = [];
+      let currentY: number | null = null;
+
+      for (const item of items) {
+        if (currentY === null || Math.abs(item.y - currentY) > Y_TOLERANCE) {
+          if (currentRow.length > 0) rows.push(currentRow);
+          currentRow = [item];
+          currentY = item.y;
+        } else {
+          currentRow.push(item);
+        }
+      }
+      if (currentRow.length > 0) rows.push(currentRow);
+
+      // Sort items within each row by X (left to right), join into lines
+      const lines = rows.map((row) => {
+        row.sort((a, b) => a.x - b.x);
+        return row.map((item) => item.text).join(' ');
+      });
+
+      pageTexts.push(lines.join('\n'));
     }
-    if (currentRow.length > 0) rows.push(currentRow);
 
-    // Sort items within each row by X (left to right), join into lines
-    const lines = rows.map((row) => {
-      row.sort((a, b) => a.x - b.x);
-      return row.map((item) => item.text).join(' ');
-    });
-
-    pageTexts.push(lines.join('\n'));
+    return pageTexts.join('\n');
+  } finally {
+    await doc.destroy();
   }
-
-  await doc.destroy();
-  return pageTexts.join('\n');
 }
 
 /**
