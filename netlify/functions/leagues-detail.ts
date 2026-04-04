@@ -8,7 +8,7 @@ import { UserDocument, USERS_COLLECTION } from './_shared/models/User';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
 import { getActiveSeason, getSeasonByName } from './_shared/services/seasons.service';
-import { getWeekStart, getWeekEnd as getWeekEndUtil, getMonthStart, getMonthEnd, getGameweekNumber } from './_shared/utils/dates';
+import { getWeekStart, getWeekEnd as getWeekEndUtil, getMonthStart, getMonthEnd, getGameweekNumber, getFirstGameweekStart } from './_shared/utils/dates';
 import {
   calculateLeaderboard,
   rankEntries,
@@ -133,8 +133,8 @@ export const handler = withVerifiedAuth(async (event) => {
           weeklyLeader: weekRanked.find((e) => e.rank === 1) || null,
           monthlyLeader: monthRanked.find((e) => e.rank === 1) || null,
           seasonLeader: seasonRanked.find((e) => e.rank === 1) || null,
-          currentWeek: { type: 'week', startDate: weekStart.toISOString(), endDate: weekEnd.toISOString(), label: formatWeekLabel(weekStart, weekEnd, getGameweekNumber(weekStart, seasonStartDate, firstGW)), gameweek: getGameweekNumber(weekStart, seasonStartDate, firstGW), hasPrevious: weekStart > seasonStartDate, hasNext: weekEnd < now },
-          currentMonth: { type: 'month', startDate: monthStart.toISOString(), endDate: monthEnd.toISOString(), label: formatMonthLabel(monthStart), hasPrevious: monthStart > seasonStartDate, hasNext: monthEnd < now },
+          currentWeek: { type: 'week', startDate: weekStart.toISOString(), endDate: weekEnd.toISOString(), label: formatWeekLabel(weekStart, weekEnd, getGameweekNumber(weekStart, seasonStartDate, firstGW)), gameweek: getGameweekNumber(weekStart, seasonStartDate, firstGW), hasPrevious: weekStart > getFirstGameweekStart(seasonStartDate, firstGW), hasNext: weekEnd < now },
+          currentMonth: { type: 'month', startDate: monthStart.toISOString(), endDate: monthEnd.toISOString(), label: formatMonthLabel(monthStart), hasPrevious: monthStart > getFirstGameweekStart(seasonStartDate, firstGW), hasNext: monthEnd < now },
           seasonInfo: { type: 'season', startDate: seasonStartDate.toISOString(), endDate: seasonEndDate.toISOString(), label: `${currentSeason} Season`, hasPrevious: false, hasNext: false },
         },
       });
@@ -171,12 +171,13 @@ export const handler = withVerifiedAuth(async (event) => {
 
     const ranked = rankEntries(currentData.entries, previousData?.entries || null);
 
+    const firstGameweekAnchor = getFirstGameweekStart(seasonStartDate, firstGW);
     let hasPrevious = false, hasNext = false;
     if (period === 'week') {
-      hasPrevious = periodStart > seasonStartDate;
+      hasPrevious = periodStart > firstGameweekAnchor;
       hasNext = periodEnd < getWeekEnd(getWeekStart(now, firstGW), firstGW);
     } else if (period === 'month') {
-      hasPrevious = periodStart > seasonStartDate;
+      hasPrevious = periodStart > firstGameweekAnchor;
       hasNext = periodEnd < getMonthEnd(now);
     }
 
