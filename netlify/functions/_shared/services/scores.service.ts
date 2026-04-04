@@ -181,8 +181,8 @@ export async function getPublishedScores(): Promise<Score[]> {
   const scoresCollection = db.collection<ScoreDocument>(SCORES_COLLECTION);
   const tournamentsCollection = db.collection<TournamentDocument>(TOURNAMENTS_COLLECTION);
 
-  // Get published tournaments
-  const publishedTournaments = await tournamentsCollection.find({ status: 'published' }).toArray();
+  // Get published or complete tournaments
+  const publishedTournaments = await tournamentsCollection.find({ status: { $in: ['published', 'complete'] } }).toArray();
   const publishedIds = publishedTournaments.map((t) => t._id);
 
   // Get scores only from published tournaments
