@@ -16,6 +16,7 @@ import {
   validateRefreshToken,
   revokeAllUserTokens,
   revokeRefreshToken,
+  RefreshError,
 } from './auth.service';
 
 vi.mock('../db', () => ({
@@ -38,6 +39,7 @@ const mockUsersCollection = {
 
 const mockTokensCollection = {
   findOne: vi.fn(),
+  findOneAndUpdate: vi.fn(),
   insertOne: vi.fn(),
   updateOne: vi.fn(),
   updateMany: vi.fn(),
@@ -179,10 +181,11 @@ describe('auth.service', () => {
   });
 
   describe('validateRefreshToken', () => {
-    it('returns user and revokes token on valid refresh', async () => {
+    it('returns user and atomically revokes token on valid refresh', async () => {
       const tokenDocId = new ObjectId();
       const userId = new ObjectId();
-      mockTokensCollection.findOne.mockResolvedValue({
+      // findOneAndUpdate returns the document (atomic consume)
+      mockTokensCollection.findOneAndUpdate.mockResolvedValue({
         _id: tokenDocId,
         tokenHash: 'hashed-refresh-token',
         userId: userId.toString(),
@@ -204,30 +207,92 @@ describe('auth.service', () => {
       const user = await validateRefreshToken('some-token');
 
       expect(user.username).toBe('nickliffen');
-      // Token should be revoked (rotation)
-      expect(mockTokensCollection.updateOne).toHaveBeenCalledWith(
-        { _id: tokenDocId },
-        { $set: { revokedAt: expect.any(Date) } }
+      // Token should be atomically consumed via findOneAndUpdate
+      expect(mockTokensCollection.findOneAndUpdate).toHaveBeenCalledWith(
+        {
+          tokenHash: 'hashed-refresh-token',
+          expiresAt: { $gt: expect.any(Date) },
+          revokedAt: { $exists: false },
+        },
+        { $set: { revokedAt: expect.any(Date) } },
+        { returnDocument: 'before' }
       );
     });
 
-    it('throws when token not found or expired', async () => {
+    it('throws TOKEN_INVALID when token not found at all', async () => {
+      // Atomic consume returns null (no valid token)
+      mockTokensCollection.findOneAndUpdate.mockResolvedValue(null);
+      // Secondary lookup also returns null (token doesn't exist)
       mockTokensCollection.findOne.mockResolvedValue(null);
 
-      await expect(validateRefreshToken('bad-token')).rejects.toThrow(
-        'Invalid or expired refresh token'
-      );
+      await expect(validateRefreshToken('bad-token')).rejects.toThrow(RefreshError);
+      await expect(validateRefreshToken('bad-token')).rejects.toMatchObject({
+        code: 'TOKEN_INVALID',
+      });
     });
 
-    it('throws when user not found', async () => {
+    it('throws TOKEN_EXPIRED when token exists but is expired', async () => {
+      mockTokensCollection.findOneAndUpdate.mockResolvedValue(null);
       mockTokensCollection.findOne.mockResolvedValue({
         _id: new ObjectId(),
         tokenHash: 'hashed-refresh-token',
         userId: new ObjectId().toString(),
+        expiresAt: new Date('2020-01-01'), // expired
+      });
+
+      await expect(validateRefreshToken('expired-token')).rejects.toThrow(RefreshError);
+      await expect(validateRefreshToken('expired-token')).rejects.toMatchObject({
+        code: 'TOKEN_EXPIRED',
+      });
+    });
+
+    it('throws ROTATION_RACE when token was just revoked (even without replacedByHash yet)', async () => {
+      const now = new Date();
+      mockTokensCollection.findOneAndUpdate.mockResolvedValue(null);
+      mockTokensCollection.findOne.mockResolvedValue({
+        _id: new ObjectId(),
+        tokenHash: 'hashed-refresh-token',
+        userId: new ObjectId().toString(),
+        expiresAt: new Date('2099-01-01'),
+        revokedAt: now, // just revoked — replacedByHash may not be written yet
+      });
+
+      await expect(validateRefreshToken('raced-token')).rejects.toThrow(RefreshError);
+      await expect(validateRefreshToken('raced-token')).rejects.toMatchObject({
+        code: 'ROTATION_RACE',
+      });
+    });
+
+    it('throws TOKEN_INVALID when token was revoked long ago', async () => {
+      mockTokensCollection.findOneAndUpdate.mockResolvedValue(null);
+      mockTokensCollection.findOne.mockResolvedValue({
+        _id: new ObjectId(),
+        tokenHash: 'hashed-refresh-token',
+        userId: new ObjectId().toString(),
+        expiresAt: new Date('2099-01-01'),
+        revokedAt: new Date(Date.now() - 10000), // revoked 10s ago — outside grace window
+      });
+
+      await expect(validateRefreshToken('revoked-token')).rejects.toThrow(RefreshError);
+      await expect(validateRefreshToken('revoked-token')).rejects.toMatchObject({
+        code: 'TOKEN_INVALID',
+      });
+    });
+
+    it('throws USER_NOT_FOUND when user does not exist', async () => {
+      const tokenDocId = new ObjectId();
+      mockTokensCollection.findOneAndUpdate.mockResolvedValue({
+        _id: tokenDocId,
+        tokenHash: 'hashed-refresh-token',
+        userId: new ObjectId().toString(),
+        expiresAt: new Date('2099-01-01'),
       });
       mockUsersCollection.findOne.mockResolvedValue(null);
 
-      await expect(validateRefreshToken('some-token')).rejects.toThrow('User not found');
+      await expect(validateRefreshToken('some-token')).rejects.toThrow(RefreshError);
+      await expect(validateRefreshToken('some-token')).rejects.toMatchObject({
+        code: 'USER_NOT_FOUND',
+      });
     });
   });
 
@@ -235,10 +300,19 @@ describe('auth.service', () => {
     it('issues new token pair after consuming old refresh token', async () => {
       const userId = new ObjectId();
       const tokenDocId = new ObjectId();
-      mockTokensCollection.findOne.mockResolvedValue({
+
+      // Return different hashes for old vs new token to verify rotation lineage
+      vi.mocked(hashRefreshToken)
+        .mockReturnValueOnce('old-token-hash') // old token lookup in validateRefreshToken
+        .mockReturnValueOnce('new-token-hash') // new token stored in storeRefreshToken
+        .mockReturnValueOnce('old-token-hash'); // old token lookup for replacedByHash update
+
+      // Atomic consume succeeds
+      mockTokensCollection.findOneAndUpdate.mockResolvedValue({
         _id: tokenDocId,
-        tokenHash: 'hashed-refresh-token',
+        tokenHash: 'old-token-hash',
         userId: userId.toString(),
+        expiresAt: new Date('2099-01-01'),
       });
       mockUsersCollection.findOne.mockResolvedValue({
         _id: userId,
@@ -257,9 +331,14 @@ describe('auth.service', () => {
 
       expect(result.token).toBe('jwt-access-token');
       expect(result.refreshToken).toBe('new-refresh-token');
-      // Old token revoked + new token stored = 1 updateOne + 2 insertOne
-      expect(mockTokensCollection.updateOne).toHaveBeenCalled();
+      // Atomic consume + new token stored + rotation lineage update
+      expect(mockTokensCollection.findOneAndUpdate).toHaveBeenCalled();
       expect(mockTokensCollection.insertOne).toHaveBeenCalled();
+      // Rotation lineage: old token should reference the new token's hash
+      expect(mockTokensCollection.updateOne).toHaveBeenCalledWith(
+        { tokenHash: 'old-token-hash' },
+        { $set: { replacedByHash: 'new-token-hash' } }
+      );
     });
   });
 

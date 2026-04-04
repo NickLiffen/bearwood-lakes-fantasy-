@@ -47,6 +47,106 @@ function decodeJwtExp(token: string): number | null {
 // How many ms before expiry to proactively refresh (60 seconds)
 const REFRESH_BUFFER_MS = 60 * 1000;
 
+// Retry configuration for refresh failures
+const MAX_REFRESH_RETRIES = 3;
+const RETRY_BASE_DELAY_MS = 1000;
+
+// Error codes from the backend that mean the session is definitively over
+const DEFINITIVE_ERROR_CODES = new Set([
+  'NO_REFRESH_TOKEN',
+  'TOKEN_EXPIRED',
+  'TOKEN_INVALID',
+  'USER_NOT_FOUND',
+]);
+
+// Error codes that are worth retrying
+const RETRYABLE_ERROR_CODES = new Set(['ROTATION_RACE']);
+
+/**
+ * Acquire a cross-tab lock for token refresh.
+ * Uses navigator.locks when available, falls back to localStorage-based lease.
+ */
+async function withRefreshLock<T>(fn: () => Promise<T>): Promise<T> {
+  if (typeof navigator !== 'undefined' && 'locks' in navigator) {
+    return navigator.locks.request('auth-token-refresh', fn);
+  }
+  return withLocalStorageLock(fn);
+}
+
+const LOCK_KEY = 'auth_refresh_lock';
+const LOCK_LEASE_MS = 5000;
+
+async function withLocalStorageLock<T>(fn: () => Promise<T>): Promise<T> {
+  const lockId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+  // Wait for any existing lock to expire
+  for (let i = 0; i < 50; i++) {
+    const existing = localStorage.getItem(LOCK_KEY);
+    if (existing) {
+      try {
+        const parsed = JSON.parse(existing);
+        if (Date.now() - parsed.ts < LOCK_LEASE_MS) {
+          await new Promise((r) => setTimeout(r, 100));
+          continue;
+        }
+      } catch {
+        // Corrupted lock value — treat as expired
+        localStorage.removeItem(LOCK_KEY);
+      }
+    }
+    break;
+  }
+
+  localStorage.setItem(LOCK_KEY, JSON.stringify({ id: lockId, ts: Date.now() }));
+
+  // Verify we own the lock (another tab might have written at the same time)
+  await new Promise((r) => setTimeout(r, 10));
+  const check = localStorage.getItem(LOCK_KEY);
+  if (check) {
+    try {
+      const parsed = JSON.parse(check);
+      if (parsed.id !== lockId) {
+        // Lost the lock race — wait briefly and read the new token from storage
+        await new Promise((r) => setTimeout(r, LOCK_LEASE_MS));
+        throw new LockLostError();
+      }
+    } catch (e) {
+      if (e instanceof LockLostError) throw e;
+      // Corrupted — remove and proceed as if we have the lock
+      localStorage.removeItem(LOCK_KEY);
+    }
+  }
+
+  try {
+    return await fn();
+  } finally {
+    const current = localStorage.getItem(LOCK_KEY);
+    if (current) {
+      try {
+        const parsed = JSON.parse(current);
+        if (parsed.id === lockId) {
+          localStorage.removeItem(LOCK_KEY);
+        }
+      } catch {
+        // Corrupted lock — clean it up
+        localStorage.removeItem(LOCK_KEY);
+      }
+    }
+  }
+}
+
+class LockLostError extends Error {
+  constructor() {
+    super('Lock lost to another tab');
+    this.name = 'LockLostError';
+  }
+}
+
+/** Sleep helper for retry backoff */
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -75,25 +175,109 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(null);
   }, [clearRefreshTimer]);
 
-  // Core refresh logic (called by timer, manual refresh, and retry)
+  // Core refresh logic with retry and cross-tab coordination
   const doRefresh = useCallback(async (): Promise<boolean> => {
     try {
-      const response = await fetch('/.netlify/functions/auth-refresh', {
-        method: 'POST',
-        credentials: 'include',
-      });
+      return await withRefreshLock(async () => {
+        // After acquiring the lock, check if another tab already refreshed
+        const freshToken = localStorage.getItem(TOKEN_KEY);
+        if (freshToken) {
+          const exp = decodeJwtExp(freshToken);
+          if (exp && exp * 1000 - Date.now() > REFRESH_BUFFER_MS) {
+            // Token was already refreshed by another tab — use it
+            const storedUser = localStorage.getItem(USER_KEY);
+            if (storedUser) {
+              try {
+                setToken(freshToken);
+                setUser(JSON.parse(storedUser) as User);
+                return true;
+              } catch {
+                // Fall through to refresh
+              }
+            }
+          }
+        }
 
-      if (!response.ok) {
+        // Perform the actual refresh with retry logic
+        let lastError: string | undefined;
+        let lastCode: string | undefined;
+
+        for (let attempt = 0; attempt <= MAX_REFRESH_RETRIES; attempt++) {
+          if (attempt > 0) {
+            await sleep(RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1));
+          }
+
+          try {
+            const response = await fetch('/.netlify/functions/auth-refresh', {
+              method: 'POST',
+              credentials: 'include',
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              persistAuth(data.data.token, data.data.user);
+              return true;
+            }
+
+            // Parse error response for typed error codes
+            let errorBody: { error?: string; code?: string } = {};
+            try {
+              errorBody = await response.json();
+            } catch {
+              // Non-JSON response — treat as transient
+            }
+
+            lastError = errorBody.error;
+            lastCode = errorBody.code;
+
+            // Definitive failure — don't retry
+            if (lastCode && DEFINITIVE_ERROR_CODES.has(lastCode)) {
+              clearAuth();
+              return false;
+            }
+
+            // Retryable error code — continue loop
+            if (lastCode && RETRYABLE_ERROR_CODES.has(lastCode)) {
+              continue;
+            }
+
+            // Server error (5xx) — retryable
+            if (response.status >= 500) {
+              continue;
+            }
+
+            // Unknown 4xx — don't retry
+            clearAuth();
+            return false;
+          } catch {
+            // Network error — retryable
+            lastError = 'Network error';
+            continue;
+          }
+        }
+
+        // All retries exhausted
+        console.warn('[Auth] Token refresh failed after retries:', lastError, lastCode);
         clearAuth();
         return false;
+      });
+    } catch (error) {
+      if (error instanceof LockLostError) {
+        // Another tab got the lock — check if it refreshed successfully
+        const freshToken = localStorage.getItem(TOKEN_KEY);
+        const storedUser = localStorage.getItem(USER_KEY);
+        if (freshToken && storedUser) {
+          try {
+            setToken(freshToken);
+            setUser(JSON.parse(storedUser) as User);
+            return true;
+          } catch {
+            // Fall through
+          }
+        }
+        return false;
       }
-
-      const data = await response.json();
-      persistAuth(data.data.token, data.data.user);
-      return true;
-    } catch {
-      clearAuth();
-      return false;
+      throw error;
     }
   }, [persistAuth, clearAuth]);
 
@@ -187,6 +371,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
+
+  // Refresh token when tab regains focus (handles browser timer throttling)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') return;
+
+      const currentToken = localStorage.getItem(TOKEN_KEY);
+      if (!currentToken) return;
+
+      const exp = decodeJwtExp(currentToken);
+      if (!exp) return;
+
+      const now = Date.now();
+      const expiresAt = exp * 1000;
+
+      if (expiresAt <= now || expiresAt - now <= REFRESH_BUFFER_MS) {
+        // Token is expired or about to expire — refresh immediately
+        doRefresh();
+      } else {
+        // Token is still valid — reschedule the timer (it may have been throttled)
+        scheduleRefresh(currentToken);
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [doRefresh, scheduleRefresh]);
 
   const login = useCallback(
     async (username: string, password: string): Promise<void> => {

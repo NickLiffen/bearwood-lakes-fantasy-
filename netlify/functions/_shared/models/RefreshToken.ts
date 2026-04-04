@@ -11,6 +11,7 @@ export interface RefreshTokenDocument {
   expiresAt: Date;
   createdAt: Date;
   revokedAt?: Date;
+  replacedByHash?: string; // Hash of the successor token (rotation lineage)
   userAgent?: string;
   ipAddress?: string;
 }

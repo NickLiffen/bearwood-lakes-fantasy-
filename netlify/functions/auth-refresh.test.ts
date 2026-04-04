@@ -2,6 +2,14 @@ import { makeEvent, mockContext, parseBody } from './__test-utils__';
 
 vi.mock('./_shared/services/auth.service', () => ({
   refreshAccessToken: vi.fn(),
+  RefreshError: class RefreshError extends Error {
+    code: string;
+    constructor(message: string, code: string) {
+      super(message);
+      this.name = 'RefreshError';
+      this.code = code;
+    }
+  },
 }));
 
 vi.mock('./_shared/middleware', () => ({
@@ -16,7 +24,7 @@ vi.mock('./_shared/utils/cookies', () => ({
 }));
 
 import { handler } from './auth-refresh';
-import { refreshAccessToken } from './_shared/services/auth.service';
+import { refreshAccessToken, RefreshError } from './_shared/services/auth.service';
 import {
   getRefreshTokenFromCookie,
   setRefreshTokenCookie,
@@ -78,9 +86,11 @@ describe('auth-refresh', () => {
     expect(refreshAccessToken).not.toHaveBeenCalled();
   });
 
-  it('returns 401 and clears cookie on expired/invalid token', async () => {
+  it('returns 401 with code and clears cookie on definitive failure', async () => {
     vi.mocked(getRefreshTokenFromCookie).mockReturnValue('expired-token');
-    vi.mocked(refreshAccessToken).mockRejectedValue(new Error('Token expired or revoked'));
+    vi.mocked(refreshAccessToken).mockRejectedValue(
+      new RefreshError('Refresh token expired', 'TOKEN_EXPIRED')
+    );
 
     const event = makeEvent({
       httpMethod: 'POST',
@@ -93,11 +103,55 @@ describe('auth-refresh', () => {
     const result = await handler(event, mockContext);
 
     expect(result.statusCode).toBe(401);
-    expect(parseBody(result).error).toBe('Token expired or revoked');
+    const body = parseBody(result);
+    expect(body.error).toBe('Refresh token expired');
+    expect(body.code).toBe('TOKEN_EXPIRED');
     expect(result.headers!['Set-Cookie']).toBe(
       'refresh_token=; HttpOnly; Max-Age=0; Path=/'
     );
     expect(clearRefreshTokenCookie).toHaveBeenCalled();
+  });
+
+  it('returns 401 with NO_REFRESH_TOKEN code when cookie missing', async () => {
+    vi.mocked(getRefreshTokenFromCookie).mockReturnValue(null);
+
+    const event = makeEvent({
+      httpMethod: 'POST',
+      headers: { origin: 'http://localhost:3000' },
+    });
+
+    const result = await handler(event, mockContext);
+
+    expect(result.statusCode).toBe(401);
+    const body = parseBody(result);
+    expect(body.code).toBe('NO_REFRESH_TOKEN');
+    expect(result.headers!['Set-Cookie']).toBe(
+      'refresh_token=; HttpOnly; Max-Age=0; Path=/'
+    );
+  });
+
+  it('returns 409 without clearing cookie on ROTATION_RACE', async () => {
+    vi.mocked(getRefreshTokenFromCookie).mockReturnValue('raced-token');
+    vi.mocked(refreshAccessToken).mockRejectedValue(
+      new RefreshError('Token was just rotated', 'ROTATION_RACE')
+    );
+
+    const event = makeEvent({
+      httpMethod: 'POST',
+      headers: {
+        cookie: 'refresh_token=raced-token',
+        origin: 'http://localhost:3000',
+      },
+    });
+
+    const result = await handler(event, mockContext);
+
+    expect(result.statusCode).toBe(409);
+    const body = parseBody(result);
+    expect(body.code).toBe('ROTATION_RACE');
+    // Must NOT clear the cookie — the winning tab already set the new one
+    expect(clearRefreshTokenCookie).not.toHaveBeenCalled();
+    expect(result.headers!['Set-Cookie']).toBeUndefined();
   });
 
   it('returns 204 for OPTIONS preflight', async () => {
@@ -122,5 +176,26 @@ describe('auth-refresh', () => {
 
     expect(result.statusCode).toBe(405);
     expect(parseBody(result).error).toBe('Method not allowed');
+  });
+
+  it('returns 500 without clearing cookie on unexpected errors', async () => {
+    vi.mocked(getRefreshTokenFromCookie).mockReturnValue('some-token');
+    vi.mocked(refreshAccessToken).mockRejectedValue(new Error('MongoDB connection failed'));
+
+    const event = makeEvent({
+      httpMethod: 'POST',
+      headers: {
+        cookie: 'refresh_token=some-token',
+        origin: 'http://localhost:3000',
+      },
+    });
+
+    const result = await handler(event, mockContext);
+
+    expect(result.statusCode).toBe(500);
+    const body = parseBody(result);
+    expect(body.code).toBe('INTERNAL_ERROR');
+    // Must NOT clear the cookie — this is a transient failure
+    expect(clearRefreshTokenCookie).not.toHaveBeenCalled();
   });
 });
