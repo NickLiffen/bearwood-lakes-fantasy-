@@ -112,7 +112,7 @@ describe('tournaments-create handler', () => {
       mockContext,
     );
     expect(res.statusCode).toBe(403);
-    expect(parseBody(res).error).toContain('Admin');
+    expect(parseBody(res).error).toContain('Insufficient permissions');
   });
 
   it('returns 500 on service error', async () => {

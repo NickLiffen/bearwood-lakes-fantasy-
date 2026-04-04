@@ -24,10 +24,13 @@ const handler = withAdmin(async (event: AuthenticatedEvent) => {
       };
     }
 
-    if (!['admin', 'user'].includes(role)) {
+    if (!['admin', 'user', 'tournament_uploader'].includes(role)) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ success: false, error: 'Role must be "admin" or "user"' }),
+        body: JSON.stringify({
+          success: false,
+          error: 'Role must be "admin", "user", or "tournament_uploader"',
+        }),
       };
     }
 

@@ -1,12 +1,12 @@
-// POST /.netlify/functions/tournament-upload (Admin only)
+// POST /.netlify/functions/tournament-upload (Admin + Tournament Uploader)
 // Processes confirmed tournament data from PDF upload
 
-import { withAdmin, apiResponse } from './_shared/middleware';
+import { withRole, apiResponse } from './_shared/middleware';
 import { processTournamentUpload } from './_shared/services/tournament-upload.service';
 import { tournamentUploadSchema } from './_shared/validators/tournament-upload.validator';
 import { z } from 'zod';
 
-export const handler = withAdmin(async (event) => {
+export const handler = withRole('admin', 'tournament_uploader')(async (event) => {
   if (event.httpMethod !== 'POST') {
     return apiResponse(405, null, 'Method not allowed');
   }

@@ -9,6 +9,7 @@ interface AuthContextType {
   token: string | null;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  canAccessAdmin: boolean;
   login: (username: string, password: string) => Promise<void>;
   register: (data: {
     firstName: string;
@@ -252,6 +253,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     token,
     isAuthenticated: !!user && !!token,
     isAdmin: user?.role === 'admin',
+    canAccessAdmin: user?.role === 'admin' || user?.role === 'tournament_uploader',
     login,
     register,
     logout,

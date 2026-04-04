@@ -262,7 +262,7 @@ describe('middleware', () => {
 
       expect(result.statusCode).toBe(403);
       const body = JSON.parse(result.body!);
-      expect(body.error).toContain('Admin access required');
+      expect(body.error).toContain('Insufficient permissions');
     });
 
     it('passes through for admin user', async () => {

@@ -5,6 +5,8 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import './AdminLayout.css';
 
+import { ADMIN_PORTAL_ROLES } from '@shared/constants/rules';
+
 interface User {
   id: string;
   firstName: string;
@@ -30,7 +32,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
       navigate('/login');
       return;
     }
-    if (authUser.role !== 'admin') {
+    if (!ADMIN_PORTAL_ROLES.includes(authUser.role)) {
       navigate('/dashboard');
       return;
     }
@@ -97,7 +99,10 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
               ← Back to App
             </Link>
             <span className="admin-user">
-              {user.firstName} <span className="admin-badge">Admin</span>
+              {user.firstName}{' '}
+              <span className="admin-badge">
+                {user.role === 'admin' ? 'Admin' : 'Uploader'}
+              </span>
             </span>
             <button onClick={handleLogout} className="btn-logout">
               Logout
@@ -135,7 +140,10 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
       >
         <div className="admin-mobile-menu-header">
           <span className="admin-mobile-greeting">
-            {user.firstName} <span className="admin-badge">Admin</span>
+            {user.firstName}{' '}
+            <span className="admin-badge">
+              {user.role === 'admin' ? 'Admin' : 'Uploader'}
+            </span>
           </span>
         </div>
         <div className="admin-mobile-menu-links">
@@ -145,61 +153,67 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
           >
             <span className="nav-icon">📊</span> Overview
           </Link>
-          <Link
-            to="/admin/golfers"
-            className={`admin-mobile-nav-link ${isActive('/admin/golfers') ? 'active' : ''}`}
-          >
-            <span className="nav-icon">🏌️</span> Golfers
-          </Link>
-          <Link
-            to="/admin/tournaments"
-            className={`admin-mobile-nav-link ${isActive('/admin/tournaments') ? 'active' : ''}`}
-          >
-            <span className="nav-icon">🏆</span> Tournaments
-          </Link>
-          <Link
-            to="/admin/scores"
-            className={`admin-mobile-nav-link ${isActive('/admin/scores') ? 'active' : ''}`}
-          >
-            <span className="nav-icon">📝</span> Scores
-          </Link>
-          <Link
-            to="/admin/seasons"
-            className={`admin-mobile-nav-link ${isActive('/admin/seasons') ? 'active' : ''}`}
-          >
-            <span className="nav-icon">📅</span> Seasons
-          </Link>
-          <Link
-            to="/admin/users"
-            className={`admin-mobile-nav-link ${isActive('/admin/users') ? 'active' : ''}`}
-          >
-            <span className="nav-icon">👥</span> Users
-          </Link>
-          <Link
-            to="/admin/leagues"
-            className={`admin-mobile-nav-link ${isActive('/admin/leagues') ? 'active' : ''}`}
-          >
-            <span className="nav-icon">🏆</span> Leagues
-          </Link>
-          <div className="admin-mobile-divider" />
-          <Link
-            to="/admin/season-upload"
-            className={`admin-mobile-nav-link ${isActive('/admin/season-upload') ? 'active' : ''}`}
-          >
-            <span className="nav-icon">📤</span> Season Upload
-          </Link>
+          {user.role === 'admin' && (
+            <>
+              <Link
+                to="/admin/golfers"
+                className={`admin-mobile-nav-link ${isActive('/admin/golfers') ? 'active' : ''}`}
+              >
+                <span className="nav-icon">🏌️</span> Golfers
+              </Link>
+              <Link
+                to="/admin/tournaments"
+                className={`admin-mobile-nav-link ${isActive('/admin/tournaments') ? 'active' : ''}`}
+              >
+                <span className="nav-icon">🏆</span> Tournaments
+              </Link>
+              <Link
+                to="/admin/scores"
+                className={`admin-mobile-nav-link ${isActive('/admin/scores') ? 'active' : ''}`}
+              >
+                <span className="nav-icon">📝</span> Scores
+              </Link>
+              <Link
+                to="/admin/seasons"
+                className={`admin-mobile-nav-link ${isActive('/admin/seasons') ? 'active' : ''}`}
+              >
+                <span className="nav-icon">📅</span> Seasons
+              </Link>
+              <Link
+                to="/admin/users"
+                className={`admin-mobile-nav-link ${isActive('/admin/users') ? 'active' : ''}`}
+              >
+                <span className="nav-icon">👥</span> Users
+              </Link>
+              <Link
+                to="/admin/leagues"
+                className={`admin-mobile-nav-link ${isActive('/admin/leagues') ? 'active' : ''}`}
+              >
+                <span className="nav-icon">🏆</span> Leagues
+              </Link>
+              <div className="admin-mobile-divider" />
+              <Link
+                to="/admin/season-upload"
+                className={`admin-mobile-nav-link ${isActive('/admin/season-upload') ? 'active' : ''}`}
+              >
+                <span className="nav-icon">📤</span> Season Upload
+              </Link>
+            </>
+          )}
           <Link
             to="/admin/tournament-upload"
             className={`admin-mobile-nav-link ${isActive('/admin/tournament-upload') ? 'active' : ''}`}
           >
             <span className="nav-icon">📄</span> Tournament Upload
           </Link>
-          <Link
-            to="/admin/settings"
-            className={`admin-mobile-nav-link ${isActive('/admin/settings') ? 'active' : ''}`}
-          >
-            <span className="nav-icon">⚙️</span> Settings
-          </Link>
+          {user.role === 'admin' && (
+            <Link
+              to="/admin/settings"
+              className={`admin-mobile-nav-link ${isActive('/admin/settings') ? 'active' : ''}`}
+            >
+              <span className="nav-icon">⚙️</span> Settings
+            </Link>
+          )}
         </div>
         <div className="admin-mobile-menu-footer">
           <Link to="/dashboard" className="admin-mobile-back-link">
@@ -219,58 +233,62 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
               <span className="nav-icon">📊</span>
               Overview
             </Link>
-            <Link
-              to="/admin/golfers"
-              className={`admin-nav-link ${isActive('/admin/golfers') ? 'active' : ''}`}
-            >
-              <span className="nav-icon">🏌️</span>
-              Golfers
-            </Link>
-            <Link
-              to="/admin/tournaments"
-              className={`admin-nav-link ${isActive('/admin/tournaments') ? 'active' : ''}`}
-            >
-              <span className="nav-icon">🏆</span>
-              Tournaments
-            </Link>
-            <Link
-              to="/admin/scores"
-              className={`admin-nav-link ${isActive('/admin/scores') ? 'active' : ''}`}
-            >
-              <span className="nav-icon">📝</span>
-              Scores
-            </Link>
-            <Link
-              to="/admin/seasons"
-              className={`admin-nav-link ${isActive('/admin/seasons') ? 'active' : ''}`}
-            >
-              <span className="nav-icon">📅</span>
-              Seasons
-            </Link>
-            <Link
-              to="/admin/users"
-              className={`admin-nav-link ${isActive('/admin/users') ? 'active' : ''}`}
-            >
-              <span className="nav-icon">👥</span>
-              Users
-            </Link>
-            <Link
-              to="/admin/leagues"
-              className={`admin-nav-link ${isActive('/admin/leagues') ? 'active' : ''}`}
-            >
-              <span className="nav-icon">🏆</span>
-              Leagues
-            </Link>
+            {user.role === 'admin' && (
+              <>
+                <Link
+                  to="/admin/golfers"
+                  className={`admin-nav-link ${isActive('/admin/golfers') ? 'active' : ''}`}
+                >
+                  <span className="nav-icon">🏌️</span>
+                  Golfers
+                </Link>
+                <Link
+                  to="/admin/tournaments"
+                  className={`admin-nav-link ${isActive('/admin/tournaments') ? 'active' : ''}`}
+                >
+                  <span className="nav-icon">🏆</span>
+                  Tournaments
+                </Link>
+                <Link
+                  to="/admin/scores"
+                  className={`admin-nav-link ${isActive('/admin/scores') ? 'active' : ''}`}
+                >
+                  <span className="nav-icon">📝</span>
+                  Scores
+                </Link>
+                <Link
+                  to="/admin/seasons"
+                  className={`admin-nav-link ${isActive('/admin/seasons') ? 'active' : ''}`}
+                >
+                  <span className="nav-icon">📅</span>
+                  Seasons
+                </Link>
+                <Link
+                  to="/admin/users"
+                  className={`admin-nav-link ${isActive('/admin/users') ? 'active' : ''}`}
+                >
+                  <span className="nav-icon">👥</span>
+                  Users
+                </Link>
+                <Link
+                  to="/admin/leagues"
+                  className={`admin-nav-link ${isActive('/admin/leagues') ? 'active' : ''}`}
+                >
+                  <span className="nav-icon">🏆</span>
+                  Leagues
+                </Link>
 
-            <div className="nav-divider" />
+                <div className="nav-divider" />
 
-            <Link
-              to="/admin/season-upload"
-              className={`admin-nav-link ${isActive('/admin/season-upload') ? 'active' : ''}`}
-            >
-              <span className="nav-icon">📤</span>
-              Season Upload
-            </Link>
+                <Link
+                  to="/admin/season-upload"
+                  className={`admin-nav-link ${isActive('/admin/season-upload') ? 'active' : ''}`}
+                >
+                  <span className="nav-icon">📤</span>
+                  Season Upload
+                </Link>
+              </>
+            )}
             <Link
               to="/admin/tournament-upload"
               className={`admin-nav-link ${isActive('/admin/tournament-upload') ? 'active' : ''}`}
@@ -278,13 +296,15 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children, title }) => {
               <span className="nav-icon">📄</span>
               Tournament Upload
             </Link>
-            <Link
-              to="/admin/settings"
-              className={`admin-nav-link ${isActive('/admin/settings') ? 'active' : ''}`}
-            >
-              <span className="nav-icon">⚙️</span>
-              Settings
-            </Link>
+            {user.role === 'admin' && (
+              <Link
+                to="/admin/settings"
+                className={`admin-nav-link ${isActive('/admin/settings') ? 'active' : ''}`}
+              >
+                <span className="nav-icon">⚙️</span>
+                Settings
+              </Link>
+            )}
           </nav>
         </aside>
 

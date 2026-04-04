@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../hooks/useAuth';
+import { ADMIN_PORTAL_ROLES } from '@shared/constants/rules';
 import './PageLayout.css';
 
 interface User {
@@ -249,7 +250,7 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children, activeNav }) => {
           >
             <span className="mobile-nav-icon">📋</span> Rules
           </Link>
-          {user.role === 'admin' && (
+          {ADMIN_PORTAL_ROLES.includes(user.role) && (
             <Link to="/admin" className="mobile-nav-link mobile-nav-admin">
               <span className="mobile-nav-icon">⚙️</span> Admin
             </Link>
@@ -282,7 +283,7 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children, activeNav }) => {
             <Link to="/dashboard">Dashboard</Link>
             <Link to="/my-team">My Team</Link>
             <Link to="/scoring">Rules</Link>
-            {user.role === 'admin' && (
+            {ADMIN_PORTAL_ROLES.includes(user.role) && (
               <Link to="/admin" className="footer-admin-link">
                 Admin Panel
               </Link>

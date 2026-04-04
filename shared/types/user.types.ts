@@ -1,6 +1,6 @@
 // User domain types
 
-export type UserRole = 'admin' | 'user';
+export type UserRole = 'admin' | 'user' | 'tournament_uploader';
 
 export interface User {
   id: string;

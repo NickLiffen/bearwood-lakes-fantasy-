@@ -12,6 +12,7 @@ import {
   rateLimitExceededResponse,
 } from './rateLimit';
 import { createLogger, getRequestId } from './utils/logger';
+import type { UserRole } from '@shared/types';
 
 export interface AuthenticatedEvent extends HandlerEvent {
   user: JwtPayload;
@@ -238,21 +239,33 @@ export function withVerifiedAuth(
 }
 
 /**
+ * Wrapper that requires one of the specified roles with rate limiting.
+ * Returns a function that accepts a handler, matching the withAdmin/withAuth pattern.
+ */
+export function withRole(
+  ...allowedRoles: UserRole[]
+): (handler: AuthenticatedHandler, rateLimitType?: RateLimitType) => Handler {
+  return (handler: AuthenticatedHandler, rateLimitType: RateLimitType = 'admin') => {
+    return withVerifiedAuth(async (event, context) => {
+      if (!allowedRoles.includes(event.user.role as UserRole)) {
+        return {
+          statusCode: 403,
+          body: JSON.stringify({ success: false, error: 'Insufficient permissions' }),
+        };
+      }
+      return handler(event, context);
+    }, rateLimitType);
+  };
+}
+
+/**
  * Wrapper that requires admin role with rate limiting
  */
 export function withAdmin(
   handler: AuthenticatedHandler,
   rateLimitType: RateLimitType = 'admin'
 ): Handler {
-  return withVerifiedAuth(async (event, context) => {
-    if (event.user.role !== 'admin') {
-      return {
-        statusCode: 403,
-        body: JSON.stringify({ success: false, error: 'Admin access required' }),
-      };
-    }
-    return handler(event, context);
-  }, rateLimitType);
+  return withRole('admin')(handler, rateLimitType);
 }
 
 /**
@@ -452,10 +465,17 @@ export function createAuthHandler(config: {
   handler: AuthenticatedHandler;
   rateLimitType?: RateLimitType;
   requireAdmin?: boolean;
+  requireRole?: UserRole[];
   requireVerified?: boolean;
 }): Handler {
   const requireVerified = config.requireVerified !== false;
-  const wrapper = config.requireAdmin ? withAdmin : requireVerified ? withVerifiedAuth : withAuth;
+  const wrapper = config.requireRole
+    ? withRole(...config.requireRole)
+    : config.requireAdmin
+      ? withRole('admin')
+      : requireVerified
+        ? (h: AuthenticatedHandler, r?: RateLimitType) => withVerifiedAuth(h, r)
+        : (h: AuthenticatedHandler, r?: RateLimitType) => withAuth(h, r);
 
   return wrapper(async (event, context) => {
     const requestId = getRequestId(event.headers);
