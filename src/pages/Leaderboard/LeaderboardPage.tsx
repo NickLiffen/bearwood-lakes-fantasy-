@@ -1,19 +1,21 @@
 // Leaderboard Page - Three separate tables: Weekly, Monthly, Season with navigation
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState, useCallback } from 'react';
 import PageLayout from '../../components/layout/PageLayout';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import SeasonSelector from '../../components/ui/SeasonSelector';
 import TeamCompareModal from '../../components/ui/TeamCompareModal';
 import TeamOfTheWeekModal from '../../components/ui/TeamOfTheWeekModal';
-import DataTable, { Column } from '../../components/ui/DataTable';
-import PeriodNav from '../../components/ui/PeriodNav';
+import {
+  LeaderCard,
+  LeaderboardSection,
+  useLeaderboardColumns,
+} from '../../components/leaderboard';
+import type { LeaderboardEntry, PeriodInfo } from '../../components/leaderboard';
 import { useAuth } from '../../hooks/useAuth';
 import { useApiClient } from '../../hooks/useApiClient';
 import { useActiveSeason } from '../../hooks/useActiveSeason';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
-import { formatPrice } from '../../utils/formatters';
 import {
   getSaturdayOfWeek,
   formatDateString,
@@ -22,31 +24,6 @@ import {
 } from '../../utils/gameweek';
 import type { PeriodOption } from '../../utils/gameweek';
 import './LeaderboardPage.css';
-
-const ITEMS_PER_PAGE = 10;
-
-interface LeaderboardEntry {
-  rank: number;
-  oldRank: number | null;
-  movement: 'up' | 'down' | 'same' | 'new';
-  movementAmount: number;
-  userId: string;
-  firstName: string;
-  lastName: string;
-  username: string;
-  points: number;
-  teamValue: number;
-  eventsPlayed: number;
-}
-
-interface PeriodInfo {
-  type: 'week' | 'month' | 'season';
-  startDate: string;
-  endDate: string;
-  label: string;
-  hasPrevious: boolean;
-  hasNext: boolean;
-}
 
 interface LeaderboardResponse {
   entries: LeaderboardEntry[];
@@ -261,116 +238,29 @@ const LeaderboardPage: React.FC = () => {
     [user?.id]
   );
 
-  // Define columns for the DataTable
-  const columns: Column<LeaderboardEntry>[] = useMemo(
-    () => [
-      {
-        key: 'rank',
-        header: 'Rank',
-        width: '80px',
-        align: 'center',
-        render: (entry) => {
-          const rankDisplay =
-            entry.rank <= 3 ? (
-              <span className={`dt-rank dt-rank-${entry.rank}`}>
-                {entry.rank === 1 && '🥇 '}
-                {entry.rank === 2 && '🥈 '}
-                {entry.rank === 3 && '🥉 '}
-                {entry.rank}
-              </span>
-            ) : (
-              <span className="dt-rank">{entry.rank}</span>
-            );
-          return rankDisplay;
-        },
-      },
-      {
-        key: 'movement',
-        header: 'Move',
-        width: '70px',
-        align: 'center',
-        render: (entry) => {
-          if (entry.movement === 'new') {
-            return <span className="dt-badge dt-badge-warning">NEW</span>;
-          }
-          if (entry.movement === 'up') {
-            return <span className="movement-up">↑{entry.movementAmount}</span>;
-          }
-          if (entry.movement === 'down') {
-            return <span className="movement-down">↓{entry.movementAmount}</span>;
-          }
-          return <span className="dt-text-muted">-</span>;
-        },
-      },
-      {
-        key: 'user',
-        header: 'User',
-        render: (entry) => (
-          <Link to={`/users/${entry.userId}`} className="dt-text-link">
-            <div className="dt-info-cell">
-              <div className="dt-avatar">
-                {entry.firstName[0]}
-                {entry.lastName[0]}
-              </div>
-              <div className="dt-info-details">
-                <span className="dt-info-name">
-                  {entry.firstName} {entry.lastName}
-                  {isCurrentUser(entry.userId) && <span className="dt-you-badge">You</span>}
-                </span>
-                <span className="dt-info-subtitle">@{entry.username}</span>
-              </div>
-            </div>
-          </Link>
-        ),
-      },
-      {
-        key: 'points',
-        header: 'Points',
-        width: '100px',
-        align: 'center',
-        render: (entry) => <span className="dt-text-price">{entry.points}</span>,
-      },
-      {
-        key: 'teamValue',
-        header: 'Team Value',
-        width: '120px',
-        align: 'center',
-        headerClassName: 'hide-on-mobile',
-        cellClassName: 'hide-on-mobile',
-        render: (entry) => formatPrice(entry.teamValue),
-      },
-      {
-        key: 'events',
-        header: 'Events',
-        width: '80px',
-        align: 'center',
-        headerClassName: 'hide-on-small',
-        cellClassName: 'hide-on-small',
-        render: (entry) => entry.eventsPlayed,
-      },
-      {
-        key: 'action',
-        header: 'Action',
-        width: '90px',
-        align: 'center',
-        render: (entry) =>
-          !isCurrentUser(entry.userId) ? (
-            <button
-              className="dt-btn dt-btn-secondary"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setCompareUserId(entry.userId);
-              }}
-              title="Compare teams"
-            >
-              Compare
-            </button>
-          ) : null,
-      },
-    ],
+  const renderCompareAction = useCallback(
+    (entry: LeaderboardEntry) =>
+      !isCurrentUser(entry.userId) ? (
+        <button
+          className="dt-btn dt-btn-secondary"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setCompareUserId(entry.userId);
+          }}
+          title="Compare teams"
+        >
+          Compare
+        </button>
+      ) : null,
     [isCurrentUser]
   );
+
+  const columns = useLeaderboardColumns({
+    isCurrentUser,
+    showEvents: true,
+    renderAction: renderCompareAction,
+  });
 
   if (loading) {
     return (
@@ -384,128 +274,8 @@ const LeaderboardPage: React.FC = () => {
     );
   }
 
-  // Render a leaderboard table using DataTable
-  const renderTable = (
-    data: LeaderboardResponse | null,
-    title: string,
-    type: 'week' | 'month' | 'season',
-    showNavigation: boolean = false,
-    currentPage: number,
-    setCurrentPage: (page: number) => void
-  ) => {
-    const entries = data?.entries || [];
-    const period = data?.period;
-    const tournamentCount = data?.tournamentCount || 0;
-
-    const canGoPrev = period?.hasPrevious ?? false;
-    const canGoNext = period?.hasNext ?? false;
-
-    // Pagination calculations
-    const totalEntries = entries.length;
-    const totalPages = Math.ceil(totalEntries / ITEMS_PER_PAGE);
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const paginatedEntries = entries.slice(startIndex, startIndex + ITEMS_PER_PAGE);
-
-    return (
-      <div className="leaderboard-section">
-        <div className="section-header">
-          <div className="section-title-row">
-            <h2>{title}</h2>
-            <span className="section-meta">
-              {tournamentCount} tournament{tournamentCount !== 1 ? 's' : ''} · {entries.length}{' '}
-              participants
-            </span>
-            {type === 'week' && period && new Date(period.endDate) < new Date() && (
-              <button
-                className="totw-btn"
-                onClick={() => setShowTeamOfWeek(true)}
-                title="View the dream team for this gameweek"
-              >
-                ⭐ Team of the Week
-              </button>
-            )}
-          </div>
-          {showNavigation && period && (
-            <PeriodNav
-              id={`${type}-period-select`}
-              options={type === 'week' ? weekOptions : monthOptions}
-              selectedDate={type === 'week' ? weeklyDate : monthlyDate}
-              hasPrevious={canGoPrev}
-              hasNext={canGoNext}
-              onNavigate={(dir) =>
-                type === 'week' ? handleWeekNavigation(dir) : handleMonthNavigation(dir)
-              }
-              onSelect={(date) =>
-                type === 'week' ? handleWeekSelect(date) : handleMonthSelect(date)
-              }
-            />
-          )}
-        </div>
-
-        <DataTable
-          data={paginatedEntries}
-          columns={columns}
-          rowKey={(entry) => entry.userId}
-          rowClassName={(entry) => (isCurrentUser(entry.userId) ? 'dt-row-highlighted' : '')}
-          emptyMessage={`No tournaments this ${type === 'week' ? 'week' : type === 'month' ? 'month' : 'season'} yet.`}
-        />
-
-        {/* Pagination Controls */}
-        {totalPages > 1 && (
-          <div className="pagination-controls">
-            <button
-              className="pagination-btn"
-              onClick={() => setCurrentPage(currentPage - 1)}
-              disabled={currentPage === 1}
-            >
-              ← Previous
-            </button>
-            <span className="page-info">
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              className="pagination-btn"
-              onClick={() => setCurrentPage(currentPage + 1)}
-              disabled={currentPage === totalPages}
-            >
-              Next →
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // Render leader card
-  const renderLeaderCard = (leader: LeaderboardEntry | null, title: string, emoji: string) => {
-    if (!leader) {
-      return (
-        <div className="leader-card empty">
-          <div className="leader-title">
-            {emoji} {title}
-          </div>
-          <div className="leader-empty">No leader yet</div>
-        </div>
-      );
-    }
-
-    return (
-      <div className={`leader-card ${isCurrentUser(leader.userId) ? 'is-you' : ''}`}>
-        <div className="leader-title">
-          {emoji} {title}
-        </div>
-        <div className="leader-avatar">
-          {leader.firstName[0]}
-          {leader.lastName[0]}
-        </div>
-        <div className="leader-name">
-          {leader.firstName} {leader.lastName}
-          {isCurrentUser(leader.userId) && <span className="dt-you-badge">You</span>}
-        </div>
-        <div className="leader-points">{leader.points} pts</div>
-      </div>
-    );
-  };
+  const weeklyPeriod = weeklyData?.period;
+  const monthlyPeriod = monthlyData?.period;
 
   return (
     <PageLayout activeNav="leaderboard">
@@ -538,26 +308,71 @@ const LeaderboardPage: React.FC = () => {
 
           {/* Leader Cards */}
           <div className="leaders-section">
-            {renderLeaderCard(leaders?.weeklyLeader || null, 'Weekly Leader', '📅')}
-            {renderLeaderCard(leaders?.monthlyLeader || null, 'Monthly Leader', '📆')}
-            {renderLeaderCard(leaders?.seasonLeader || null, 'Season Leader', '🏆')}
+            <LeaderCard leader={leaders?.weeklyLeader || null} title="Weekly Leader" emoji="📅" isCurrentUser={isCurrentUser} />
+            <LeaderCard leader={leaders?.monthlyLeader || null} title="Monthly Leader" emoji="📆" isCurrentUser={isCurrentUser} />
+            <LeaderCard leader={leaders?.seasonLeader || null} title="Season Leader" emoji="🏆" isCurrentUser={isCurrentUser} />
           </div>
 
           {/* Weekly Table */}
-          {renderTable(weeklyData, 'Weekly Standings', 'week', true, weeklyPage, setWeeklyPage)}
+          <LeaderboardSection
+            title="Weekly Standings"
+            entries={weeklyData?.entries || []}
+            columns={columns}
+            currentPage={weeklyPage}
+            onPageChange={setWeeklyPage}
+            isCurrentUser={isCurrentUser}
+            metaText={`${weeklyData?.tournamentCount || 0} tournament${(weeklyData?.tournamentCount || 0) !== 1 ? 's' : ''} · ${weeklyData?.entries?.length || 0} participants`}
+            emptyMessage="No tournaments this week yet."
+            titleExtra={
+              weeklyPeriod && new Date(weeklyPeriod.endDate) < new Date() ? (
+                <button className="totw-btn" onClick={() => setShowTeamOfWeek(true)} title="View the dream team for this gameweek">
+                  ⭐ Team of the Week
+                </button>
+              ) : undefined
+            }
+            periodNav={weeklyPeriod ? {
+              id: 'week-period-select',
+              options: weekOptions,
+              selectedDate: weeklyDate,
+              hasPrevious: weeklyPeriod.hasPrevious,
+              hasNext: weeklyPeriod.hasNext,
+              onNavigate: handleWeekNavigation,
+              onSelect: handleWeekSelect,
+            } : undefined}
+          />
 
           {/* Monthly Table */}
-          {renderTable(
-            monthlyData,
-            'Monthly Standings',
-            'month',
-            true,
-            monthlyPage,
-            setMonthlyPage
-          )}
+          <LeaderboardSection
+            title="Monthly Standings"
+            entries={monthlyData?.entries || []}
+            columns={columns}
+            currentPage={monthlyPage}
+            onPageChange={setMonthlyPage}
+            isCurrentUser={isCurrentUser}
+            metaText={`${monthlyData?.tournamentCount || 0} tournament${(monthlyData?.tournamentCount || 0) !== 1 ? 's' : ''} · ${monthlyData?.entries?.length || 0} participants`}
+            emptyMessage="No tournaments this month yet."
+            periodNav={monthlyPeriod ? {
+              id: 'month-period-select',
+              options: monthOptions,
+              selectedDate: monthlyDate,
+              hasPrevious: monthlyPeriod.hasPrevious,
+              hasNext: monthlyPeriod.hasNext,
+              onNavigate: handleMonthNavigation,
+              onSelect: handleMonthSelect,
+            } : undefined}
+          />
 
           {/* Season Table */}
-          {renderTable(seasonData, 'Season Standings', 'season', false, seasonPage, setSeasonPage)}
+          <LeaderboardSection
+            title="Season Standings"
+            entries={seasonData?.entries || []}
+            columns={columns}
+            currentPage={seasonPage}
+            onPageChange={setSeasonPage}
+            isCurrentUser={isCurrentUser}
+            metaText={`${seasonData?.tournamentCount || 0} tournament${(seasonData?.tournamentCount || 0) !== 1 ? 's' : ''} · ${seasonData?.entries?.length || 0} participants`}
+            emptyMessage="No tournaments this season yet."
+          />
         </div>
       </div>
 

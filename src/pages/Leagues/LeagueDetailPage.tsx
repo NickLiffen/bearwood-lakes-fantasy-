@@ -1,16 +1,19 @@
 // League detail page — standings, leaders, members
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import PageLayout from '../../components/layout/PageLayout';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import DataTable, { Column } from '../../components/ui/DataTable';
-import PeriodNav from '../../components/ui/PeriodNav';
+import {
+  LeaderCard,
+  LeaderboardSection,
+  useLeaderboardColumns,
+} from '../../components/leaderboard';
+import type { LeaderboardEntry, PeriodInfo } from '../../components/leaderboard';
 import { useAuth } from '../../hooks/useAuth';
 import { useApiClient } from '../../hooks/useApiClient';
 import { useActiveSeason } from '../../hooks/useActiveSeason';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
-import { formatPrice } from '../../utils/formatters';
 import {
   getSaturdayOfWeek,
   formatDateString,
@@ -19,31 +22,6 @@ import {
 } from '../../utils/gameweek';
 import type { PeriodOption } from '../../utils/gameweek';
 import type { League, LeagueMemberInfo } from '@shared/types';
-
-const ITEMS_PER_PAGE = 10;
-
-interface LeaderboardEntry {
-  rank: number;
-  oldRank: number | null;
-  movement: 'up' | 'down' | 'same' | 'new';
-  movementAmount: number;
-  userId: string;
-  firstName: string;
-  lastName: string;
-  username: string;
-  points: number;
-  teamValue: number;
-  eventsPlayed: number;
-}
-
-interface PeriodInfo {
-  type: 'week' | 'month' | 'season';
-  startDate: string;
-  endDate: string;
-  label: string;
-  hasPrevious: boolean;
-  hasNext: boolean;
-}
 
 interface LeagueDetailResponse {
   league: League;
@@ -200,6 +178,8 @@ const LeagueDetailPage: React.FC = () => {
     [user?.id]
   );
 
+  const columns = useLeaderboardColumns({ isCurrentUser });
+
   const handleLeave = async () => {
     if (!league || !confirm('Are you sure you want to leave this league?')) return;
     const response = await post('leagues-leave', { leagueId: league.id });
@@ -214,54 +194,24 @@ const LeagueDetailPage: React.FC = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const columns: Column<LeaderboardEntry>[] = useMemo(
-    () => [
-      {
-        key: 'rank', header: 'Rank', width: '70px', align: 'center' as const,
-        render: (entry) => {
-          if (entry.rank <= 3) {
-            return <span className={`dt-rank dt-rank-${entry.rank}`}>{entry.rank === 1 && '🥇 '}{entry.rank === 2 && '🥈 '}{entry.rank === 3 && '🥉 '}{entry.rank}</span>;
-          }
-          return <span className="dt-rank">{entry.rank}</span>;
-        },
-      },
-      {
-        key: 'movement', header: 'Move', width: '60px', align: 'center' as const,
-        render: (entry) => {
-          if (entry.movement === 'new') return <span className="dt-badge dt-badge-warning">NEW</span>;
-          if (entry.movement === 'up') return <span className="movement-up">↑{entry.movementAmount}</span>;
-          if (entry.movement === 'down') return <span className="movement-down">↓{entry.movementAmount}</span>;
-          return <span className="dt-text-muted">-</span>;
-        },
-      },
-      {
-        key: 'user', header: 'Player',
-        render: (entry) => (
-          <Link to={`/users/${entry.userId}`} className="dt-text-link">
-            <div className="dt-info-cell">
-              <div className="dt-avatar">{entry.firstName[0]}{entry.lastName[0]}</div>
-              <div className="dt-info-details">
-                <span className="dt-info-name">
-                  {entry.firstName} {entry.lastName}
-                  {isCurrentUser(entry.userId) && <span className="dt-you-badge">You</span>}
-                </span>
-                <span className="dt-info-subtitle">@{entry.username}</span>
-              </div>
-            </div>
-          </Link>
-        ),
-      },
-      {
-        key: 'points', header: 'Points', width: '90px', align: 'center' as const,
-        render: (entry) => <span className="dt-text-price">{entry.points}</span>,
-      },
-      {
-        key: 'teamValue', header: 'Team Value', width: '110px', align: 'center' as const,
-        headerClassName: 'hide-on-mobile', cellClassName: 'hide-on-mobile',
-        render: (entry) => formatPrice(entry.teamValue),
-      },
-    ],
-    [isCurrentUser]
+  const handleWeekSelect = useCallback(
+    async (date: string) => {
+      setWeeklyDate(date);
+      setWeeklyPage(1);
+      const data = await fetchPeriodData('week', date);
+      if (data) setWeeklyData(data);
+    },
+    [fetchPeriodData]
+  );
+
+  const handleMonthSelect = useCallback(
+    async (date: string) => {
+      setMonthlyDate(date);
+      setMonthlyPage(1);
+      const data = await fetchPeriodData('month', date);
+      if (data) setMonthlyData(data);
+    },
+    [fetchPeriodData]
   );
 
   if ((loading || !league) && !error) {
@@ -276,72 +226,9 @@ const LeagueDetailPage: React.FC = () => {
     );
   }
 
-  const renderLeaderCard = (leader: LeaderboardEntry | null, title: string, emoji: string) => (
-    <div className={`leader-card ${!leader ? 'empty' : ''} ${leader && isCurrentUser(leader.userId) ? 'is-you' : ''}`}>
-      <div className="leader-title">{emoji} {title}</div>
-      {leader ? (
-        <>
-          <div className="leader-avatar">{leader.firstName[0]}{leader.lastName[0]}</div>
-          <div className="leader-name">
-            {leader.firstName} {leader.lastName}
-            {isCurrentUser(leader.userId) && <span className="dt-you-badge">You</span>}
-          </div>
-          <div className="leader-points">{leader.points} pts</div>
-        </>
-      ) : (
-        <div className="leader-empty">No leader yet</div>
-      )}
-    </div>
-  );
-
-  const renderTable = (
-    data: LeagueDetailResponse | null,
-    title: string,
-    type: 'week' | 'month' | 'season',
-    showNavigation: boolean,
-    currentPage: number,
-    setCurrentPage: (p: number) => void
-  ) => {
-    const entries = data?.entries || [];
-    const period = data?.period;
-    const totalPages = Math.ceil(entries.length / ITEMS_PER_PAGE);
-    const paginatedEntries = entries.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-
-    return (
-      <div className="leaderboard-section">
-        <div className="section-header">
-          <div className="section-title-row">
-            <h2>{title}</h2>
-            <span className="section-meta">{entries.length} players</span>
-          </div>
-          {showNavigation && period && (
-            <PeriodNav
-              id={`league-${type}-select`}
-              options={type === 'week' ? weekOptions : monthOptions}
-              selectedDate={type === 'week' ? weeklyDate : monthlyDate}
-              hasPrevious={period.hasPrevious}
-              hasNext={period.hasNext}
-              onNavigate={(dir) => type === 'week' ? handleWeekNavigation(dir) : handleMonthNavigation(dir)}
-              onSelect={(date) => {
-                if (type === 'week') { setWeeklyDate(date); setWeeklyPage(1); fetchPeriodData('week', date).then(d => d && setWeeklyData(d)); }
-                else { setMonthlyDate(date); setMonthlyPage(1); fetchPeriodData('month', date).then(d => d && setMonthlyData(d)); }
-              }}
-            />
-          )}
-        </div>
-        <DataTable data={paginatedEntries} columns={columns} rowKey={(e) => e.userId} rowClassName={(e) => isCurrentUser(e.userId) ? 'dt-row-highlighted' : ''} emptyMessage="No data for this period yet." />
-        {totalPages > 1 && (
-          <div className="pagination-controls">
-            <button className="pagination-btn" onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1}>← Previous</button>
-            <span className="page-info">Page {currentPage} of {totalPages}</span>
-            <button className="pagination-btn" onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage === totalPages}>Next →</button>
-          </div>
-        )}
-      </div>
-    );
-  };
-
   const isAdmin = league && user?.id === league.adminId;
+  const weeklyPeriod = weeklyData?.period;
+  const monthlyPeriod = monthlyData?.period;
 
   return (
     <PageLayout activeNav="leagues">
@@ -374,15 +261,59 @@ const LeagueDetailPage: React.FC = () => {
 
           {/* Leader Cards */}
           <div className="leaders-section">
-            {renderLeaderCard(leaders?.weeklyLeader || null, 'Weekly Leader', '📅')}
-            {renderLeaderCard(leaders?.monthlyLeader || null, 'Monthly Leader', '📆')}
-            {renderLeaderCard(leaders?.seasonLeader || null, 'Season Leader', '🏆')}
+            <LeaderCard leader={leaders?.weeklyLeader || null} title="Weekly Leader" emoji="📅" isCurrentUser={isCurrentUser} />
+            <LeaderCard leader={leaders?.monthlyLeader || null} title="Monthly Leader" emoji="📆" isCurrentUser={isCurrentUser} />
+            <LeaderCard leader={leaders?.seasonLeader || null} title="Season Leader" emoji="🏆" isCurrentUser={isCurrentUser} />
           </div>
 
           {/* Standings */}
-          {renderTable(weeklyData, 'Weekly Standings', 'week', true, weeklyPage, setWeeklyPage)}
-          {renderTable(monthlyData, 'Monthly Standings', 'month', true, monthlyPage, setMonthlyPage)}
-          {renderTable(seasonData, 'Season Standings', 'season', false, seasonPage, setSeasonPage)}
+          <LeaderboardSection
+            title="Weekly Standings"
+            entries={weeklyData?.entries || []}
+            columns={columns}
+            currentPage={weeklyPage}
+            onPageChange={setWeeklyPage}
+            isCurrentUser={isCurrentUser}
+            metaText={`${weeklyData?.entries?.length || 0} players`}
+            periodNav={weeklyPeriod ? {
+              id: 'league-week-select',
+              options: weekOptions,
+              selectedDate: weeklyDate,
+              hasPrevious: weeklyPeriod.hasPrevious,
+              hasNext: weeklyPeriod.hasNext,
+              onNavigate: handleWeekNavigation,
+              onSelect: handleWeekSelect,
+            } : undefined}
+          />
+
+          <LeaderboardSection
+            title="Monthly Standings"
+            entries={monthlyData?.entries || []}
+            columns={columns}
+            currentPage={monthlyPage}
+            onPageChange={setMonthlyPage}
+            isCurrentUser={isCurrentUser}
+            metaText={`${monthlyData?.entries?.length || 0} players`}
+            periodNav={monthlyPeriod ? {
+              id: 'league-month-select',
+              options: monthOptions,
+              selectedDate: monthlyDate,
+              hasPrevious: monthlyPeriod.hasPrevious,
+              hasNext: monthlyPeriod.hasNext,
+              onNavigate: handleMonthNavigation,
+              onSelect: handleMonthSelect,
+            } : undefined}
+          />
+
+          <LeaderboardSection
+            title="Season Standings"
+            entries={seasonData?.entries || []}
+            columns={columns}
+            currentPage={seasonPage}
+            onPageChange={setSeasonPage}
+            isCurrentUser={isCurrentUser}
+            metaText={`${seasonData?.entries?.length || 0} players`}
+          />
 
           {/* Members */}
           <div className="leaderboard-section" style={{ marginTop: '2rem' }}>
