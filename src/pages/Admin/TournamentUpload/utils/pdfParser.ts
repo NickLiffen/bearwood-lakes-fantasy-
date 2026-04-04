@@ -36,8 +36,11 @@ export async function extractTextFromPdf(file: File): Promise<string> {
     const content = await page.getTextContent();
     const text = content.items
       .filter((item) => 'str' in item)
-      .map((item) => (item as { str: string }).str)
-      .join(' ');
+      .map((item) => {
+        const textItem = item as { str: string; hasEOL?: boolean };
+        return textItem.hasEOL ? textItem.str + '\n' : textItem.str + ' ';
+      })
+      .join('');
     pageTexts.push(text);
   }
 
