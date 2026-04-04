@@ -14,7 +14,12 @@ vi.mock('./_shared/auth', () => ({
 }));
 vi.mock('./_shared/rateLimit', () => ({
   checkRateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 99, resetAt: new Date() }),
-  RateLimitConfig: { default: { windowMs: 60000, maxRequests: 100 }, read: { windowMs: 60000, maxRequests: 120 }, write: { windowMs: 60000, maxRequests: 30 }, admin: { windowMs: 60000, maxRequests: 60 } },
+  RateLimitConfig: {
+    default: { windowMs: 60000, maxRequests: 100 },
+    read: { windowMs: 60000, maxRequests: 120 },
+    write: { windowMs: 60000, maxRequests: 30 },
+    admin: { windowMs: 60000, maxRequests: 60 },
+  },
   getRateLimitKeyFromEvent: vi.fn().mockReturnValue('ratelimit:key'),
   rateLimitHeaders: vi.fn().mockReturnValue({}),
   rateLimitExceededResponse: vi.fn(),
@@ -60,26 +65,42 @@ vi.mock('./_shared/utils/dates', () => {
       end.setHours(23, 59, 59, 999);
       return end;
     }),
-    getMonthStart: vi.fn().mockImplementation((d: Date) => new Date(d.getFullYear(), d.getMonth(), 1)),
-    getMonthEnd: vi.fn().mockImplementation((d: Date) => new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999)),
+    getMonthStart: vi
+      .fn()
+      .mockImplementation((d: Date) => new Date(d.getFullYear(), d.getMonth(), 1)),
+    getMonthEnd: vi
+      .fn()
+      .mockImplementation(
+        (d: Date) => new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999)
+      ),
     getTeamEffectiveStartDate: vi.fn().mockImplementation(getTeamEffectiveStartDateImpl),
     getGameweekNumber: vi.fn().mockReturnValue(3),
     getSeasonFirstSaturday: vi.fn().mockImplementation(getSeasonFirstSaturdayImpl),
     getFirstGameweekStart: vi.fn().mockImplementation(getFirstGameweekStartImpl),
-    hasUnlimitedTransfers: vi.fn().mockImplementation(
-      (seasonStartDate: Date | null, firstGameweekStart: Date | null, teamCreatedAt?: Date | null, now: Date = new Date()) => {
-        const isPreSeason = seasonStartDate ? now < seasonStartDate : false;
-        const firstGWDate = seasonStartDate
-          ? (firstGameweekStart ? new Date(firstGameweekStart) : getSeasonFirstSaturdayImpl(seasonStartDate))
-          : null;
-        const isBeforeFirstGameweek = firstGWDate ? now < firstGWDate : false;
-        const teamEffective = teamCreatedAt !== undefined && teamCreatedAt !== null
-          ? getTeamEffectiveStartDateImpl(teamCreatedAt)
-          : null;
-        const isPreFirstGameWeek = teamEffective ? now < teamEffective : false;
-        return isPreSeason || isBeforeFirstGameweek || isPreFirstGameWeek;
-      }
-    ),
+    hasUnlimitedTransfers: vi
+      .fn()
+      .mockImplementation(
+        (
+          seasonStartDate: Date | null,
+          firstGameweekStart: Date | null,
+          teamCreatedAt?: Date | null,
+          now: Date = new Date()
+        ) => {
+          const isPreSeason = seasonStartDate ? now < seasonStartDate : false;
+          const firstGWDate = seasonStartDate
+            ? firstGameweekStart
+              ? new Date(firstGameweekStart)
+              : getSeasonFirstSaturdayImpl(seasonStartDate)
+            : null;
+          const isBeforeFirstGameweek = firstGWDate ? now < firstGWDate : false;
+          const teamEffective =
+            teamCreatedAt !== undefined && teamCreatedAt !== null
+              ? getTeamEffectiveStartDateImpl(teamCreatedAt)
+              : null;
+          const isPreFirstGameWeek = teamEffective ? now < teamEffective : false;
+          return isPreSeason || isBeforeFirstGameweek || isPreFirstGameWeek;
+        }
+      ),
   };
 });
 
@@ -97,15 +118,17 @@ const captainId = golferId1;
 const tournamentId = new ObjectId();
 const userObjectId = new ObjectId('aaaaaaaaaaaaaaaaaaaaaaaa');
 
-function setupDb(overrides: {
-  pick?: Record<string, unknown>;
-  golfers?: Record<string, unknown>[];
-  tournaments?: Record<string, unknown>[];
-  scores?: Record<string, unknown>[];
-  settings?: Record<string, unknown>[];
-  pickHistory?: Record<string, unknown>[];
-  historyGolfers?: Record<string, unknown>[];
-} = {}) {
+function setupDb(
+  overrides: {
+    pick?: Record<string, unknown>;
+    golfers?: Record<string, unknown>[];
+    tournaments?: Record<string, unknown>[];
+    scores?: Record<string, unknown>[];
+    settings?: Record<string, unknown>[];
+    pickHistory?: Record<string, unknown>[];
+    historyGolfers?: Record<string, unknown>[];
+  } = {}
+) {
   const settingsData = overrides.settings ?? [
     { key: 'transfersOpen', value: true },
     { key: 'allowNewTeamCreation', value: true },
@@ -120,9 +143,11 @@ function setupDb(overrides: {
     tournaments: { find: vi.fn().mockReturnValue(mockCursor(overrides.tournaments ?? [])) },
     scores: { find: vi.fn().mockReturnValue(mockCursor(overrides.scores ?? [])) },
     settings: {
-      findOne: vi.fn().mockImplementation(({ key }: { key: string }) =>
-        Promise.resolve(settingsData.find((s: { key: string }) => s.key === key) ?? null),
-      ),
+      findOne: vi
+        .fn()
+        .mockImplementation(({ key }: { key: string }) =>
+          Promise.resolve(settingsData.find((s: { key: string }) => s.key === key) ?? null)
+        ),
     },
     pickHistory: {
       find: vi.fn().mockReturnValue(mockCursor(overrides.pickHistory ?? [])),
@@ -191,23 +216,27 @@ describe('my-team handler', () => {
         updatedAt: new Date(),
       },
     ];
-    const tournaments = [{
-      _id: tournamentId,
-      name: 'The Masters',
-      status: 'published',
-      season: 2025,
-      startDate: tournamentDate,
-    }];
-    const scores = [{
-      golferId: golferId1,
-      tournamentId,
-      position: 1,
-      basePoints: 100,
-      bonusPoints: 10,
-      multipliedPoints: 110,
-      rawScore: -10,
-      participated: true,
-    }];
+    const tournaments = [
+      {
+        _id: tournamentId,
+        name: 'The Masters',
+        status: 'published',
+        season: 2025,
+        startDate: tournamentDate,
+      },
+    ];
+    const scores = [
+      {
+        golferId: golferId1,
+        tournamentId,
+        position: 1,
+        basePoints: 100,
+        bonusPoints: 10,
+        multipliedPoints: 110,
+        rawScore: -10,
+        participated: true,
+      },
+    ];
 
     setupDb({ pick, golfers, tournaments, scores });
 
@@ -232,33 +261,39 @@ describe('my-team handler', () => {
       createdAt: new Date('2025-01-01'),
       updatedAt: new Date(),
     };
-    const golfers = [{
-      _id: golferId1,
-      firstName: 'Rory',
-      lastName: 'McIlroy',
-      picture: null,
-      price: 12_000_000,
-      isActive: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }];
-    const tournaments = [{
-      _id: tournamentId,
-      name: 'PGA',
-      status: 'published',
-      season: 2025,
-      startDate: tournamentDate,
-    }];
-    const scores = [{
-      golferId: golferId1,
-      tournamentId,
-      position: 5,
-      basePoints: 50,
-      bonusPoints: 0,
-      multipliedPoints: 50,
-      rawScore: -5,
-      participated: true,
-    }];
+    const golfers = [
+      {
+        _id: golferId1,
+        firstName: 'Rory',
+        lastName: 'McIlroy',
+        picture: null,
+        price: 12_000_000,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ];
+    const tournaments = [
+      {
+        _id: tournamentId,
+        name: 'PGA',
+        status: 'published',
+        season: 2025,
+        startDate: tournamentDate,
+      },
+    ];
+    const scores = [
+      {
+        golferId: golferId1,
+        tournamentId,
+        position: 5,
+        basePoints: 50,
+        bonusPoints: 0,
+        multipliedPoints: 50,
+        rawScore: -5,
+        participated: true,
+      },
+    ];
 
     setupDb({ pick, golfers, tournaments, scores });
 
@@ -287,7 +322,7 @@ describe('my-team handler', () => {
 
     const res = await handler(
       makeAuthEvent({ queryStringParameters: { date: 'not-a-date' } }),
-      mockContext,
+      mockContext
     );
     const body = parseBody(res!);
 
@@ -326,16 +361,18 @@ describe('my-team handler', () => {
       },
     ];
 
-    const golfers = [{
-      _id: golferId1,
-      firstName: 'Rory',
-      lastName: 'McIlroy',
-      picture: null,
-      price: 12_000_000,
-      isActive: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }];
+    const golfers = [
+      {
+        _id: golferId1,
+        firstName: 'Rory',
+        lastName: 'McIlroy',
+        picture: null,
+        price: 12_000_000,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ];
 
     // The history golfer lookup needs a separate find call with project
     setupDb({ pick, golfers, pickHistory });

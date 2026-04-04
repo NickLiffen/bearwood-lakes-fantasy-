@@ -13,7 +13,12 @@ vi.mock('./_shared/auth', () => ({
 }));
 vi.mock('./_shared/rateLimit', () => ({
   checkRateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 99, resetAt: new Date() }),
-  RateLimitConfig: { default: { windowMs: 60000, maxRequests: 100 }, read: { windowMs: 60000, maxRequests: 120 }, write: { windowMs: 60000, maxRequests: 30 }, admin: { windowMs: 60000, maxRequests: 60 } },
+  RateLimitConfig: {
+    default: { windowMs: 60000, maxRequests: 100 },
+    read: { windowMs: 60000, maxRequests: 120 },
+    write: { windowMs: 60000, maxRequests: 30 },
+    admin: { windowMs: 60000, maxRequests: 60 },
+  },
   getRateLimitKeyFromEvent: vi.fn().mockReturnValue('ratelimit:key'),
   rateLimitHeaders: vi.fn().mockReturnValue({}),
   rateLimitExceededResponse: vi.fn(),
@@ -48,15 +53,17 @@ const currentOnlyGolferId = new ObjectId();
 const targetOnlyGolferId = new ObjectId();
 const tournamentId = new ObjectId();
 
-function setupDb(overrides: {
-  currentUser?: Record<string, unknown>;
-  targetUser?: Record<string, unknown>;
-  currentPick?: Record<string, unknown>;
-  targetPick?: Record<string, unknown>;
-  golfers?: Record<string, unknown>[];
-  tournaments?: Record<string, unknown>[];
-  scores?: Record<string, unknown>[];
-} = {}) {
+function setupDb(
+  overrides: {
+    currentUser?: Record<string, unknown>;
+    targetUser?: Record<string, unknown>;
+    currentPick?: Record<string, unknown>;
+    targetPick?: Record<string, unknown>;
+    golfers?: Record<string, unknown>[];
+    tournaments?: Record<string, unknown>[];
+    scores?: Record<string, unknown>[];
+  } = {}
+) {
   const usersMap = new Map<string, Record<string, unknown>>();
   if (overrides.currentUser) usersMap.set(currentUserId.toString(), overrides.currentUser);
   if (overrides.targetUser) usersMap.set(targetUserId.toString(), overrides.targetUser);
@@ -67,14 +74,18 @@ function setupDb(overrides: {
 
   const { mockDb } = createMockDb({
     users: {
-      findOne: vi.fn().mockImplementation(({ _id }: { _id: ObjectId }) =>
-        Promise.resolve(usersMap.get(_id.toString()) ?? null),
-      ),
+      findOne: vi
+        .fn()
+        .mockImplementation(({ _id }: { _id: ObjectId }) =>
+          Promise.resolve(usersMap.get(_id.toString()) ?? null)
+        ),
     },
     picks: {
-      findOne: vi.fn().mockImplementation(({ userId }: { userId: ObjectId }) =>
-        Promise.resolve(picksMap.get(userId.toString()) ?? null),
-      ),
+      findOne: vi
+        .fn()
+        .mockImplementation(({ userId }: { userId: ObjectId }) =>
+          Promise.resolve(picksMap.get(userId.toString()) ?? null)
+        ),
     },
     golfers: {
       find: vi.fn().mockReturnValue(mockCursor(overrides.golfers ?? [])),
@@ -114,7 +125,7 @@ describe('user-team-compare handler', () => {
   it('returns 400 for invalid userId format', async () => {
     const res = await handler(
       makeAuthEvent({ queryStringParameters: { userId: 'bad-id' } }),
-      mockContext,
+      mockContext
     );
     const body = parseBody(res!);
 
@@ -135,7 +146,7 @@ describe('user-team-compare handler', () => {
 
     const res = await handler(
       makeAuthEvent({ queryStringParameters: { userId: targetUserId.toString() } }),
-      mockContext,
+      mockContext
     );
     const body = parseBody(res!);
 
@@ -205,13 +216,15 @@ describe('user-team-compare handler', () => {
       },
     ];
     const tournamentDate = new Date('2025-06-10');
-    const tournaments = [{
-      _id: tournamentId,
-      name: 'US Open',
-      status: 'published',
-      season: 2025,
-      startDate: tournamentDate,
-    }];
+    const tournaments = [
+      {
+        _id: tournamentId,
+        name: 'US Open',
+        status: 'published',
+        season: 2025,
+        startDate: tournamentDate,
+      },
+    ];
     const scores = [
       { golferId: sharedGolferId, tournamentId, multipliedPoints: 50, participated: true },
       { golferId: currentOnlyGolferId, tournamentId, multipliedPoints: 30, participated: true },
@@ -230,7 +243,7 @@ describe('user-team-compare handler', () => {
 
     const res = await handler(
       makeAuthEvent({ queryStringParameters: { userId: targetUserId.toString() } }),
-      mockContext,
+      mockContext
     );
     const body = parseBody(res!);
 
@@ -260,7 +273,7 @@ describe('user-team-compare handler', () => {
 
     const res = await handler(
       makeAuthEvent({ queryStringParameters: { userId: targetUserId.toString() } }),
-      mockContext,
+      mockContext
     );
     const body = parseBody(res!);
 
@@ -294,10 +307,36 @@ describe('user-team-compare handler', () => {
         createdAt: new Date('2025-01-01'),
       },
       golfers: [
-        { _id: captainGolferId, firstName: 'Rory', lastName: 'M', picture: null, price: 10_000_000, isActive: true, createdAt: new Date(), updatedAt: new Date() },
-        { _id: normalGolferId, firstName: 'Tiger', lastName: 'W', picture: null, price: 8_000_000, isActive: true, createdAt: new Date(), updatedAt: new Date() },
+        {
+          _id: captainGolferId,
+          firstName: 'Rory',
+          lastName: 'M',
+          picture: null,
+          price: 10_000_000,
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          _id: normalGolferId,
+          firstName: 'Tiger',
+          lastName: 'W',
+          picture: null,
+          price: 8_000_000,
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       ],
-      tournaments: [{ _id: tid, name: 'Open', status: 'published', season: 2025, startDate: new Date('2025-06-10') }],
+      tournaments: [
+        {
+          _id: tid,
+          name: 'Open',
+          status: 'published',
+          season: 2025,
+          startDate: new Date('2025-06-10'),
+        },
+      ],
       scores: [
         { golferId: captainGolferId, tournamentId: tid, multipliedPoints: 10, participated: true },
         { golferId: normalGolferId, tournamentId: tid, multipliedPoints: 10, participated: true },
@@ -306,7 +345,7 @@ describe('user-team-compare handler', () => {
 
     const res = await handler(
       makeAuthEvent({ queryStringParameters: { userId: targetUserId.toString() } }),
-      mockContext,
+      mockContext
     );
     const body = parseBody(res!);
 
@@ -339,11 +378,32 @@ describe('user-team-compare handler', () => {
       },
       targetPick: null,
       golfers: [
-        { _id: gid, firstName: 'Rory', lastName: 'M', picture: null, price: 10_000_000, isActive: true, createdAt: new Date(), updatedAt: new Date() },
+        {
+          _id: gid,
+          firstName: 'Rory',
+          lastName: 'M',
+          picture: null,
+          price: 10_000_000,
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       ],
       tournaments: [
-        { _id: earlyTournament, name: 'Early', status: 'published', season: 2025, startDate: new Date('2025-06-07') },
-        { _id: lateTournament, name: 'Late', status: 'published', season: 2025, startDate: new Date('2025-06-10') },
+        {
+          _id: earlyTournament,
+          name: 'Early',
+          status: 'published',
+          season: 2025,
+          startDate: new Date('2025-06-07'),
+        },
+        {
+          _id: lateTournament,
+          name: 'Late',
+          status: 'published',
+          season: 2025,
+          startDate: new Date('2025-06-10'),
+        },
       ],
       scores: [
         { golferId: gid, tournamentId: earlyTournament, multipliedPoints: 100, participated: true },
@@ -353,7 +413,7 @@ describe('user-team-compare handler', () => {
 
     const res = await handler(
       makeAuthEvent({ queryStringParameters: { userId: targetUserId.toString() } }),
-      mockContext,
+      mockContext
     );
     const body = parseBody(res!);
 

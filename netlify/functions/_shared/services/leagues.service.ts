@@ -207,10 +207,7 @@ export async function removeMember(leagueId: string, targetUserId: string): Prom
   );
 }
 
-export async function transferAdmin(
-  leagueId: string,
-  newAdminId: string
-): Promise<League | null> {
+export async function transferAdmin(leagueId: string, newAdminId: string): Promise<League | null> {
   const { db } = await connectToDatabase();
   const collection = db.collection<LeagueDocument>(LEAGUES_COLLECTION);
 

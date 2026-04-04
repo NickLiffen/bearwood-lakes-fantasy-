@@ -434,49 +434,41 @@ const GolferProfilePage: React.FC = () => {
               <div className="selected-by-header">
                 <h2>👥 Selected By</h2>
                 <span className="selected-by-count">
-                  {golfer.selectedByCount || golfer.selectedBy.length}/
-                  {golfer.totalTeams || 0} teams
+                  {golfer.selectedByCount || golfer.selectedBy.length}/{golfer.totalTeams || 0}{' '}
+                  teams
                 </span>
               </div>
-              <div
-                className={`selected-by-chips ${showAllTeams ? 'expanded' : ''}`}
-              >
-                {(showAllTeams ? golfer.selectedBy : golfer.selectedBy.slice(0, 6)).map(
-                  (user) => (
-                    <Link
-                      key={user.userId}
-                      to={`/users/${user.userId}`}
-                      className={`team-chip ${user.isCaptain ? 'captain' : ''}`}
-                    >
-                      <span className="chip-avatar">
-                        {user.firstName[0]}
-                        {user.lastName[0]}
-                      </span>
-                      <span className="chip-name">
-                        {user.firstName} {user.lastName[0]}.
-                      </span>
-                      {user.isCaptain && <span className="captain-badge">⭐ C</span>}
-                    </Link>
-                  )
-                )}
+              <div className={`selected-by-chips ${showAllTeams ? 'expanded' : ''}`}>
+                {(showAllTeams ? golfer.selectedBy : golfer.selectedBy.slice(0, 6)).map((user) => (
+                  <Link
+                    key={user.userId}
+                    to={`/users/${user.userId}`}
+                    className={`team-chip ${user.isCaptain ? 'captain' : ''}`}
+                  >
+                    <span className="chip-avatar">
+                      {user.firstName[0]}
+                      {user.lastName[0]}
+                    </span>
+                    <span className="chip-name">
+                      {user.firstName} {user.lastName[0]}.
+                    </span>
+                    {user.isCaptain && <span className="captain-badge">⭐ C</span>}
+                  </Link>
+                ))}
               </div>
               {golfer.selectedBy.length > 6 && (
                 <button
                   className="show-all-teams-btn"
                   onClick={() => setShowAllTeams(!showAllTeams)}
                 >
-                  {showAllTeams
-                    ? 'Show fewer'
-                    : `Show all ${golfer.selectedBy.length} teams`}
+                  {showAllTeams ? 'Show fewer' : `Show all ${golfer.selectedBy.length} teams`}
                 </button>
               )}
               {golfer.totalTeams && golfer.totalTeams > 0 && (
                 <div className="selected-by-pct">
                   Selected by{' '}
                   {Math.round(
-                    ((golfer.selectedByCount || golfer.selectedBy.length) /
-                      golfer.totalTeams) *
-                      100
+                    ((golfer.selectedByCount || golfer.selectedBy.length) / golfer.totalTeams) * 100
                   )}
                   % of teams
                 </div>

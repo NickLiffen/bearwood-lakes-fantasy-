@@ -330,7 +330,9 @@ const ScoresAdminPage: React.FC = () => {
   const hasDuplicatePositions = (() => {
     const participatingPlayers = Object.values(scores).filter((s) => s.participated);
     const positions = participatingPlayers
-      .filter((s) => s.position !== null && s.position !== undefined && s.position >= 1 && s.position <= 3)
+      .filter(
+        (s) => s.position !== null && s.position !== undefined && s.position >= 1 && s.position <= 3
+      )
       .map((s) => s.position);
     return positions.length !== new Set(positions).size;
   })();
@@ -501,66 +503,68 @@ const ScoresAdminPage: React.FC = () => {
               </div>
             ) : (
               <div className="admin-table-wrapper">
-              <table className="admin-table admin-table-card">
-                <thead>
-                  <tr>
-                    <th>Tournament</th>
-                    <th>Date</th>
-                    <th>Type</th>
-                    <th>golfers</th>
-                    <th>Total Points</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tournamentsWithScores.map((item) => (
-                    <tr key={item.tournament.id}>
-                      <td data-label="Tournament">
-                        <button
-                          onClick={() => handleViewScores(item)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            padding: 0,
-                            fontWeight: 500,
-                            color: 'var(--primary-green)',
-                            cursor: 'pointer',
-                            textDecoration: 'underline',
-                            textUnderlineOffset: '2px',
-                          }}
-                        >
-                          {item.tournament.name}
-                        </button>
-                      </td>
-                      <td data-label="Date">{formatDate(item.tournament.startDate)}</td>
-                      <td data-label="Type">{getTypeBadge(item.tournament)}</td>
-                      <td data-label="golfers">{item.scores.filter((s) => s.participated).length} golfers</td>
-                      <td data-label="Total Points">
-                        <strong style={{ color: 'var(--primary-green)' }}>
-                          {item.totalPoints} pts
-                        </strong>
-                      </td>
-                      <td data-label="Actions">
-                        <div className="table-actions">
-                          <button
-                            className="btn btn-secondary btn-sm"
-                            onClick={() => handleOpenEditScores(item)}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            className="btn btn-danger btn-sm"
-                            onClick={() => handleDeleteScores(item.tournament)}
-                            style={{ background: '#dc2626', color: 'white' }}
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
+                <table className="admin-table admin-table-card">
+                  <thead>
+                    <tr>
+                      <th>Tournament</th>
+                      <th>Date</th>
+                      <th>Type</th>
+                      <th>golfers</th>
+                      <th>Total Points</th>
+                      <th>Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {tournamentsWithScores.map((item) => (
+                      <tr key={item.tournament.id}>
+                        <td data-label="Tournament">
+                          <button
+                            onClick={() => handleViewScores(item)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              padding: 0,
+                              fontWeight: 500,
+                              color: 'var(--primary-green)',
+                              cursor: 'pointer',
+                              textDecoration: 'underline',
+                              textUnderlineOffset: '2px',
+                            }}
+                          >
+                            {item.tournament.name}
+                          </button>
+                        </td>
+                        <td data-label="Date">{formatDate(item.tournament.startDate)}</td>
+                        <td data-label="Type">{getTypeBadge(item.tournament)}</td>
+                        <td data-label="golfers">
+                          {item.scores.filter((s) => s.participated).length} golfers
+                        </td>
+                        <td data-label="Total Points">
+                          <strong style={{ color: 'var(--primary-green)' }}>
+                            {item.totalPoints} pts
+                          </strong>
+                        </td>
+                        <td data-label="Actions">
+                          <div className="table-actions">
+                            <button
+                              className="btn btn-secondary btn-sm"
+                              onClick={() => handleOpenEditScores(item)}
+                            >
+                              Edit
+                            </button>
+                            <button
+                              className="btn btn-danger btn-sm"
+                              onClick={() => handleDeleteScores(item.tournament)}
+                              style={{ background: '#dc2626', color: 'white' }}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
@@ -579,41 +583,43 @@ const ScoresAdminPage: React.FC = () => {
               </div>
             ) : (
               <div className="admin-table-wrapper">
-              <table className="admin-table admin-table-card">
-                <thead>
-                  <tr>
-                    <th>Tournament</th>
-                    <th>Date</th>
-                    <th>Type</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tournamentsWithoutScores.map((tournament) => (
-                    <tr key={tournament.id}>
-                      <td data-label="Tournament" style={{ fontWeight: 500 }}>{tournament.name}</td>
-                      <td data-label="Date">{formatDate(tournament.startDate)}</td>
-                      <td data-label="Type">{getTypeBadge(tournament)}</td>
-                      <td data-label="Status">
-                        <span
-                          className={`badge ${tournament.status === 'complete' ? 'badge-info' : 'badge-success'}`}
-                        >
-                          {tournament.status}
-                        </span>
-                      </td>
-                      <td data-label="Actions">
-                        <button
-                          className="btn btn-primary btn-sm"
-                          onClick={() => handleOpenAddScores(tournament)}
-                        >
-                          + Add Scores
-                        </button>
-                      </td>
+                <table className="admin-table admin-table-card">
+                  <thead>
+                    <tr>
+                      <th>Tournament</th>
+                      <th>Date</th>
+                      <th>Type</th>
+                      <th>Status</th>
+                      <th>Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {tournamentsWithoutScores.map((tournament) => (
+                      <tr key={tournament.id}>
+                        <td data-label="Tournament" style={{ fontWeight: 500 }}>
+                          {tournament.name}
+                        </td>
+                        <td data-label="Date">{formatDate(tournament.startDate)}</td>
+                        <td data-label="Type">{getTypeBadge(tournament)}</td>
+                        <td data-label="Status">
+                          <span
+                            className={`badge ${tournament.status === 'complete' ? 'badge-info' : 'badge-success'}`}
+                          >
+                            {tournament.status}
+                          </span>
+                        </td>
+                        <td data-label="Actions">
+                          <button
+                            className="btn btn-primary btn-sm"
+                            onClick={() => handleOpenAddScores(tournament)}
+                          >
+                            + Add Scores
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
@@ -707,185 +713,185 @@ const ScoresAdminPage: React.FC = () => {
                 <p>No golfers available. Add golfers first.</p>
               ) : (
                 <div className="admin-table-wrapper">
-                <table className="admin-table">
-                  <thead>
-                    <tr>
-                      <th>golfer</th>
-                      <th style={{ width: '80px' }}>Played?</th>
-                      <th style={{ width: '120px' }}>Position</th>
-                      <th style={{ width: '100px' }}>36+ Points?</th>
-                      <th style={{ width: '120px' }}>Final Points</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {golfers
-                      .filter((g) => g.isActive)
-                      .map((golfer) => {
-                        const score = scores[golfer.id];
-                        const isParticipant = score?.participated || false;
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>golfer</th>
+                        <th style={{ width: '80px' }}>Played?</th>
+                        <th style={{ width: '120px' }}>Position</th>
+                        <th style={{ width: '100px' }}>36+ Points?</th>
+                        <th style={{ width: '120px' }}>Final Points</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {golfers
+                        .filter((g) => g.isActive)
+                        .map((golfer) => {
+                          const score = scores[golfer.id];
+                          const isParticipant = score?.participated || false;
 
-                        // Calculate points based on new scoring system
-                        const getBasePoints = () => {
-                          if (!score?.position) return 0;
-                          const positionPoints: Record<number, number> = { 1: 10, 2: 7, 3: 5 };
-                          return positionPoints[score.position] ?? 0;
-                        };
+                          // Calculate points based on new scoring system
+                          const getBasePoints = () => {
+                            if (!score?.position) return 0;
+                            const positionPoints: Record<number, number> = { 1: 10, 2: 7, 3: 5 };
+                            return positionPoints[score.position] ?? 0;
+                          };
 
-                        const scoringFormat = editingTournament.scoringFormat || 'stableford';
-                        const getBonus = () => {
-                          if (score?.rawScore === null || score?.rawScore === undefined) return 0;
-                          if (scoringFormat === 'stableford') {
-                            if (score.rawScore >= 36) return 3;
-                            if (score.rawScore >= 32) return 1;
+                          const scoringFormat = editingTournament.scoringFormat || 'stableford';
+                          const getBonus = () => {
+                            if (score?.rawScore === null || score?.rawScore === undefined) return 0;
+                            if (scoringFormat === 'stableford') {
+                              if (score.rawScore >= 36) return 3;
+                              if (score.rawScore >= 32) return 1;
+                              return 0;
+                            }
+                            if (score.rawScore <= 72) return 3;
+                            if (score.rawScore <= 76) return 1;
                             return 0;
-                          }
-                          if (score.rawScore <= 72) return 3;
-                          if (score.rawScore <= 76) return 1;
-                          return 0;
-                        };
+                          };
 
-                        const basePoints = getBasePoints();
-                        const bonusPoints = getBonus();
-                        const finalPoints =
-                          (basePoints + bonusPoints) * editingTournament.multiplier;
+                          const basePoints = getBasePoints();
+                          const bonusPoints = getBonus();
+                          const finalPoints =
+                            (basePoints + bonusPoints) * editingTournament.multiplier;
 
-                        return (
-                          <tr key={golfer.id}>
-                            <td>
-                              <div
-                                style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}
-                              >
-                                {golfer.picture ? (
-                                  <img
-                                    src={golfer.picture}
-                                    alt={`${golfer.firstName} ${golfer.lastName}`}
-                                    loading="lazy"
-                                    style={{
-                                      width: '32px',
-                                      height: '32px',
-                                      borderRadius: '50%',
-                                      objectFit: 'cover',
-                                    }}
-                                  />
-                                ) : (
-                                  <div
-                                    style={{
-                                      width: '32px',
-                                      height: '32px',
-                                      borderRadius: '50%',
-                                      background: '#e5e7eb',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      fontSize: '0.9rem',
-                                    }}
-                                  >
-                                    🏌️
-                                  </div>
-                                )}
-                                <span style={{ fontWeight: 500 }}>
-                                  {golfer.firstName} {golfer.lastName}
-                                </span>
-                              </div>
-                            </td>
-                            <td>
-                              <input
-                                id={`participated-${golfer.id}`}
-                                name={`participated-${golfer.id}`}
-                                type="checkbox"
-                                checked={isParticipant}
-                                onChange={(e) =>
-                                  handleScoreChange(golfer.id, 'participated', e.target.checked)
-                                }
-                                style={{ width: '18px', height: '18px' }}
-                              />
-                            </td>
-                            <td>
-                              {isParticipant ? (
-                                <select
-                                  id={`score-position-${golfer.id}`}
-                                  name={`score-position-${golfer.id}`}
-                                  value={score?.position || ''}
-                                  onChange={(e) =>
-                                    handleScoreChange(golfer.id, 'position', e.target.value)
-                                  }
-                                  style={{ width: '100%' }}
-                                >
-                                  <option value="">-</option>
-                                  {Array.from(
-                                    {
-                                      length: Object.values(scores).filter((s) => s.participated)
-                                        .length,
-                                    },
-                                    (_, i) => i + 1
-                                  ).map((pos) => (
-                                    <option key={pos} value={pos}>
-                                      {pos === 1
-                                        ? '🥇 1st'
-                                        : pos === 2
-                                          ? '🥈 2nd'
-                                          : pos === 3
-                                            ? '🥉 3rd'
-                                            : `${pos}th`}
-                                    </option>
-                                  ))}
-                                </select>
-                              ) : (
-                                <span style={{ color: '#9ca3af' }}>-</span>
-                              )}
-                            </td>
-                            <td>
-                              {isParticipant ? (
+                          return (
+                            <tr key={golfer.id}>
+                              <td>
                                 <div
-                                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                                  style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}
                                 >
-                                  <input
-                                    id={`raw-score-${golfer.id}`}
-                                    name={`raw-score-${golfer.id}`}
-                                    type="number"
-                                    inputMode="numeric"
-                                    value={score?.rawScore ?? ''}
-                                    onChange={(e) =>
-                                      handleScoreChange(golfer.id, 'rawScore', e.target.value)
-                                    }
-                                    placeholder={scoringFormat === 'stableford' ? '36' : '72'}
-                                    style={{ width: '70px' }}
-                                  />
-                                  {bonusPoints > 0 && (
-                                    <span
+                                  {golfer.picture ? (
+                                    <img
+                                      src={golfer.picture}
+                                      alt={`${golfer.firstName} ${golfer.lastName}`}
+                                      loading="lazy"
                                       style={{
-                                        fontSize: '0.85rem',
-                                        color: 'var(--primary-green)',
-                                        fontWeight: 600,
+                                        width: '32px',
+                                        height: '32px',
+                                        borderRadius: '50%',
+                                        objectFit: 'cover',
+                                      }}
+                                    />
+                                  ) : (
+                                    <div
+                                      style={{
+                                        width: '32px',
+                                        height: '32px',
+                                        borderRadius: '50%',
+                                        background: '#e5e7eb',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '0.9rem',
                                       }}
                                     >
-                                      +{bonusPoints}
-                                    </span>
+                                      🏌️
+                                    </div>
                                   )}
+                                  <span style={{ fontWeight: 500 }}>
+                                    {golfer.firstName} {golfer.lastName}
+                                  </span>
                                 </div>
-                              ) : (
-                                <span style={{ color: '#9ca3af' }}>-</span>
-                              )}
-                            </td>
-                            <td>
-                              {isParticipant ? (
-                                <span
-                                  style={{
-                                    fontWeight: 700,
-                                    color: finalPoints > 0 ? 'var(--primary-green)' : '#9ca3af',
-                                  }}
-                                >
-                                  {finalPoints > 0 ? `${finalPoints} pts` : '-'}
-                                </span>
-                              ) : (
-                                <span style={{ color: '#9ca3af' }}>-</span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                  </tbody>
-                </table>
+                              </td>
+                              <td>
+                                <input
+                                  id={`participated-${golfer.id}`}
+                                  name={`participated-${golfer.id}`}
+                                  type="checkbox"
+                                  checked={isParticipant}
+                                  onChange={(e) =>
+                                    handleScoreChange(golfer.id, 'participated', e.target.checked)
+                                  }
+                                  style={{ width: '18px', height: '18px' }}
+                                />
+                              </td>
+                              <td>
+                                {isParticipant ? (
+                                  <select
+                                    id={`score-position-${golfer.id}`}
+                                    name={`score-position-${golfer.id}`}
+                                    value={score?.position || ''}
+                                    onChange={(e) =>
+                                      handleScoreChange(golfer.id, 'position', e.target.value)
+                                    }
+                                    style={{ width: '100%' }}
+                                  >
+                                    <option value="">-</option>
+                                    {Array.from(
+                                      {
+                                        length: Object.values(scores).filter((s) => s.participated)
+                                          .length,
+                                      },
+                                      (_, i) => i + 1
+                                    ).map((pos) => (
+                                      <option key={pos} value={pos}>
+                                        {pos === 1
+                                          ? '🥇 1st'
+                                          : pos === 2
+                                            ? '🥈 2nd'
+                                            : pos === 3
+                                              ? '🥉 3rd'
+                                              : `${pos}th`}
+                                      </option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <span style={{ color: '#9ca3af' }}>-</span>
+                                )}
+                              </td>
+                              <td>
+                                {isParticipant ? (
+                                  <div
+                                    style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                                  >
+                                    <input
+                                      id={`raw-score-${golfer.id}`}
+                                      name={`raw-score-${golfer.id}`}
+                                      type="number"
+                                      inputMode="numeric"
+                                      value={score?.rawScore ?? ''}
+                                      onChange={(e) =>
+                                        handleScoreChange(golfer.id, 'rawScore', e.target.value)
+                                      }
+                                      placeholder={scoringFormat === 'stableford' ? '36' : '72'}
+                                      style={{ width: '70px' }}
+                                    />
+                                    {bonusPoints > 0 && (
+                                      <span
+                                        style={{
+                                          fontSize: '0.85rem',
+                                          color: 'var(--primary-green)',
+                                          fontWeight: 600,
+                                        }}
+                                      >
+                                        +{bonusPoints}
+                                      </span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span style={{ color: '#9ca3af' }}>-</span>
+                                )}
+                              </td>
+                              <td>
+                                {isParticipant ? (
+                                  <span
+                                    style={{
+                                      fontWeight: 700,
+                                      color: finalPoints > 0 ? 'var(--primary-green)' : '#9ca3af',
+                                    }}
+                                  >
+                                    {finalPoints > 0 ? `${finalPoints} pts` : '-'}
+                                  </span>
+                                ) : (
+                                  <span style={{ color: '#9ca3af' }}>-</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>
@@ -919,10 +925,18 @@ const ScoresAdminPage: React.FC = () => {
                   }}
                 >
                   <div style={{ color: '#92400e', marginBottom: '0.5rem' }}>
-                    ⚠️ <strong>Tied positions detected</strong> — multiple golfers share the same podium position.
-                    Each golfer will receive the full points for that position.
+                    ⚠️ <strong>Tied positions detected</strong> — multiple golfers share the same
+                    podium position. Each golfer will receive the full points for that position.
                   </div>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', color: '#78350f' }}>
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      cursor: 'pointer',
+                      color: '#78350f',
+                    }}
+                  >
                     <input
                       type="checkbox"
                       checked={allowDuplicates}
@@ -1026,71 +1040,76 @@ const ScoresAdminPage: React.FC = () => {
               </div>
 
               <div className="admin-table-wrapper">
-              <table className="admin-table admin-table-card">
-                <thead>
-                  <tr>
-                    <th>Position</th>
-                    <th>Golfer</th>
-                    <th>Score</th>
-                    <th>Score Bonus Points</th>
-                    <th>Position Points</th>
-                    <th>Final</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {viewingTournament.scores
-                    .filter((s) => s.participated)
-                    .sort((a, b) => {
-                      if (a.position !== null && b.position !== null)
-                        return a.position - b.position;
-                      if (a.position !== null) return -1;
-                      if (b.position !== null) return 1;
-                      return b.multipliedPoints - a.multipliedPoints;
-                    })
-                    .map((score) => (
-                      <tr key={score.id}>
-                        <td data-label="Position">
-                          {score.position === 1 && '🥇 1st'}
-                          {score.position === 2 && '🥈 2nd'}
-                          {score.position === 3 && '🥉 3rd'}
-                          {!score.position && '-'}
-                        </td>
-                        <td data-label="Golfer" style={{ fontWeight: 500 }}>{getGolferName(score.golferId)}</td>
-                        <td data-label="Score">
-                          {score.rawScore != null ? (
-                            <span>
-                              {formatRawScore(score.rawScore, viewingTournament.tournament.scoringFormat)}
-                            </span>
-                          ) : (
-                            <span style={{ color: '#9ca3af' }}>-</span>
-                          )}
-                        </td>
-                        <td data-label="Score Bonus Points">
-                          {score.bonusPoints > 0 ? (
-                            <span style={{ color: 'var(--primary-green)', fontWeight: 600 }}>
-                              +{score.bonusPoints}
-                            </span>
-                          ) : (
-                            <span style={{ color: '#9ca3af' }}>0</span>
-                          )}
-                        </td>
-                        <td data-label="Position Points">
-                          <span>{score.basePoints}</span>
-                        </td>
-                        <td data-label="Final">
-                          <strong
-                            style={{
-                              color:
-                                score.multipliedPoints > 0 ? 'var(--primary-green)' : '#9ca3af',
-                            }}
-                          >
-                            {score.multipliedPoints > 0 ? `${score.multipliedPoints} pts` : '-'}
-                          </strong>
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
+                <table className="admin-table admin-table-card">
+                  <thead>
+                    <tr>
+                      <th>Position</th>
+                      <th>Golfer</th>
+                      <th>Score</th>
+                      <th>Score Bonus Points</th>
+                      <th>Position Points</th>
+                      <th>Final</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {viewingTournament.scores
+                      .filter((s) => s.participated)
+                      .sort((a, b) => {
+                        if (a.position !== null && b.position !== null)
+                          return a.position - b.position;
+                        if (a.position !== null) return -1;
+                        if (b.position !== null) return 1;
+                        return b.multipliedPoints - a.multipliedPoints;
+                      })
+                      .map((score) => (
+                        <tr key={score.id}>
+                          <td data-label="Position">
+                            {score.position === 1 && '🥇 1st'}
+                            {score.position === 2 && '🥈 2nd'}
+                            {score.position === 3 && '🥉 3rd'}
+                            {!score.position && '-'}
+                          </td>
+                          <td data-label="Golfer" style={{ fontWeight: 500 }}>
+                            {getGolferName(score.golferId)}
+                          </td>
+                          <td data-label="Score">
+                            {score.rawScore != null ? (
+                              <span>
+                                {formatRawScore(
+                                  score.rawScore,
+                                  viewingTournament.tournament.scoringFormat
+                                )}
+                              </span>
+                            ) : (
+                              <span style={{ color: '#9ca3af' }}>-</span>
+                            )}
+                          </td>
+                          <td data-label="Score Bonus Points">
+                            {score.bonusPoints > 0 ? (
+                              <span style={{ color: 'var(--primary-green)', fontWeight: 600 }}>
+                                +{score.bonusPoints}
+                              </span>
+                            ) : (
+                              <span style={{ color: '#9ca3af' }}>0</span>
+                            )}
+                          </td>
+                          <td data-label="Position Points">
+                            <span>{score.basePoints}</span>
+                          </td>
+                          <td data-label="Final">
+                            <strong
+                              style={{
+                                color:
+                                  score.multipliedPoints > 0 ? 'var(--primary-green)' : '#9ca3af',
+                              }}
+                            >
+                              {score.multipliedPoints > 0 ? `${score.multipliedPoints} pts` : '-'}
+                            </strong>
+                          </td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
               </div>
             </div>
             <div className="modal-footer">

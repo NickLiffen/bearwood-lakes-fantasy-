@@ -3,12 +3,20 @@ import { makeAuthEvent, mockContext, parseBody } from './__test-utils__';
 
 vi.mock('./_shared/auth', () => ({
   verifyToken: vi.fn().mockReturnValue({
-    userId: 'user-1', username: 'testplayer', role: 'player', phoneVerified: true,
+    userId: 'user-1',
+    username: 'testplayer',
+    role: 'player',
+    phoneVerified: true,
   }),
 }));
 vi.mock('./_shared/rateLimit', () => ({
   checkRateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 99, resetAt: new Date() }),
-  RateLimitConfig: { default: { windowMs: 60000, maxRequests: 100 }, read: { windowMs: 60000, maxRequests: 120 }, write: { windowMs: 60000, maxRequests: 30 }, admin: { windowMs: 60000, maxRequests: 60 } },
+  RateLimitConfig: {
+    default: { windowMs: 60000, maxRequests: 100 },
+    read: { windowMs: 60000, maxRequests: 120 },
+    write: { windowMs: 60000, maxRequests: 30 },
+    admin: { windowMs: 60000, maxRequests: 60 },
+  },
   getRateLimitKeyFromEvent: vi.fn().mockReturnValue('ratelimit:key'),
   rateLimitHeaders: vi.fn().mockReturnValue({}),
   rateLimitExceededResponse: vi.fn(),
@@ -32,18 +40,12 @@ beforeEach(() => vi.clearAllMocks());
 
 describe('team-of-week handler', () => {
   it('returns 405 for non-GET requests', async () => {
-    const res = await handler(
-      makeAuthEvent({ httpMethod: 'POST' }),
-      mockContext,
-    );
+    const res = await handler(makeAuthEvent({ httpMethod: 'POST' }), mockContext);
     expect(res!.statusCode).toBe(405);
   });
 
   it('returns 400 when date param is missing', async () => {
-    const res = await handler(
-      makeAuthEvent({ queryStringParameters: {} }),
-      mockContext,
-    );
+    const res = await handler(makeAuthEvent({ queryStringParameters: {} }), mockContext);
     const body = parseBody(res!);
     expect(res!.statusCode).toBe(400);
     expect(body.error).toContain('date');
@@ -52,7 +54,7 @@ describe('team-of-week handler', () => {
   it('returns 400 when date format is invalid', async () => {
     const res = await handler(
       makeAuthEvent({ queryStringParameters: { date: 'not-a-date' } }),
-      mockContext,
+      mockContext
     );
     const body = parseBody(res!);
     expect(res!.statusCode).toBe(400);
@@ -64,7 +66,7 @@ describe('team-of-week handler', () => {
 
     const res = await handler(
       makeAuthEvent({ queryStringParameters: { date: '2026-04-01', season: '2026' } }),
-      mockContext,
+      mockContext
     );
     const body = parseBody(res!);
     expect(res!.statusCode).toBe(400);
@@ -93,7 +95,7 @@ describe('team-of-week handler', () => {
 
     const res = await handler(
       makeAuthEvent({ queryStringParameters: { date: '2026-03-25', season: '2026' } }),
-      mockContext,
+      mockContext
     );
     const body = parseBody(res!);
 
@@ -113,10 +115,7 @@ describe('team-of-week handler', () => {
       tournamentCount: 0,
     });
 
-    await handler(
-      makeAuthEvent({ queryStringParameters: { date: '2026-01-05' } }),
-      mockContext,
-    );
+    await handler(makeAuthEvent({ queryStringParameters: { date: '2026-01-05' } }), mockContext);
 
     expect(mockGetTeamOfTheWeek).toHaveBeenCalledWith('2026-01-05', 2026);
   });
@@ -124,7 +123,7 @@ describe('team-of-week handler', () => {
   it('returns 400 for invalid calendar date like 2026-99-99', async () => {
     const res = await handler(
       makeAuthEvent({ queryStringParameters: { date: '2026-99-99' } }),
-      mockContext,
+      mockContext
     );
     const body = parseBody(res!);
     expect(res!.statusCode).toBe(400);
@@ -136,7 +135,7 @@ describe('team-of-week handler', () => {
 
     const res = await handler(
       makeAuthEvent({ queryStringParameters: { date: '2026-03-25', season: '2026' } }),
-      mockContext,
+      mockContext
     );
     const body = parseBody(res!);
     expect(res!.statusCode).toBe(500);

@@ -28,7 +28,10 @@ const handler = withAdmin(async (event: AuthenticatedEvent) => {
     if (event.user.userId === userId) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ success: false, error: 'You cannot delete your own account from here' }),
+        body: JSON.stringify({
+          success: false,
+          error: 'You cannot delete your own account from here',
+        }),
       };
     }
 

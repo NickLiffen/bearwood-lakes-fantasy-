@@ -5,7 +5,11 @@ import { calculateGolferPrices } from './_shared/services/golfers.service';
 import { z } from 'zod';
 
 const calculatePricesSchema = z.object({
-  season: z.number().int().min(2020).max(new Date().getFullYear() + 5),
+  season: z
+    .number()
+    .int()
+    .min(2020)
+    .max(new Date().getFullYear() + 5),
 });
 
 export const handler = withAdmin(async (event) => {

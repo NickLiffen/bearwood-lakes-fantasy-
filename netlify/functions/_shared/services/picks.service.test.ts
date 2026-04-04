@@ -1,7 +1,13 @@
 import { ObjectId } from 'mongodb';
 import type { Db, MongoClient } from 'mongodb';
 import { connectToDatabase } from '../db';
-import { savePicks, getUserPicks, getPickHistory, getTransfersThisWeek, cancelPendingChanges } from './picks.service';
+import {
+  savePicks,
+  getUserPicks,
+  getPickHistory,
+  getTransfersThisWeek,
+  cancelPendingChanges,
+} from './picks.service';
 import { getActiveSeason } from './seasons.service';
 import type { Season } from '@shared/types/season.types';
 
@@ -278,7 +284,9 @@ describe('picks.service', () => {
           updatedAt: new Date('2026-03-15'),
         };
         // First call: getUserPicks returns existing pick; second: returns updated pick
-        mockPicksCollection.findOne.mockResolvedValueOnce(existingPick).mockResolvedValueOnce(existingPick);
+        mockPicksCollection.findOne
+          .mockResolvedValueOnce(existingPick)
+          .mockResolvedValueOnce(existingPick);
 
         // Transfer already used this week — normally would be rejected
         mockHistoryCollection.countDocuments.mockResolvedValue(1);
@@ -301,7 +309,13 @@ describe('picks.service', () => {
         mockPicksCollection.updateOne.mockResolvedValue({ modifiedCount: 1 });
 
         // Should succeed despite transfer count >= max (because pre-GW1 = unlimited)
-        const result = await savePicks(userId.toString(), newGolferIdStrings, 'Transfer', null, 2026);
+        const result = await savePicks(
+          userId.toString(),
+          newGolferIdStrings,
+          'Transfer',
+          null,
+          2026
+        );
         expect(result).toBeDefined();
       });
 
@@ -337,9 +351,9 @@ describe('picks.service', () => {
         // Different golfers to trigger transfer validation
         const newGolferIds = [...golferIdStrings.slice(1), new ObjectId().toString()];
 
-        await expect(savePicks(userId.toString(), newGolferIds, 'Transfer', null, 2026)).rejects.toThrow(
-          'Transfer limit reached'
-        );
+        await expect(
+          savePicks(userId.toString(), newGolferIds, 'Transfer', null, 2026)
+        ).rejects.toThrow('Transfer limit reached');
       });
     });
   });
@@ -432,7 +446,7 @@ describe('picks.service', () => {
         expect.objectContaining({ userId: expect.any(ObjectId) }),
         expect.objectContaining({
           $unset: { pendingGolferIds: '', pendingCaptainId: '', pendingChangedAt: '' },
-        }),
+        })
       );
 
       // Should delete scheduled history entries for the current week
@@ -441,7 +455,7 @@ describe('picks.service', () => {
           userId: expect.any(ObjectId),
           reason: { $in: ['Scheduled transfer', 'Scheduled captain change'] },
           changedAt: expect.objectContaining({ $gte: expect.any(Date) }),
-        }),
+        })
       );
     });
   });

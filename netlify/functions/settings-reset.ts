@@ -56,7 +56,7 @@ export const handler: Handler = withAdmin(async (event) => {
         // Delete both scores and picks
         const scoresCollection = db.collection(SCORES_COLLECTION);
         const picksCollection = db.collection(PICKS_COLLECTION);
-        
+
         const [scoresResult, picksResult] = await Promise.all([
           scoresCollection.deleteMany({}),
           picksCollection.deleteMany({}),

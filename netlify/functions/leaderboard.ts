@@ -2,7 +2,11 @@
 // Returns leaderboard data with season, monthly, and weekly rankings
 
 import { withVerifiedAuth } from './_shared/middleware';
-import { getFullLeaderboard, getLeaderboard, getTournamentLeaderboard } from './_shared/services/leaderboard.service';
+import {
+  getFullLeaderboard,
+  getLeaderboard,
+  getTournamentLeaderboard,
+} from './_shared/services/leaderboard.service';
 
 export const handler = withVerifiedAuth(async (event) => {
   try {

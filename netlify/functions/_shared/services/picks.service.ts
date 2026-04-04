@@ -59,7 +59,9 @@ async function getMaxPlayersPerTransfer(): Promise<number> {
 export async function getTransfersThisWeek(userId: string): Promise<number> {
   const { db } = await connectToDatabase();
   const activeSeason = await getActiveSeason();
-  const firstGW = activeSeason?.firstGameweekStart ? new Date(activeSeason.firstGameweekStart) : null;
+  const firstGW = activeSeason?.firstGameweekStart
+    ? new Date(activeSeason.firstGameweekStart)
+    : null;
   const weekStart = getWeekStart(new Date(), firstGW);
 
   // Count pickHistory entries for this user since weekStart
@@ -170,7 +172,7 @@ export async function savePicks(
       seasonStartDate,
       firstGW,
       existingPick.createdAt,
-      checkNow,
+      checkNow
     );
 
     if (isCaptainOnlyChange) {
@@ -428,10 +430,9 @@ export async function applyPendingChanges(userId: string): Promise<boolean> {
   updateUnset.pendingCaptainId = '';
   updateUnset.pendingChangedAt = '';
 
-  await db.collection<PickDocument>(PICKS_COLLECTION).updateOne(
-    { _id: pick._id },
-    { $set: updateSet, $unset: updateUnset }
-  );
+  await db
+    .collection<PickDocument>(PICKS_COLLECTION)
+    .updateOne({ _id: pick._id }, { $set: updateSet, $unset: updateUnset });
 
   return true;
 }

@@ -18,7 +18,7 @@ export const handler = withAdmin(async (event) => {
     return apiResponse(200, result);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const messages = error.errors.map(e => e.message).join('; ');
+      const messages = error.errors.map((e) => e.message).join('; ');
       return apiResponse(422, null, messages);
     }
 

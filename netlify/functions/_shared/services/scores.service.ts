@@ -162,10 +162,7 @@ export async function bulkEnterScores(data: BulkEnterScoresRequest): Promise<Sco
   return scores;
 }
 
-export async function getAllScores(options?: {
-  limit?: number;
-  skip?: number;
-}): Promise<Score[]> {
+export async function getAllScores(options?: { limit?: number; skip?: number }): Promise<Score[]> {
   const { db } = await connectToDatabase();
   const collection = db.collection<ScoreDocument>(SCORES_COLLECTION);
 
@@ -182,7 +179,9 @@ export async function getPublishedScores(): Promise<Score[]> {
   const tournamentsCollection = db.collection<TournamentDocument>(TOURNAMENTS_COLLECTION);
 
   // Get published or complete tournaments
-  const publishedTournaments = await tournamentsCollection.find({ status: { $in: ['published', 'complete'] } }).toArray();
+  const publishedTournaments = await tournamentsCollection
+    .find({ status: { $in: ['published', 'complete'] } })
+    .toArray();
   const publishedIds = publishedTournaments.map((t) => t._id);
 
   // Get scores only from published tournaments

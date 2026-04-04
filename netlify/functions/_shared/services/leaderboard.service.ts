@@ -7,7 +7,11 @@ import { PICKS_COLLECTION } from '../models/Pick';
 import { SCORES_COLLECTION } from '../models/Score';
 import { GolferDocument, GOLFERS_COLLECTION, toGolfer } from '../models/Golfer';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from '../models/Tournament';
-import type { LeaderboardEntry, TeamOfTheWeekResponse, TeamOfTheWeekGolfer } from '../../../../shared/types';
+import type {
+  LeaderboardEntry,
+  TeamOfTheWeekResponse,
+  TeamOfTheWeekGolfer,
+} from '../../../../shared/types';
 import {
   getWeekStart,
   getWeekEnd,
@@ -99,10 +103,14 @@ interface AggregatedPick {
 
 export async function getFullLeaderboard(season?: number): Promise<FullLeaderboardResponse> {
   const activeSeason = await getActiveSeason();
-  const currentSeason = season ?? (activeSeason
-    ? parseInt(activeSeason.name, 10) || new Date().getFullYear()
-    : new Date().getFullYear());
-  const firstGW = activeSeason?.firstGameweekStart ? new Date(activeSeason.firstGameweekStart) : null;
+  const currentSeason =
+    season ??
+    (activeSeason
+      ? parseInt(activeSeason.name, 10) || new Date().getFullYear()
+      : new Date().getFullYear());
+  const firstGW = activeSeason?.firstGameweekStart
+    ? new Date(activeSeason.firstGameweekStart)
+    : null;
   const cacheKey = leaderboardCacheKey('full', currentSeason);
 
   const cached = await getCachedLeaderboard<FullLeaderboardResponse>(cacheKey);
@@ -236,7 +244,7 @@ export async function getFullLeaderboard(season?: number): Promise<FullLeaderboa
       scoresByGolferTournament,
       tournamentDateMap,
       boundaries,
-      firstGW,
+      firstGW
     );
 
     // Count tournaments played per period
@@ -252,8 +260,10 @@ export async function getFullLeaderboard(season?: number): Promise<FullLeaderboa
       if (!tournamentDate || tournamentDate < teamEffectiveStart) continue;
 
       if (tournamentDate >= seasonStart) seasonTournamentSet.add(tournamentId);
-      if (tournamentDate >= monthStart && tournamentDate <= monthEnd) monthTournamentSet.add(tournamentId);
-      if (tournamentDate >= weekStart && tournamentDate <= weekEnd) weekTournamentSet.add(tournamentId);
+      if (tournamentDate >= monthStart && tournamentDate <= monthEnd)
+        monthTournamentSet.add(tournamentId);
+      if (tournamentDate >= weekStart && tournamentDate <= weekEnd)
+        weekTournamentSet.add(tournamentId);
     }
 
     leaderboardData.push({
@@ -315,10 +325,14 @@ export async function getFullLeaderboard(season?: number): Promise<FullLeaderboa
 
 export async function getLeaderboard(season?: number): Promise<LeaderboardEntry[]> {
   const activeSeason = await getActiveSeason();
-  const currentSeason = season ?? (activeSeason
-    ? parseInt(activeSeason.name, 10) || new Date().getFullYear()
-    : new Date().getFullYear());
-  const firstGW = activeSeason?.firstGameweekStart ? new Date(activeSeason.firstGameweekStart) : null;
+  const currentSeason =
+    season ??
+    (activeSeason
+      ? parseInt(activeSeason.name, 10) || new Date().getFullYear()
+      : new Date().getFullYear());
+  const firstGW = activeSeason?.firstGameweekStart
+    ? new Date(activeSeason.firstGameweekStart)
+    : null;
   const cacheKey = leaderboardCacheKey('simple', currentSeason);
 
   const cached = await getCachedLeaderboard<LeaderboardEntry[]>(cacheKey);
@@ -423,7 +437,7 @@ export async function getLeaderboard(season?: number): Promise<LeaderboardEntry[
       scoresByGolferTournament,
       tournamentDateMap,
       simpleBoundaries,
-      firstGW,
+      firstGW
     );
 
     leaderboardData.push({
@@ -473,10 +487,14 @@ export async function getTournamentLeaderboard(
   season?: number
 ): Promise<LeaderboardEntry[]> {
   const activeSeason = await getActiveSeason();
-  const currentSeason = season ?? (activeSeason
-    ? parseInt(activeSeason.name, 10) || new Date().getFullYear()
-    : new Date().getFullYear());
-  const firstGW = activeSeason?.firstGameweekStart ? new Date(activeSeason.firstGameweekStart) : null;
+  const currentSeason =
+    season ??
+    (activeSeason
+      ? parseInt(activeSeason.name, 10) || new Date().getFullYear()
+      : new Date().getFullYear());
+  const firstGW = activeSeason?.firstGameweekStart
+    ? new Date(activeSeason.firstGameweekStart)
+    : null;
   const cacheKey = leaderboardCacheKey('tournament', currentSeason, tournamentId);
 
   const cached = await getCachedLeaderboard<LeaderboardEntry[]>(cacheKey);
@@ -487,10 +505,7 @@ export async function getTournamentLeaderboard(
   // Get the tournament (project only needed fields)
   const tournament = await db
     .collection<TournamentDocument>(TOURNAMENTS_COLLECTION)
-    .findOne(
-      { _id: new ObjectId(tournamentId) },
-      { projection: { status: 1, startDate: 1 } }
-    );
+    .findOne({ _id: new ObjectId(tournamentId) }, { projection: { status: 1, startDate: 1 } });
 
   if (!tournament || !['published', 'complete'].includes(tournament.status)) {
     return [];
@@ -580,7 +595,7 @@ export async function getTournamentLeaderboard(
       scoresByGolferTournament,
       tournamentDateMap,
       tournamentBoundaries,
-      firstGW,
+      firstGW
     );
 
     leaderboardData.push({
@@ -648,9 +663,7 @@ export async function getTeamOfTheWeek(
   season: number
 ): Promise<TeamOfTheWeekResponse | null> {
   const seasonData = await getSeasonByName(String(season));
-  const firstGW = seasonData?.firstGameweekStart
-    ? new Date(seasonData.firstGameweekStart)
-    : null;
+  const firstGW = seasonData?.firstGameweekStart ? new Date(seasonData.firstGameweekStart) : null;
   const seasonStartDate = seasonData?.startDate
     ? new Date(seasonData.startDate)
     : new Date(season, 0, 1);
@@ -766,10 +779,7 @@ export async function getTeamOfTheWeek(
   });
 
   // Total: captain's points doubled + rest as-is
-  const totalPoints = dreamTeam.reduce(
-    (sum, g) => sum + g.weekPoints * (g.isCaptain ? 2 : 1),
-    0
-  );
+  const totalPoints = dreamTeam.reduce((sum, g) => sum + g.weekPoints * (g.isCaptain ? 2 : 1), 0);
 
   const result: TeamOfTheWeekResponse = {
     golfers: dreamTeam,

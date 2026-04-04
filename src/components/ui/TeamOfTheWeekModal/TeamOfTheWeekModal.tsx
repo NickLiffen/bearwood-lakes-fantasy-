@@ -43,16 +43,17 @@ const TeamOfTheWeekModal: React.FC<TeamOfTheWeekModalProps> = ({ date, season, o
     fetchTeamOfTheWeek();
   }, [date, season, get]);
 
-  const golferTableData = data?.golfers.map((g) => ({
-    golfer: {
-      id: g.golfer.id,
-      firstName: g.golfer.firstName,
-      lastName: g.golfer.lastName,
-      picture: g.golfer.picture,
-    },
-    weekPoints: g.weekPoints,
-    isCaptain: g.isCaptain,
-  })) || [];
+  const golferTableData =
+    data?.golfers.map((g) => ({
+      golfer: {
+        id: g.golfer.id,
+        firstName: g.golfer.firstName,
+        lastName: g.golfer.lastName,
+        picture: g.golfer.picture,
+      },
+      weekPoints: g.weekPoints,
+      isCaptain: g.isCaptain,
+    })) || [];
 
   return (
     <div className="modal-overlay totw-overlay" onClick={onClose}>
@@ -61,9 +62,7 @@ const TeamOfTheWeekModal: React.FC<TeamOfTheWeekModalProps> = ({ date, season, o
         <div className="modal-header totw-header">
           <div>
             <h2>⭐ Team of the Week</h2>
-            {data?.period && (
-              <span className="totw-subtitle">{data.period.label}</span>
-            )}
+            {data?.period && <span className="totw-subtitle">{data.period.label}</span>}
           </div>
           <button className="modal-close" onClick={onClose}>
             ×

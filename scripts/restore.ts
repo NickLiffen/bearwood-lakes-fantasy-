@@ -35,15 +35,24 @@ function reviveDocument(doc: any): any {
   const result: Record<string, any> = {};
   for (const [key, value] of Object.entries(doc)) {
     if (
-      (key === '_id' || key.endsWith('Id') || key === 'userId' || key === 'golferId' ||
-        key === 'tournamentId' || key === 'captainId') &&
+      (key === '_id' ||
+        key.endsWith('Id') ||
+        key === 'userId' ||
+        key === 'golferId' ||
+        key === 'tournamentId' ||
+        key === 'captainId') &&
       typeof value === 'string' &&
       /^[0-9a-fA-F]{24}$/.test(value)
     ) {
       result[key] = new ObjectId(value);
     } else if (
-      (key === 'createdAt' || key === 'updatedAt' || key === 'startDate' || key === 'endDate' ||
-        key === 'changedAt' || key === 'expiresAt' || key === 'lastUsedAt') &&
+      (key === 'createdAt' ||
+        key === 'updatedAt' ||
+        key === 'startDate' ||
+        key === 'endDate' ||
+        key === 'changedAt' ||
+        key === 'expiresAt' ||
+        key === 'lastUsedAt') &&
       typeof value === 'string'
     ) {
       result[key] = new Date(value);
@@ -76,7 +85,9 @@ async function restore() {
   const backupDir = process.argv[2];
   if (!backupDir || !fs.existsSync(backupDir)) {
     console.error('Usage: npx tsx scripts/restore.ts <backup-dir>');
-    console.error('Example: npx tsx scripts/restore.ts scripts/backups/backup-2026-03-01T12-00-00-000Z');
+    console.error(
+      'Example: npx tsx scripts/restore.ts scripts/backups/backup-2026-03-01T12-00-00-000Z'
+    );
     process.exit(1);
   }
 
@@ -104,7 +115,9 @@ async function restore() {
     await client.connect();
     const db = client.db(MONGODB_DB_NAME);
 
-    const files = fs.readdirSync(backupDir).filter((f) => f.endsWith('.json') && !f.startsWith('_'));
+    const files = fs
+      .readdirSync(backupDir)
+      .filter((f) => f.endsWith('.json') && !f.startsWith('_'));
 
     console.log();
     let totalDocs = 0;

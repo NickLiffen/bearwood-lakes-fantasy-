@@ -115,14 +115,27 @@ const LeagueDetailPage: React.FC = () => {
           setLeaders(leadersRes.data.leaders);
 
           if (leadersRes.data.leaders.currentWeek) {
-            setWeeklyDate(formatDateString(getSaturdayOfWeek(new Date(leadersRes.data.leaders.currentWeek.startDate), season?.firstGameweekStart)));
+            setWeeklyDate(
+              formatDateString(
+                getSaturdayOfWeek(
+                  new Date(leadersRes.data.leaders.currentWeek.startDate),
+                  season?.firstGameweekStart
+                )
+              )
+            );
           }
           if (leadersRes.data.leaders.currentMonth) {
             const d = new Date(leadersRes.data.leaders.currentMonth.startDate);
             setMonthlyDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`);
           }
           if (leadersRes.data.leaders.seasonInfo) {
-            setWeekOptions(generateWeekOptions(leadersRes.data.leaders.seasonInfo.startDate, leadersRes.data.leaders.seasonInfo.startDate, season?.firstGameweekStart));
+            setWeekOptions(
+              generateWeekOptions(
+                leadersRes.data.leaders.seasonInfo.startDate,
+                leadersRes.data.leaders.seasonInfo.startDate,
+                season?.firstGameweekStart
+              )
+            );
             setMonthOptions(generateMonthOptions(leadersRes.data.leaders.seasonInfo.startDate));
           }
         } else {
@@ -148,7 +161,9 @@ const LeagueDetailPage: React.FC = () => {
     };
 
     loadData();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [isAuthReady, id, selectedSeason, get, fetchPeriodData, season?.firstGameweekStart]);
 
   const handleWeekNavigation = async (direction: 'prev' | 'next') => {
@@ -173,10 +188,7 @@ const LeagueDetailPage: React.FC = () => {
     if (data) setMonthlyData(data);
   };
 
-  const isCurrentUser = useCallback(
-    (entryUserId: string) => user?.id === entryUserId,
-    [user?.id]
-  );
+  const isCurrentUser = useCallback((entryUserId: string) => user?.id === entryUserId, [user?.id]);
 
   const columns = useLeaderboardColumns({ isCurrentUser });
 
@@ -246,14 +258,19 @@ const LeagueDetailPage: React.FC = () => {
                   {copied ? '✅ Copied!' : '🔗 Invite Link'}
                 </button>
                 {!isAdmin && (
-                  <button className="btn btn-secondary btn-sm" onClick={handleLeave} style={{ color: '#dc2626' }}>
+                  <button
+                    className="btn btn-secondary btn-sm"
+                    onClick={handleLeave}
+                    style={{ color: '#dc2626' }}
+                  >
                     Leave
                   </button>
                 )}
               </div>
             </div>
             <p className="users-page-subtitle">
-              {league?.memberCount} member{league?.memberCount !== 1 ? 's' : ''} · Invite code: <strong>{league?.inviteCode}</strong>
+              {league?.memberCount} member{league?.memberCount !== 1 ? 's' : ''} · Invite code:{' '}
+              <strong>{league?.inviteCode}</strong>
             </p>
           </div>
 
@@ -261,9 +278,24 @@ const LeagueDetailPage: React.FC = () => {
 
           {/* Leader Cards */}
           <div className="leaders-section">
-            <LeaderCard leader={leaders?.weeklyLeader || null} title="Weekly Leader" emoji="📅" isCurrentUser={isCurrentUser} />
-            <LeaderCard leader={leaders?.monthlyLeader || null} title="Monthly Leader" emoji="📆" isCurrentUser={isCurrentUser} />
-            <LeaderCard leader={leaders?.seasonLeader || null} title="Season Leader" emoji="🏆" isCurrentUser={isCurrentUser} />
+            <LeaderCard
+              leader={leaders?.weeklyLeader || null}
+              title="Weekly Leader"
+              emoji="📅"
+              isCurrentUser={isCurrentUser}
+            />
+            <LeaderCard
+              leader={leaders?.monthlyLeader || null}
+              title="Monthly Leader"
+              emoji="📆"
+              isCurrentUser={isCurrentUser}
+            />
+            <LeaderCard
+              leader={leaders?.seasonLeader || null}
+              title="Season Leader"
+              emoji="🏆"
+              isCurrentUser={isCurrentUser}
+            />
           </div>
 
           {/* Standings */}
@@ -275,15 +307,19 @@ const LeagueDetailPage: React.FC = () => {
             onPageChange={setWeeklyPage}
             isCurrentUser={isCurrentUser}
             metaText={`${weeklyData?.entries?.length || 0} players`}
-            periodNav={weeklyPeriod ? {
-              id: 'league-week-select',
-              options: weekOptions,
-              selectedDate: weeklyDate,
-              hasPrevious: weeklyPeriod.hasPrevious,
-              hasNext: weeklyPeriod.hasNext,
-              onNavigate: handleWeekNavigation,
-              onSelect: handleWeekSelect,
-            } : undefined}
+            periodNav={
+              weeklyPeriod
+                ? {
+                    id: 'league-week-select',
+                    options: weekOptions,
+                    selectedDate: weeklyDate,
+                    hasPrevious: weeklyPeriod.hasPrevious,
+                    hasNext: weeklyPeriod.hasNext,
+                    onNavigate: handleWeekNavigation,
+                    onSelect: handleWeekSelect,
+                  }
+                : undefined
+            }
           />
 
           <LeaderboardSection
@@ -294,15 +330,19 @@ const LeagueDetailPage: React.FC = () => {
             onPageChange={setMonthlyPage}
             isCurrentUser={isCurrentUser}
             metaText={`${monthlyData?.entries?.length || 0} players`}
-            periodNav={monthlyPeriod ? {
-              id: 'league-month-select',
-              options: monthOptions,
-              selectedDate: monthlyDate,
-              hasPrevious: monthlyPeriod.hasPrevious,
-              hasNext: monthlyPeriod.hasNext,
-              onNavigate: handleMonthNavigation,
-              onSelect: handleMonthSelect,
-            } : undefined}
+            periodNav={
+              monthlyPeriod
+                ? {
+                    id: 'league-month-select',
+                    options: monthOptions,
+                    selectedDate: monthlyDate,
+                    hasPrevious: monthlyPeriod.hasPrevious,
+                    hasNext: monthlyPeriod.hasNext,
+                    onNavigate: handleMonthNavigation,
+                    onSelect: handleMonthSelect,
+                  }
+                : undefined
+            }
           />
 
           <LeaderboardSection
@@ -318,14 +358,45 @@ const LeagueDetailPage: React.FC = () => {
           {/* Members */}
           <div className="leaderboard-section" style={{ marginTop: '2rem' }}>
             <h2>Members ({members.length})</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem', marginTop: '1rem' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                gap: '0.75rem',
+                marginTop: '1rem',
+              }}
+            >
               {members.map((m) => (
-                <Link key={m.userId} to={`/users/${m.userId}`} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.75rem', background: 'white', borderRadius: '8px', border: '1px solid #e5e7eb', textDecoration: 'none', color: 'inherit' }}>
-                  <div className="dt-avatar">{m.firstName[0]}{m.lastName[0]}</div>
+                <Link
+                  key={m.userId}
+                  to={`/users/${m.userId}`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    padding: '0.75rem',
+                    background: 'white',
+                    borderRadius: '8px',
+                    border: '1px solid #e5e7eb',
+                    textDecoration: 'none',
+                    color: 'inherit',
+                  }}
+                >
+                  <div className="dt-avatar">
+                    {m.firstName[0]}
+                    {m.lastName[0]}
+                  </div>
                   <div>
-                    <div style={{ fontWeight: 500 }}>{m.firstName} {m.lastName}</div>
+                    <div style={{ fontWeight: 500 }}>
+                      {m.firstName} {m.lastName}
+                    </div>
                     <div style={{ fontSize: '0.8rem', color: '#6b7280' }}>
-                      @{m.username} {m.isAdmin && <span style={{ color: 'var(--primary-green)', fontWeight: 600 }}>· Admin</span>}
+                      @{m.username}{' '}
+                      {m.isAdmin && (
+                        <span style={{ color: 'var(--primary-green)', fontWeight: 600 }}>
+                          · Admin
+                        </span>
+                      )}
                     </div>
                   </div>
                 </Link>

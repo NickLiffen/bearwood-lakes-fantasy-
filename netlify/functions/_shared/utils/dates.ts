@@ -21,10 +21,7 @@ const isSameDay = (a: Date, b: Date): boolean =>
  * 7 days after the first Saturday on or after `firstGameweekStart`.
  * All subsequent weeks follow the normal Saturday cadence.
  */
-export const getWeekStart = (
-  date: Date = new Date(),
-  firstGameweekStart?: Date | null
-): Date => {
+export const getWeekStart = (date: Date = new Date(), firstGameweekStart?: Date | null): Date => {
   // If a custom GW1 start is provided, check whether `date` falls inside GW1
   if (firstGameweekStart) {
     const gw1Start = new Date(firstGameweekStart);
@@ -265,20 +262,23 @@ export const hasUnlimitedTransfers = (
   seasonStartDate: Date | null,
   firstGameweekStart: Date | null,
   teamCreatedAt?: Date | string | number | null,
-  now: Date = new Date(),
+  now: Date = new Date()
 ): boolean => {
   const isPreSeason = seasonStartDate ? now < seasonStartDate : false;
 
   // Use the raw firstGameweekStart (preserves configured time, e.g. 8am)
   // and only fall back to the calculated first Saturday when it's unset.
   const firstGWDate = seasonStartDate
-    ? (firstGameweekStart ? new Date(firstGameweekStart) : getSeasonFirstSaturday(seasonStartDate))
+    ? firstGameweekStart
+      ? new Date(firstGameweekStart)
+      : getSeasonFirstSaturday(seasonStartDate)
     : null;
   const isBeforeFirstGameweek = firstGWDate ? now < firstGWDate : false;
 
-  const teamEffectiveStart = teamCreatedAt !== undefined
-    ? getTeamEffectiveStartDate(teamCreatedAt, firstGameweekStart)
-    : null;
+  const teamEffectiveStart =
+    teamCreatedAt !== undefined
+      ? getTeamEffectiveStartDate(teamCreatedAt, firstGameweekStart)
+      : null;
   const isPreFirstGameWeek = teamEffectiveStart ? now < teamEffectiveStart : false;
 
   return isPreSeason || isBeforeFirstGameweek || isPreFirstGameWeek;

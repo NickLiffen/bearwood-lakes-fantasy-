@@ -3,12 +3,20 @@ import { makeAuthEvent, mockContext, parseBody } from './__test-utils__';
 
 vi.mock('./_shared/auth', () => ({
   verifyToken: vi.fn().mockReturnValue({
-    userId: 'user-admin-1', username: 'testadmin', role: 'admin', phoneVerified: true,
+    userId: 'user-admin-1',
+    username: 'testadmin',
+    role: 'admin',
+    phoneVerified: true,
   }),
 }));
 vi.mock('./_shared/rateLimit', () => ({
   checkRateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 99, resetAt: new Date() }),
-  RateLimitConfig: { admin: { windowMs: 60000, maxRequests: 60 }, default: { windowMs: 60000, maxRequests: 100 }, read: { windowMs: 60000, maxRequests: 120 }, write: { windowMs: 60000, maxRequests: 30 } },
+  RateLimitConfig: {
+    admin: { windowMs: 60000, maxRequests: 60 },
+    default: { windowMs: 60000, maxRequests: 100 },
+    read: { windowMs: 60000, maxRequests: 120 },
+    write: { windowMs: 60000, maxRequests: 30 },
+  },
   getRateLimitKeyFromEvent: vi.fn().mockReturnValue('ratelimit:key'),
   rateLimitHeaders: vi.fn().mockReturnValue({}),
   rateLimitExceededResponse: vi.fn(),
@@ -26,14 +34,19 @@ import { verifyToken } from './_shared/auth';
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(verifyToken).mockReturnValue({
-    userId: 'user-admin-1', username: 'testadmin', role: 'admin', phoneVerified: true,
+    userId: 'user-admin-1',
+    username: 'testadmin',
+    role: 'admin',
+    phoneVerified: true,
   });
 });
 
 describe('golfers-calculate-prices handler', () => {
   it('calculates prices and returns 200', async () => {
     const priceResult = { updated: 50, season: 2026 };
-    vi.mocked(calculateGolferPrices).mockResolvedValue(priceResult as unknown as Awaited<ReturnType<typeof calculateGolferPrices>>);
+    vi.mocked(calculateGolferPrices).mockResolvedValue(
+      priceResult as unknown as Awaited<ReturnType<typeof calculateGolferPrices>>
+    );
 
     const event = makeAuthEvent({
       httpMethod: 'POST',
@@ -83,7 +96,10 @@ describe('golfers-calculate-prices handler', () => {
 
   it('returns 403 for non-admin user', async () => {
     vi.mocked(verifyToken).mockReturnValue({
-      userId: 'user-player-1', username: 'testplayer', role: 'player', phoneVerified: true,
+      userId: 'user-player-1',
+      username: 'testplayer',
+      role: 'player',
+      phoneVerified: true,
     });
 
     const event = makeAuthEvent({

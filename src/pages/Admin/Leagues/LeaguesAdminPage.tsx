@@ -98,16 +98,35 @@ const LeaguesAdminPage: React.FC = () => {
       <div style={{ padding: '1rem' }}>
         <h2>Leagues Management</h2>
         <p style={{ color: '#6b7280', marginBottom: '1.5rem' }}>
-          View and manage all custom leagues — {leagues.length} league{leagues.length !== 1 ? 's' : ''} total
+          View and manage all custom leagues — {leagues.length} league
+          {leagues.length !== 1 ? 's' : ''} total
         </p>
 
         {error && (
-          <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '0.75rem 1rem', color: '#dc2626', marginBottom: '1rem' }}>
+          <div
+            style={{
+              background: '#fef2f2',
+              border: '1px solid #fecaca',
+              borderRadius: '8px',
+              padding: '0.75rem 1rem',
+              color: '#dc2626',
+              marginBottom: '1rem',
+            }}
+          >
             ⚠️ {error}
           </div>
         )}
         {success && (
-          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '0.75rem 1rem', color: '#059669', marginBottom: '1rem' }}>
+          <div
+            style={{
+              background: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              borderRadius: '8px',
+              padding: '0.75rem 1rem',
+              color: '#059669',
+              marginBottom: '1rem',
+            }}
+          >
             ✅ {success}
           </div>
         )}
@@ -146,25 +165,49 @@ const LeaguesAdminPage: React.FC = () => {
                   <div>
                     <div style={{ fontWeight: 600, fontSize: '1.05rem' }}>
                       {league.name}
-                      <span style={{ fontWeight: 400, color: '#6b7280', fontSize: '0.85rem', marginLeft: '0.75rem' }}>
+                      <span
+                        style={{
+                          fontWeight: 400,
+                          color: '#6b7280',
+                          fontSize: '0.85rem',
+                          marginLeft: '0.75rem',
+                        }}
+                      >
                         {league.memberCount} member{league.memberCount !== 1 ? 's' : ''}
                       </span>
                     </div>
                     <div style={{ fontSize: '0.85rem', color: '#6b7280', marginTop: '0.25rem' }}>
-                      Admin: <strong>{league.admin.firstName} {league.admin.lastName}</strong> (@{league.admin.username})
-                      &nbsp;·&nbsp;Code: <code style={{ background: '#f3f4f6', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>{league.inviteCode}</code>
+                      Admin:{' '}
+                      <strong>
+                        {league.admin.firstName} {league.admin.lastName}
+                      </strong>{' '}
+                      (@{league.admin.username}) &nbsp;·&nbsp;Code:{' '}
+                      <code
+                        style={{
+                          background: '#f3f4f6',
+                          padding: '0.1rem 0.4rem',
+                          borderRadius: '4px',
+                        }}
+                      >
+                        {league.inviteCode}
+                      </code>
                       &nbsp;·&nbsp;Created: {formatDate(league.createdAt)}
                     </div>
                   </div>
                   <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                     <button
                       className="btn btn-secondary btn-sm"
-                      onClick={(e) => { e.stopPropagation(); handleDeleteLeague(league.id, league.name); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteLeague(league.id, league.name);
+                      }}
                       style={{ color: '#dc2626', fontSize: '0.8rem' }}
                     >
                       Delete
                     </button>
-                    <span style={{ color: '#9ca3af' }}>{expandedLeague === league.id ? '▲' : '▼'}</span>
+                    <span style={{ color: '#9ca3af' }}>
+                      {expandedLeague === league.id ? '▲' : '▼'}
+                    </span>
                   </div>
                 </div>
 
@@ -175,10 +218,43 @@ const LeaguesAdminPage: React.FC = () => {
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                       <thead>
                         <tr style={{ borderBottom: '1px solid #e5e7eb', textAlign: 'left' }}>
-                          <th style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem', color: '#6b7280' }}>Name</th>
-                          <th style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem', color: '#6b7280' }}>Username</th>
-                          <th style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem', color: '#6b7280' }}>Role</th>
-                          <th style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem', color: '#6b7280', textAlign: 'right' }}>Actions</th>
+                          <th
+                            style={{
+                              padding: '0.5rem 0.75rem',
+                              fontSize: '0.85rem',
+                              color: '#6b7280',
+                            }}
+                          >
+                            Name
+                          </th>
+                          <th
+                            style={{
+                              padding: '0.5rem 0.75rem',
+                              fontSize: '0.85rem',
+                              color: '#6b7280',
+                            }}
+                          >
+                            Username
+                          </th>
+                          <th
+                            style={{
+                              padding: '0.5rem 0.75rem',
+                              fontSize: '0.85rem',
+                              color: '#6b7280',
+                            }}
+                          >
+                            Role
+                          </th>
+                          <th
+                            style={{
+                              padding: '0.5rem 0.75rem',
+                              fontSize: '0.85rem',
+                              color: '#6b7280',
+                              textAlign: 'right',
+                            }}
+                          >
+                            Actions
+                          </th>
                         </tr>
                       </thead>
                       <tbody>
@@ -192,7 +268,14 @@ const LeaguesAdminPage: React.FC = () => {
                             </td>
                             <td style={{ padding: '0.5rem 0.75rem' }}>
                               {member.isAdmin ? (
-                                <span style={{ color: 'var(--primary-green, #059669)', fontWeight: 600 }}>Admin</span>
+                                <span
+                                  style={{
+                                    color: 'var(--primary-green, #059669)',
+                                    fontWeight: 600,
+                                  }}
+                                >
+                                  Admin
+                                </span>
                               ) : (
                                 <span style={{ color: '#6b7280' }}>Member</span>
                               )}

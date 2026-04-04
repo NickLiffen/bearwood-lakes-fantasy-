@@ -4,19 +4,29 @@ import { makeAuthEvent, mockContext, parseBody, createMockDb, mockCursor } from 
 import { connectToDatabase } from './_shared/db';
 import { getActiveSeason, getSeasonByName } from './_shared/services/seasons.service';
 
-
 vi.mock('./_shared/auth', () => ({
   verifyToken: vi.fn().mockReturnValue({
-    userId: 'user-player-1', username: 'testplayer', role: 'player', phoneVerified: true,
+    userId: 'user-player-1',
+    username: 'testplayer',
+    role: 'player',
+    phoneVerified: true,
   }),
 }));
 vi.mock('./_shared/rateLimit', () => ({
   checkRateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 99, resetAt: new Date() }),
-  RateLimitConfig: { default: { windowMs: 60000, maxRequests: 100 }, read: { windowMs: 60000, maxRequests: 120 }, write: { windowMs: 60000, maxRequests: 30 }, admin: { windowMs: 60000, maxRequests: 60 } },
+  RateLimitConfig: {
+    default: { windowMs: 60000, maxRequests: 100 },
+    read: { windowMs: 60000, maxRequests: 120 },
+    write: { windowMs: 60000, maxRequests: 30 },
+    admin: { windowMs: 60000, maxRequests: 60 },
+  },
   getRateLimitKeyFromEvent: vi.fn().mockReturnValue('ratelimit:key'),
   rateLimitHeaders: vi.fn().mockReturnValue({}),
   rateLimitExceededResponse: vi.fn(),
-  getRedisClient: vi.fn().mockReturnValue({ get: vi.fn().mockResolvedValue(null), set: vi.fn().mockResolvedValue('OK') }),
+  getRedisClient: vi.fn().mockReturnValue({
+    get: vi.fn().mockResolvedValue(null),
+    set: vi.fn().mockResolvedValue('OK'),
+  }),
   getRedisKeyPrefix: vi.fn().mockReturnValue('test:'),
 }));
 vi.mock('./_shared/utils/logger', () => ({
@@ -74,7 +84,12 @@ const mockSeason = {
   isActive: true,
 };
 
-function setupCollections(picks: Record<string, unknown>[] = [], users: Record<string, unknown>[] = [], tournaments: Record<string, unknown>[] = [], scores: Record<string, unknown>[] = []) {
+function setupCollections(
+  picks: Record<string, unknown>[] = [],
+  users: Record<string, unknown>[] = [],
+  tournaments: Record<string, unknown>[] = [],
+  scores: Record<string, unknown>[] = []
+) {
   const { mockDb } = createMockDb({
     picks: { find: vi.fn().mockReturnValue(mockCursor(picks)) },
     users: { find: vi.fn().mockReturnValue(mockCursor(users)) },
@@ -86,7 +101,9 @@ function setupCollections(picks: Record<string, unknown>[] = [], users: Record<s
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(getActiveSeason).mockResolvedValue(mockSeason as unknown as Awaited<ReturnType<typeof getActiveSeason>>);
+  vi.mocked(getActiveSeason).mockResolvedValue(
+    mockSeason as unknown as Awaited<ReturnType<typeof getActiveSeason>>
+  );
   vi.mocked(getSeasonByName).mockResolvedValue(null);
 });
 
@@ -108,7 +125,7 @@ describe('leaderboard-periods handler', () => {
 
     const res = await handler(
       makeAuthEvent({ queryStringParameters: { action: 'leaders' } }),
-      mockContext,
+      mockContext
     );
     const body = parseBody(res!);
 
@@ -127,35 +144,41 @@ describe('leaderboard-periods handler', () => {
     const tournamentId = new ObjectId();
     const tournamentDate = new Date('2025-06-14');
 
-    const picks = [{
-      userId,
-      golferIds: [golferId],
-      captainId: null,
-      totalSpent: 10_000_000,
-      season: 2025,
-      createdAt: new Date('2025-01-01'),
-    }];
+    const picks = [
+      {
+        userId,
+        golferIds: [golferId],
+        captainId: null,
+        totalSpent: 10_000_000,
+        season: 2025,
+        createdAt: new Date('2025-01-01'),
+      },
+    ];
     const users = [{ _id: userId, username: 'alice', firstName: 'Alice', lastName: 'A' }];
-    const tournaments = [{
-      _id: tournamentId,
-      name: 'The Open',
-      status: 'published',
-      season: 2025,
-      startDate: tournamentDate,
-    }];
-    const scores = [{
-      golferId,
-      tournamentId,
-      multipliedPoints: 25,
-      participated: true,
-    }];
+    const tournaments = [
+      {
+        _id: tournamentId,
+        name: 'The Open',
+        status: 'published',
+        season: 2025,
+        startDate: tournamentDate,
+      },
+    ];
+    const scores = [
+      {
+        golferId,
+        tournamentId,
+        multipliedPoints: 25,
+        participated: true,
+      },
+    ];
 
     it('returns ranked entries for week period', async () => {
       setupCollections(picks, users, tournaments, scores);
 
       const res = await handler(
         makeAuthEvent({ queryStringParameters: { period: 'week', date: '2025-06-14' } }),
-        mockContext,
+        mockContext
       );
       const body = parseBody(res!);
 
@@ -169,7 +192,7 @@ describe('leaderboard-periods handler', () => {
 
       const res = await handler(
         makeAuthEvent({ queryStringParameters: { period: 'month', date: '2025-06-14' } }),
-        mockContext,
+        mockContext
       );
       const body = parseBody(res!);
 
@@ -182,7 +205,7 @@ describe('leaderboard-periods handler', () => {
 
       const res = await handler(
         makeAuthEvent({ queryStringParameters: { period: 'season' } }),
-        mockContext,
+        mockContext
       );
       const body = parseBody(res!);
 
@@ -198,34 +221,40 @@ describe('leaderboard-periods handler', () => {
     const golferId = new ObjectId();
     const tournamentId = new ObjectId();
 
-    const picks = [{
-      userId,
-      golferIds: [golferId],
-      captainId: null,
-      totalSpent: 10_000_000,
-      season: 2025,
-      createdAt: new Date('2025-01-01'),
-    }];
+    const picks = [
+      {
+        userId,
+        golferIds: [golferId],
+        captainId: null,
+        totalSpent: 10_000_000,
+        season: 2025,
+        createdAt: new Date('2025-01-01'),
+      },
+    ];
     const users = [{ _id: userId, username: 'bob', firstName: 'Bob', lastName: 'B' }];
-    const tournaments = [{
-      _id: tournamentId,
-      name: 'Masters',
-      status: 'published',
-      season: 2025,
-      startDate: new Date(),
-    }];
-    const scores = [{
-      golferId,
-      tournamentId,
-      multipliedPoints: 30,
-      participated: true,
-    }];
+    const tournaments = [
+      {
+        _id: tournamentId,
+        name: 'Masters',
+        status: 'published',
+        season: 2025,
+        startDate: new Date(),
+      },
+    ];
+    const scores = [
+      {
+        golferId,
+        tournamentId,
+        multipliedPoints: 30,
+        participated: true,
+      },
+    ];
 
     setupCollections(picks, users, tournaments, scores);
 
     const res = await handler(
       makeAuthEvent({ queryStringParameters: { action: 'leaders' } }),
-      mockContext,
+      mockContext
     );
     const body = parseBody(res!);
 
@@ -239,15 +268,24 @@ describe('leaderboard-periods handler', () => {
   it('supports date navigation (hasPrevious/hasNext)', async () => {
     const userId = new ObjectId();
     setupCollections(
-      [{ userId, golferIds: [], captainId: null, totalSpent: 0, season: 2025, createdAt: new Date('2025-01-01') }],
+      [
+        {
+          userId,
+          golferIds: [],
+          captainId: null,
+          totalSpent: 0,
+          season: 2025,
+          createdAt: new Date('2025-01-01'),
+        },
+      ],
       [{ _id: userId, username: 'nav', firstName: 'Nav', lastName: 'T' }],
       [],
-      [],
+      []
     );
 
     const res = await handler(
       makeAuthEvent({ queryStringParameters: { period: 'week', date: '2025-06-14' } }),
-      mockContext,
+      mockContext
     );
     const body = parseBody(res!);
 
@@ -263,19 +301,30 @@ describe('leaderboard-periods handler', () => {
       ...mockSeason,
       firstGameweekStart: new Date('2025-04-05'),
     };
-    vi.mocked(getActiveSeason).mockResolvedValue(seasonWithFirstGW as unknown as Awaited<ReturnType<typeof getActiveSeason>>);
+    vi.mocked(getActiveSeason).mockResolvedValue(
+      seasonWithFirstGW as unknown as Awaited<ReturnType<typeof getActiveSeason>>
+    );
 
     setupCollections(
-      [{ userId, golferIds: [], captainId: null, totalSpent: 0, season: 2025, createdAt: new Date('2025-01-01') }],
+      [
+        {
+          userId,
+          golferIds: [],
+          captainId: null,
+          totalSpent: 0,
+          season: 2025,
+          createdAt: new Date('2025-01-01'),
+        },
+      ],
       [{ _id: userId, username: 'gw1', firstName: 'GW1', lastName: 'Test' }],
       [],
-      [],
+      []
     );
 
     // Request with date on GW1 itself (April 5, 2025 — a Saturday)
     const res = await handler(
       makeAuthEvent({ queryStringParameters: { period: 'week', date: '2025-04-05' } }),
-      mockContext,
+      mockContext
     );
     const body = parseBody(res!);
 

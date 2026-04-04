@@ -240,9 +240,7 @@ export async function processTournamentUpload(
   const summary =
     `Tournament "${data.name}" created with ${scoresEntered} golfers. ` +
     `${createdGolferNames.length} new golfers created, ${golfersMatched} existing golfers matched.` +
-    (createdGolferNames.length > 0
-      ? ` New golfers: ${createdGolferNames.join(', ')}.`
-      : '');
+    (createdGolferNames.length > 0 ? ` New golfers: ${createdGolferNames.join(', ')}.` : '');
 
   return {
     tournamentCreated: true,

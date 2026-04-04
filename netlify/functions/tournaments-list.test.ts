@@ -1,6 +1,13 @@
 import { ObjectId } from 'mongodb';
 import { handler } from './tournaments-list';
-import { makeEvent, makeAuthEvent, mockContext, parseBody, createMockDb, mockCursor } from './__test-utils__';
+import {
+  makeEvent,
+  makeAuthEvent,
+  mockContext,
+  parseBody,
+  createMockDb,
+  mockCursor,
+} from './__test-utils__';
 import type { Tournament, Season } from '@shared/types';
 
 vi.mock('./_shared/auth', () => ({
@@ -115,7 +122,7 @@ describe('tournaments-list handler', () => {
 
     const res = await handler(
       makeAuthEvent({ queryStringParameters: { allSeasons: 'true' } }),
-      mockContext,
+      mockContext
     );
     expect(res.statusCode).toBe(200);
     const body = parseBody(res);
@@ -146,7 +153,7 @@ describe('tournaments-list handler', () => {
 
     const res = await handler(
       makeEvent({ queryStringParameters: { season: '2025' } }),
-      mockContext,
+      mockContext
     );
     expect(res.statusCode).toBe(200);
     expect(mockGetSeasonByName).toHaveBeenCalledWith('2025');
@@ -170,8 +177,22 @@ describe('tournaments-list handler', () => {
     mockGetByStatus.mockResolvedValue([tournament] as unknown as Tournament[]);
 
     const scores = [
-      { tournamentId: tid, golferId: gid1, position: 1, participated: true, bonusPoints: 5, multipliedPoints: 100 },
-      { tournamentId: tid, golferId: gid2, position: 2, participated: true, bonusPoints: 0, multipliedPoints: 80 },
+      {
+        tournamentId: tid,
+        golferId: gid1,
+        position: 1,
+        participated: true,
+        bonusPoints: 5,
+        multipliedPoints: 100,
+      },
+      {
+        tournamentId: tid,
+        golferId: gid2,
+        position: 2,
+        participated: true,
+        bonusPoints: 0,
+        multipliedPoints: 80,
+      },
     ];
     const golfers = [
       { _id: gid1, firstName: 'Tiger', lastName: 'Woods' },
@@ -186,7 +207,7 @@ describe('tournaments-list handler', () => {
 
     const res = await handler(
       makeEvent({ queryStringParameters: { includeResults: 'true' } }),
-      mockContext,
+      mockContext
     );
     expect(res.statusCode).toBe(200);
     const body = parseBody(res);

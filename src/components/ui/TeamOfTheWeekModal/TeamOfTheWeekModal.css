@@ -27,7 +27,11 @@
 
 /* Header */
 .totw-header {
-  background: linear-gradient(135deg, var(--primary-green, #00153c), var(--secondary-green, #0a2a5c));
+  background: linear-gradient(
+    135deg,
+    var(--primary-green, #00153c),
+    var(--secondary-green, #0a2a5c)
+  );
   border-radius: 16px 16px 0 0;
   padding: 1.25rem 1.5rem;
 }

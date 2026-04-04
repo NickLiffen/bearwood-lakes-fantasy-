@@ -49,10 +49,7 @@ export const getSeasonFirstSaturday = (seasonStartDate: Date): Date => {
  * Returns firstGameweekStart (at 00:00) if provided, otherwise falls back
  * to the first Saturday on or after seasonStartDate.
  */
-export const getFirstGameweekStart = (
-  seasonStartDate: Date,
-  firstGameweekStart?: string
-): Date => {
+export const getFirstGameweekStart = (seasonStartDate: Date, firstGameweekStart?: string): Date => {
   if (firstGameweekStart) {
     const d = new Date(firstGameweekStart);
     d.setHours(0, 0, 0, 0);
@@ -142,9 +139,7 @@ export const generateWeekOptions = (
 
     // Start from whichever is later: GW1 start or team effective start
     const start =
-      gw1Start >= effectiveStart
-        ? gw1Start
-        : getSaturdayOfWeek(effectiveStart, firstGameweekStart);
+      gw1Start >= effectiveStart ? gw1Start : getSaturdayOfWeek(effectiveStart, firstGameweekStart);
 
     // Generate forward from start to current week (or GW1 if pre-season)
     const endWeek = now < gw1Start ? gw1Start : currentWeekStart;

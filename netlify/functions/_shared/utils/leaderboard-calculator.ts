@@ -59,7 +59,7 @@ export function calculateLeaderboard(
   periodStart: Date,
   periodEnd: Date,
   firstGameweekStart?: Date | null,
-  memberSet?: Set<string>,
+  memberSet?: Set<string>
 ): CalculateLeaderboardResult {
   const periodTournaments = tournaments.filter((t) => {
     const startDate = new Date(t.startDate);
@@ -127,7 +127,7 @@ export function calculateLeaderboard(
  */
 export function rankEntries(
   currentEntries: LeaderboardRawEntry[],
-  previousEntries: LeaderboardRawEntry[] | null,
+  previousEntries: LeaderboardRawEntry[] | null
 ): RankedLeaderboardEntry[] {
   const sorted = [...currentEntries].sort((a, b) => b.points - a.points);
 

@@ -5,12 +5,7 @@ import { GolferDocument, GOLFERS_COLLECTION, toGolfer } from '../models/Golfer';
 import { ScoreDocument } from '../models/Score';
 import { TournamentDocument } from '../models/Tournament';
 import { PickHistoryDocument, PICK_HISTORY_COLLECTION } from '../models/Pick';
-import {
-  getWeekStart,
-  getMonthStart,
-  getMonthEnd,
-  getFirstGameweekStart,
-} from '../utils/dates';
+import { getWeekStart, getMonthStart, getMonthEnd, getFirstGameweekStart } from '../utils/dates';
 import { calculateGolferContribution, type TimeBoundaries } from '../utils/scoring';
 
 export interface TournamentScoreInfo {
@@ -48,11 +43,9 @@ export function getTeamGolferScores(
   selectedWeekStart: Date,
   selectedWeekEnd: Date,
   teamEffectiveStart: Date,
-  firstGameweekStart?: Date | null,
+  firstGameweekStart?: Date | null
 ): GolferWithScores[] {
-  const tournamentMap = new Map(
-    publishedTournaments.map((t) => [t._id.toString(), t]),
-  );
+  const tournamentMap = new Map(publishedTournaments.map((t) => [t._id.toString(), t]));
 
   // Build golfer scores map and tournament date lookup
   const golferScoresMap = new Map<string, ScoreDocument[]>();
@@ -107,20 +100,12 @@ export function getTeamGolferScores(
           tournamentDate: tournament?.startDate || new Date(),
         };
       })
-      .sort(
-        (a, b) =>
-          new Date(b.tournamentDate).getTime() -
-          new Date(a.tournamentDate).getTime(),
-      );
+      .sort((a, b) => new Date(b.tournamentDate).getTime() - new Date(a.tournamentDate).getTime());
 
     // Filter by time period for display lists
     const weekScores = formattedScores.filter((s) => {
       const date = new Date(s.tournamentDate);
-      return (
-        date >= selectedWeekStart &&
-        date <= selectedWeekEnd &&
-        date >= teamEffectiveStart
-      );
+      return date >= selectedWeekStart && date <= selectedWeekEnd && date >= teamEffectiveStart;
     });
 
     const seasonScores = formattedScores.filter((s) => {
@@ -134,7 +119,7 @@ export function getTeamGolferScores(
       tournamentDates,
       boundaries,
       isCaptain,
-      teamEffectiveStart,
+      teamEffectiveStart
     );
 
     return {
@@ -169,7 +154,7 @@ export interface TransferHistoryEntry {
 export async function getTeamTransferHistory(
   db: Db,
   userId: string,
-  season: number,
+  season: number
 ): Promise<TransferHistoryEntry[]> {
   const userObjectId = new ObjectId(userId);
 
@@ -196,18 +181,14 @@ export async function getTeamTransferHistory(
     .project({ _id: 1, firstName: 1, lastName: 1 })
     .toArray();
 
-  const historyGolferMap = new Map(
-    historyGolfers.map((g) => [g._id.toString(), g]),
-  );
+  const historyGolferMap = new Map(historyGolfers.map((g) => [g._id.toString(), g]));
 
   const formattedHistory = pickHistory.map((h, index) => {
     const previousHistory = pickHistory[index + 1];
     const previousGolferIds = previousHistory
       ? new Set(previousHistory.golferIds.map((id) => id.toString()))
       : new Set<string>();
-    const currentGolferIds = new Set(
-      h.golferIds.map((id) => id.toString()),
-    );
+    const currentGolferIds = new Set(h.golferIds.map((id) => id.toString()));
 
     const addedGolfers: Array<{ id: string; name: string }> = [];
     const removedGolfers: Array<{ id: string; name: string }> = [];
@@ -245,7 +226,5 @@ export async function getTeamTransferHistory(
     };
   });
 
-  return formattedHistory.filter(
-    (h) => h.addedGolfers.length > 0 || h.removedGolfers.length > 0,
-  );
+  return formattedHistory.filter((h) => h.addedGolfers.length > 0 || h.removedGolfers.length > 0);
 }

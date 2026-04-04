@@ -192,9 +192,7 @@ describe('leaderboard.service', () => {
 
       mockTournamentsCollection.find.mockReturnValue(chainHelper([]));
       mockPicksCollection.aggregate.mockReturnValue(aggregateHelper([]));
-      mockUsersCollection.find.mockReturnValue(
-        chainHelper([{ _id: user1, username: 'alice' }])
-      );
+      mockUsersCollection.find.mockReturnValue(chainHelper([{ _id: user1, username: 'alice' }]));
 
       const result = await getLeaderboard();
 
@@ -293,9 +291,7 @@ describe('leaderboard.service', () => {
 
   describe('caching', () => {
     it('returns cached data for getLeaderboard without DB queries', async () => {
-      const cachedData = [
-        { userId: '1', username: 'alice', totalPoints: 20, rank: 1 },
-      ];
+      const cachedData = [{ userId: '1', username: 'alice', totalPoints: 20, rank: 1 }];
       mockRedisGet.mockResolvedValue(JSON.stringify(cachedData));
 
       const result = await getLeaderboard(2025);
@@ -324,9 +320,7 @@ describe('leaderboard.service', () => {
     });
 
     it('returns cached data for getTournamentLeaderboard without DB queries', async () => {
-      const cachedData = [
-        { userId: '1', username: 'alice', totalPoints: 10, rank: 1 },
-      ];
+      const cachedData = [{ userId: '1', username: 'alice', totalPoints: 10, rank: 1 }];
       const tid = new ObjectId();
       mockRedisGet.mockResolvedValue(JSON.stringify(cachedData));
 
@@ -355,10 +349,7 @@ describe('leaderboard.service', () => {
     });
 
     it('invalidateLeaderboardCache deletes matching keys', async () => {
-      const keys = [
-        'test:v1:cache:leaderboard:full:2025',
-        'test:v1:cache:leaderboard:simple:2025',
-      ];
+      const keys = ['test:v1:cache:leaderboard:full:2025', 'test:v1:cache:leaderboard:simple:2025'];
       mockRedisKeys.mockResolvedValue(keys);
 
       await invalidateLeaderboardCache(2025);
@@ -435,9 +426,45 @@ describe('leaderboard.service', () => {
       // Golfer details
       mockGolfersCollection.find.mockReturnValue(
         chainHelper([
-          { _id: g1, firstName: 'Tiger', lastName: 'Woods', picture: '', price: 10000000, isActive: true, stats2024: {}, stats2025: {}, stats2026: {}, createdAt: new Date(), updatedAt: new Date() },
-          { _id: g2, firstName: 'Rory', lastName: 'McIlroy', picture: '', price: 9000000, isActive: true, stats2024: {}, stats2025: {}, stats2026: {}, createdAt: new Date(), updatedAt: new Date() },
-          { _id: g3, firstName: 'Jon', lastName: 'Rahm', picture: '', price: 8000000, isActive: true, stats2024: {}, stats2025: {}, stats2026: {}, createdAt: new Date(), updatedAt: new Date() },
+          {
+            _id: g1,
+            firstName: 'Tiger',
+            lastName: 'Woods',
+            picture: '',
+            price: 10000000,
+            isActive: true,
+            stats2024: {},
+            stats2025: {},
+            stats2026: {},
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            _id: g2,
+            firstName: 'Rory',
+            lastName: 'McIlroy',
+            picture: '',
+            price: 9000000,
+            isActive: true,
+            stats2024: {},
+            stats2025: {},
+            stats2026: {},
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+          {
+            _id: g3,
+            firstName: 'Jon',
+            lastName: 'Rahm',
+            picture: '',
+            price: 8000000,
+            isActive: true,
+            stats2024: {},
+            stats2025: {},
+            stats2026: {},
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
         ])
       );
 

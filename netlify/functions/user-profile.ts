@@ -6,11 +6,23 @@ import { ObjectId, Db } from 'mongodb';
 import { withVerifiedAuth } from './_shared/middleware';
 import { connectToDatabase } from './_shared/db';
 import { UserDocument, USERS_COLLECTION } from './_shared/models/User';
-import { PickDocument, PICKS_COLLECTION, PickHistoryDocument, PICK_HISTORY_COLLECTION } from './_shared/models/Pick';
+import {
+  PickDocument,
+  PICKS_COLLECTION,
+  PickHistoryDocument,
+  PICK_HISTORY_COLLECTION,
+} from './_shared/models/Pick';
 import { GolferDocument, GOLFERS_COLLECTION, toGolfer } from './_shared/models/Golfer';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
-import { getWeekStart, getMonthStart, getMonthEnd, getSeasonStart, getTeamEffectiveStartDate, getWeekEnd } from './_shared/utils/dates';
+import {
+  getWeekStart,
+  getMonthStart,
+  getMonthEnd,
+  getSeasonStart,
+  getTeamEffectiveStartDate,
+  getWeekEnd,
+} from './_shared/utils/dates';
 import { calculatePickPoints } from './_shared/utils/scoring';
 import type { TimeBoundaries } from './_shared/utils/scoring';
 import { getActiveSeason } from './_shared/services/seasons.service';
@@ -60,16 +72,18 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
 
     // Get current season
     const activeSeason = await getActiveSeason();
-    const currentSeason = activeSeason ? (parseInt(activeSeason.name, 10) || new Date().getFullYear()) : new Date().getFullYear();
-    const firstGW = activeSeason?.firstGameweekStart ? new Date(activeSeason.firstGameweekStart) : null;
+    const currentSeason = activeSeason
+      ? parseInt(activeSeason.name, 10) || new Date().getFullYear()
+      : new Date().getFullYear();
+    const firstGW = activeSeason?.firstGameweekStart
+      ? new Date(activeSeason.firstGameweekStart)
+      : null;
 
     // Get user's pick for current season
-    const pick = await db
-      .collection<PickDocument>(PICKS_COLLECTION)
-      .findOne({
-        userId: new ObjectId(userId),
-        season: currentSeason,
-      });
+    const pick = await db.collection<PickDocument>(PICKS_COLLECTION).findOne({
+      userId: new ObjectId(userId),
+      season: currentSeason,
+    });
 
     // Get pick history
     const pickHistory = await db
@@ -119,9 +133,7 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
       })
       .toArray();
 
-    const tournamentMap = new Map(
-      tournaments.map((t) => [t._id.toString(), t])
-    );
+    const tournamentMap = new Map(tournaments.map((t) => [t._id.toString(), t]));
     const tournamentIds = tournaments.map((t) => t._id);
 
     // Get all scores for these golfers from published tournaments
@@ -162,20 +174,24 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
       const captainMultiplier = isCaptain ? 2 : 1;
 
       // Format scores with tournament info
-      const formattedScores = golferScores.map((score) => {
-        const tournament = tournamentMap.get(score.tournamentId.toString());
-        return {
-          tournamentId: score.tournamentId.toString(),
-          tournamentName: tournament?.name || 'Unknown Tournament',
-          position: score.position,
-          basePoints: score.basePoints,
-          bonusPoints: score.bonusPoints,
-          multipliedPoints: score.multipliedPoints,
-          rawScore: score.rawScore,
-          participated: score.participated,
-          tournamentDate: tournament?.startDate || new Date(),
-        };
-      }).sort((a, b) => new Date(b.tournamentDate).getTime() - new Date(a.tournamentDate).getTime());
+      const formattedScores = golferScores
+        .map((score) => {
+          const tournament = tournamentMap.get(score.tournamentId.toString());
+          return {
+            tournamentId: score.tournamentId.toString(),
+            tournamentName: tournament?.name || 'Unknown Tournament',
+            position: score.position,
+            basePoints: score.basePoints,
+            bonusPoints: score.bonusPoints,
+            multipliedPoints: score.multipliedPoints,
+            rawScore: score.rawScore,
+            participated: score.participated,
+            tournamentDate: tournament?.startDate || new Date(),
+          };
+        })
+        .sort(
+          (a, b) => new Date(b.tournamentDate).getTime() - new Date(a.tournamentDate).getTime()
+        );
 
       // Filter by time period (only tournaments after team was created)
       const weekScores = formattedScores.filter((s) => {
@@ -192,9 +208,12 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
       });
 
       // Calculate totals with captain multiplier
-      const weekPoints = weekScores.reduce((sum, s) => sum + s.multipliedPoints, 0) * captainMultiplier;
-      const monthPoints = monthScores.reduce((sum, s) => sum + s.multipliedPoints, 0) * captainMultiplier;
-      const seasonPoints = seasonScores.reduce((sum, s) => sum + s.multipliedPoints, 0) * captainMultiplier;
+      const weekPoints =
+        weekScores.reduce((sum, s) => sum + s.multipliedPoints, 0) * captainMultiplier;
+      const monthPoints =
+        monthScores.reduce((sum, s) => sum + s.multipliedPoints, 0) * captainMultiplier;
+      const seasonPoints =
+        seasonScores.reduce((sum, s) => sum + s.multipliedPoints, 0) * captainMultiplier;
 
       return {
         golfer: toGolfer(golfer),
@@ -228,8 +247,15 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
     const boundaries: TimeBoundaries = { weekStart, weekEnd, monthStart, monthEnd, seasonStart };
 
     // Calculate rankings (simplified - in production this would be more efficient)
-    const allUserPoints = await calculateAllUserPoints(db, allPicks, tournaments, currentSeason, boundaries, firstGW);
-    
+    const allUserPoints = await calculateAllUserPoints(
+      db,
+      allPicks,
+      tournaments,
+      currentSeason,
+      boundaries,
+      firstGW
+    );
+
     const weekRank = calculateUserRank(userId, allUserPoints, 'weekPoints');
     const monthRank = calculateUserRank(userId, allUserPoints, 'monthPoints');
     const seasonRank = calculateUserRank(userId, allUserPoints, 'seasonPoints');
@@ -241,23 +267,25 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
         allHistoryGolferIds.add(pid.toString());
       }
     }
-    
+
     const historyGolfers = await db
       .collection<GolferDocument>(GOLFERS_COLLECTION)
-      .find({ _id: { $in: Array.from(allHistoryGolferIds).map(id => new ObjectId(id)) } })
+      .find({ _id: { $in: Array.from(allHistoryGolferIds).map((id) => new ObjectId(id)) } })
       .toArray();
-    
-    const historyGolferMap = new Map(historyGolfers.map(g => [g._id.toString(), g]));
+
+    const historyGolferMap = new Map(historyGolfers.map((g) => [g._id.toString(), g]));
 
     // Format history with golfer names
     const formattedHistory = pickHistory.map((h, index) => {
       const previousHistory = pickHistory[index + 1];
-      const previousGolferIds = previousHistory ? new Set(previousHistory.golferIds.map(id => id.toString())) : new Set<string>();
-      const currentGolferIds = new Set(h.golferIds.map(id => id.toString()));
-      
+      const previousGolferIds = previousHistory
+        ? new Set(previousHistory.golferIds.map((id) => id.toString()))
+        : new Set<string>();
+      const currentGolferIds = new Set(h.golferIds.map((id) => id.toString()));
+
       const addedGolfers: Array<{ id: string; name: string }> = [];
       const removedGolfers: Array<{ id: string; name: string }> = [];
-      
+
       // Find added golfers
       for (const pid of currentGolferIds) {
         if (!previousGolferIds.has(pid)) {
@@ -267,7 +295,7 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
           }
         }
       }
-      
+
       // Find removed golfers (only if there was a previous entry)
       if (previousHistory) {
         for (const pid of previousGolferIds) {
@@ -292,7 +320,7 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
 
     // Filter to only show entries where transfers actually happened
     const filteredHistory = formattedHistory.filter(
-      (h) => h.addedGolfers.length > 0 || h.removedGolfers.length > 0,
+      (h) => h.addedGolfers.length > 0 || h.removedGolfers.length > 0
     );
 
     // Calculate period navigation info
@@ -307,7 +335,7 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
         weekday: 'short',
         month: 'short',
         day: 'numeric',
-        year: 'numeric'
+        year: 'numeric',
       });
     };
 
@@ -377,16 +405,18 @@ async function calculateAllUserPoints(
     }
   }
 
-  const tournamentIds = tournaments.map(t => t._id);
-  const tournamentDates = new Map(tournaments.map(t => [t._id.toString(), new Date(t.startDate)]));
+  const tournamentIds = tournaments.map((t) => t._id);
+  const tournamentDates = new Map(
+    tournaments.map((t) => [t._id.toString(), new Date(t.startDate)])
+  );
 
-  const scores: ScoreDocument[] = await db
+  const scores: ScoreDocument[] = (await db
     .collection(SCORES_COLLECTION)
     .find({
-      golferId: { $in: Array.from(allGolferIds).map(id => new ObjectId(id)) },
+      golferId: { $in: Array.from(allGolferIds).map((id) => new ObjectId(id)) },
       tournamentId: { $in: tournamentIds },
     })
-    .toArray() as ScoreDocument[];
+    .toArray()) as ScoreDocument[];
 
   // Score lookup
   const scoresByGolferTournament = new Map<string, Map<string, ScoreDocument>>();
@@ -398,10 +428,19 @@ async function calculateAllUserPoints(
     scoresByGolferTournament.get(golferId)!.set(score.tournamentId.toString(), score);
   }
 
-  const result = new Map<string, { weekPoints: number; monthPoints: number; seasonPoints: number }>();
+  const result = new Map<
+    string,
+    { weekPoints: number; monthPoints: number; seasonPoints: number }
+  >();
 
   for (const pick of picks) {
-    const points = calculatePickPoints(pick, scoresByGolferTournament, tournamentDates, boundaries, firstGW);
+    const points = calculatePickPoints(
+      pick,
+      scoresByGolferTournament,
+      tournamentDates,
+      boundaries,
+      firstGW
+    );
     result.set(pick.userId.toString(), points);
   }
 
@@ -418,6 +457,6 @@ function calculateUserRank(
     .map(([id, points]) => ({ id, points: points[period] }))
     .sort((a, b) => b.points - a.points);
 
-  const index = entries.findIndex(e => e.id === userId);
+  const index = entries.findIndex((e) => e.id === userId);
   return index >= 0 ? index + 1 : null;
 }

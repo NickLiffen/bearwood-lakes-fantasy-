@@ -3,14 +3,22 @@ import { makeAuthEvent, mockContext, parseBody } from './__test-utils__';
 
 vi.mock('./_shared/auth', () => ({
   verifyToken: vi.fn().mockReturnValue({
-    userId: 'aaaaaaaaaaaaaaaaaaaaaaaa', username: 'testadmin', role: 'admin', phoneVerified: true,
+    userId: 'aaaaaaaaaaaaaaaaaaaaaaaa',
+    username: 'testadmin',
+    role: 'admin',
+    phoneVerified: true,
   }),
   comparePassword: vi.fn(),
   hashPassword: vi.fn().mockResolvedValue('new-hashed-password'),
 }));
 vi.mock('./_shared/rateLimit', () => ({
   checkRateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 99, resetAt: new Date() }),
-  RateLimitConfig: { admin: { windowMs: 60000, maxRequests: 60 }, default: { windowMs: 60000, maxRequests: 100 }, read: { windowMs: 60000, maxRequests: 120 }, write: { windowMs: 60000, maxRequests: 30 } },
+  RateLimitConfig: {
+    admin: { windowMs: 60000, maxRequests: 60 },
+    default: { windowMs: 60000, maxRequests: 100 },
+    read: { windowMs: 60000, maxRequests: 120 },
+    write: { windowMs: 60000, maxRequests: 30 },
+  },
   getRateLimitKeyFromEvent: vi.fn().mockReturnValue('ratelimit:key'),
   rateLimitHeaders: vi.fn().mockReturnValue({}),
   rateLimitExceededResponse: vi.fn(),
@@ -40,7 +48,10 @@ import { comparePassword } from './_shared/auth';
 describe('users-update-password handler', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUsersCol.findOne.mockResolvedValue({ _id: 'aaaaaaaaaaaaaaaaaaaaaaaa', passwordHash: 'old-hash' });
+    mockUsersCol.findOne.mockResolvedValue({
+      _id: 'aaaaaaaaaaaaaaaaaaaaaaaa',
+      passwordHash: 'old-hash',
+    });
   });
 
   it('updates password successfully on PUT', async () => {

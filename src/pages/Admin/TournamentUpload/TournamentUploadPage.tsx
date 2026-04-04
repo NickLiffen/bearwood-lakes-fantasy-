@@ -285,9 +285,7 @@ const TournamentUploadPage: React.FC = () => {
                 name, date, and all golfer scores automatically.
               </p>
             </div>
-            {parsing && (
-              <p style={{ color: '#2563eb', marginTop: '0.5rem' }}>⏳ Parsing PDF...</p>
-            )}
+            {parsing && <p style={{ color: '#2563eb', marginTop: '0.5rem' }}>⏳ Parsing PDF...</p>}
           </div>
         </div>
       )}
@@ -315,9 +313,7 @@ const TournamentUploadPage: React.FC = () => {
           <div className="admin-card" style={{ marginBottom: '1.5rem' }}>
             <div className="admin-card-header">
               <h2>Tournament Details</h2>
-              <span style={{ color: '#6b7280', fontSize: '0.85rem' }}>
-                Parsed from: {fileName}
-              </span>
+              <span style={{ color: '#6b7280', fontSize: '0.85rem' }}>Parsed from: {fileName}</span>
             </div>
             <div className="admin-card-body">
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
@@ -573,7 +569,9 @@ const TournamentUploadPage: React.FC = () => {
               onClick={handleSubmit}
               disabled={submitting || golfers.length === 0 || !tournamentName || !tournamentDate}
             >
-              {submitting ? 'Processing...' : `Confirm & Create Tournament (${golfers.length} golfers)`}
+              {submitting
+                ? 'Processing...'
+                : `Confirm & Create Tournament (${golfers.length} golfers)`}
             </button>
           </div>
         </>

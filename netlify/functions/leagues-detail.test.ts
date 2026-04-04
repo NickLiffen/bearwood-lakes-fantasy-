@@ -3,19 +3,29 @@ import { makeAuthEvent, mockContext, parseBody, createMockDb, mockCursor } from 
 import { connectToDatabase } from './_shared/db';
 import { getActiveSeason, getSeasonByName } from './_shared/services/seasons.service';
 
-
 vi.mock('./_shared/auth', () => ({
   verifyToken: vi.fn().mockReturnValue({
-    userId: 'user-player-1', username: 'testplayer', role: 'player', phoneVerified: true,
+    userId: 'user-player-1',
+    username: 'testplayer',
+    role: 'player',
+    phoneVerified: true,
   }),
 }));
 vi.mock('./_shared/rateLimit', () => ({
   checkRateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 99, resetAt: new Date() }),
-  RateLimitConfig: { default: { windowMs: 60000, maxRequests: 100 }, read: { windowMs: 60000, maxRequests: 120 }, write: { windowMs: 60000, maxRequests: 30 }, admin: { windowMs: 60000, maxRequests: 60 } },
+  RateLimitConfig: {
+    default: { windowMs: 60000, maxRequests: 100 },
+    read: { windowMs: 60000, maxRequests: 120 },
+    write: { windowMs: 60000, maxRequests: 30 },
+    admin: { windowMs: 60000, maxRequests: 60 },
+  },
   getRateLimitKeyFromEvent: vi.fn().mockReturnValue('ratelimit:key'),
   rateLimitHeaders: vi.fn().mockReturnValue({}),
   rateLimitExceededResponse: vi.fn(),
-  getRedisClient: vi.fn().mockReturnValue({ get: vi.fn().mockResolvedValue(null), set: vi.fn().mockResolvedValue('OK') }),
+  getRedisClient: vi.fn().mockReturnValue({
+    get: vi.fn().mockResolvedValue(null),
+    set: vi.fn().mockResolvedValue('OK'),
+  }),
   getRedisKeyPrefix: vi.fn().mockReturnValue('test:'),
 }));
 vi.mock('./_shared/utils/logger', () => ({
@@ -56,16 +66,18 @@ vi.mock('./_shared/utils/dates', () => ({
     while (date.getDay() !== 6) date.setDate(date.getDate() + 1);
     return date;
   }),
-  getFirstGameweekStart: vi.fn().mockImplementation((seasonStartDate: Date, firstGameweekStart?: Date | null) => {
-    if (firstGameweekStart) {
-      const d = new Date(firstGameweekStart);
-      d.setHours(0, 0, 0, 0);
-      return d;
-    }
-    const date = new Date(seasonStartDate);
-    while (date.getDay() !== 6) date.setDate(date.getDate() + 1);
-    return date;
-  }),
+  getFirstGameweekStart: vi
+    .fn()
+    .mockImplementation((seasonStartDate: Date, firstGameweekStart?: Date | null) => {
+      if (firstGameweekStart) {
+        const d = new Date(firstGameweekStart);
+        d.setHours(0, 0, 0, 0);
+        return d;
+      }
+      const date = new Date(seasonStartDate);
+      while (date.getDay() !== 6) date.setDate(date.getDate() + 1);
+      return date;
+    }),
 }));
 
 const mockGetLeagueById = vi.fn();
@@ -91,7 +103,12 @@ const mockLeague = {
   inviteCode: 'ABC123',
 };
 
-function setupCollections(picks: Record<string, unknown>[] = [], users: Record<string, unknown>[] = [], tournaments: Record<string, unknown>[] = [], scores: Record<string, unknown>[] = []) {
+function setupCollections(
+  picks: Record<string, unknown>[] = [],
+  users: Record<string, unknown>[] = [],
+  tournaments: Record<string, unknown>[] = [],
+  scores: Record<string, unknown>[] = []
+) {
   const picksCursor = mockCursor(picks);
   const usersCursor = mockCursor(users);
   const tournamentsCursor = mockCursor(tournaments);
@@ -108,7 +125,9 @@ function setupCollections(picks: Record<string, unknown>[] = [], users: Record<s
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.mocked(getActiveSeason).mockResolvedValue(mockSeason as unknown as Awaited<ReturnType<typeof getActiveSeason>>);
+  vi.mocked(getActiveSeason).mockResolvedValue(
+    mockSeason as unknown as Awaited<ReturnType<typeof getActiveSeason>>
+  );
   vi.mocked(getSeasonByName).mockResolvedValue(null);
   mockGetLeagueById.mockResolvedValue(mockLeague);
   mockGetLeagueMembers.mockResolvedValue([
@@ -121,7 +140,7 @@ describe('leagues-detail handler', () => {
   it('returns 405 for non-GET methods', async () => {
     const res = await handler(
       makeAuthEvent({ httpMethod: 'POST', queryStringParameters: { leagueId: 'league-1' } }),
-      mockContext,
+      mockContext
     );
     expect(res.statusCode).toBe(405);
     expect(parseBody(res).success).toBe(false);
@@ -138,7 +157,7 @@ describe('leagues-detail handler', () => {
 
     const res = await handler(
       makeAuthEvent({ queryStringParameters: { leagueId: 'nonexistent' } }),
-      mockContext,
+      mockContext
     );
     expect(res.statusCode).toBe(404);
   });
@@ -148,7 +167,7 @@ describe('leagues-detail handler', () => {
 
     const res = await handler(
       makeAuthEvent({ queryStringParameters: { leagueId: 'league-1' } }),
-      mockContext,
+      mockContext
     );
     expect(res.statusCode).toBe(403);
     expect(parseBody(res).error).toBe('You are not a member of this league');
@@ -159,7 +178,7 @@ describe('leagues-detail handler', () => {
 
     const res = await handler(
       makeAuthEvent({ queryStringParameters: { leagueId: 'league-1' } }),
-      mockContext,
+      mockContext
     );
     const body = parseBody(res);
 
@@ -174,7 +193,7 @@ describe('leagues-detail handler', () => {
 
     const res = await handler(
       makeAuthEvent({ queryStringParameters: { leagueId: 'league-1' } }),
-      mockContext,
+      mockContext
     );
     expect(res.statusCode).toBe(500);
     expect(parseBody(res).success).toBe(false);

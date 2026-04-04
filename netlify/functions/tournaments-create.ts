@@ -14,7 +14,16 @@ const handler = withAdmin(async (event: AuthenticatedEvent) => {
 
   try {
     const body = JSON.parse(event.body || '{}');
-    const { name, startDate, endDate, tournamentType, scoringFormat, isMultiDay, playerCountTier, season } = body;
+    const {
+      name,
+      startDate,
+      endDate,
+      tournamentType,
+      scoringFormat,
+      isMultiDay,
+      playerCountTier,
+      season,
+    } = body;
 
     if (!name || !startDate || !endDate) {
       return {

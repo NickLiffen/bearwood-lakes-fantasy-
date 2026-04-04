@@ -147,10 +147,7 @@ describe('settings.service', () => {
 
   describe('getSettings', () => {
     it('returns all values from Redis cache when all hit', async () => {
-      mockRedis.mget.mockResolvedValue([
-        JSON.stringify(true),
-        JSON.stringify(42),
-      ]);
+      mockRedis.mget.mockResolvedValue([JSON.stringify(true), JSON.stringify(42)]);
 
       const result = await getSettings(['flagA', 'numB']);
 

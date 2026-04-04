@@ -86,7 +86,7 @@ function createTournament(overrides?: Partial<TournamentDocument>): TournamentDo
 }
 
 function createScore(
-  overrides?: Partial<ScoreDocument> & { golferId?: ObjectId; tournamentId?: ObjectId },
+  overrides?: Partial<ScoreDocument> & { golferId?: ObjectId; tournamentId?: ObjectId }
 ): ScoreDocument {
   const { golferId, tournamentId, ...rest } = overrides || {};
   return {
@@ -125,7 +125,7 @@ describe('calculateLeaderboard', () => {
       tournaments,
       allScores,
       periodStart,
-      periodEnd,
+      periodEnd
     );
 
     expect(result.entries).toEqual([]);
@@ -161,7 +161,14 @@ describe('calculateLeaderboard', () => {
     const periodStart = new Date('2024-01-01');
     const periodEnd = new Date('2024-01-31');
 
-    const result = calculateLeaderboard([pick], userMap, tournaments, allScores, periodStart, periodEnd);
+    const result = calculateLeaderboard(
+      [pick],
+      userMap,
+      tournaments,
+      allScores,
+      periodStart,
+      periodEnd
+    );
 
     expect(result.tournamentCount).toBe(1);
     expect(result.entries).toHaveLength(1);
@@ -206,7 +213,7 @@ describe('calculateLeaderboard', () => {
       tournaments,
       allScores,
       periodStart,
-      periodEnd,
+      periodEnd
     );
 
     // Captain: 10 * 2 = 20
@@ -258,7 +265,7 @@ describe('calculateLeaderboard', () => {
       tournaments,
       allScores,
       periodStart,
-      periodEnd,
+      periodEnd
     );
 
     // Only the tournament after pick.createdAt should be counted
@@ -287,7 +294,7 @@ describe('calculateLeaderboard', () => {
       new Date('2024-01-01'),
       new Date('2024-01-31'),
       undefined,
-      memberSet,
+      memberSet
     );
 
     expect(result.entries).toHaveLength(1);
@@ -312,7 +319,7 @@ describe('calculateLeaderboard', () => {
       [],
       [],
       new Date('2024-01-01'),
-      new Date('2024-01-31'),
+      new Date('2024-01-31')
     );
 
     expect(result.entries).toHaveLength(2);
@@ -342,7 +349,7 @@ describe('calculateLeaderboard', () => {
       tournaments,
       allScores,
       periodStart,
-      periodEnd,
+      periodEnd
     );
 
     expect(result.tournamentCount).toBe(3);
@@ -388,7 +395,7 @@ describe('calculateLeaderboard', () => {
       tournaments,
       allScores,
       periodStart,
-      periodEnd,
+      periodEnd
     );
 
     expect(result.entries[0].events).toBe(2);
@@ -410,7 +417,7 @@ describe('calculateLeaderboard', () => {
       [],
       [],
       new Date('2024-01-01'),
-      new Date('2024-01-31'),
+      new Date('2024-01-31')
     );
 
     expect(result.entries).toHaveLength(1);

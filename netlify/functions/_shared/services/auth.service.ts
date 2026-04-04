@@ -106,8 +106,7 @@ export async function validateRefreshToken(refreshToken: string): Promise<User> 
     // `replacedByHash` may be written in a separate update after revocation,
     // so treat any very recent revoke as retryable even if lineage is not yet present.
     if (revokedToken.revokedAt) {
-      const revokedRecently =
-        now.getTime() - revokedToken.revokedAt.getTime() < ROTATION_GRACE_MS;
+      const revokedRecently = now.getTime() - revokedToken.revokedAt.getTime() < ROTATION_GRACE_MS;
 
       if (revokedRecently) {
         throw new RefreshError(
@@ -276,7 +275,10 @@ export async function refreshAccessToken(
   const { db } = await connectToDatabase();
   const tokensCollection = db.collection<RefreshTokenDocument>(REFRESH_TOKENS_COLLECTION);
   const oldTokenHash = hashRefreshToken(refreshToken);
-  await tokensCollection.updateOne({ tokenHash: oldTokenHash }, { $set: { replacedByHash: newTokenHash } });
+  await tokensCollection.updateOne(
+    { tokenHash: oldTokenHash },
+    { $set: { replacedByHash: newTokenHash } }
+  );
 
   return { user, token: newAccessToken, refreshToken: newRefreshToken };
 }

@@ -9,7 +9,14 @@ import { UserDocument, USERS_COLLECTION } from './_shared/models/User';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
 import { getActiveSeason, getSeasonByName } from './_shared/services/seasons.service';
-import { getWeekStart, getMonthStart, getGameweekNumber, getWeekEnd as getWeekEndShared, getMonthEnd, getFirstGameweekStart } from './_shared/utils/dates';
+import {
+  getWeekStart,
+  getMonthStart,
+  getGameweekNumber,
+  getWeekEnd as getWeekEndShared,
+  getMonthEnd,
+  getFirstGameweekStart,
+} from './_shared/utils/dates';
 import { getRedisClient, getRedisKeyPrefix } from './_shared/rateLimit';
 import {
   calculateLeaderboard,
@@ -96,33 +103,38 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
     }
 
     const { db } = await connectToDatabase();
-    
+
     // Get season — use explicit season param or fall back to active season
-    const activeSeason = seasonParam
-      ? await getSeasonByName(seasonParam)
-      : await getActiveSeason();
+    const activeSeason = seasonParam ? await getSeasonByName(seasonParam) : await getActiveSeason();
     const fallbackYear = new Date().getFullYear();
-    const seasonStartDate = activeSeason ? new Date(activeSeason.startDate) : new Date(`${fallbackYear}-01-01`);
-    const seasonEndDate = activeSeason ? new Date(activeSeason.endDate) : new Date(`${fallbackYear}-12-31`);
+    const seasonStartDate = activeSeason
+      ? new Date(activeSeason.startDate)
+      : new Date(`${fallbackYear}-01-01`);
+    const seasonEndDate = activeSeason
+      ? new Date(activeSeason.endDate)
+      : new Date(`${fallbackYear}-12-31`);
     seasonEndDate.setHours(23, 59, 59, 999);
-    
+
     const currentSeason = activeSeason ? parseInt(activeSeason.name) || fallbackYear : fallbackYear;
-    const firstGW = activeSeason?.firstGameweekStart ? new Date(activeSeason.firstGameweekStart) : null;
-    
-    const picks = await db.collection<PickDocument>(PICKS_COLLECTION)
+    const firstGW = activeSeason?.firstGameweekStart
+      ? new Date(activeSeason.firstGameweekStart)
+      : null;
+
+    const picks = await db
+      .collection<PickDocument>(PICKS_COLLECTION)
       .find({ season: currentSeason })
       .project({ userId: 1, golferIds: 1, captainId: 1, totalSpent: 1, createdAt: 1 })
       .toArray();
-    
+
     const now = new Date();
-    
+
     if (picks.length === 0) {
       if (action === 'leaders') {
         const weekStart = getWeekStart(now, firstGW);
         const weekEnd = getWeekEnd(now, firstGW);
         const monthStart = getMonthStart(now);
         const monthEnd = getMonthEnd(now);
-        
+
         return {
           statusCode: 200,
           body: JSON.stringify({
@@ -135,7 +147,11 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
                 type: 'week',
                 startDate: weekStart.toISOString(),
                 endDate: weekEnd.toISOString(),
-                label: formatWeekLabel(weekStart, weekEnd, getGameweekNumber(weekStart, seasonStartDate, firstGW)),
+                label: formatWeekLabel(
+                  weekStart,
+                  weekEnd,
+                  getGameweekNumber(weekStart, seasonStartDate, firstGW)
+                ),
                 gameweek: getGameweekNumber(weekStart, seasonStartDate, firstGW),
                 hasPrevious: weekStart > getFirstGameweekStart(seasonStartDate, firstGW),
                 hasNext: false,
@@ -168,37 +184,44 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
         }),
       };
     }
-    
+
     // Get user details
-    const userIds = picks.map(p => p.userId);
-    const users = await db.collection<UserDocument>(USERS_COLLECTION).find({ _id: { $in: userIds } }).project({ passwordHash: 0 }).toArray();
-    const userMap = new Map(users.map(u => [u._id.toString(), u]));
-    
+    const userIds = picks.map((p) => p.userId);
+    const users = await db
+      .collection<UserDocument>(USERS_COLLECTION)
+      .find({ _id: { $in: userIds } })
+      .project({ passwordHash: 0 })
+      .toArray();
+    const userMap = new Map(users.map((u) => [u._id.toString(), u]));
+
     // Get all published or complete tournaments within season
-    const publishedTournaments = await db.collection<TournamentDocument>(TOURNAMENTS_COLLECTION)
+    const publishedTournaments = await db
+      .collection<TournamentDocument>(TOURNAMENTS_COLLECTION)
       .find({
         season: currentSeason,
         status: { $in: ['published', 'complete'] },
       })
       .project({ _id: 1, startDate: 1, status: 1, season: 1, name: 1 })
       .toArray();
-    
+
     // Filter to only those within season dates
-    const seasonTournaments = publishedTournaments.filter(t => {
+    const seasonTournaments = publishedTournaments.filter((t) => {
       const startDate = new Date(t.startDate);
       return startDate >= seasonStartDate && startDate <= seasonEndDate;
     });
-    
-    const tournamentIds = seasonTournaments.map(t => t._id);
-    
+
+    const tournamentIds = seasonTournaments.map((t) => t._id);
+
     // Get all scores
-    const allScores = tournamentIds.length > 0 
-      ? await db.collection<ScoreDocument>(SCORES_COLLECTION)
-          .find({ tournamentId: { $in: tournamentIds } })
-          .project({ golferId: 1, tournamentId: 1, multipliedPoints: 1, participated: 1 })
-          .toArray()
-      : [];
-    
+    const allScores =
+      tournamentIds.length > 0
+        ? await db
+            .collection<ScoreDocument>(SCORES_COLLECTION)
+            .find({ tournamentId: { $in: tournamentIds } })
+            .project({ golferId: 1, tournamentId: 1, multipliedPoints: 1, participated: 1 })
+            .toArray()
+        : [];
+
     // If requesting leaders summary
     if (action === 'leaders') {
       // Current week
@@ -208,33 +231,77 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
       prevWeekStart.setDate(prevWeekStart.getDate() - 7);
       const prevWeekEnd = new Date(weekEnd);
       prevWeekEnd.setDate(prevWeekEnd.getDate() - 7);
-      
+
       // Current month
       const monthStart = getMonthStart(now);
       const monthEnd = getMonthEnd(now);
       const prevMonthStart = getMonthStart(new Date(now.getFullYear(), now.getMonth() - 1, 1));
       const prevMonthEnd = getMonthEnd(new Date(now.getFullYear(), now.getMonth() - 1, 1));
-      
+
       // Calculate all leaderboards
-      const weekData = await calculateLeaderboard(picks, userMap, seasonTournaments, allScores, weekStart, weekEnd, firstGW);
-      const prevWeekData = await calculateLeaderboard(picks, userMap, seasonTournaments, allScores, prevWeekStart, prevWeekEnd, firstGW);
-      const monthData = await calculateLeaderboard(picks, userMap, seasonTournaments, allScores, monthStart, monthEnd, firstGW);
-      const prevMonthData = await calculateLeaderboard(picks, userMap, seasonTournaments, allScores, prevMonthStart, prevMonthEnd, firstGW);
-      const seasonData = await calculateLeaderboard(picks, userMap, seasonTournaments, allScores, seasonStartDate, seasonEndDate, firstGW);
-      
+      const weekData = await calculateLeaderboard(
+        picks,
+        userMap,
+        seasonTournaments,
+        allScores,
+        weekStart,
+        weekEnd,
+        firstGW
+      );
+      const prevWeekData = await calculateLeaderboard(
+        picks,
+        userMap,
+        seasonTournaments,
+        allScores,
+        prevWeekStart,
+        prevWeekEnd,
+        firstGW
+      );
+      const monthData = await calculateLeaderboard(
+        picks,
+        userMap,
+        seasonTournaments,
+        allScores,
+        monthStart,
+        monthEnd,
+        firstGW
+      );
+      const prevMonthData = await calculateLeaderboard(
+        picks,
+        userMap,
+        seasonTournaments,
+        allScores,
+        prevMonthStart,
+        prevMonthEnd,
+        firstGW
+      );
+      const seasonData = await calculateLeaderboard(
+        picks,
+        userMap,
+        seasonTournaments,
+        allScores,
+        seasonStartDate,
+        seasonEndDate,
+        firstGW
+      );
+
       const weekRanked = rankEntries(weekData.entries, prevWeekData.entries);
       const monthRanked = rankEntries(monthData.entries, prevMonthData.entries);
       const seasonRanked = rankEntries(seasonData.entries, null);
-      
+
       const response: LeadersResponse = {
-        weeklyLeader: weekRanked.find(e => e.rank === 1) || null,
-        monthlyLeader: monthRanked.find(e => e.rank === 1) || null,
-        seasonLeader: seasonRanked.find(e => e.rank === 1) || null,
+        weeklyLeader: weekRanked.find((e) => e.rank === 1) || null,
+        monthlyLeader: monthRanked.find((e) => e.rank === 1) || null,
+        seasonLeader: seasonRanked.find((e) => e.rank === 1) || null,
         currentWeek: {
           type: 'week',
           startDate: weekStart.toISOString(),
           endDate: weekEnd.toISOString(),
-          label: formatWeekLabel(weekStart, weekEnd, getGameweekNumber(weekStart, seasonStartDate, firstGW)),
+          label: formatWeekLabel(
+            weekStart,
+            weekEnd,
+            getGameweekNumber(weekStart, seasonStartDate, firstGW)
+          ),
           gameweek: getGameweekNumber(weekStart, seasonStartDate, firstGW),
           hasPrevious: weekStart > getFirstGameweekStart(seasonStartDate, firstGW),
           hasNext: weekEnd < now,
@@ -256,14 +323,14 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
           hasNext: false,
         },
       };
-      
+
       await setCache(cacheKey, response);
       return {
         statusCode: 200,
         body: JSON.stringify({ success: true, data: response }),
       };
     }
-    
+
     // Calculate specific period leaderboard
     const referenceDate = dateParam ? new Date(dateParam) : new Date();
     let periodStart: Date;
@@ -271,7 +338,7 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
     let prevPeriodStart: Date;
     let prevPeriodEnd: Date;
     let periodLabel: string;
-    
+
     if (period === 'week') {
       periodStart = getWeekStart(referenceDate, firstGW);
       periodEnd = getWeekEnd(referenceDate, firstGW);
@@ -279,12 +346,20 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
       prevPeriodStart.setDate(prevPeriodStart.getDate() - 7);
       prevPeriodEnd = new Date(periodEnd);
       prevPeriodEnd.setDate(prevPeriodEnd.getDate() - 7);
-      periodLabel = formatWeekLabel(periodStart, periodEnd, getGameweekNumber(periodStart, seasonStartDate, firstGW));
+      periodLabel = formatWeekLabel(
+        periodStart,
+        periodEnd,
+        getGameweekNumber(periodStart, seasonStartDate, firstGW)
+      );
     } else if (period === 'month') {
       periodStart = getMonthStart(referenceDate);
       periodEnd = getMonthEnd(referenceDate);
-      prevPeriodStart = getMonthStart(new Date(referenceDate.getFullYear(), referenceDate.getMonth() - 1, 1));
-      prevPeriodEnd = getMonthEnd(new Date(referenceDate.getFullYear(), referenceDate.getMonth() - 1, 1));
+      prevPeriodStart = getMonthStart(
+        new Date(referenceDate.getFullYear(), referenceDate.getMonth() - 1, 1)
+      );
+      prevPeriodEnd = getMonthEnd(
+        new Date(referenceDate.getFullYear(), referenceDate.getMonth() - 1, 1)
+      );
       periodLabel = formatMonthLabel(periodStart);
     } else {
       // Season
@@ -294,20 +369,37 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
       prevPeriodEnd = periodEnd;
       periodLabel = `${currentSeason} Season`;
     }
-    
+
     // Calculate current and previous period
-    const currentData = await calculateLeaderboard(picks, userMap, seasonTournaments, allScores, periodStart, periodEnd, firstGW);
-    const previousData = period !== 'season' 
-      ? await calculateLeaderboard(picks, userMap, seasonTournaments, allScores, prevPeriodStart, prevPeriodEnd, firstGW)
-      : null;
-    
+    const currentData = await calculateLeaderboard(
+      picks,
+      userMap,
+      seasonTournaments,
+      allScores,
+      periodStart,
+      periodEnd,
+      firstGW
+    );
+    const previousData =
+      period !== 'season'
+        ? await calculateLeaderboard(
+            picks,
+            userMap,
+            seasonTournaments,
+            allScores,
+            prevPeriodStart,
+            prevPeriodEnd,
+            firstGW
+          )
+        : null;
+
     const ranked = rankEntries(currentData.entries, previousData?.entries || null);
-    
+
     // Determine navigation
     const firstGameweekAnchor = getFirstGameweekStart(seasonStartDate, firstGW);
     let hasPrevious = false;
     let hasNext = false;
-    
+
     if (period === 'week') {
       hasPrevious = periodStart > firstGameweekAnchor;
       hasNext = periodEnd < getWeekEnd(now, firstGW);
@@ -315,7 +407,7 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
       hasPrevious = periodStart > firstGameweekAnchor;
       hasNext = periodEnd < getMonthEnd(now);
     }
-    
+
     const response: LeaderboardResponse = {
       entries: ranked,
       period: {
@@ -323,13 +415,14 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
         startDate: periodStart.toISOString(),
         endDate: periodEnd.toISOString(),
         label: periodLabel,
-        gameweek: period === 'week' ? getGameweekNumber(periodStart, seasonStartDate, firstGW) : undefined,
+        gameweek:
+          period === 'week' ? getGameweekNumber(periodStart, seasonStartDate, firstGW) : undefined,
         hasPrevious,
         hasNext,
       },
       tournamentCount: currentData.tournamentCount,
     };
-    
+
     await setCache(cacheKey, response);
     return {
       statusCode: 200,

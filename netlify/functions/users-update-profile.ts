@@ -20,7 +20,10 @@ const handler = withVerifiedAuth(async (event: AuthenticatedEvent) => {
     if (!firstName || !lastName || !email) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ success: false, error: 'firstName, lastName, and email are required' }),
+        body: JSON.stringify({
+          success: false,
+          error: 'firstName, lastName, and email are required',
+        }),
       };
     }
 

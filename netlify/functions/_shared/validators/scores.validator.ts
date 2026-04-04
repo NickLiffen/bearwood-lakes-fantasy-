@@ -93,7 +93,8 @@ export const bulkEnterScoresSchema = z
     if (!data.allowDuplicatePositions) {
       const podiumPositions = participatingScores
         .filter(
-          (s) => s.position !== null && s.position !== undefined && s.position >= 1 && s.position <= 3
+          (s) =>
+            s.position !== null && s.position !== undefined && s.position >= 1 && s.position <= 3
         )
         .map((s) => s.position);
       const uniquePositions = new Set(podiumPositions);
@@ -101,8 +102,7 @@ export const bulkEnterScoresSchema = z
       if (podiumPositions.length !== uniquePositions.size) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message:
-            'Duplicate positions found. Please confirm tied positions are intentional',
+          message: 'Duplicate positions found. Please confirm tied positions are intentional',
           path: ['scores'],
         });
       }

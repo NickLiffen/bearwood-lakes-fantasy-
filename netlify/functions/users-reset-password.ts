@@ -39,7 +39,10 @@ const handler = withAdmin(async (event: AuthenticatedEvent) => {
     if (userId === event.user.userId) {
       return {
         statusCode: 400,
-        body: JSON.stringify({ success: false, error: 'You cannot reset your own password. Use the profile settings instead.' }),
+        body: JSON.stringify({
+          success: false,
+          error: 'You cannot reset your own password. Use the profile settings instead.',
+        }),
       };
     }
 
@@ -62,11 +65,11 @@ const handler = withAdmin(async (event: AuthenticatedEvent) => {
     // Update user's password
     await collection.updateOne(
       { _id: new ObjectId(userId) },
-      { 
-        $set: { 
+      {
+        $set: {
           passwordHash: hashedPassword,
           updatedAt: new Date(),
-        } 
+        },
       }
     );
 

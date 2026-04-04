@@ -7,12 +7,20 @@ import type { Season } from '@shared/types';
 
 vi.mock('./_shared/auth', () => ({
   verifyToken: vi.fn().mockReturnValue({
-    userId: 'user-player-1', username: 'testplayer', role: 'player', phoneVerified: true,
+    userId: 'user-player-1',
+    username: 'testplayer',
+    role: 'player',
+    phoneVerified: true,
   }),
 }));
 vi.mock('./_shared/rateLimit', () => ({
   checkRateLimit: vi.fn().mockResolvedValue({ allowed: true, remaining: 99, resetAt: new Date() }),
-  RateLimitConfig: { default: { windowMs: 60000, maxRequests: 100 }, read: { windowMs: 60000, maxRequests: 120 }, write: { windowMs: 60000, maxRequests: 30 }, admin: { windowMs: 60000, maxRequests: 60 } },
+  RateLimitConfig: {
+    default: { windowMs: 60000, maxRequests: 100 },
+    read: { windowMs: 60000, maxRequests: 120 },
+    write: { windowMs: 60000, maxRequests: 30 },
+    admin: { windowMs: 60000, maxRequests: 60 },
+  },
   getRateLimitKeyFromEvent: vi.fn().mockReturnValue('ratelimit:key'),
   rateLimitHeaders: vi.fn().mockReturnValue({}),
   rateLimitExceededResponse: vi.fn(),
@@ -37,8 +45,14 @@ vi.mock('./_shared/utils/dates', () => ({
     end.setMilliseconds(end.getMilliseconds() - 1);
     return end;
   }),
-  getMonthStart: vi.fn().mockImplementation((d: Date) => new Date(d.getFullYear(), d.getMonth(), 1)),
-  getMonthEnd: vi.fn().mockImplementation((d: Date) => new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999)),
+  getMonthStart: vi
+    .fn()
+    .mockImplementation((d: Date) => new Date(d.getFullYear(), d.getMonth(), 1)),
+  getMonthEnd: vi
+    .fn()
+    .mockImplementation(
+      (d: Date) => new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999)
+    ),
   getSeasonStart: vi.fn().mockReturnValue(new Date('2025-01-01')),
   getTeamEffectiveStartDate: vi.fn().mockImplementation((d: Date) => new Date(d)),
   getFirstGameweekStart: vi.fn().mockImplementation((seasonStart: Date) => new Date(seasonStart)),
@@ -57,16 +71,18 @@ const golferId1 = new ObjectId();
 const golferId2 = new ObjectId();
 const tournamentId = new ObjectId();
 
-function setupDb(overrides: {
-  user?: Record<string, unknown>;
-  pick?: Record<string, unknown>;
-  allPicks?: Record<string, unknown>[];
-  golfers?: Record<string, unknown>[];
-  tournaments?: Record<string, unknown>[];
-  scores?: Record<string, unknown>[];
-  pickHistory?: Record<string, unknown>[];
-  historyGolfers?: Record<string, unknown>[];
-} = {}) {
+function setupDb(
+  overrides: {
+    user?: Record<string, unknown>;
+    pick?: Record<string, unknown>;
+    allPicks?: Record<string, unknown>[];
+    golfers?: Record<string, unknown>[];
+    tournaments?: Record<string, unknown>[];
+    scores?: Record<string, unknown>[];
+    pickHistory?: Record<string, unknown>[];
+    historyGolfers?: Record<string, unknown>[];
+  } = {}
+) {
   const { mockDb } = createMockDb({
     users: {
       findOne: vi.fn().mockResolvedValue(overrides.user ?? null),
@@ -110,7 +126,7 @@ describe('user-profile handler', () => {
   it('returns 400 for invalid userId format', async () => {
     const res = await handler(
       makeAuthEvent({ queryStringParameters: { userId: 'not-valid' } }),
-      mockContext,
+      mockContext
     );
     const body = parseBody(res!);
 
@@ -123,7 +139,7 @@ describe('user-profile handler', () => {
 
     const res = await handler(
       makeAuthEvent({ queryStringParameters: { userId: targetUserId.toString() } }),
-      mockContext,
+      mockContext
     );
     const body = parseBody(res!);
 
@@ -144,7 +160,7 @@ describe('user-profile handler', () => {
 
     const res = await handler(
       makeAuthEvent({ queryStringParameters: { userId: targetUserId.toString() } }),
-      mockContext,
+      mockContext
     );
     const body = parseBody(res!);
 
@@ -194,23 +210,27 @@ describe('user-profile handler', () => {
         updatedAt: new Date(),
       },
     ];
-    const tournaments = [{
-      _id: tournamentId,
-      name: 'Masters',
-      status: 'published',
-      season: 2025,
-      startDate: new Date(),
-    }];
-    const scores = [{
-      golferId: golferId1,
-      tournamentId,
-      position: 2,
-      basePoints: 80,
-      bonusPoints: 5,
-      multipliedPoints: 85,
-      rawScore: -8,
-      participated: true,
-    }];
+    const tournaments = [
+      {
+        _id: tournamentId,
+        name: 'Masters',
+        status: 'published',
+        season: 2025,
+        startDate: new Date(),
+      },
+    ];
+    const scores = [
+      {
+        golferId: golferId1,
+        tournamentId,
+        position: 2,
+        basePoints: 80,
+        bonusPoints: 5,
+        multipliedPoints: 85,
+        rawScore: -8,
+        participated: true,
+      },
+    ];
 
     setupDb({
       user,
@@ -223,7 +243,7 @@ describe('user-profile handler', () => {
 
     const res = await handler(
       makeAuthEvent({ queryStringParameters: { userId: targetUserId.toString() } }),
-      mockContext,
+      mockContext
     );
     const body = parseBody(res!);
 
@@ -259,16 +279,18 @@ describe('user-profile handler', () => {
       createdAt: new Date('2025-01-05'),
       updatedAt: new Date(),
     };
-    const golfers = [{
-      _id: golferId1,
-      firstName: 'Rory',
-      lastName: 'McIlroy',
-      picture: null,
-      price: 12_000_000,
-      isActive: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }];
+    const golfers = [
+      {
+        _id: golferId1,
+        firstName: 'Rory',
+        lastName: 'McIlroy',
+        picture: null,
+        price: 12_000_000,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ];
     const pickHistory = [
       {
         userId: targetUserId,
@@ -298,7 +320,7 @@ describe('user-profile handler', () => {
 
     const res = await handler(
       makeAuthEvent({ queryStringParameters: { userId: targetUserId.toString() } }),
-      mockContext,
+      mockContext
     );
     const body = parseBody(res!);
 
@@ -311,7 +333,7 @@ describe('user-profile handler', () => {
 
     const res = await handler(
       makeAuthEvent({ queryStringParameters: { userId: targetUserId.toString() } }),
-      mockContext,
+      mockContext
     );
     const body = parseBody(res!);
 

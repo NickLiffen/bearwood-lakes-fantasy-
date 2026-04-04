@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../hooks/useAuth';
 import { ADMIN_PORTAL_ROLES } from '@shared/constants/rules';
+import type { UserRole } from '@shared/types';
 import './PageLayout.css';
 
 interface User {
@@ -11,7 +12,7 @@ interface User {
   firstName: string;
   lastName: string;
   username: string;
-  role: string;
+  role: UserRole;
 }
 
 type NavItem =
@@ -155,10 +156,7 @@ const PageLayout: React.FC<PageLayoutProps> = ({ children, activeNav }) => {
             >
               Tournaments
             </Link>
-            <Link
-              to="/scoring"
-              className={`nav-link ${activeNav === 'scoring' ? 'active' : ''}`}
-            >
+            <Link to="/scoring" className={`nav-link ${activeNav === 'scoring' ? 'active' : ''}`}>
               Rules
             </Link>
           </nav>

@@ -7,7 +7,7 @@ import type { ScoreDocument } from '../models/Score';
 function makeScore(
   golferId: ObjectId,
   tournamentId: ObjectId,
-  multipliedPoints: number,
+  multipliedPoints: number
 ): ScoreDocument {
   return {
     _id: new ObjectId(),
@@ -24,9 +24,7 @@ function makeScore(
   };
 }
 
-function buildScoreLookup(
-  scores: ScoreDocument[],
-): Map<string, Map<string, ScoreDocument>> {
+function buildScoreLookup(scores: ScoreDocument[]): Map<string, Map<string, ScoreDocument>> {
   const map = new Map<string, Map<string, ScoreDocument>>();
   for (const score of scores) {
     const gid = score.golferId.toString();
@@ -61,7 +59,7 @@ describe('calculatePickPoints', () => {
       { golferIds: [golfer1, golfer2], captainId, createdAt: new Date('2024-01-01') },
       buildScoreLookup(scores),
       new Map([[tournament1.toString(), new Date('2024-06-03')]]),
-      defaultBoundaries,
+      defaultBoundaries
     );
 
     // Captain gets 2x (20), non-captain gets 1x (10) = 30 total
@@ -77,7 +75,7 @@ describe('calculatePickPoints', () => {
       buildScoreLookup(scores),
       // Tournament is June 15 — after weekEnd (June 7)
       new Map([[tournament1.toString(), new Date('2024-06-15')]]),
-      defaultBoundaries,
+      defaultBoundaries
     );
 
     expect(result.weekPoints).toBe(0);
@@ -94,7 +92,7 @@ describe('calculatePickPoints', () => {
       buildScoreLookup(scores),
       // Tournament is July 5 — after monthEnd (June 30)
       new Map([[tournament1.toString(), new Date('2024-07-05')]]),
-      defaultBoundaries,
+      defaultBoundaries
     );
 
     expect(result.weekPoints).toBe(0);
@@ -104,10 +102,7 @@ describe('calculatePickPoints', () => {
   });
 
   it('filters by team effective start date', () => {
-    const scores = [
-      makeScore(golfer1, tournament1, 10),
-      makeScore(golfer1, tournament2, 20),
-    ];
+    const scores = [makeScore(golfer1, tournament1, 10), makeScore(golfer1, tournament2, 20)];
 
     const result = calculatePickPoints(
       // Team created June 5 (Wed) — getTeamEffectiveStartDate returns next Saturday Jun 8.
@@ -122,7 +117,7 @@ describe('calculatePickPoints', () => {
         ...defaultBoundaries,
         weekStart: new Date('2024-06-01'),
         weekEnd: new Date('2024-06-14T23:59:59.999Z'),
-      },
+      }
     );
 
     // Only tournament2 (20) counts; tournament1 is before team effective start
@@ -137,7 +132,7 @@ describe('calculatePickPoints', () => {
       { golferIds: [golfer1], captainId: null, createdAt: new Date('2024-01-01') },
       buildScoreLookup(scores),
       new Map([[tournament1.toString(), new Date('2024-06-03')]]),
-      defaultBoundaries,
+      defaultBoundaries
     );
 
     // No captain = no 2x multiplier
@@ -149,7 +144,7 @@ describe('calculatePickPoints', () => {
       { golferIds: [golfer1], createdAt: new Date('2024-01-01') },
       new Map(),
       new Map(),
-      defaultBoundaries,
+      defaultBoundaries
     );
 
     expect(result.weekPoints).toBe(0);
@@ -167,7 +162,13 @@ describe('calculateGolferContribution', () => {
     const scores = [makeScoreLike(tournament1, 10)];
     const dates = new Map([[tournament1.toString(), new Date('2024-06-03')]]);
 
-    const result = calculateGolferContribution(scores, dates, defaultBoundaries, true, new Date('2024-01-01'));
+    const result = calculateGolferContribution(
+      scores,
+      dates,
+      defaultBoundaries,
+      true,
+      new Date('2024-01-01')
+    );
 
     expect(result.weekPoints).toBe(20);
     expect(result.monthPoints).toBe(20);
@@ -178,7 +179,13 @@ describe('calculateGolferContribution', () => {
     const scores = [makeScoreLike(tournament1, 10)];
     const dates = new Map([[tournament1.toString(), new Date('2024-06-03')]]);
 
-    const result = calculateGolferContribution(scores, dates, defaultBoundaries, false, new Date('2024-01-01'));
+    const result = calculateGolferContribution(
+      scores,
+      dates,
+      defaultBoundaries,
+      false,
+      new Date('2024-01-01')
+    );
 
     expect(result.weekPoints).toBe(10);
     expect(result.monthPoints).toBe(10);
@@ -186,17 +193,20 @@ describe('calculateGolferContribution', () => {
   });
 
   it('filters by team effective start date', () => {
-    const scores = [
-      makeScoreLike(tournament1, 10),
-      makeScoreLike(tournament2, 20),
-    ];
+    const scores = [makeScoreLike(tournament1, 10), makeScoreLike(tournament2, 20)];
     const dates = new Map([
       [tournament1.toString(), new Date('2024-05-01')],
       [tournament2.toString(), new Date('2024-06-03')],
     ]);
 
     // Effective start June 1 — tournament1 (May 1) excluded, tournament2 (June 3) included
-    const result = calculateGolferContribution(scores, dates, defaultBoundaries, false, new Date('2024-06-01'));
+    const result = calculateGolferContribution(
+      scores,
+      dates,
+      defaultBoundaries,
+      false,
+      new Date('2024-06-01')
+    );
 
     expect(result.seasonPoints).toBe(20);
     expect(result.weekPoints).toBe(20);
@@ -206,7 +216,13 @@ describe('calculateGolferContribution', () => {
     const scores = [makeScoreLike(tournament1, 10)];
     const dates = new Map([[tournament1.toString(), new Date('2024-06-15')]]);
 
-    const result = calculateGolferContribution(scores, dates, defaultBoundaries, false, new Date('2024-01-01'));
+    const result = calculateGolferContribution(
+      scores,
+      dates,
+      defaultBoundaries,
+      false,
+      new Date('2024-01-01')
+    );
 
     expect(result.weekPoints).toBe(0);
     expect(result.monthPoints).toBe(10);
@@ -217,7 +233,13 @@ describe('calculateGolferContribution', () => {
     const scores = [makeScoreLike(tournament1, 10)];
     const dates = new Map([[tournament1.toString(), new Date('2024-07-05')]]);
 
-    const result = calculateGolferContribution(scores, dates, defaultBoundaries, false, new Date('2024-01-01'));
+    const result = calculateGolferContribution(
+      scores,
+      dates,
+      defaultBoundaries,
+      false,
+      new Date('2024-01-01')
+    );
 
     expect(result.weekPoints).toBe(0);
     expect(result.monthPoints).toBe(0);
@@ -225,7 +247,13 @@ describe('calculateGolferContribution', () => {
   });
 
   it('returns zeros when no scores match', () => {
-    const result = calculateGolferContribution([], new Map(), defaultBoundaries, true, new Date('2024-01-01'));
+    const result = calculateGolferContribution(
+      [],
+      new Map(),
+      defaultBoundaries,
+      true,
+      new Date('2024-01-01')
+    );
 
     expect(result.weekPoints).toBe(0);
     expect(result.monthPoints).toBe(0);
