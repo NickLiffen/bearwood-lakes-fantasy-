@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { ObjectId } from 'mongodb';
-import { calculatePickPoints } from './scoring';
-import type { TimeBoundaries } from './scoring';
+import { calculatePickPoints, calculateGolferContribution } from './scoring';
+import type { TimeBoundaries, ScoreLike } from './scoring';
 import type { ScoreDocument } from '../models/Score';
 
 function makeScore(
@@ -151,6 +151,81 @@ describe('calculatePickPoints', () => {
       new Map(),
       defaultBoundaries,
     );
+
+    expect(result.weekPoints).toBe(0);
+    expect(result.monthPoints).toBe(0);
+    expect(result.seasonPoints).toBe(0);
+  });
+});
+
+describe('calculateGolferContribution', () => {
+  function makeScoreLike(tournamentId: ObjectId, multipliedPoints: number): ScoreLike {
+    return { golferId: golfer1, tournamentId, multipliedPoints };
+  }
+
+  it('applies captain 2x multiplier', () => {
+    const scores = [makeScoreLike(tournament1, 10)];
+    const dates = new Map([[tournament1.toString(), new Date('2024-06-03')]]);
+
+    const result = calculateGolferContribution(scores, dates, defaultBoundaries, true, new Date('2024-01-01'));
+
+    expect(result.weekPoints).toBe(20);
+    expect(result.monthPoints).toBe(20);
+    expect(result.seasonPoints).toBe(20);
+  });
+
+  it('does not apply multiplier for non-captain', () => {
+    const scores = [makeScoreLike(tournament1, 10)];
+    const dates = new Map([[tournament1.toString(), new Date('2024-06-03')]]);
+
+    const result = calculateGolferContribution(scores, dates, defaultBoundaries, false, new Date('2024-01-01'));
+
+    expect(result.weekPoints).toBe(10);
+    expect(result.monthPoints).toBe(10);
+    expect(result.seasonPoints).toBe(10);
+  });
+
+  it('filters by team effective start date', () => {
+    const scores = [
+      makeScoreLike(tournament1, 10),
+      makeScoreLike(tournament2, 20),
+    ];
+    const dates = new Map([
+      [tournament1.toString(), new Date('2024-05-01')],
+      [tournament2.toString(), new Date('2024-06-03')],
+    ]);
+
+    // Effective start June 1 — tournament1 (May 1) excluded, tournament2 (June 3) included
+    const result = calculateGolferContribution(scores, dates, defaultBoundaries, false, new Date('2024-06-01'));
+
+    expect(result.seasonPoints).toBe(20);
+    expect(result.weekPoints).toBe(20);
+  });
+
+  it('excludes tournaments after weekEnd', () => {
+    const scores = [makeScoreLike(tournament1, 10)];
+    const dates = new Map([[tournament1.toString(), new Date('2024-06-15')]]);
+
+    const result = calculateGolferContribution(scores, dates, defaultBoundaries, false, new Date('2024-01-01'));
+
+    expect(result.weekPoints).toBe(0);
+    expect(result.monthPoints).toBe(10);
+    expect(result.seasonPoints).toBe(10);
+  });
+
+  it('excludes tournaments after monthEnd', () => {
+    const scores = [makeScoreLike(tournament1, 10)];
+    const dates = new Map([[tournament1.toString(), new Date('2024-07-05')]]);
+
+    const result = calculateGolferContribution(scores, dates, defaultBoundaries, false, new Date('2024-01-01'));
+
+    expect(result.weekPoints).toBe(0);
+    expect(result.monthPoints).toBe(0);
+    expect(result.seasonPoints).toBe(10);
+  });
+
+  it('returns zeros when no scores match', () => {
+    const result = calculateGolferContribution([], new Map(), defaultBoundaries, true, new Date('2024-01-01'));
 
     expect(result.weekPoints).toBe(0);
     expect(result.monthPoints).toBe(0);

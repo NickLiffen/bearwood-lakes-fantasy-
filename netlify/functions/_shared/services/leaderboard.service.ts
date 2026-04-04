@@ -18,7 +18,7 @@ import {
   getGameweekNumber,
   formatDateString,
 } from '../utils/dates';
-import { calculatePickPoints, type TimeBoundaries } from '../utils/scoring';
+import { calculatePickPoints, type TimeBoundaries, type ScoreLike } from '../utils/scoring';
 import { getActiveSeason, getSeasonByName } from './seasons.service';
 import { getRedisClient, getRedisKeyPrefix } from '../rateLimit';
 
@@ -110,8 +110,8 @@ export async function getFullLeaderboard(season?: number): Promise<FullLeaderboa
 
   const { db } = await connectToDatabase();
 
-  // Date ranges
-  const seasonStart = getSeasonStart();
+  // Date ranges — use currentSeason year so non-active seasons work correctly
+  const seasonStart = getSeasonStart(currentSeason);
   const monthStart = getMonthStart();
   const monthEnd = getMonthEnd();
   const weekStart = getWeekStart(undefined, firstGW);
@@ -185,14 +185,14 @@ export async function getFullLeaderboard(season?: number): Promise<FullLeaderboa
   if (pickResults.length === 0) return emptyResponse;
 
   // Build score lookup for calculatePickPoints
-  const scoresByGolferTournament = new Map<string, Map<string, typeof pickResults[0]['scores'][0]>>();
+  const scoresByGolferTournament = new Map<string, Map<string, ScoreLike>>();
   for (const pick of pickResults) {
     for (const score of pick.scores) {
       const golferId = score.golferId.toString();
       if (!scoresByGolferTournament.has(golferId)) {
         scoresByGolferTournament.set(golferId, new Map());
       }
-      scoresByGolferTournament.get(golferId)!.set(score.tournamentId.toString(), score as never);
+      scoresByGolferTournament.get(golferId)!.set(score.tournamentId.toString(), score);
     }
   }
 
@@ -233,7 +233,7 @@ export async function getFullLeaderboard(season?: number): Promise<FullLeaderboa
 
     const { weekPoints, monthPoints, seasonPoints } = calculatePickPoints(
       pickForScoring,
-      scoresByGolferTournament as never,
+      scoresByGolferTournament,
       tournamentDateMap,
       boundaries,
       firstGW,
@@ -382,14 +382,14 @@ export async function getLeaderboard(season?: number): Promise<LeaderboardEntry[
     .toArray();
 
   // Build score lookup for calculatePickPoints
-  const scoresByGolferTournament = new Map<string, Map<string, typeof pickResults[0]['scores'][0]>>();
+  const scoresByGolferTournament = new Map<string, Map<string, ScoreLike>>();
   for (const pick of pickResults) {
     for (const score of pick.scores) {
       const golferId = score.golferId.toString();
       if (!scoresByGolferTournament.has(golferId)) {
         scoresByGolferTournament.set(golferId, new Map());
       }
-      scoresByGolferTournament.get(golferId)!.set(score.tournamentId.toString(), score as never);
+      scoresByGolferTournament.get(golferId)!.set(score.tournamentId.toString(), score);
     }
   }
 
@@ -420,7 +420,7 @@ export async function getLeaderboard(season?: number): Promise<LeaderboardEntry[
 
     const { seasonPoints } = calculatePickPoints(
       { golferIds, captainId: pick.captainId, createdAt: pick.createdAt },
-      scoresByGolferTournament as never,
+      scoresByGolferTournament,
       tournamentDateMap,
       simpleBoundaries,
       firstGW,
@@ -543,14 +543,14 @@ export async function getTournamentLeaderboard(
     .toArray();
 
   // Calculate points per user using shared scorer
-  const scoresByGolferTournament = new Map<string, Map<string, typeof pickResults[0]['scores'][0]>>();
+  const scoresByGolferTournament = new Map<string, Map<string, ScoreLike>>();
   for (const pick of pickResults) {
     for (const score of pick.scores) {
       const golferId = score.golferId.toString();
       if (!scoresByGolferTournament.has(golferId)) {
         scoresByGolferTournament.set(golferId, new Map());
       }
-      scoresByGolferTournament.get(golferId)!.set(tournamentId, score as never);
+      scoresByGolferTournament.get(golferId)!.set(tournamentId, score);
     }
   }
 
@@ -577,7 +577,7 @@ export async function getTournamentLeaderboard(
 
     const { seasonPoints } = calculatePickPoints(
       { golferIds, captainId: pick.captainId, createdAt: pick.createdAt },
-      scoresByGolferTournament as never,
+      scoresByGolferTournament,
       tournamentDateMap,
       tournamentBoundaries,
       firstGW,

@@ -2,8 +2,14 @@
 // with captain multiplier and time-boundary filtering.
 
 import type { ObjectId } from 'mongodb';
-import type { ScoreDocument } from '../models/Score';
 import { getTeamEffectiveStartDate } from './dates';
+
+/** Minimal score fields needed for scoring calculations. */
+export interface ScoreLike {
+  golferId: ObjectId;
+  tournamentId: ObjectId;
+  multipliedPoints: number;
+}
 
 export interface TimeBoundaries {
   weekStart: Date;
@@ -35,7 +41,7 @@ export function calculatePickPoints(
     captainId?: ObjectId | null;
     createdAt: Date;
   },
-  scoresByGolferTournament: Map<string, Map<string, ScoreDocument>>,
+  scoresByGolferTournament: Map<string, Map<string, ScoreLike>>,
   tournamentDates: Map<string, Date>,
   boundaries: TimeBoundaries,
   firstGW?: Date | null,
@@ -84,7 +90,7 @@ export function calculatePickPoints(
  * breakdowns (my-team, team-compare) rather than aggregated team totals.
  */
 export function calculateGolferContribution(
-  golferScores: ScoreDocument[],
+  golferScores: ScoreLike[],
   tournamentDates: Map<string, Date>,
   boundaries: TimeBoundaries,
   isCaptain: boolean,
