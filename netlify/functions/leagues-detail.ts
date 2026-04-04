@@ -8,13 +8,12 @@ import { UserDocument, USERS_COLLECTION } from './_shared/models/User';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
 import { getActiveSeason, getSeasonByName } from './_shared/services/seasons.service';
-import { getWeekStart, getWeekEnd as getWeekEndUtil, getMonthStart, getGameweekNumber } from './_shared/utils/dates';
+import { getWeekStart, getWeekEnd as getWeekEndUtil, getMonthStart, getMonthEnd, getGameweekNumber } from './_shared/utils/dates';
 import {
   calculateLeaderboard,
   rankEntries,
   formatWeekLabel,
   formatMonthLabel,
-  getMonthEnd,
 } from './_shared/utils/leaderboard-calculator';
 
 function getWeekEnd(date: Date, firstGameweekStart?: Date | null): Date {

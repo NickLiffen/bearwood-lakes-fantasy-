@@ -9,14 +9,18 @@ import {
   rankEntries,
   formatWeekLabel,
   formatMonthLabel,
-  getMonthEnd,
   type LeaderboardRawEntry,
 } from './leaderboard-calculator';
+import { getMonthEnd } from './dates';
 
-// Mock the dates module
-vi.mock('./dates', () => ({
-  getTeamEffectiveStartDate: vi.fn((createdAt: Date) => createdAt),
-}));
+// Mock only getTeamEffectiveStartDate from dates, keep everything else real
+vi.mock('./dates', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('./dates')>();
+  return {
+    ...actual,
+    getTeamEffectiveStartDate: vi.fn((createdAt: Date) => createdAt),
+  };
+});
 
 // ────────────────────────────────────────────────────────────
 // Mock data factories

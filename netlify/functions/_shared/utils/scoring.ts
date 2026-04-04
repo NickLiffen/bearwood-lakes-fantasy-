@@ -2,8 +2,14 @@
 // with captain multiplier and time-boundary filtering.
 
 import type { ObjectId } from 'mongodb';
-import type { ScoreDocument } from '../models/Score';
 import { getTeamEffectiveStartDate } from './dates';
+
+/** Minimal score fields needed for scoring calculations. */
+export interface ScoreLike {
+  golferId: ObjectId;
+  tournamentId: ObjectId;
+  multipliedPoints: number;
+}
 
 export interface TimeBoundaries {
   weekStart: Date;
@@ -35,7 +41,7 @@ export function calculatePickPoints(
     captainId?: ObjectId | null;
     createdAt: Date;
   },
-  scoresByGolferTournament: Map<string, Map<string, ScoreDocument>>,
+  scoresByGolferTournament: Map<string, Map<string, ScoreLike>>,
   tournamentDates: Map<string, Date>,
   boundaries: TimeBoundaries,
   firstGW?: Date | null,
@@ -70,6 +76,44 @@ export function calculatePickPoints(
       if (tournamentDate >= boundaries.weekStart && tournamentDate <= boundaries.weekEnd) {
         weekPoints += points;
       }
+    }
+  }
+
+  return { weekPoints, monthPoints, seasonPoints };
+}
+
+/**
+ * Calculate week/month/season points for a single golfer within a team context.
+ *
+ * Same scoring rules as `calculatePickPoints` but operates on one golfer at a time,
+ * returning that golfer's contribution. Used by endpoints that need per-golfer
+ * breakdowns (my-team, team-compare) rather than aggregated team totals.
+ */
+export function calculateGolferContribution(
+  golferScores: ScoreLike[],
+  tournamentDates: Map<string, Date>,
+  boundaries: TimeBoundaries,
+  isCaptain: boolean,
+  teamEffectiveStart: Date,
+): PickPointsResult {
+  const captainMultiplier = isCaptain ? 2 : 1;
+  let weekPoints = 0;
+  let monthPoints = 0;
+  let seasonPoints = 0;
+
+  for (const score of golferScores) {
+    const tournamentDate = tournamentDates.get(score.tournamentId.toString());
+    if (!tournamentDate) continue;
+    if (tournamentDate < teamEffectiveStart) continue;
+
+    const points = (score.multipliedPoints || 0) * captainMultiplier;
+
+    if (tournamentDate >= boundaries.seasonStart) seasonPoints += points;
+    if (tournamentDate >= boundaries.monthStart && tournamentDate <= boundaries.monthEnd) {
+      monthPoints += points;
+    }
+    if (tournamentDate >= boundaries.weekStart && tournamentDate <= boundaries.weekEnd) {
+      weekPoints += points;
     }
   }
 

@@ -10,8 +10,9 @@ import { PickDocument, PICKS_COLLECTION } from './_shared/models/Pick';
 import { GolferDocument, GOLFERS_COLLECTION, toGolfer } from './_shared/models/Golfer';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
-import { getWeekStart, getMonthStart, getSeasonStart } from './_shared/utils/dates';
+import { getWeekStart, getWeekEnd, getMonthStart, getMonthEnd, getTeamEffectiveStartDate } from './_shared/utils/dates';
 import { getActiveSeason } from './_shared/services/seasons.service';
+import { calculateGolferContribution, type TimeBoundaries } from './_shared/utils/scoring';
 
 interface GolferWithPoints {
   golfer: ReturnType<typeof toGolfer>;
@@ -59,6 +60,8 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
     // Get current season
     const activeSeason = await getActiveSeason();
     const currentSeason = activeSeason ? (parseInt(activeSeason.name, 10) || new Date().getFullYear()) : new Date().getFullYear();
+    const firstGW = activeSeason?.firstGameweekStart ? new Date(activeSeason.firstGameweekStart) : null;
+    const seasonStartDate = activeSeason ? new Date(activeSeason.startDate) : new Date(`${currentSeason}-01-01`);
 
     // Get both users
     const [currentUser, targetUser] = await Promise.all([
@@ -135,28 +138,34 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
 
     // Time boundaries
     const now = new Date();
-    const weekStart = getWeekStart(now);
+    const weekStart = getWeekStart(now, firstGW);
+    const weekEnd = getWeekEnd(weekStart, firstGW);
     const monthStart = getMonthStart(now);
-    const seasonStart = getSeasonStart();
+    const monthEnd = getMonthEnd(now);
 
-    // Helper to calculate golfer points
-    function calculateGolferPoints(golferId: string): { weekPoints: number; monthPoints: number; seasonPoints: number } {
+    const boundaries: TimeBoundaries = {
+      weekStart,
+      weekEnd,
+      monthStart,
+      monthEnd,
+      seasonStart: seasonStartDate,
+    };
+
+    // Helper: per-golfer points with captain multiplier and effective start date
+    function getGolferPointsForTeam(
+      golferId: string,
+      pick: PickDocument,
+    ): { weekPoints: number; monthPoints: number; seasonPoints: number } {
       const golferScores = scoresByGolfer.get(golferId) || [];
-      let weekPoints = 0;
-      let monthPoints = 0;
-      let seasonPoints = 0;
+      const isCaptain = golferId === pick.captainId?.toString();
+      const teamEffectiveStart = getTeamEffectiveStartDate(pick.createdAt, firstGW);
+      return calculateGolferContribution(golferScores, tournamentDates, boundaries, isCaptain, teamEffectiveStart);
+    }
 
-      for (const score of golferScores) {
-        const tournamentDate = tournamentDates.get(score.tournamentId.toString());
-        if (!tournamentDate) continue;
-
-        const points = score.multipliedPoints || 0;
-        if (tournamentDate >= seasonStart) seasonPoints += points;
-        if (tournamentDate >= monthStart) monthPoints += points;
-        if (tournamentDate >= weekStart) weekPoints += points;
-      }
-
-      return { weekPoints, monthPoints, seasonPoints };
+    // Helper: raw golfer points (no captain, no effective start — for shared/unique comparison)
+    function getRawGolferPoints(golferId: string): { weekPoints: number; monthPoints: number; seasonPoints: number } {
+      const golferScores = scoresByGolfer.get(golferId) || [];
+      return calculateGolferContribution(golferScores, tournamentDates, boundaries, false, seasonStartDate);
     }
 
     // Build team summaries
@@ -178,7 +187,7 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
 
       const golfersWithPoints: GolferWithPoints[] = pick.golferIds.map(golferId => {
         const golfer = golferMap.get(golferId.toString())!;
-        const points = calculateGolferPoints(golferId.toString());
+        const points = getGolferPointsForTeam(golferId.toString(), pick);
         return {
           golfer: toGolfer(golfer),
           ...points,
@@ -215,19 +224,19 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
     // Build comparison data
     const sharedGolfers = sharedGolferIds.map(id => {
       const golfer = golferMap.get(id)!;
-      const points = calculateGolferPoints(id);
+      const points = getRawGolferPoints(id);
       return { golfer: toGolfer(golfer), ...points };
     });
 
     const uniqueToCurrent = uniqueToCurrentIds.map(id => {
       const golfer = golferMap.get(id)!;
-      const points = calculateGolferPoints(id);
+      const points = getRawGolferPoints(id);
       return { golfer: toGolfer(golfer), ...points };
     });
 
     const uniqueToTarget = uniqueToTargetIds.map(id => {
       const golfer = golferMap.get(id)!;
-      const points = calculateGolferPoints(id);
+      const points = getRawGolferPoints(id);
       return { golfer: toGolfer(golfer), ...points };
     });
 

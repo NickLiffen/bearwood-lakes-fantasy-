@@ -27,8 +27,10 @@ vi.mock('./_shared/db', () => ({ connectToDatabase: vi.fn() }));
 vi.mock('./_shared/services/seasons.service', () => ({ getActiveSeason: vi.fn() }));
 vi.mock('./_shared/utils/dates', () => ({
   getWeekStart: vi.fn().mockReturnValue(new Date('2025-06-07')),
+  getWeekEnd: vi.fn().mockReturnValue(new Date('2025-06-13T23:59:59.999Z')),
   getMonthStart: vi.fn().mockReturnValue(new Date('2025-06-01')),
-  getSeasonStart: vi.fn().mockReturnValue(new Date('2025-01-01')),
+  getMonthEnd: vi.fn().mockReturnValue(new Date('2025-06-30T23:59:59.999Z')),
+  getTeamEffectiveStartDate: vi.fn().mockImplementation((d: Date) => new Date(d)),
 }));
 
 const mockSeason = {
@@ -265,5 +267,98 @@ describe('user-team-compare handler', () => {
     expect(res!.statusCode).toBe(500);
     expect(body.success).toBe(false);
     expect(body.error).toBe('Connection lost');
+  });
+
+  it('applies captain 2x multiplier to team golfer totals', async () => {
+    const captainGolferId = new ObjectId();
+    const normalGolferId = new ObjectId();
+    const tid = new ObjectId();
+
+    setupDb({
+      currentUser: { _id: currentUserId, firstName: 'Alice', lastName: 'A', username: 'alice' },
+      targetUser: { _id: targetUserId, firstName: 'Bob', lastName: 'B', username: 'bob' },
+      currentPick: {
+        userId: currentUserId,
+        golferIds: [captainGolferId, normalGolferId],
+        captainId: captainGolferId,
+        totalSpent: 20_000_000,
+        season: 2025,
+        createdAt: new Date('2025-01-01'),
+      },
+      targetPick: {
+        userId: targetUserId,
+        golferIds: [captainGolferId],
+        captainId: null,
+        totalSpent: 10_000_000,
+        season: 2025,
+        createdAt: new Date('2025-01-01'),
+      },
+      golfers: [
+        { _id: captainGolferId, firstName: 'Rory', lastName: 'M', picture: null, price: 10_000_000, isActive: true, createdAt: new Date(), updatedAt: new Date() },
+        { _id: normalGolferId, firstName: 'Tiger', lastName: 'W', picture: null, price: 8_000_000, isActive: true, createdAt: new Date(), updatedAt: new Date() },
+      ],
+      tournaments: [{ _id: tid, name: 'Open', status: 'published', season: 2025, startDate: new Date('2025-06-10') }],
+      scores: [
+        { golferId: captainGolferId, tournamentId: tid, multipliedPoints: 10, participated: true },
+        { golferId: normalGolferId, tournamentId: tid, multipliedPoints: 10, participated: true },
+      ],
+    });
+
+    const res = await handler(
+      makeAuthEvent({ queryStringParameters: { userId: targetUserId.toString() } }),
+      mockContext,
+    );
+    const body = parseBody(res!);
+
+    expect(res!.statusCode).toBe(200);
+    // Current user: captain (10*2=20) + normal (10*1=10) = 30
+    expect(body.data.currentUser.totals.weekPoints).toBe(30);
+    // Target user: no captain (10*1=10)
+    expect(body.data.targetUser.totals.weekPoints).toBe(10);
+  });
+
+  it('excludes tournaments before team effective start date', async () => {
+    const gid = new ObjectId();
+    const earlyTournament = new ObjectId();
+    const lateTournament = new ObjectId();
+
+    // Mock getTeamEffectiveStartDate to return June 8 for a team created June 5
+    const { getTeamEffectiveStartDate } = await import('./_shared/utils/dates');
+    vi.mocked(getTeamEffectiveStartDate).mockImplementation(() => new Date('2025-06-08'));
+
+    setupDb({
+      currentUser: { _id: currentUserId, firstName: 'Alice', lastName: 'A', username: 'alice' },
+      targetUser: { _id: targetUserId, firstName: 'Bob', lastName: 'B', username: 'bob' },
+      currentPick: {
+        userId: currentUserId,
+        golferIds: [gid],
+        captainId: null,
+        totalSpent: 10_000_000,
+        season: 2025,
+        createdAt: new Date('2025-06-05'),
+      },
+      targetPick: null,
+      golfers: [
+        { _id: gid, firstName: 'Rory', lastName: 'M', picture: null, price: 10_000_000, isActive: true, createdAt: new Date(), updatedAt: new Date() },
+      ],
+      tournaments: [
+        { _id: earlyTournament, name: 'Early', status: 'published', season: 2025, startDate: new Date('2025-06-07') },
+        { _id: lateTournament, name: 'Late', status: 'published', season: 2025, startDate: new Date('2025-06-10') },
+      ],
+      scores: [
+        { golferId: gid, tournamentId: earlyTournament, multipliedPoints: 100, participated: true },
+        { golferId: gid, tournamentId: lateTournament, multipliedPoints: 15, participated: true },
+      ],
+    });
+
+    const res = await handler(
+      makeAuthEvent({ queryStringParameters: { userId: targetUserId.toString() } }),
+      mockContext,
+    );
+    const body = parseBody(res!);
+
+    expect(res!.statusCode).toBe(200);
+    // Only lateTournament (15) counts; earlyTournament (100) is before effective start
+    expect(body.data.currentUser.totals.seasonPoints).toBe(15);
   });
 });
