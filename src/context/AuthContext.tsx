@@ -2,6 +2,7 @@
 
 import React, { createContext, useState, useEffect, useCallback, useRef, ReactNode } from 'react';
 import type { User } from '@shared/types';
+import { ADMIN_PORTAL_ROLES } from '@shared/constants/rules';
 import { clearSeasonCache } from '../hooks/useActiveSeason';
 
 interface AuthContextType {
@@ -253,7 +254,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     token,
     isAuthenticated: !!user && !!token,
     isAdmin: user?.role === 'admin',
-    canAccessAdmin: user?.role === 'admin' || user?.role === 'tournament_uploader',
+    canAccessAdmin: !!user && ADMIN_PORTAL_ROLES.includes(user.role),
     login,
     register,
     logout,

@@ -6,6 +6,7 @@ import LoadingSpinner from '../../../components/ui/LoadingSpinner';
 import { useAuth } from '../../../hooks/useAuth';
 import { useApiClient } from '../../../hooks/useApiClient';
 import { useDocumentTitle } from '../../../hooks/useDocumentTitle';
+import type { UserRole } from '@shared/types';
 
 interface User {
   id: string;
@@ -13,7 +14,7 @@ interface User {
   lastName: string;
   username: string;
   email: string;
-  role: 'admin' | 'user' | 'tournament_uploader';
+  role: UserRole;
   createdAt: string;
 }
 
@@ -67,7 +68,7 @@ const UsersAdminPage: React.FC = () => {
     }
   }, [isAuthReady, fetchUsers]);
 
-  const handleRoleChange = async (user: User, newRole: 'admin' | 'user' | 'tournament_uploader') => {
+  const handleRoleChange = async (user: User, newRole: UserRole) => {
     if (user.id === currentUserId) {
       setError('You cannot change your own role');
       setTimeout(() => setError(''), 3000);

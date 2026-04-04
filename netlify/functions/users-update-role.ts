@@ -4,6 +4,9 @@ import { ObjectId } from 'mongodb';
 import { connectToDatabase } from './_shared/db';
 import { UserDocument, USERS_COLLECTION, toUser } from './_shared/models/User';
 import { withAdmin, AuthenticatedEvent } from './_shared/middleware';
+import { ROLES } from '@shared/constants/rules';
+
+const VALID_ROLES = Object.values(ROLES);
 
 const handler = withAdmin(async (event: AuthenticatedEvent) => {
   if (event.httpMethod !== 'PUT') {
@@ -24,12 +27,12 @@ const handler = withAdmin(async (event: AuthenticatedEvent) => {
       };
     }
 
-    if (!['admin', 'user', 'tournament_uploader'].includes(role)) {
+    if (!VALID_ROLES.includes(role)) {
       return {
         statusCode: 400,
         body: JSON.stringify({
           success: false,
-          error: 'Role must be "admin", "user", or "tournament_uploader"',
+          error: `Role must be one of: ${VALID_ROLES.join(', ')}`,
         }),
       };
     }
