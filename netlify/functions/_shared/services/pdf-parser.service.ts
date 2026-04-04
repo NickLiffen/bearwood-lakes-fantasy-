@@ -1,7 +1,7 @@
 // PDF Parser Service — extracts tournament data from ECG leaderboard PDFs
-// Uses pdfjs-dist with position-based text reconstruction for reliable line detection
+// Uses unpdf (serverless-friendly) with position-based text reconstruction
 
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
+import { getDocumentProxy } from 'unpdf';
 import type { ParsedGolfer, ParsedTournament } from '../../../../shared/types/parsed-tournament.types';
 
 export type { ParsedGolfer, ParsedTournament };
@@ -15,14 +15,14 @@ interface TextItem {
 /**
  * Extract text from a PDF buffer using position-based line reconstruction.
  *
- * pdfjs-dist emits text items in render order, which can place table columns
+ * PDF renderers emit text items in render order, which can place table columns
  * out of reading order. This function groups items by Y coordinate (within a
  * tolerance), sorts each row by X, and joins them into natural reading lines.
  */
 export async function extractTextFromPdfBuffer(buffer: Buffer): Promise<string> {
   const Y_TOLERANCE = 3; // pixels — groups items on the same visual line
 
-  const doc = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
+  const doc = await getDocumentProxy(new Uint8Array(buffer));
   const pageTexts: string[] = [];
 
   try {

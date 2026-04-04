@@ -1,8 +1,8 @@
 import { vi } from 'vitest';
 
-// Mock pdfjs-dist — tests only exercise the pure text-parsing functions
-vi.mock('pdfjs-dist/legacy/build/pdf.mjs', () => ({
-  getDocument: vi.fn(),
+// Mock unpdf — tests only exercise the pure text-parsing functions
+vi.mock('unpdf', () => ({
+  getDocumentProxy: vi.fn(),
 }));
 
 import { parseTournamentText, parseEcgDate, detectScoringFormat } from './pdf-parser.service';
