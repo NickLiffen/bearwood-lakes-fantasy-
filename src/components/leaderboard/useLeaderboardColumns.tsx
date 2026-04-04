@@ -1,6 +1,7 @@
 // useLeaderboardColumns — shared column definitions for leaderboard tables
 
 import { useMemo } from 'react';
+import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import type { Column } from '../ui/DataTable';
 import { formatPrice } from '../../utils/formatters';
@@ -11,7 +12,7 @@ interface UseLeaderboardColumnsOptions {
   /** Show the "Events" column (default: false) */
   showEvents?: boolean;
   /** Render function for an extra action column (e.g., Compare button) */
-  renderAction?: (entry: LeaderboardEntry) => React.ReactNode | null;
+  renderAction?: (entry: LeaderboardEntry) => ReactNode | null;
 }
 
 export function useLeaderboardColumns({

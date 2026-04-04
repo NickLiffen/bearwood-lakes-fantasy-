@@ -1,11 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
 import { ObjectId } from 'mongodb';
-import type {
-  PickDocument,
-  UserDocument,
-  ScoreDocument,
-  TournamentDocument,
-} from '../models';
+import type { PickDocument } from '../models/Pick';
+import type { UserDocument } from '../models/User';
+import type { ScoreDocument } from '../models/Score';
+import type { TournamentDocument } from '../models/Tournament';
 import {
   calculateLeaderboard,
   rankEntries,
@@ -769,8 +767,8 @@ describe('rankEntries', () => {
 
 describe('formatWeekLabel', () => {
   it('formats week label with date range only', () => {
-    const start = new Date('2024-01-08');
-    const end = new Date('2024-01-14');
+    const start = new Date(2024, 0, 8, 12);
+    const end = new Date(2024, 0, 14, 12);
 
     const label = formatWeekLabel(start, end);
 
@@ -778,8 +776,8 @@ describe('formatWeekLabel', () => {
   });
 
   it('includes gameweek number when provided', () => {
-    const start = new Date('2024-01-08');
-    const end = new Date('2024-01-14');
+    const start = new Date(2024, 0, 8, 12);
+    const end = new Date(2024, 0, 14, 12);
 
     const label = formatWeekLabel(start, end, 5);
 
@@ -787,8 +785,8 @@ describe('formatWeekLabel', () => {
   });
 
   it('omits gameweek number when zero', () => {
-    const start = new Date('2024-01-08');
-    const end = new Date('2024-01-14');
+    const start = new Date(2024, 0, 8, 12);
+    const end = new Date(2024, 0, 14, 12);
 
     const label = formatWeekLabel(start, end, 0);
 
@@ -796,8 +794,8 @@ describe('formatWeekLabel', () => {
   });
 
   it('omits gameweek number when negative', () => {
-    const start = new Date('2024-01-08');
-    const end = new Date('2024-01-14');
+    const start = new Date(2024, 0, 8, 12);
+    const end = new Date(2024, 0, 14, 12);
 
     const label = formatWeekLabel(start, end, -1);
 
@@ -805,8 +803,8 @@ describe('formatWeekLabel', () => {
   });
 
   it('handles month boundaries', () => {
-    const start = new Date('2024-01-28');
-    const end = new Date('2024-02-03');
+    const start = new Date(2024, 0, 28, 12);
+    const end = new Date(2024, 1, 3, 12);
 
     const label = formatWeekLabel(start, end, 1);
 
@@ -816,21 +814,21 @@ describe('formatWeekLabel', () => {
 
 describe('formatMonthLabel', () => {
   it('returns correct format for January', () => {
-    const date = new Date('2024-01-15');
+    const date = new Date(2024, 0, 15, 12);
     const label = formatMonthLabel(date);
 
     expect(label).toBe('January 2024');
   });
 
   it('returns correct format for December', () => {
-    const date = new Date('2024-12-25');
+    const date = new Date(2024, 11, 25, 12);
     const label = formatMonthLabel(date);
 
     expect(label).toBe('December 2024');
   });
 
   it('returns correct format for any month', () => {
-    const date = new Date('2024-06-10');
+    const date = new Date(2024, 5, 10, 12);
     const label = formatMonthLabel(date);
 
     expect(label).toBe('June 2024');
@@ -839,7 +837,7 @@ describe('formatMonthLabel', () => {
 
 describe('getMonthEnd', () => {
   it('returns last day of month with 23:59:59.999 for January', () => {
-    const date = new Date('2024-01-15');
+    const date = new Date(2024, 0, 15, 12);
     const monthEnd = getMonthEnd(date);
 
     expect(monthEnd.getFullYear()).toBe(2024);
@@ -852,7 +850,7 @@ describe('getMonthEnd', () => {
   });
 
   it('returns last day of month for February in leap year', () => {
-    const date = new Date('2024-02-10');
+    const date = new Date(2024, 1, 10, 12);
     const monthEnd = getMonthEnd(date);
 
     expect(monthEnd.getDate()).toBe(29);
@@ -863,7 +861,7 @@ describe('getMonthEnd', () => {
   });
 
   it('returns last day of month for February in non-leap year', () => {
-    const date = new Date('2023-02-10');
+    const date = new Date(2023, 1, 10, 12);
     const monthEnd = getMonthEnd(date);
 
     expect(monthEnd.getDate()).toBe(28);
@@ -874,14 +872,14 @@ describe('getMonthEnd', () => {
   });
 
   it('returns correct last day for months with 30 days', () => {
-    const date = new Date('2024-04-10');
+    const date = new Date(2024, 3, 10, 12);
     const monthEnd = getMonthEnd(date);
 
     expect(monthEnd.getDate()).toBe(30);
   });
 
   it('returns correct last day for months with 31 days', () => {
-    const date = new Date('2024-12-10');
+    const date = new Date(2024, 11, 10, 12);
     const monthEnd = getMonthEnd(date);
 
     expect(monthEnd.getDate()).toBe(31);

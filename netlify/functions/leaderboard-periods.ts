@@ -60,7 +60,7 @@ interface PeriodInfo {
 
 interface LeaderboardResponse {
   entries: RankedLeaderboardEntry[];
-  period: PeriodInfo;
+  period: PeriodInfo | null;
   tournamentCount: number;
 }
 
