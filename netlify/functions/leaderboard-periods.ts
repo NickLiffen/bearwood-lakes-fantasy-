@@ -9,14 +9,13 @@ import { UserDocument, USERS_COLLECTION } from './_shared/models/User';
 import { ScoreDocument, SCORES_COLLECTION } from './_shared/models/Score';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from './_shared/models/Tournament';
 import { getActiveSeason, getSeasonByName } from './_shared/services/seasons.service';
-import { getWeekStart, getMonthStart, getGameweekNumber, getWeekEnd as getWeekEndShared } from './_shared/utils/dates';
+import { getWeekStart, getMonthStart, getGameweekNumber, getWeekEnd as getWeekEndShared, getMonthEnd } from './_shared/utils/dates';
 import { getRedisClient, getRedisKeyPrefix } from './_shared/rateLimit';
 import {
   calculateLeaderboard,
   rankEntries,
   formatWeekLabel,
   formatMonthLabel,
-  getMonthEnd,
   type RankedLeaderboardEntry,
 } from './_shared/utils/leaderboard-calculator';
 

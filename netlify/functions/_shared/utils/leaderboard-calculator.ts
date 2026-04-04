@@ -190,7 +190,3 @@ export function formatWeekLabel(start: Date, end: Date, gameweek?: number): stri
 export function formatMonthLabel(date: Date): string {
   return date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
 }
-
-export function getMonthEnd(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
-}

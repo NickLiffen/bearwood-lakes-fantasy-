@@ -27,8 +27,10 @@ vi.mock('./_shared/db', () => ({ connectToDatabase: vi.fn() }));
 vi.mock('./_shared/services/seasons.service', () => ({ getActiveSeason: vi.fn() }));
 vi.mock('./_shared/utils/dates', () => ({
   getWeekStart: vi.fn().mockReturnValue(new Date('2025-06-07')),
+  getWeekEnd: vi.fn().mockReturnValue(new Date('2025-06-13T23:59:59.999Z')),
   getMonthStart: vi.fn().mockReturnValue(new Date('2025-06-01')),
-  getSeasonStart: vi.fn().mockReturnValue(new Date('2025-01-01')),
+  getMonthEnd: vi.fn().mockReturnValue(new Date('2025-06-30T23:59:59.999Z')),
+  getTeamEffectiveStartDate: vi.fn().mockImplementation((d: Date) => new Date(d)),
 }));
 
 const mockSeason = {

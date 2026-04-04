@@ -11,6 +11,7 @@ import {
   getMonthEnd,
   getFirstGameweekStart,
 } from '../utils/dates';
+import { calculateGolferContribution, type TimeBoundaries } from '../utils/scoring';
 
 export interface TournamentScoreInfo {
   tournamentId: string;
@@ -53,7 +54,7 @@ export function getTeamGolferScores(
     publishedTournaments.map((t) => [t._id.toString(), t]),
   );
 
-  // Build golfer scores map
+  // Build golfer scores map and tournament date lookup
   const golferScoresMap = new Map<string, ScoreDocument[]>();
   for (const score of scores) {
     const golferId = score.golferId.toString();
@@ -63,19 +64,34 @@ export function getTeamGolferScores(
     golferScoresMap.get(golferId)!.push(score);
   }
 
+  const tournamentDates = new Map<string, Date>();
+  for (const t of publishedTournaments) {
+    tournamentDates.set(t._id.toString(), new Date(t.startDate));
+  }
+
   // Season's first gameweek
   const seasonFirstSat = seasonStartDate
     ? getFirstGameweekStart(new Date(seasonStartDate), firstGameweekStart)
     : getWeekStart(new Date(), firstGameweekStart);
+
+  // Build time boundaries for shared scorer
+  const monthStart = getMonthStart(selectedWeekStart);
+  const monthEnd = getMonthEnd(selectedWeekStart);
+  const boundaries: TimeBoundaries = {
+    weekStart: selectedWeekStart,
+    weekEnd: selectedWeekEnd,
+    monthStart,
+    monthEnd,
+    seasonStart: seasonFirstSat,
+  };
 
   const captainIdString = captainId?.toString();
 
   const golfersWithScores: GolferWithScores[] = golfers.map((golfer) => {
     const golferScores = golferScoresMap.get(golfer._id.toString()) || [];
     const isCaptain = golfer._id.toString() === captainIdString;
-    const captainMultiplier = isCaptain ? 2 : 1;
 
-    // Format scores with tournament info
+    // Format scores with tournament info (for detailed display)
     const formattedScores: TournamentScoreInfo[] = golferScores
       .map((score) => {
         const tournament = tournamentMap.get(score.tournamentId.toString());
@@ -97,7 +113,7 @@ export function getTeamGolferScores(
           new Date(a.tournamentDate).getTime(),
       );
 
-    // Filter by time period — must be within period AND after team's effective start date
+    // Filter by time period for display lists
     const weekScores = formattedScores.filter((s) => {
       const date = new Date(s.tournamentDate);
       return (
@@ -112,26 +128,14 @@ export function getTeamGolferScores(
       return date >= seasonFirstSat && date >= teamEffectiveStart;
     });
 
-    // Month scores — current month of the selected week
-    const monthStart = getMonthStart(selectedWeekStart);
-    const monthEnd = getMonthEnd(selectedWeekStart);
-    const monthScores = formattedScores.filter((s) => {
-      const date = new Date(s.tournamentDate);
-      return (
-        date >= monthStart && date <= monthEnd && date >= teamEffectiveStart
-      );
-    });
-
-    // Calculate totals with captain multiplier
-    const weekPoints =
-      weekScores.reduce((sum, s) => sum + s.multipliedPoints, 0) *
-      captainMultiplier;
-    const monthPoints =
-      monthScores.reduce((sum, s) => sum + s.multipliedPoints, 0) *
-      captainMultiplier;
-    const seasonPoints =
-      seasonScores.reduce((sum, s) => sum + s.multipliedPoints, 0) *
-      captainMultiplier;
+    // Calculate totals using shared scorer (captain multiplier + boundaries)
+    const { weekPoints, monthPoints, seasonPoints } = calculateGolferContribution(
+      golferScores,
+      tournamentDates,
+      boundaries,
+      isCaptain,
+      teamEffectiveStart,
+    );
 
     return {
       golfer: toGolfer(golfer),
