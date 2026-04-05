@@ -7,10 +7,14 @@ import { TournamentDocument } from '../models/Tournament';
 import { PickHistoryDocument, PICK_HISTORY_COLLECTION } from '../models/Pick';
 import { getWeekStart, getMonthStart, getMonthEnd, getFirstGameweekStart } from '../utils/dates';
 import { calculateGolferContribution, type TimeBoundaries } from '../utils/scoring';
+import type { TournamentType, ScoringFormat } from '@shared/types';
 
 export interface TournamentScoreInfo {
   tournamentId: string;
   tournamentName: string;
+  tournamentType: TournamentType;
+  scoringFormat: ScoringFormat;
+  multiplier: number;
   position: number | null;
   basePoints: number;
   bonusPoints: number;
@@ -91,6 +95,9 @@ export function getTeamGolferScores(
         return {
           tournamentId: score.tournamentId.toString(),
           tournamentName: tournament?.name || 'Unknown Tournament',
+          tournamentType: (tournament?.tournamentType || 'rollup_stableford') as TournamentType,
+          scoringFormat: (tournament?.scoringFormat || 'stableford') as ScoringFormat,
+          multiplier: tournament?.multiplier ?? 1,
           position: score.position,
           basePoints: score.basePoints,
           bonusPoints: score.bonusPoints,

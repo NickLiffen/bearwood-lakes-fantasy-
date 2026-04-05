@@ -1,0 +1,339 @@
+/* ScoreBreakdownModal Styles */
+
+/* Overlay uses shared .modal-overlay from TeamCompareModal */
+.score-breakdown-overlay {
+  z-index: 1001;
+}
+
+.score-breakdown-modal {
+  background: white;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* Header */
+.score-breakdown-modal .modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.breakdown-header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.breakdown-header-info h2 {
+  font-family: var(--font-heading);
+  font-size: 1.15rem;
+  color: white;
+  margin: 0;
+}
+
+.breakdown-golfer-name {
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.captain-badge {
+  font-size: 0.8rem;
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 0.15rem 0.5rem;
+  border-radius: 6px;
+}
+
+.breakdown-week-label {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.75);
+  margin: 0;
+}
+
+/* Body */
+.score-breakdown-modal .modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem 1.5rem;
+}
+
+/* No scores state */
+.no-scores-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+}
+
+.no-scores-state p {
+  color: var(--muted-text);
+  font-size: 0.95rem;
+}
+
+/* Tournament Cards */
+.tournament-card {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  margin-bottom: 0.75rem;
+  overflow: hidden;
+}
+
+.tournament-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  background: #f3f4f6;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.tournament-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.tournament-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.tournament-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--dark-text);
+}
+
+.tournament-meta {
+  font-size: 0.75rem;
+  color: var(--muted-text);
+}
+
+/* Score Rows */
+.score-rows {
+  padding: 0.5rem 0;
+}
+
+.score-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  gap: 0.75rem;
+}
+
+.score-row-label {
+  font-size: 0.85rem;
+  color: var(--dark-text);
+}
+
+.score-row-value {
+  font-size: 0.85rem;
+  color: var(--muted-text);
+  text-align: right;
+  min-width: 70px;
+}
+
+.score-row-points {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--dark-text);
+  text-align: right;
+  min-width: 60px;
+}
+
+.score-row-points.bonus-earned {
+  color: #16a34a;
+}
+
+/* Subtotal row */
+.subtotal-row {
+  border-top: 1px dashed #e5e7eb;
+  margin-top: 0.25rem;
+  padding-top: 0.625rem;
+}
+
+/* Multiplier row */
+.multiplier-row .score-row-label {
+  color: #7c3aed;
+  font-weight: 500;
+}
+
+.multiplier-row .score-row-points {
+  color: #7c3aed;
+}
+
+/* Captain row */
+.captain-row .score-row-label {
+  color: #d97706;
+  font-weight: 500;
+}
+
+.captain-row .score-row-points.captain-points {
+  color: #d97706;
+}
+
+/* Tournament total row */
+.tournament-total-row {
+  border-top: 2px solid #e5e7eb;
+  margin-top: 0.25rem;
+  padding-top: 0.625rem;
+  padding-bottom: 0.625rem;
+}
+
+.tournament-total-row .score-row-label {
+  font-weight: 700;
+}
+
+.tournament-total-row .total-points {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--primary-green);
+}
+
+/* Did Not Play Section */
+.did-not-play-section {
+  margin-top: 0.5rem;
+}
+
+.dnp-heading {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-text);
+  margin: 0 0 0.5rem 0;
+}
+
+.dnp-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  font-size: 0.85rem;
+  color: var(--muted-text);
+}
+
+.dnp-icon {
+  font-size: 0.8rem;
+}
+
+.dnp-tournament {
+  flex: 1;
+}
+
+.dnp-points {
+  font-weight: 500;
+}
+
+/* Footer */
+.breakdown-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.grand-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1rem;
+  background: linear-gradient(135deg, var(--primary-green), var(--secondary-green));
+  border-radius: 10px;
+  color: white;
+}
+
+.grand-total-label {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.captain-indicator {
+  font-size: 0.85rem;
+}
+
+.grand-total-value {
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.scoring-rules-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: var(--primary-green);
+  text-decoration: none;
+  align-self: center;
+}
+
+.scoring-rules-link:hover {
+  text-decoration: underline;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .score-breakdown-modal {
+    max-height: 95vh;
+    border-radius: 12px 12px 0 0;
+    margin-top: auto;
+  }
+}
+
+@media (max-width: 480px) {
+  .score-breakdown-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .score-breakdown-modal {
+    width: 100%;
+    max-width: 100%;
+    border-radius: 16px 16px 0 0;
+  }
+
+  .score-breakdown-modal .modal-header {
+    padding: 1rem;
+  }
+
+  .score-breakdown-modal .modal-body {
+    padding: 0.75rem 1rem;
+  }
+
+  .breakdown-footer {
+    padding: 0.75rem 1rem;
+  }
+
+  .score-row {
+    padding: 0.4rem 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .score-row-label {
+    font-size: 0.8rem;
+  }
+
+  .score-row-value {
+    font-size: 0.8rem;
+    min-width: 55px;
+  }
+
+  .score-row-points {
+    font-size: 0.8rem;
+    min-width: 50px;
+  }
+}

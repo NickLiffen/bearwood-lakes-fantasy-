@@ -1,6 +1,7 @@
 // API request/response types
 
 import type { Golfer, GolferSeasonStats } from './golfer.types';
+import type { TournamentType, ScoringFormat } from './tournament.types';
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -79,6 +80,9 @@ export interface TournamentScore {
   tournamentId: string;
   tournamentName: string;
   tournamentDate: string;
+  tournamentType: TournamentType;
+  scoringFormat: ScoringFormat;
+  multiplier: number;
   position: number | null;
   basePoints: number;
   bonusPoints: number;

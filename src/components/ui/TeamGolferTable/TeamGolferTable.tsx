@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import DataTable, { Column } from '../DataTable';
+import ScoreBreakdownModal from '../ScoreBreakdownModal';
+import type { TournamentScore } from '@shared/types';
 
 interface GolferData {
   golfer: {
@@ -10,12 +12,14 @@ interface GolferData {
     picture: string;
   };
   weekPoints: number;
+  weekScores?: TournamentScore[];
   isCaptain: boolean;
 }
 
 interface TeamGolferTableProps {
   golfers: GolferData[];
   weekTotal?: number;
+  weekLabel?: string;
   isOwnTeam?: boolean;
   onSetCaptain?: (golferId: string) => void;
 }
@@ -23,9 +27,11 @@ interface TeamGolferTableProps {
 const TeamGolferTable: React.FC<TeamGolferTableProps> = ({
   golfers,
   weekTotal,
+  weekLabel = '',
   isOwnTeam = false,
   onSetCaptain,
 }) => {
+  const [breakdownGolfer, setBreakdownGolfer] = useState<GolferData | null>(null);
   const columns: Column<GolferData>[] = [
     {
       key: 'captain',
@@ -83,12 +89,22 @@ const TeamGolferTable: React.FC<TeamGolferTableProps> = ({
       key: 'week-pts',
       header: 'Week Pts',
       align: 'right',
-      render: (data) => (
-        <span className="dt-text-primary">
-          {data.weekPoints}
-          {data.isCaptain && <span className="captain-multiplier"> (2x)</span>}
-        </span>
-      ),
+      render: (data) => {
+        const hasBreakdown = data.weekScores && data.weekScores.length > 0;
+        return (
+          <span
+            className={`dt-text-primary ${hasBreakdown ? 'score-clickable' : ''}`}
+            onClick={hasBreakdown ? (e) => { e.stopPropagation(); setBreakdownGolfer(data); } : undefined}
+            role={hasBreakdown ? 'button' : undefined}
+            tabIndex={hasBreakdown ? 0 : undefined}
+            onKeyDown={hasBreakdown ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setBreakdownGolfer(data); } } : undefined}
+            title={hasBreakdown ? 'Click to see score breakdown' : undefined}
+          >
+            {data.weekPoints}
+            {data.isCaptain && <span className="captain-multiplier"> (2x)</span>}
+          </span>
+        );
+      },
     },
   ];
 
@@ -106,6 +122,16 @@ const TeamGolferTable: React.FC<TeamGolferTableProps> = ({
         rowKey={(data) => data.golfer.id}
         emptyMessage="No golfers in this team."
       />
+      {breakdownGolfer && breakdownGolfer.weekScores && (
+        <ScoreBreakdownModal
+          golferName={`${breakdownGolfer.golfer.firstName} ${breakdownGolfer.golfer.lastName}`}
+          isCaptain={breakdownGolfer.isCaptain}
+          weekScores={breakdownGolfer.weekScores}
+          weekLabel={weekLabel}
+          weekPoints={breakdownGolfer.weekPoints}
+          onClose={() => setBreakdownGolfer(null)}
+        />
+      )}
     </>
   );
 };

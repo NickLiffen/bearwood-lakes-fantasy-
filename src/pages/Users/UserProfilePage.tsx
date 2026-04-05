@@ -17,6 +17,7 @@ import { useApiClient } from '../../hooks/useApiClient';
 import { useActiveSeason } from '../../hooks/useActiveSeason';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
 import { formatDate } from '../../utils/formatters';
+import type { TournamentScore } from '@shared/types';
 import './UserProfilePage.css';
 
 interface GolferStats {
@@ -25,18 +26,6 @@ interface GolferStats {
   timesFinished2nd: number;
   timesFinished3rd: number;
   timesPlayed: number;
-}
-
-interface TournamentScore {
-  tournamentId: string;
-  tournamentName: string;
-  position: number | null;
-  basePoints: number;
-  bonusPoints: number;
-  multipliedPoints: number;
-  rawScore: number;
-  participated: boolean;
-  tournamentDate: string;
 }
 
 interface Golfer {
@@ -313,6 +302,7 @@ const UserProfilePage: React.FC = () => {
                 <TeamGolferTable
                   golfers={team.golfers}
                   weekTotal={team.totals.weekPoints}
+                  weekLabel={profileData?.period?.label || ''}
                   isOwnTeam={false}
                 />
               </TeamSection>
