@@ -152,4 +152,16 @@ describe('ScoreBreakdownModal', () => {
     renderModal({ weekScores: [stablefordScore] });
     expect(screen.getByText('36 pts')).toBeInTheDocument();
   });
+
+  it('formats ordinal positions correctly (11th, 21st, 22nd, etc.)', () => {
+    const score11th: TournamentScore = { ...baseTournamentScore, position: 11 };
+    const score21st: TournamentScore = {
+      ...baseTournamentScore,
+      tournamentId: 't3',
+      position: 21,
+    };
+    renderModal({ weekScores: [score11th, score21st] });
+    expect(screen.getByText('11th')).toBeInTheDocument();
+    expect(screen.getByText('21st')).toBeInTheDocument();
+  });
 });

@@ -15,9 +15,16 @@ interface ScoreBreakdownModalProps {
 
 function formatPosition(position: number | null): string {
   if (position === null) return '—';
-  if (position === 1) return '1st';
-  if (position === 2) return '2nd';
-  if (position === 3) return '3rd';
+
+  const lastTwoDigits = Math.abs(position) % 100;
+  if (lastTwoDigits >= 11 && lastTwoDigits <= 13) {
+    return `${position}th`;
+  }
+
+  const lastDigit = Math.abs(position) % 10;
+  if (lastDigit === 1) return `${position}st`;
+  if (lastDigit === 2) return `${position}nd`;
+  if (lastDigit === 3) return `${position}rd`;
   return `${position}th`;
 }
 
@@ -58,7 +65,7 @@ const ScoreBreakdownModal: React.FC<ScoreBreakdownModalProps> = ({
   const didNotPlay = weekScores.filter((s) => !s.participated);
 
   return (
-    <div className="modal-overlay score-breakdown-overlay" onClick={onClose}>
+    <div className="score-breakdown-overlay" onClick={onClose}>
       <div className="score-breakdown-modal" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="modal-header">

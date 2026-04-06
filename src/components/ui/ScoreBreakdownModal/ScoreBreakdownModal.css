@@ -1,8 +1,18 @@
-/* ScoreBreakdownModal Styles */
+/* ScoreBreakdownModal Styles — fully self-contained, no dependency on other modal CSS */
 
-/* Overlay uses shared .modal-overlay from TeamCompareModal */
+/* Base overlay */
 .score-breakdown-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   z-index: 1001;
+  padding: 1rem;
 }
 
 .score-breakdown-modal {
@@ -23,6 +33,27 @@
   justify-content: space-between;
   padding: 1.25rem 1.5rem;
   border-bottom: 1px solid #e5e7eb;
+}
+
+/* Close button — self-contained, no dependency on TeamCompareModal */
+.score-breakdown-modal .modal-close {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  font-size: 1.25rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+  flex-shrink: 0;
+}
+
+.score-breakdown-modal .modal-close:hover {
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .breakdown-header-info {
