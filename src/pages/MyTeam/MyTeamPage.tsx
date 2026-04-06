@@ -503,6 +503,7 @@ const MyTeamPage: React.FC = () => {
               <TeamGolferTable
                 golfers={sortedGolfers}
                 weekTotal={team.totals.weekPoints}
+                weekLabel={team.period.label}
                 isOwnTeam={true}
                 onSetCaptain={handleSetCaptain}
               />

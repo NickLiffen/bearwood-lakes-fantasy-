@@ -180,6 +180,9 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
           return {
             tournamentId: score.tournamentId.toString(),
             tournamentName: tournament?.name || 'Unknown Tournament',
+            tournamentType: tournament?.tournamentType || 'rollup_stableford',
+            scoringFormat: tournament?.scoringFormat || 'stableford',
+            multiplier: tournament?.multiplier ?? 1,
             position: score.position,
             basePoints: score.basePoints,
             bonusPoints: score.bonusPoints,

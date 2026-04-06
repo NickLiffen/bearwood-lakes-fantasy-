@@ -777,3 +777,16 @@
   color: var(--primary-green);
   font-weight: 600;
 }
+
+/* Clickable score affordance */
+.score-clickable {
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+  transition: opacity 0.15s ease;
+}
+
+.score-clickable:hover {
+  opacity: 0.75;
+}
