@@ -180,6 +180,8 @@ const GolfersPage: React.FC = () => {
               return golfer.points?.form || 0;
             case 'season-pts':
               return golfer.points?.season || 0;
+            case 'podiums':
+              return getPodiums(getStats(golfer));
             default:
               return 0;
           }
@@ -272,6 +274,25 @@ const GolfersPage: React.FC = () => {
       sortable: true,
       align: 'center',
       render: (golfer) => <span style={{ fontWeight: 600 }}>{golfer.points?.season || 0}</span>,
+    },
+    {
+      key: 'podiums',
+      header: 'Total Podiums',
+      sortable: true,
+      align: 'center',
+      render: (golfer) => {
+        const podiums = getPodiums(getStats(golfer));
+        return (
+          <span
+            style={{
+              fontWeight: podiums > 0 ? 600 : 400,
+              color: podiums > 0 ? 'var(--primary-green)' : '#9ca3af',
+            }}
+          >
+            {podiums}
+          </span>
+        );
+      },
     },
   ];
 
