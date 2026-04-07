@@ -97,6 +97,7 @@ const TeamBuilderPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('price-high');
   const [quickFilter, setQuickFilter] = useState<QuickFilter>('all');
+  const [withinBudgetOnly, setWithinBudgetOnly] = useState(false);
   const [settings, setSettings] = useState<Settings | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedGolferDetail, setSelectedGolferDetail] = useState<Golfer | null>(null);
@@ -323,10 +324,11 @@ const TeamBuilderPage: React.FC = () => {
     setSearchTerm('');
     setQuickFilter('all');
     setSortBy('price-high');
+    setWithinBudgetOnly(false);
   };
 
   // Check if any filters are active
-  const hasActiveFilters = searchTerm !== '' || quickFilter !== 'all';
+  const hasActiveFilters = searchTerm !== '' || quickFilter !== 'all' || withinBudgetOnly;
 
   // Filter and sort golfers
   const filteredGolfers = golfers
@@ -334,7 +336,9 @@ const TeamBuilderPage: React.FC = () => {
       const fullName = `${golfer.firstName} ${golfer.lastName}`;
       const matches = matchesSearch(fullName, searchTerm);
       const matchesQuickFilter = applyQuickFilter(golfer);
-      return matches && matchesQuickFilter;
+      const matchesBudget =
+        !withinBudgetOnly || isSelected(golfer) || golfer.price <= budgetRemaining;
+      return matches && matchesQuickFilter && matchesBudget;
     })
     .sort((a, b) => {
       switch (sortBy) {
@@ -377,7 +381,7 @@ const TeamBuilderPage: React.FC = () => {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, quickFilter, sortBy]);
+  }, [searchTerm, quickFilter, sortBy, withinBudgetOnly]);
 
   // Generate page numbers for pagination
   const getPageNumbers = () => {
@@ -594,6 +598,25 @@ const TeamBuilderPage: React.FC = () => {
               </div>
             </div>
 
+            {/* Within Budget Toggle */}
+            <div className="budget-toggle-row">
+              <label className="budget-toggle" htmlFor="within-budget-toggle">
+                <input
+                  id="within-budget-toggle"
+                  type="checkbox"
+                  checked={withinBudgetOnly}
+                  onChange={(e) => setWithinBudgetOnly(e.target.checked)}
+                />
+                <span className="budget-toggle-slider" />
+                <span className="budget-toggle-label">
+                  💰 Within budget
+                  <span className="budget-toggle-amount">
+                    ({formatPrice(budgetRemaining)} left)
+                  </span>
+                </span>
+              </label>
+            </div>
+
             {/* Sort & Basic Filters Row */}
             <div className="filters-row">
               <div className="filter-group">
@@ -642,6 +665,11 @@ const TeamBuilderPage: React.FC = () => {
                 {searchTerm && <span className="filter-tag">Search: &quot;{searchTerm}&quot;</span>}
                 {quickFilter !== 'all' && (
                   <span className="filter-tag">Quick: {quickFilter.replace('-', ' ')}</span>
+                )}
+                {withinBudgetOnly && (
+                  <span className="filter-tag">
+                    Within budget: {formatPrice(budgetRemaining)} left
+                  </span>
                 )}
               </div>
             )}
@@ -755,9 +783,15 @@ const TeamBuilderPage: React.FC = () => {
 
             {filteredGolfers.length === 0 && (
               <div className="no-results">
-                <div className="no-results-icon">🔍</div>
-                <h3>No golfers found</h3>
-                <p>Try adjusting your filters or search term.</p>
+                <div className="no-results-icon">{withinBudgetOnly ? '💰' : '🔍'}</div>
+                <h3>
+                  {withinBudgetOnly ? 'No golfers within budget' : 'No golfers found'}
+                </h3>
+                <p>
+                  {withinBudgetOnly
+                    ? `No golfers are priced at or below your remaining ${formatPrice(budgetRemaining)}. Try removing a golfer to free up budget.`
+                    : 'Try adjusting your filters or search term.'}
+                </p>
                 <button className="btn-reset" onClick={resetFilters}>
                   Reset All Filters
                 </button>
