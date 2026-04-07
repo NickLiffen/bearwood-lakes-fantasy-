@@ -150,6 +150,160 @@ Pos. Player Nett Score Purse
     expect(result.scoringFormat).toBe('medal');
   });
 
+  it('parses to-par format leaderboard (no purse column)', () => {
+    const toParText = `Bank Holiday Opt in Stableford - 06/04/26
+6 April 2026
+Roll Up Stableford - 06/04/26 Leaderboard
+Individual Stableford
+Stableford Points
+Pos. Player Total Stableford Points Thru
+(To Par)
+1 Tony Grover -4 40 F
+2 Stuart Yemm -4 40 F
+3 Chris Duncan -1 37 F
+4 Deborah James -1 37 F
+5 Amal Sharma E 36 F`;
+
+    const result = parseTournamentText(toParText);
+    expect(result.name).toBe('Bank Holiday Opt in Stableford');
+    expect(result.date).toBe('2026-04-06');
+    expect(result.scoringFormat).toBe('stableford');
+    expect(result.golfers).toHaveLength(5);
+    expect(result.golfers[0]).toEqual({
+      position: 1,
+      firstName: 'Tony',
+      lastName: 'Grover',
+      rawScore: 40,
+    });
+    expect(result.golfers[4]).toEqual({
+      position: 5,
+      firstName: 'Amal',
+      lastName: 'Sharma',
+      rawScore: 36,
+    });
+  });
+
+  it('uses total stableford points, not to-par value, as rawScore', () => {
+    const text = `Test 01/01/26
+1 January 2026
+1 Player One +3 33 F
+2 Player Two E 36 F
+3 Player Three -2 38 F`;
+
+    const result = parseTournamentText(text);
+    expect(result.golfers[0].rawScore).toBe(33);
+    expect(result.golfers[1].rawScore).toBe(36);
+    expect(result.golfers[2].rawScore).toBe(38);
+  });
+
+  it('skips withdrawn players with no position in to-par format', () => {
+    const text = `Test 01/01/26
+1 January 2026
+1 Player One -4 40 F
+2 Player Two +1 35 F
+James Johnson - 0 -
+Jit Aujla - 0 -`;
+
+    const result = parseTournamentText(text);
+    expect(result.golfers).toHaveLength(2);
+  });
+
+  it('strips trailing dash separator from tournament name', () => {
+    const text = `Bank Holiday Opt in Stableford - 06/04/26
+6 April 2026
+1 Player One -4 40 F`;
+
+    const result = parseTournamentText(text);
+    expect(result.name).toBe('Bank Holiday Opt in Stableford');
+  });
+
+  it('handles full to-par format multi-page leaderboard (real PDF output)', () => {
+    const realToParOutput = `Bank Holiday Opt in Stableford - 06/04/26
+6 April 2026
+Roll Up Stableford - 06/04/26 Leaderboard
+Individual Stableford
+Stableford Points
+Pos. Player Total Stableford Points Thru
+(To Par)
+1 Tony Grover -4 40 F
+2 Stuart Yemm -4 40 F
+3 Chris Duncan -1 37 F
+4 Deborah James -1 37 F
+5 Amal Sharma E 36 F
+6 Renee Bansal E 36 F
+7 Matthew Pulford E 36 F
+8 James Short E 36 F
+9 Darren Garner +1 35 F
+10 Matthew Forde +1 35 F
+11 Ian Ross +2 34 F
+12 Angus Blest +2 34 F
+13 Aidan Sinclair +2 34 F
+14 Phil Monkhouse +2 34 F
+15 Jake Miles +3 33 F
+16 Nathan Runnicles +3 33 F
+17 Adam Pursey +3 33 F
+18 Stuart Blackman +3 33 F
+19 Leo Spicer +3 33 F
+20 Nicholas Looby +3 33 F
+21 David Robertson +3 33 F
+22 Benjamin Stokes +3 33 F
+23 Andy Robinson +3 33 F
+24 David Smillie +4 32 F
+25 Anne Smith +4 32 F
+26 Finlay Scott +4 32 F
+27 Steven Hearn +4 32 F
+28 Ron Symons +4 32 F
+29 Steve Smith +4 32 F
+30 Kris Giebeler +4 32 F
+31 Lewis Djemal +5 31 F
+32 Max Watson +5 31 F
+33 Joshua Smith +5 31 F
+34 Steve Parkin +6 30 F
+35 Ben Fitzgerald +6 30 F
+Bank Holiday Opt in Stableford - 06/04/26
+6 April 2026
+Roll Up Stableford - 06/04/26 Leaderboard
+36 Gareth Goodall +6 30 F
+37 Joe Beck +6 30 F
+38 Nigel Bolt +6 30 F
+39 Jadon Johnson +6 30 F
+40 Colin Rowland +7 29 F
+41 David Stankard +7 29 F
+42 Lesley Smillie +7 29 F
+43 Tony Harrison +7 29 F
+44 Tom Burrows +8 28 F
+45 George Mackenzie +8 28 F
+46 Lewis Brailli +8 28 F
+47 Reahgan Quartermaine +8 28 F
+48 Ker Anderson +8 28 F
+49 Chris Owen +8 28 F
+50 Keanu Mansour +9 27 F
+51 Philip Mosedale +9 27 F
+52 Mehrdad Reyhanifar +11 25 F
+53 Keith Wright +14 22 F
+54 Andrew Newell +19 17 F
+James Johnson - 0 -
+Jit Aujla - 0 -`;
+
+    const result = parseTournamentText(realToParOutput);
+    expect(result.name).toBe('Bank Holiday Opt in Stableford');
+    expect(result.date).toBe('2026-04-06');
+    expect(result.scoringFormat).toBe('stableford');
+    expect(result.golfers).toHaveLength(54);
+    expect(result.golfers[0]).toEqual({
+      position: 1,
+      firstName: 'Tony',
+      lastName: 'Grover',
+      rawScore: 40,
+    });
+    expect(result.golfers[53]).toEqual({
+      position: 54,
+      firstName: 'Andrew',
+      lastName: 'Newell',
+      rawScore: 17,
+    });
+  });
+
   it('handles text produced by position-based extraction (real PDF output)', () => {
     // This matches the actual output from extractTextFromPdfBuffer with the ECG leaderboard
     const realPdfOutput = `Friday Bank Holiday Roll Up 03/04/2026

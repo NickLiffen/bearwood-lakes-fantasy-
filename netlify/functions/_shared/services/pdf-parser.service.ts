@@ -154,16 +154,24 @@ export function parseTournamentText(rawText: string): ParsedTournament {
   let scoringFormat: 'stableford' | 'medal' = 'stableford';
   const golfers: ParsedGolfer[] = [];
 
-  const dataRowRegex = /^(\d+)\s+(.+?)\s+(-?\d+)\s+£[\d,.]+$/;
+  // Format A: purse column — e.g. "1 Ashley Brinsford 46 £130.00"
+  const purseRowRegex = /^(\d+)\s+(.+?)\s+(-?\d+)\s+£[\d,.]+$/;
+  // Format B: to-par + total + thru — e.g. "1  Tony Grover   -4 40  F"
+  const toParRowRegex = /^(\d+)\s+(.+?)\s+([+-]?\d+|E)\s+(\d+)\s+F$/;
+  const isDataRow = (line: string) => purseRowRegex.test(line) || toParRowRegex.test(line);
+
   const datePattern = /^\d{1,2}\s+\w+\s+\d{4}$/;
 
   for (const line of lines) {
     if (line.startsWith('Pos.') || line.startsWith('Total Purse')) continue;
-    if (line.includes('Leaderboard') && !dataRowRegex.test(line)) continue;
+    if (line.includes('Leaderboard') && !isDataRow(line)) continue;
 
-    if (!name && !dataRowRegex.test(line) && !datePattern.test(line)) {
+    if (!name && !isDataRow(line) && !datePattern.test(line)) {
       if (line.match(/\d{2}\/\d{2}\/\d{2,4}/)) {
-        name = line.replace(/\s*\d{2}\/\d{2}\/\d{2,4}\s*$/, '').trim();
+        name = line
+          .replace(/\s*\d{2}\/\d{2}\/\d{2,4}\s*$/, '')
+          .replace(/\s*[-–—]+\s*$/, '')
+          .trim();
       }
       continue;
     }
@@ -174,17 +182,18 @@ export function parseTournamentText(rawText: string): ParsedTournament {
     }
 
     if (line.toLowerCase().includes('stableford') || line.toLowerCase().includes('medal')) {
-      if (!dataRowRegex.test(line)) {
+      if (!isDataRow(line)) {
         scoringFormat = detectScoringFormat(line);
         continue;
       }
     }
 
-    const match = line.match(dataRowRegex);
+    const match = line.match(purseRowRegex) || line.match(toParRowRegex);
     if (match) {
       const position = parseInt(match[1], 10);
       const fullName = match[2].trim();
-      const rawScore = parseInt(match[3], 10);
+      // For purse format, score is group 3; for to-par format, total points is group 4
+      const rawScore = match[4] !== undefined ? parseInt(match[4], 10) : parseInt(match[3], 10);
 
       const nameParts = fullName.split(/\s+/);
       const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
