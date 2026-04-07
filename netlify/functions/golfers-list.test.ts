@@ -151,7 +151,7 @@ describe('golfers-list handler', () => {
     expect(body.pagination.limit).toBe(50);
   });
 
-  it('returns golfers with stats, form, and ownership', async () => {
+  it('returns golfers with stats, last5 points, and ownership', async () => {
     const golferId = '507f1f77bcf86cd799439011';
     const tournamentId = new ObjectId();
     const seasons = [makeSeasonDoc('2026', true)];
@@ -187,6 +187,8 @@ describe('golfers-list handler', () => {
     expect(body.data).toHaveLength(1);
     expect(body.data[0].firstName).toBe('Tiger');
     expect(body.data[0].points).toBeDefined();
+    expect(body.data[0].points.last5).toBe(50);
+    expect(body.data[0].points.form).toBeUndefined();
     expect(body.data[0].stats2026).toBeDefined();
     expect(body.data[0].seasonStats).toBeDefined();
     expect(typeof body.data[0].selectedPercentage).toBe('number');
