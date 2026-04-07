@@ -54,8 +54,12 @@ vi.mock('../../components/ui/SeasonSelector', () => ({
   default: () => <div>SeasonSelector</div>,
 }));
 
+let capturedDataTableProps: Record<string, unknown> | null = null;
 vi.mock('../../components/ui/DataTable', () => ({
-  default: () => <div>DataTable</div>,
+  default: (props: Record<string, unknown>) => {
+    capturedDataTableProps = props;
+    return <div>DataTable</div>;
+  },
 }));
 
 vi.mock('../../components/ui/InfoTooltip', () => ({
@@ -76,6 +80,10 @@ import React from 'react';
 import GolfersPage from './GolfersPage';
 
 describe('GolfersPage', () => {
+  beforeEach(() => {
+    capturedDataTableProps = null;
+  });
+
   it('renders without crashing', () => {
     render(
       <MemoryRouter>
@@ -83,5 +91,22 @@ describe('GolfersPage', () => {
       </MemoryRouter>
     );
     expect(document.body).toBeTruthy();
+  });
+
+  it('passes a podiums column to DataTable', async () => {
+    render(
+      <MemoryRouter>
+        <GolfersPage />
+      </MemoryRouter>
+    );
+
+    await vi.waitFor(() => {
+      expect(capturedDataTableProps).not.toBeNull();
+    });
+
+    const columns = capturedDataTableProps!.columns as { key: string; sortable?: boolean }[];
+    const podiumsColumn = columns.find((c) => c.key === 'podiums');
+    expect(podiumsColumn).toBeDefined();
+    expect(podiumsColumn!.sortable).toBe(true);
   });
 });
