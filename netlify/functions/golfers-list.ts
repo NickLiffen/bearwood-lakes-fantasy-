@@ -174,7 +174,7 @@ export const handler = withVerifiedAuth(async (event: AuthenticatedEvent) => {
         timesScored32Plus: scores2026.filter((s) => (s.rawScore ?? 0) >= 32).length,
       };
 
-      // Calculate form (avg pts over last 5 events) and season total
+      // Calculate last 5 rounds total (sum of pts over last 5 events) and season total
       const FORM_EVENTS = 5;
       let formScores: typeof scoresWithDates;
       let seasonScores: typeof scoresWithDates;
@@ -210,12 +210,10 @@ export const handler = withVerifiedAuth(async (event: AuthenticatedEvent) => {
         seasonScores = currentSeasonScores;
       }
 
-      const formTotal = formScores.reduce((sum, s) => sum + (s.multipliedPoints || 0), 0);
-      const form =
-        formScores.length > 0 ? Math.round((formTotal / formScores.length) * 10) / 10 : 0;
+      const last5 = formScores.reduce((sum, s) => sum + (s.multipliedPoints || 0), 0);
 
       const points = {
-        form,
+        last5,
         season: seasonScores.reduce((sum, s) => sum + (s.multipliedPoints || 0), 0),
       };
 

@@ -151,7 +151,7 @@ describe('golfers-list handler', () => {
     expect(body.pagination.limit).toBe(50);
   });
 
-  it('returns golfers with stats, form, and ownership', async () => {
+  it('returns golfers with stats, last5 points, and ownership', async () => {
     const golferId = '507f1f77bcf86cd799439011';
     const tournamentId = new ObjectId();
     const seasons = [makeSeasonDoc('2026', true)];

@@ -26,7 +26,7 @@ interface GolferStats {
 }
 
 interface GolferPoints {
-  form: number;
+  last5: number;
   season: number;
 }
 
@@ -176,8 +176,8 @@ const GolfersPage: React.FC = () => {
               return golfer.price;
             case 'selected':
               return golfer.selectedPercentage || 0;
-            case 'form':
-              return golfer.points?.form || 0;
+            case 'last5':
+              return golfer.points?.last5 || 0;
             case 'season-pts':
               return golfer.points?.season || 0;
             default:
@@ -243,13 +243,13 @@ const GolfersPage: React.FC = () => {
       ),
     },
     {
-      key: 'form',
+      key: 'last5',
       header: (
         <span style={{ display: 'inline-flex', alignItems: 'center' }}>
-          Form
+          Last 5
           <InfoTooltip
-            text="Average points scored over a golfer's last 5 tournament events. Higher form = better recent performance."
-            label="What is Form?"
+            text="Total points scored across a golfer's last 5 tournament events. Higher = better recent form."
+            label="What is Last 5?"
           />
         </span>
       ),
@@ -258,11 +258,11 @@ const GolfersPage: React.FC = () => {
       render: (golfer) => (
         <span
           style={{
-            fontWeight: golfer.points?.form > 0 ? 600 : 400,
-            color: golfer.points?.form > 0 ? 'var(--primary-green)' : '#9ca3af',
+            fontWeight: golfer.points?.last5 > 0 ? 600 : 400,
+            color: golfer.points?.last5 > 0 ? 'var(--primary-green)' : '#9ca3af',
           }}
         >
-          {golfer.points?.form?.toFixed(1) || '0.0'}
+          {golfer.points?.last5 || 0}
         </span>
       ),
     },
