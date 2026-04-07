@@ -175,15 +175,15 @@ export const handler = withVerifiedAuth(async (event: AuthenticatedEvent) => {
       };
 
       // Calculate last 5 rounds total (sum of pts over last 5 events) and season total
-      const FORM_EVENTS = 5;
-      let formScores: typeof scoresWithDates;
+      const LAST5_EVENTS = 5;
+      let last5Scores: typeof scoresWithDates;
       let seasonScores: typeof scoresWithDates;
 
       if (seasonParam === 'overall') {
-        // Overall: form from last 5 events across all seasons
-        formScores = [...scoresWithDates]
+        // Overall: last 5 events across all seasons
+        last5Scores = [...scoresWithDates]
           .sort((a, b) => b.tournamentDate.getTime() - a.tournamentDate.getTime())
-          .slice(0, FORM_EVENTS);
+          .slice(0, LAST5_EVENTS);
         seasonScores = scoresWithDates;
       } else if (seasonParam) {
         const matchedSeason = allSeasons.find((s) => s.name === seasonParam);
@@ -193,24 +193,24 @@ export const handler = withVerifiedAuth(async (event: AuthenticatedEvent) => {
           const seasonFilteredScores = scoresWithDates.filter(
             (s) => s.tournamentDate >= sStart && s.tournamentDate <= sEnd
           );
-          formScores = [...seasonFilteredScores]
+          last5Scores = [...seasonFilteredScores]
             .sort((a, b) => b.tournamentDate.getTime() - a.tournamentDate.getTime())
-            .slice(0, FORM_EVENTS);
+            .slice(0, LAST5_EVENTS);
           seasonScores = seasonFilteredScores;
         } else {
-          formScores = [];
+          last5Scores = [];
           seasonScores = scoresWithDates.filter((s) => s.tournamentDate >= seasonStart);
         }
       } else {
         // Default: current season
         const currentSeasonScores = scoresWithDates.filter((s) => s.tournamentDate >= seasonStart);
-        formScores = [...currentSeasonScores]
+        last5Scores = [...currentSeasonScores]
           .sort((a, b) => b.tournamentDate.getTime() - a.tournamentDate.getTime())
-          .slice(0, FORM_EVENTS);
+          .slice(0, LAST5_EVENTS);
         seasonScores = currentSeasonScores;
       }
 
-      const last5 = formScores.reduce((sum, s) => sum + (s.multipliedPoints || 0), 0);
+      const last5 = last5Scores.reduce((sum, s) => sum + (s.multipliedPoints || 0), 0);
 
       const points = {
         last5,

@@ -187,6 +187,8 @@ describe('golfers-list handler', () => {
     expect(body.data).toHaveLength(1);
     expect(body.data[0].firstName).toBe('Tiger');
     expect(body.data[0].points).toBeDefined();
+    expect(body.data[0].points.last5).toBe(50);
+    expect(body.data[0].points.form).toBeUndefined();
     expect(body.data[0].stats2026).toBeDefined();
     expect(body.data[0].seasonStats).toBeDefined();
     expect(typeof body.data[0].selectedPercentage).toBe('number');
