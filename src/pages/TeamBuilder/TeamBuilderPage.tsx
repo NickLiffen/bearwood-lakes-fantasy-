@@ -378,6 +378,15 @@ const TeamBuilderPage: React.FC = () => {
     return filteredGolfers.slice(startIndex, startIndex + GOLFERS_PER_PAGE);
   }, [filteredGolfers, currentPage]);
 
+  // Determine if the budget toggle is the sole cause of an empty result
+  const isEmptyDueToBudget =
+    withinBudgetOnly &&
+    filteredGolfers.length === 0 &&
+    golfers.some((golfer) => {
+      const fullName = `${golfer.firstName} ${golfer.lastName}`;
+      return matchesSearch(fullName, searchTerm) && applyQuickFilter(golfer);
+    });
+
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
@@ -611,7 +620,9 @@ const TeamBuilderPage: React.FC = () => {
                 <span className="budget-toggle-label">
                   💰 Within budget
                   <span className="budget-toggle-amount">
-                    ({formatPrice(budgetRemaining)} left)
+                    {budgetRemaining < 0
+                      ? `(Over budget by ${formatPrice(Math.abs(budgetRemaining))})`
+                      : `(${formatPrice(budgetRemaining)} left)`}
                   </span>
                 </span>
               </label>
@@ -783,12 +794,12 @@ const TeamBuilderPage: React.FC = () => {
 
             {filteredGolfers.length === 0 && (
               <div className="no-results">
-                <div className="no-results-icon">{withinBudgetOnly ? '💰' : '🔍'}</div>
+                <div className="no-results-icon">{isEmptyDueToBudget ? '💰' : '🔍'}</div>
                 <h3>
-                  {withinBudgetOnly ? 'No golfers within budget' : 'No golfers found'}
+                  {isEmptyDueToBudget ? 'No golfers within budget' : 'No golfers found'}
                 </h3>
                 <p>
-                  {withinBudgetOnly
+                  {isEmptyDueToBudget
                     ? `No golfers are priced at or below your remaining ${formatPrice(budgetRemaining)}. Try removing a golfer to free up budget.`
                     : 'Try adjusting your filters or search term.'}
                 </p>
