@@ -84,7 +84,7 @@ interface MyTeamApiResponse {
   }>;
   pendingChanges?: {
     pendingGolferIds: string[] | null;
-    pendingCaptainId: string | null;
+    pendingCaptainId?: string | null;
     pendingChangedAt: string | null;
     addedGolfers: Array<{ id: string; name: string }> | null;
     removedGolfers: Array<{ id: string; name: string }> | null;
@@ -449,21 +449,27 @@ const MyTeamPage: React.FC = () => {
                         </p>
                       );
                     })()}
-                  {teamData.pendingChanges.pendingCaptainId !== null &&
+                  {teamData.pendingChanges.pendingCaptainId !== undefined &&
                     teamData.pendingChanges.pendingCaptainId !== team?.captainId &&
                     (() => {
+                      const pendingCaptainId = teamData.pendingChanges!.pendingCaptainId;
                       const oldCaptain = team?.golfers.find(
                         (g) => g.golfer.id === team?.captainId
                       );
                       const newCaptain = team?.golfers.find(
-                        (g) => g.golfer.id === teamData.pendingChanges!.pendingCaptainId
+                        (g) => g.golfer.id === pendingCaptainId
                       );
+                      const pendingAddedCaptain = !newCaptain
+                        ? teamData.pendingChanges!.addedGolfers?.find(
+                            (g) => g.id === pendingCaptainId
+                          )
+                        : undefined;
                       const oldName = oldCaptain
                         ? `${oldCaptain.golfer.firstName} ${oldCaptain.golfer.lastName}`
                         : 'None';
                       const newName = newCaptain
                         ? `${newCaptain.golfer.firstName} ${newCaptain.golfer.lastName}`
-                        : 'None';
+                        : (pendingAddedCaptain?.name ?? 'None');
                       return <p>Captain change scheduled: {oldName} → {newName}</p>;
                     })()}
                   {teamData.pendingChanges.pendingChangedAt && (

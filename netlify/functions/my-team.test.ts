@@ -491,6 +491,131 @@ describe('my-team handler', () => {
         { id: golferId2.toString(), name: 'Tiger Woods' },
       ]);
     });
+
+    it('omits pendingCaptainId from response when not set in DB (golfer-swap only)', async () => {
+      const pick = {
+        userId: userObjectId,
+        golferIds: [golferId1, golferId2],
+        captainId: golferId1,
+        totalSpent: 25_000_000,
+        season: 2025,
+        createdAt: new Date('2025-01-05'),
+        updatedAt: new Date('2025-01-10'),
+        pendingGolferIds: [golferId1, pendingGolferId],
+        // pendingCaptainId intentionally undefined — no captain change
+        pendingChangedAt: new Date('2025-02-01'),
+      };
+
+      const currentGolfers = [
+        {
+          _id: golferId1,
+          firstName: 'Rory',
+          lastName: 'McIlroy',
+          picture: null,
+          price: 12_000_000,
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          _id: golferId2,
+          firstName: 'Tiger',
+          lastName: 'Woods',
+          picture: null,
+          price: 13_000_000,
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ];
+
+      const golferFindMock = vi
+        .fn()
+        .mockReturnValueOnce(mockCursor(currentGolfers))
+        .mockReturnValueOnce(mockCursor([]))
+        .mockReturnValueOnce(mockCursor([{ _id: pendingGolferId, firstName: 'Scottie', lastName: 'Scheffler' }]));
+
+      const { mockDb } = createMockDb({
+        picks: { findOne: vi.fn().mockResolvedValue(pick) },
+        golfers: { find: golferFindMock },
+        tournaments: { find: vi.fn().mockReturnValue(mockCursor([])) },
+        scores: { find: vi.fn().mockReturnValue(mockCursor([])) },
+        settings: {
+          findOne: vi.fn().mockImplementation(({ key }: { key: string }) => {
+            const settings = [
+              { key: 'transfersOpen', value: true },
+              { key: 'allowNewTeamCreation', value: true },
+              { key: 'maxTransfersPerWeek', value: 2 },
+            ];
+            return Promise.resolve(settings.find((s) => s.key === key) ?? null);
+          }),
+        },
+        pickHistory: { find: vi.fn().mockReturnValue(mockCursor([])) },
+      });
+      vi.mocked(connectToDatabase).mockResolvedValue(mockDb);
+
+      const res = await handler(makeAuthEvent(), mockContext);
+      const body = parseBody(res!);
+
+      expect(res!.statusCode).toBe(200);
+      expect(body.data.pendingChanges).toBeDefined();
+      // pendingCaptainId should be absent (undefined → omitted from JSON)
+      expect('pendingCaptainId' in body.data.pendingChanges).toBe(false);
+    });
+
+    it('returns pendingCaptainId as null for captain removal', async () => {
+      const pick = {
+        userId: userObjectId,
+        golferIds: [golferId1],
+        captainId: golferId1,
+        totalSpent: 12_000_000,
+        season: 2025,
+        createdAt: new Date('2025-01-05'),
+        updatedAt: new Date('2025-01-10'),
+        pendingCaptainId: null,
+        pendingChangedAt: new Date('2025-02-01'),
+      };
+
+      const currentGolfers = [
+        {
+          _id: golferId1,
+          firstName: 'Rory',
+          lastName: 'McIlroy',
+          picture: null,
+          price: 12_000_000,
+          isActive: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ];
+
+      const { mockDb } = createMockDb({
+        picks: { findOne: vi.fn().mockResolvedValue(pick) },
+        golfers: { find: vi.fn().mockReturnValue(mockCursor(currentGolfers)) },
+        tournaments: { find: vi.fn().mockReturnValue(mockCursor([])) },
+        scores: { find: vi.fn().mockReturnValue(mockCursor([])) },
+        settings: {
+          findOne: vi.fn().mockImplementation(({ key }: { key: string }) => {
+            const settings = [
+              { key: 'transfersOpen', value: true },
+              { key: 'allowNewTeamCreation', value: true },
+              { key: 'maxTransfersPerWeek', value: 2 },
+            ];
+            return Promise.resolve(settings.find((s) => s.key === key) ?? null);
+          }),
+        },
+        pickHistory: { find: vi.fn().mockReturnValue(mockCursor([])) },
+      });
+      vi.mocked(connectToDatabase).mockResolvedValue(mockDb);
+
+      const res = await handler(makeAuthEvent(), mockContext);
+      const body = parseBody(res!);
+
+      expect(res!.statusCode).toBe(200);
+      expect(body.data.pendingChanges).toBeDefined();
+      // pendingCaptainId should be explicitly null (captain removal)
+      expect(body.data.pendingChanges.pendingCaptainId).toBeNull();
+    });
   });
 
   describe('unlimitedTransfers flag', () => {

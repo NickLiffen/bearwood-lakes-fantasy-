@@ -291,7 +291,9 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
             pick.pendingGolferIds || pick.pendingCaptainId !== undefined
               ? {
                   pendingGolferIds: pick.pendingGolferIds?.map((id) => id.toString()) || null,
-                  pendingCaptainId: pick.pendingCaptainId?.toString() || null,
+                  ...(pick.pendingCaptainId !== undefined && {
+                    pendingCaptainId: pick.pendingCaptainId?.toString() ?? null,
+                  }),
                   pendingChangedAt: pick.pendingChangedAt || null,
                   addedGolfers: pendingAddedGolfers,
                   removedGolfers: pendingRemovedGolfers,
