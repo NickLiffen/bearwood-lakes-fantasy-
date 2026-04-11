@@ -195,13 +195,20 @@ const MyTeamPage: React.FC = () => {
   const handleSetCaptain = async (golferId: string) => {
     if (!teamData?.team || savingCaptain) return;
 
-    // Determine new captain: toggle off if clicking current captain
-    const currentCaptainId = teamData.team.captainId;
-    const newCaptainId = golferId === currentCaptainId ? null : golferId;
+    // Determine new captain: toggle off if clicking the effective captain
+    // Use pending captain when a pending change exists, otherwise active captain
+    const effectiveCaptainId =
+      teamData.pendingChanges?.pendingCaptainId !== undefined
+        ? teamData.pendingChanges.pendingCaptainId
+        : teamData.team.captainId;
+    const newCaptainId = golferId === effectiveCaptainId ? null : golferId;
 
-    // Find golfer name for toast
+    // Find golfer name for toast (check current team and pending additions)
     const golfer = teamData.team.golfers.find((g) => g.golfer.id === golferId);
-    const golferName = golfer ? `${golfer.golfer.firstName} ${golfer.golfer.lastName}` : '';
+    const pendingAdded = teamData.pendingChanges?.addedGolfers?.find((g) => g.id === golferId);
+    const golferName = golfer
+      ? `${golfer.golfer.firstName} ${golfer.golfer.lastName}`
+      : (pendingAdded?.name ?? '');
 
     const willBeDeferred = !teamData.unlimitedTransfers;
 
@@ -250,7 +257,9 @@ const MyTeamPage: React.FC = () => {
     setSavingCaptain(true);
     try {
       const response = await post('picks-save', {
-        golferIds: teamData.team.golfers.map((g) => g.golfer.id),
+        golferIds:
+          teamData.pendingChanges?.pendingGolferIds ??
+          teamData.team.golfers.map((g) => g.golfer.id),
         captainId: newCaptainId,
       });
 
@@ -436,14 +445,38 @@ const MyTeamPage: React.FC = () => {
                       const added = teamData.pendingChanges!.addedGolfers ?? [];
                       if (added.length === 0 && removed.length === 0) return null;
                       const removedNames = removed.map((g) => g.name).join(', ');
-                      const addedNames = added.map((g) => g.name).join(', ');
+                      const pendingCaptainId = teamData.pendingChanges!.pendingCaptainId;
                       return (
                         <p>
                           {removed.length > 0 && <>Swapping out {removedNames}</>}
                           {removed.length > 0 && added.length > 0 && ' → '}
                           {added.length > 0 && (
                             <>
-                              {removed.length === 0 ? 'A' : 'a'}dding {addedNames}
+                              {removed.length === 0 ? 'A' : 'a'}dding{' '}
+                              {added.map((g, i) => (
+                                <React.Fragment key={g.id}>
+                                  {i > 0 && ', '}
+                                  {g.name}
+                                  {pendingCaptainId === g.id ? (
+                                    <button
+                                      className="pending-captain-badge"
+                                      onClick={() => handleSetCaptain(g.id)}
+                                      disabled={savingCaptain}
+                                      title="Remove captain"
+                                    >
+                                      👑 Captain
+                                    </button>
+                                  ) : (
+                                    <button
+                                      className="btn-make-pending-captain"
+                                      onClick={() => handleSetCaptain(g.id)}
+                                      disabled={savingCaptain}
+                                    >
+                                      Make Captain
+                                    </button>
+                                  )}
+                                </React.Fragment>
+                              ))}
                             </>
                           )}
                         </p>

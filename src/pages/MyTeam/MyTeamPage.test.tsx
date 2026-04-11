@@ -1,5 +1,6 @@
-const { mockGet } = vi.hoisted(() => ({
+const { mockGet, mockPost } = vi.hoisted(() => ({
   mockGet: vi.fn().mockResolvedValue({ success: true, data: null }),
+  mockPost: vi.fn().mockResolvedValue({ success: true, data: null }),
 }));
 
 vi.mock('../../hooks/useAuth', () => ({
@@ -22,7 +23,7 @@ vi.mock('../../hooks/useAuth', () => ({
 vi.mock('../../hooks/useApiClient', () => ({
   useApiClient: () => ({
     get: mockGet,
-    post: vi.fn(),
+    post: mockPost,
     put: vi.fn(),
     del: vi.fn(),
     isAuthReady: true,
@@ -78,7 +79,7 @@ vi.mock('../../utils/gameweek', () => ({
   formatDateString: vi.fn().mockReturnValue('Jan 1'),
 }));
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 import MyTeamPage from './MyTeamPage';
@@ -298,6 +299,230 @@ describe('MyTeamPage', () => {
       expect(
         screen.getByText(/Captain change scheduled: Rory McIlroy → Scottie Scheffler/)
       ).toBeInTheDocument();
+    });
+  });
+
+  it('renders Make Captain button next to added golfer in pending banner', async () => {
+    mockGet.mockResolvedValueOnce({
+      success: true,
+      data: {
+        hasTeam: true,
+        transfersOpen: true,
+        allowNewTeamCreation: true,
+        maxTransfersPerWeek: 2,
+        transfersUsedThisWeek: 0,
+        unlimitedTransfers: false,
+        team: {
+          golfers: [
+            {
+              golfer: {
+                id: 'g1',
+                firstName: 'Rory',
+                lastName: 'McIlroy',
+                picture: '',
+                price: 12_000_000,
+                isActive: true,
+                stats2024: {},
+                stats2025: {},
+                stats2026: {},
+              },
+              weekPoints: 50,
+              monthPoints: 100,
+              seasonPoints: 200,
+              weekScores: [],
+              seasonScores: [],
+              isCaptain: false,
+            },
+          ],
+          totals: { weekPoints: 50, monthPoints: 100, seasonPoints: 200, totalSpent: 12_000_000 },
+          captainId: null,
+          period: {
+            weekStart: '2025-01-04T00:00:00Z',
+            weekEnd: '2025-01-10T23:59:59Z',
+            label: 'Jan 4 - Jan 10',
+            gameweek: 1,
+            hasPrevious: false,
+            hasNext: true,
+          },
+          seasonStart: '2025-01-04T00:00:00Z',
+          teamEffectiveStart: '2025-01-04T00:00:00Z',
+          createdAt: '2025-01-01',
+          updatedAt: '2025-01-01',
+        },
+        pendingChanges: {
+          pendingGolferIds: ['g1', 'g3'],
+          pendingCaptainId: null,
+          pendingChangedAt: '2025-02-01T14:30:00Z',
+          addedGolfers: [{ id: 'g3', name: 'Scottie Scheffler' }],
+          removedGolfers: [{ id: 'g2', name: 'Tiger Woods' }],
+        },
+      },
+    });
+
+    render(
+      <MemoryRouter>
+        <MyTeamPage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Make Captain' })).toBeInTheDocument();
+    });
+  });
+
+  it('renders captain badge instead of button when added golfer is pending captain', async () => {
+    mockGet.mockResolvedValueOnce({
+      success: true,
+      data: {
+        hasTeam: true,
+        transfersOpen: true,
+        allowNewTeamCreation: true,
+        maxTransfersPerWeek: 2,
+        transfersUsedThisWeek: 0,
+        unlimitedTransfers: false,
+        team: {
+          golfers: [
+            {
+              golfer: {
+                id: 'g1',
+                firstName: 'Rory',
+                lastName: 'McIlroy',
+                picture: '',
+                price: 12_000_000,
+                isActive: true,
+                stats2024: {},
+                stats2025: {},
+                stats2026: {},
+              },
+              weekPoints: 50,
+              monthPoints: 100,
+              seasonPoints: 200,
+              weekScores: [],
+              seasonScores: [],
+              isCaptain: true,
+            },
+          ],
+          totals: { weekPoints: 50, monthPoints: 100, seasonPoints: 200, totalSpent: 12_000_000 },
+          captainId: 'g1',
+          period: {
+            weekStart: '2025-01-04T00:00:00Z',
+            weekEnd: '2025-01-10T23:59:59Z',
+            label: 'Jan 4 - Jan 10',
+            gameweek: 1,
+            hasPrevious: false,
+            hasNext: true,
+          },
+          seasonStart: '2025-01-04T00:00:00Z',
+          teamEffectiveStart: '2025-01-04T00:00:00Z',
+          createdAt: '2025-01-01',
+          updatedAt: '2025-01-01',
+        },
+        pendingChanges: {
+          pendingGolferIds: ['g1', 'g3'],
+          pendingCaptainId: 'g3',
+          pendingChangedAt: '2025-02-01T14:30:00Z',
+          addedGolfers: [{ id: 'g3', name: 'Scottie Scheffler' }],
+          removedGolfers: [{ id: 'g2', name: 'Tiger Woods' }],
+        },
+      },
+    });
+
+    render(
+      <MemoryRouter>
+        <MyTeamPage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      const badge = screen.getByRole('button', { name: '👑 Captain' });
+      expect(badge).toBeInTheDocument();
+      expect(badge).toHaveClass('pending-captain-badge');
+    });
+  });
+
+  it('calls picks-save with pendingGolferIds when making pending golfer captain', async () => {
+    mockPost.mockResolvedValueOnce({ success: true, data: {} });
+    // Re-fetch after save
+    mockGet
+      .mockResolvedValueOnce({
+        success: true,
+        data: {
+          hasTeam: true,
+          transfersOpen: true,
+          allowNewTeamCreation: true,
+          maxTransfersPerWeek: 2,
+          transfersUsedThisWeek: 0,
+          unlimitedTransfers: false,
+          team: {
+            golfers: [
+              {
+                golfer: {
+                  id: 'g1',
+                  firstName: 'Rory',
+                  lastName: 'McIlroy',
+                  picture: '',
+                  price: 12_000_000,
+                  isActive: true,
+                  stats2024: {},
+                  stats2025: {},
+                  stats2026: {},
+                },
+                weekPoints: 50,
+                monthPoints: 100,
+                seasonPoints: 200,
+                weekScores: [],
+                seasonScores: [],
+                isCaptain: false,
+              },
+            ],
+            totals: {
+              weekPoints: 50,
+              monthPoints: 100,
+              seasonPoints: 200,
+              totalSpent: 12_000_000,
+            },
+            captainId: null,
+            period: {
+              weekStart: '2025-01-04T00:00:00Z',
+              weekEnd: '2025-01-10T23:59:59Z',
+              label: 'Jan 4 - Jan 10',
+              gameweek: 1,
+              hasPrevious: false,
+              hasNext: true,
+            },
+            seasonStart: '2025-01-04T00:00:00Z',
+            teamEffectiveStart: '2025-01-04T00:00:00Z',
+            createdAt: '2025-01-01',
+            updatedAt: '2025-01-01',
+          },
+          pendingChanges: {
+            pendingGolferIds: ['g1', 'g3'],
+            pendingCaptainId: null,
+            pendingChangedAt: '2025-02-01T14:30:00Z',
+            addedGolfers: [{ id: 'g3', name: 'Scottie Scheffler' }],
+            removedGolfers: [{ id: 'g2', name: 'Tiger Woods' }],
+          },
+        },
+      })
+      .mockResolvedValue({ success: true, data: null });
+
+    render(
+      <MemoryRouter>
+        <MyTeamPage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Make Captain' })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Make Captain' }));
+
+    await waitFor(() => {
+      expect(mockPost).toHaveBeenCalledWith('picks-save', {
+        golferIds: ['g1', 'g3'],
+        captainId: 'g3',
+      });
     });
   });
 });
