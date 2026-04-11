@@ -436,6 +436,40 @@
   border: 1px solid #bbf7d0;
 }
 
+/* Touch devices: always show captain button since there's no hover */
+@media (hover: none), (pointer: coarse) {
+  .slot-captain {
+    opacity: 1;
+  }
+
+  .slot-captain:not(.active) {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.7);
+  }
+}
+
+/* Mobile: larger captain tap target + full-width transfer summary pills */
+@media (max-width: 768px) {
+  .slot-captain {
+    width: 26px;
+    height: 26px;
+    font-size: 0.75rem;
+  }
+
+  .transfer-summary {
+    padding: 0.625rem 0.75rem;
+  }
+
+  .transfer-changes {
+    flex-direction: column;
+  }
+
+  .transfer-change {
+    font-size: 0.85rem;
+    padding: 0.375rem 0.75rem;
+  }
+}
+
 .btn-save-team {
   width: 100%;
   background: linear-gradient(135deg, var(--accent-gold) 0%, #d4af37 100%);

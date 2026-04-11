@@ -298,5 +298,62 @@ describe('TeamBuilderPage', () => {
         expect(screen.getByText(/− Rory McIlroy/)).toBeInTheDocument();
       });
     });
+
+    it('shows added golfer in transfer summary when a replacement is selected', async () => {
+      setupMocks({ hasTeam: true, transfersOpen: true });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getAllByTitle('Remove golfer').length).toBe(6);
+      });
+
+      // Remove first golfer (McIlroy)
+      fireEvent.click(screen.getAllByTitle('Remove golfer')[0]);
+
+      await waitFor(() => {
+        expect(screen.getByText(/− Rory McIlroy/)).toBeInTheDocument();
+      });
+
+      // Add Koepka (g7, not in original team) via the golfer card → modal → "Add to Team"
+      const koepkaCard = screen.getByText('Brooks Koepka').closest('.golfer-card-compact')!;
+      fireEvent.click(koepkaCard);
+
+      // Modal opens — click "Add to Team"
+      await waitFor(() => {
+        expect(screen.getByText(/Add to Team/)).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByText(/Add to Team/));
+
+      // Transfer summary should show both removed and added
+      await waitFor(() => {
+        expect(screen.getByText(/Transfer Summary/)).toBeInTheDocument();
+        expect(screen.getByText(/− Rory McIlroy/)).toBeInTheDocument();
+        expect(screen.getByText(/\+ Brooks Koepka/)).toBeInTheDocument();
+      });
+    });
+
+    it('clears captain via handleToggleGolfer removal path (modal remove)', async () => {
+      setupMocks({ hasTeam: true, captainId: 'g1', transfersOpen: true });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByTitle('Remove captain')).toBeInTheDocument();
+      });
+
+      // Open McIlroy's detail modal from the grid
+      const mcilroyCard = screen.getByText('Rory McIlroy').closest('.golfer-card-compact')!;
+      fireEvent.click(mcilroyCard);
+
+      // Modal shows "Remove from Team" since g1 is already selected
+      await waitFor(() => {
+        expect(screen.getByText(/Remove from Team/)).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByText(/Remove from Team/));
+
+      // Captain should be cleared since g1 was removed via handleToggleGolfer
+      await waitFor(() => {
+        expect(screen.queryByTitle('Remove captain')).not.toBeInTheDocument();
+      });
+    });
   });
 });

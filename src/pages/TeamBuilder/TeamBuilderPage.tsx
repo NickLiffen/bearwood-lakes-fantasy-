@@ -204,6 +204,9 @@ const TeamBuilderPage: React.FC = () => {
     // If already selected, remove them
     if (isSelected(golfer)) {
       setSelectedGolfers(selectedGolfers.filter((g) => g.id !== golfer.id));
+      if (selectedCaptainId === golfer.id) {
+        setSelectedCaptainId(null);
+      }
       return;
     }
 
