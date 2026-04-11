@@ -860,6 +860,21 @@
     flex-wrap: wrap;
     justify-content: center;
   }
+
+  .pending-changes-banner {
+    flex-wrap: wrap;
+    padding: 1rem 1.25rem;
+  }
+
+  .pending-changes-banner .banner-text p {
+    word-break: break-word;
+  }
+
+  .btn-cancel-pending {
+    width: 100%;
+    text-align: center;
+    margin-top: 0.5rem;
+  }
 }
 
 @media (max-width: 480px) {

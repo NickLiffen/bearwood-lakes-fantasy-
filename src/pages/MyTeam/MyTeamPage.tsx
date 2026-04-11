@@ -84,8 +84,10 @@ interface MyTeamApiResponse {
   }>;
   pendingChanges?: {
     pendingGolferIds: string[] | null;
-    pendingCaptainId: string | null;
+    pendingCaptainId?: string | null;
     pendingChangedAt: string | null;
+    addedGolfers: Array<{ id: string; name: string }> | null;
+    removedGolfers: Array<{ id: string; name: string }> | null;
   } | null;
 }
 
@@ -216,6 +218,8 @@ const MyTeamPage: React.FC = () => {
             pendingGolferIds: prev.pendingChanges?.pendingGolferIds || null,
             pendingCaptainId: newCaptainId,
             pendingChangedAt: new Date().toISOString(),
+            addedGolfers: prev.pendingChanges?.addedGolfers || null,
+            removedGolfers: prev.pendingChanges?.removedGolfers || null,
           },
         };
       });
@@ -428,39 +432,56 @@ const MyTeamPage: React.FC = () => {
                   {teamData.pendingChanges.pendingGolferIds &&
                     team &&
                     (() => {
-                      const currentIds = new Set(team.golfers.map((g) => g.golfer.id));
-                      const pendingIds = new Set(teamData.pendingChanges!.pendingGolferIds!);
-                      const added = [...pendingIds].filter((id) => !currentIds.has(id));
-                      const removed = [...currentIds].filter((id) => !pendingIds.has(id));
+                      const removed = teamData.pendingChanges!.removedGolfers ?? [];
+                      const added = teamData.pendingChanges!.addedGolfers ?? [];
                       if (added.length === 0 && removed.length === 0) return null;
+                      const removedNames = removed.map((g) => g.name).join(', ');
+                      const addedNames = added.map((g) => g.name).join(', ');
                       return (
                         <p>
-                          {removed.length > 0 && (
-                            <>
-                              Swapping out {removed.length} golfer{removed.length > 1 ? 's' : ''}
-                            </>
-                          )}
+                          {removed.length > 0 && <>Swapping out {removedNames}</>}
                           {removed.length > 0 && added.length > 0 && ' → '}
                           {added.length > 0 && (
                             <>
-                              {removed.length === 0 ? 'A' : 'a'}dding {added.length} golfer
-                              {added.length > 1 ? 's' : ''}
+                              {removed.length === 0 ? 'A' : 'a'}dding {addedNames}
                             </>
                           )}
                         </p>
                       );
                     })()}
-                  {teamData.pendingChanges.pendingCaptainId !== null &&
-                    teamData.pendingChanges.pendingCaptainId !== team?.captainId && (
-                      <p>Captain change scheduled</p>
-                    )}
+                  {teamData.pendingChanges.pendingCaptainId !== undefined &&
+                    teamData.pendingChanges.pendingCaptainId !== team?.captainId &&
+                    (() => {
+                      const pendingCaptainId = teamData.pendingChanges!.pendingCaptainId;
+                      const oldCaptain = team?.golfers.find(
+                        (g) => g.golfer.id === team?.captainId
+                      );
+                      const newCaptain = team?.golfers.find(
+                        (g) => g.golfer.id === pendingCaptainId
+                      );
+                      const pendingAddedCaptain = !newCaptain
+                        ? teamData.pendingChanges!.addedGolfers?.find(
+                            (g) => g.id === pendingCaptainId
+                          )
+                        : undefined;
+                      const oldName = oldCaptain
+                        ? `${oldCaptain.golfer.firstName} ${oldCaptain.golfer.lastName}`
+                        : 'None';
+                      const newName = newCaptain
+                        ? `${newCaptain.golfer.firstName} ${newCaptain.golfer.lastName}`
+                        : (pendingAddedCaptain?.name ?? 'None');
+                      return <p>Captain change scheduled: {oldName} → {newName}</p>;
+                    })()}
                   {teamData.pendingChanges.pendingChangedAt && (
                     <p className="pending-date">
                       Changed on{' '}
-                      {new Date(teamData.pendingChanges.pendingChangedAt).toLocaleDateString(
-                        'en-GB',
-                        { day: 'numeric', month: 'short', year: 'numeric' }
-                      )}
+                      {new Date(teamData.pendingChanges.pendingChangedAt).toLocaleString('en-GB', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
                     </p>
                   )}
                 </div>

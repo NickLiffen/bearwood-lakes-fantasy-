@@ -1,3 +1,7 @@
+const { mockGet } = vi.hoisted(() => ({
+  mockGet: vi.fn().mockResolvedValue({ success: true, data: null }),
+}));
+
 vi.mock('../../hooks/useAuth', () => ({
   useAuth: () => ({
     user: {
@@ -17,7 +21,7 @@ vi.mock('../../hooks/useAuth', () => ({
 
 vi.mock('../../hooks/useApiClient', () => ({
   useApiClient: () => ({
-    get: vi.fn().mockResolvedValue({ success: true, data: null }),
+    get: mockGet,
     post: vi.fn(),
     put: vi.fn(),
     del: vi.fn(),
@@ -74,7 +78,7 @@ vi.mock('../../utils/gameweek', () => ({
   formatDateString: vi.fn().mockReturnValue('Jan 1'),
 }));
 
-import { render } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import React from 'react';
 import MyTeamPage from './MyTeamPage';
@@ -87,5 +91,213 @@ describe('MyTeamPage', () => {
       </MemoryRouter>
     );
     expect(document.body).toBeTruthy();
+  });
+
+  it('renders golfer names in pending swap banner', async () => {
+    mockGet.mockResolvedValueOnce({
+      success: true,
+      data: {
+        hasTeam: true,
+        transfersOpen: true,
+        allowNewTeamCreation: true,
+        maxTransfersPerWeek: 2,
+        transfersUsedThisWeek: 0,
+        unlimitedTransfers: false,
+        team: {
+          golfers: [
+            {
+              golfer: {
+                id: 'g1',
+                firstName: 'Rory',
+                lastName: 'McIlroy',
+                picture: '',
+                price: 12_000_000,
+                isActive: true,
+                stats2024: {},
+                stats2025: {},
+                stats2026: {},
+              },
+              weekPoints: 50,
+              monthPoints: 100,
+              seasonPoints: 200,
+              weekScores: [],
+              seasonScores: [],
+              isCaptain: false,
+            },
+          ],
+          totals: { weekPoints: 50, monthPoints: 100, seasonPoints: 200, totalSpent: 12_000_000 },
+          captainId: null,
+          period: {
+            weekStart: '2025-01-04T00:00:00Z',
+            weekEnd: '2025-01-10T23:59:59Z',
+            label: 'Jan 4 - Jan 10',
+            gameweek: 1,
+            hasPrevious: false,
+            hasNext: true,
+          },
+          seasonStart: '2025-01-04T00:00:00Z',
+          teamEffectiveStart: '2025-01-04T00:00:00Z',
+          createdAt: '2025-01-01',
+          updatedAt: '2025-01-01',
+        },
+        pendingChanges: {
+          pendingGolferIds: ['g1', 'g3'],
+          pendingCaptainId: null,
+          pendingChangedAt: '2025-02-01T14:30:00Z',
+          addedGolfers: [{ id: 'g3', name: 'Scottie Scheffler' }],
+          removedGolfers: [{ id: 'g2', name: 'Tiger Woods' }],
+        },
+      },
+    });
+
+    render(
+      <MemoryRouter>
+        <MyTeamPage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/Swapping out Tiger Woods/)).toBeInTheDocument();
+      expect(screen.getByText(/adding Scottie Scheffler/)).toBeInTheDocument();
+    });
+  });
+
+  it('renders captain removal banner when pendingCaptainId is null', async () => {
+    mockGet.mockResolvedValueOnce({
+      success: true,
+      data: {
+        hasTeam: true,
+        transfersOpen: true,
+        allowNewTeamCreation: true,
+        maxTransfersPerWeek: 2,
+        transfersUsedThisWeek: 0,
+        unlimitedTransfers: false,
+        team: {
+          golfers: [
+            {
+              golfer: {
+                id: 'g1',
+                firstName: 'Rory',
+                lastName: 'McIlroy',
+                picture: '',
+                price: 12_000_000,
+                isActive: true,
+                stats2024: {},
+                stats2025: {},
+                stats2026: {},
+              },
+              weekPoints: 50,
+              monthPoints: 100,
+              seasonPoints: 200,
+              weekScores: [],
+              seasonScores: [],
+              isCaptain: true,
+            },
+          ],
+          totals: { weekPoints: 50, monthPoints: 100, seasonPoints: 200, totalSpent: 12_000_000 },
+          captainId: 'g1',
+          period: {
+            weekStart: '2025-01-04T00:00:00Z',
+            weekEnd: '2025-01-10T23:59:59Z',
+            label: 'Jan 4 - Jan 10',
+            gameweek: 1,
+            hasPrevious: false,
+            hasNext: true,
+          },
+          seasonStart: '2025-01-04T00:00:00Z',
+          teamEffectiveStart: '2025-01-04T00:00:00Z',
+          createdAt: '2025-01-01',
+          updatedAt: '2025-01-01',
+        },
+        pendingChanges: {
+          pendingGolferIds: null,
+          pendingCaptainId: null,
+          pendingChangedAt: '2025-02-01T14:30:00Z',
+          addedGolfers: null,
+          removedGolfers: null,
+        },
+      },
+    });
+
+    render(
+      <MemoryRouter>
+        <MyTeamPage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/Captain change scheduled: Rory McIlroy/)).toBeInTheDocument();
+      expect(screen.getByText(/→ None/)).toBeInTheDocument();
+    });
+  });
+
+  it('resolves new captain name from addedGolfers when captain is a swapped-in golfer', async () => {
+    mockGet.mockResolvedValueOnce({
+      success: true,
+      data: {
+        hasTeam: true,
+        transfersOpen: true,
+        allowNewTeamCreation: true,
+        maxTransfersPerWeek: 2,
+        transfersUsedThisWeek: 0,
+        unlimitedTransfers: false,
+        team: {
+          golfers: [
+            {
+              golfer: {
+                id: 'g1',
+                firstName: 'Rory',
+                lastName: 'McIlroy',
+                picture: '',
+                price: 12_000_000,
+                isActive: true,
+                stats2024: {},
+                stats2025: {},
+                stats2026: {},
+              },
+              weekPoints: 50,
+              monthPoints: 100,
+              seasonPoints: 200,
+              weekScores: [],
+              seasonScores: [],
+              isCaptain: true,
+            },
+          ],
+          totals: { weekPoints: 50, monthPoints: 100, seasonPoints: 200, totalSpent: 12_000_000 },
+          captainId: 'g1',
+          period: {
+            weekStart: '2025-01-04T00:00:00Z',
+            weekEnd: '2025-01-10T23:59:59Z',
+            label: 'Jan 4 - Jan 10',
+            gameweek: 1,
+            hasPrevious: false,
+            hasNext: true,
+          },
+          seasonStart: '2025-01-04T00:00:00Z',
+          teamEffectiveStart: '2025-01-04T00:00:00Z',
+          createdAt: '2025-01-01',
+          updatedAt: '2025-01-01',
+        },
+        pendingChanges: {
+          pendingGolferIds: ['g1', 'g3'],
+          pendingCaptainId: 'g3',
+          pendingChangedAt: '2025-02-01T14:30:00Z',
+          addedGolfers: [{ id: 'g3', name: 'Scottie Scheffler' }],
+          removedGolfers: [{ id: 'g2', name: 'Tiger Woods' }],
+        },
+      },
+    });
+
+    render(
+      <MemoryRouter>
+        <MyTeamPage />
+      </MemoryRouter>
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/Captain change scheduled: Rory McIlroy → Scottie Scheffler/)
+      ).toBeInTheDocument();
+    });
   });
 });
