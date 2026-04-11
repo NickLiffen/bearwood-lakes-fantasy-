@@ -943,6 +943,12 @@
     padding: 0.3rem 0.7rem;
     font-size: 0.8rem;
   }
+
+  .pending-captain-badge {
+    min-height: 36px;
+    padding: 0.3rem 0.7rem;
+    font-size: 0.8rem;
+  }
 }
 
 @media (max-width: 480px) {
