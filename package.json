@@ -32,7 +32,7 @@
   "dependencies": {
     "ioredis": "^5.9.3",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0",
+    "react-dom": "^19.2.5",
     "react-router-dom": "^7.6.1",
     "twilio": "^5.12.2",
     "unpdf": "^1.4.0",
