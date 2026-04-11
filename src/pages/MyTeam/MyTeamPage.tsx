@@ -86,6 +86,8 @@ interface MyTeamApiResponse {
     pendingGolferIds: string[] | null;
     pendingCaptainId: string | null;
     pendingChangedAt: string | null;
+    addedGolfers: Array<{ id: string; name: string }> | null;
+    removedGolfers: Array<{ id: string; name: string }> | null;
   } | null;
 }
 
@@ -216,6 +218,8 @@ const MyTeamPage: React.FC = () => {
             pendingGolferIds: prev.pendingChanges?.pendingGolferIds || null,
             pendingCaptainId: newCaptainId,
             pendingChangedAt: new Date().toISOString(),
+            addedGolfers: prev.pendingChanges?.addedGolfers || null,
+            removedGolfers: prev.pendingChanges?.removedGolfers || null,
           },
         };
       });
@@ -428,23 +432,18 @@ const MyTeamPage: React.FC = () => {
                   {teamData.pendingChanges.pendingGolferIds &&
                     team &&
                     (() => {
-                      const currentIds = new Set(team.golfers.map((g) => g.golfer.id));
-                      const pendingIds = new Set(teamData.pendingChanges!.pendingGolferIds!);
-                      const added = [...pendingIds].filter((id) => !currentIds.has(id));
-                      const removed = [...currentIds].filter((id) => !pendingIds.has(id));
+                      const removed = teamData.pendingChanges!.removedGolfers ?? [];
+                      const added = teamData.pendingChanges!.addedGolfers ?? [];
                       if (added.length === 0 && removed.length === 0) return null;
+                      const removedNames = removed.map((g) => g.name).join(', ');
+                      const addedNames = added.map((g) => g.name).join(', ');
                       return (
                         <p>
-                          {removed.length > 0 && (
-                            <>
-                              Swapping out {removed.length} golfer{removed.length > 1 ? 's' : ''}
-                            </>
-                          )}
+                          {removed.length > 0 && <>Swapping out {removedNames}</>}
                           {removed.length > 0 && added.length > 0 && ' → '}
                           {added.length > 0 && (
                             <>
-                              {removed.length === 0 ? 'A' : 'a'}dding {added.length} golfer
-                              {added.length > 1 ? 's' : ''}
+                              {removed.length === 0 ? 'A' : 'a'}dding {addedNames}
                             </>
                           )}
                         </p>

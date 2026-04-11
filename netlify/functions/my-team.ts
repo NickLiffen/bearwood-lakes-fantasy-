@@ -215,6 +215,41 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
       totalSpent: pick.totalSpent,
     };
 
+    // Resolve pending golfer swap names (added/removed)
+    let pendingAddedGolfers: Array<{ id: string; name: string }> | null = null;
+    let pendingRemovedGolfers: Array<{ id: string; name: string }> | null = null;
+
+    if (pick.pendingGolferIds && pick.pendingGolferIds.length > 0) {
+      const currentIdSet = new Set(pick.golferIds.map((id) => id.toString()));
+      const pendingIdSet = new Set(pick.pendingGolferIds.map((id) => id.toString()));
+
+      const addedIds = [...pendingIdSet].filter((id) => !currentIdSet.has(id));
+      const removedIds = [...currentIdSet].filter((id) => !pendingIdSet.has(id));
+
+      // Removed golfers are already fetched — look them up from the golfers array
+      pendingRemovedGolfers = removedIds.map((id) => {
+        const g = golfers.find((g) => g._id.toString() === id);
+        return { id, name: g ? `${g.firstName} ${g.lastName}` : id };
+      });
+
+      // Added golfers need a separate lookup since they're not on the current team
+      if (addedIds.length > 0) {
+        const addedObjectIds = addedIds.map((id) => new ObjectId(id));
+        const addedGolferDocs = await db
+          .collection<GolferDocument>(GOLFERS_COLLECTION)
+          .find({ _id: { $in: addedObjectIds } })
+          .project({ firstName: 1, lastName: 1 })
+          .toArray();
+
+        pendingAddedGolfers = addedIds.map((id) => {
+          const g = addedGolferDocs.find((g) => g._id.toString() === id);
+          return { id, name: g ? `${g.firstName} ${g.lastName}` : id };
+        });
+      } else {
+        pendingAddedGolfers = [];
+      }
+    }
+
     return {
       statusCode: 200,
       body: JSON.stringify({
@@ -258,6 +293,8 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
                   pendingGolferIds: pick.pendingGolferIds?.map((id) => id.toString()) || null,
                   pendingCaptainId: pick.pendingCaptainId?.toString() || null,
                   pendingChangedAt: pick.pendingChangedAt || null,
+                  addedGolfers: pendingAddedGolfers,
+                  removedGolfers: pendingRemovedGolfers,
                 }
               : null,
         },
