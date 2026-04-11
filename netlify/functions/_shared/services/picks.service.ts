@@ -147,9 +147,20 @@ export async function savePicks(
     // Detect captain-only change (same golfers, different captain)
     const oldGolferIds = new Set(existingPick.golferIds.map((id) => id.toString()));
     const newGolferIds = new Set(golferIds);
-    const isSameGolfers =
+    const isSameAsActive =
       oldGolferIds.size === newGolferIds.size &&
       [...oldGolferIds].every((id) => newGolferIds.has(id));
+
+    // Also match against pending golfer IDs so that setting captain on a
+    // pending-added golfer is treated as a captain-only change (no extra transfer)
+    const pendingIds = existingPick.pendingGolferIds?.map((id) => id.toString());
+    const pendingIdSet = pendingIds ? new Set(pendingIds) : null;
+    const isSameAsPending =
+      pendingIdSet !== null &&
+      pendingIdSet.size === newGolferIds.size &&
+      [...pendingIdSet].every((id) => newGolferIds.has(id));
+
+    const isSameGolfers = isSameAsActive || isSameAsPending;
     isCaptainOnlyChange = isSameGolfers && captainId !== undefined;
 
     // Fetch all transfer-related settings in parallel
