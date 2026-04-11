@@ -451,16 +451,32 @@ const MyTeamPage: React.FC = () => {
                       );
                     })()}
                   {teamData.pendingChanges.pendingCaptainId !== null &&
-                    teamData.pendingChanges.pendingCaptainId !== team?.captainId && (
-                      <p>Captain change scheduled</p>
-                    )}
+                    teamData.pendingChanges.pendingCaptainId !== team?.captainId &&
+                    (() => {
+                      const oldCaptain = team?.golfers.find(
+                        (g) => g.golfer.id === team?.captainId
+                      );
+                      const newCaptain = team?.golfers.find(
+                        (g) => g.golfer.id === teamData.pendingChanges!.pendingCaptainId
+                      );
+                      const oldName = oldCaptain
+                        ? `${oldCaptain.golfer.firstName} ${oldCaptain.golfer.lastName}`
+                        : 'None';
+                      const newName = newCaptain
+                        ? `${newCaptain.golfer.firstName} ${newCaptain.golfer.lastName}`
+                        : 'None';
+                      return <p>Captain change scheduled: {oldName} → {newName}</p>;
+                    })()}
                   {teamData.pendingChanges.pendingChangedAt && (
                     <p className="pending-date">
                       Changed on{' '}
-                      {new Date(teamData.pendingChanges.pendingChangedAt).toLocaleDateString(
-                        'en-GB',
-                        { day: 'numeric', month: 'short', year: 'numeric' }
-                      )}
+                      {new Date(teamData.pendingChanges.pendingChangedAt).toLocaleString('en-GB', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
                     </p>
                   )}
                 </div>
