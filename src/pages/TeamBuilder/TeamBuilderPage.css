@@ -349,6 +349,127 @@
   background: rgba(255, 255, 255, 0.4);
 }
 
+/* Captain toggle button — positioned top-left of filled team slot */
+.slot-captain {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.team-slot.filled:hover .slot-captain {
+  opacity: 1;
+}
+
+.slot-captain.active {
+  opacity: 1;
+  background: var(--accent-gold);
+  border-color: var(--accent-gold);
+  color: var(--dark-text);
+}
+
+.slot-captain:hover {
+  background: rgba(255, 255, 255, 0.4);
+  border-color: white;
+  color: white;
+}
+
+.slot-captain.active:hover {
+  background: var(--accent-gold);
+  border-color: var(--accent-gold);
+  color: var(--dark-text);
+  opacity: 0.85;
+}
+
+/* Transfer Summary */
+.transfer-summary {
+  background: #f0f4f8;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.transfer-summary h4 {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  color: var(--dark-text);
+}
+
+.transfer-changes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.transfer-change {
+  display: inline-block;
+  padding: 0.25rem 0.6rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.transfer-change.removed {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.transfer-change.added {
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+}
+
+/* Touch devices: always show captain button since there's no hover */
+@media (hover: none), (pointer: coarse) {
+  .slot-captain {
+    opacity: 1;
+  }
+
+  .slot-captain:not(.active) {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.7);
+  }
+}
+
+/* Mobile: larger captain tap target + full-width transfer summary pills */
+@media (max-width: 768px) {
+  .slot-captain {
+    width: 26px;
+    height: 26px;
+    font-size: 0.75rem;
+  }
+
+  .transfer-summary {
+    padding: 0.625rem 0.75rem;
+  }
+
+  .transfer-changes {
+    flex-direction: column;
+  }
+
+  .transfer-change {
+    font-size: 0.85rem;
+    padding: 0.375rem 0.75rem;
+  }
+}
+
 .btn-save-team {
   width: 100%;
   background: linear-gradient(135deg, var(--accent-gold) 0%, #d4af37 100%);

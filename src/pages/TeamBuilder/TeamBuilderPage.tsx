@@ -87,7 +87,10 @@ const TeamBuilderPage: React.FC = () => {
   const [golfers, setGolfers] = useState<Golfer[]>([]);
   const [selectedGolfers, setSelectedGolfers] = useState<Golfer[]>([]);
   const [hasExistingTeam, setHasExistingTeam] = useState(false);
-  const [existingCaptainId, setExistingCaptainId] = useState<string | null>(null);
+  const [selectedCaptainId, setSelectedCaptainId] = useState<string | null>(null);
+  const [originalTeamSnapshot, setOriginalTeamSnapshot] = useState<
+    Array<{ id: string; firstName: string; lastName: string; price: number }>
+  >([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -130,8 +133,16 @@ const TeamBuilderPage: React.FC = () => {
       if (picksRes.success && picksRes.data?.golfers) {
         setSelectedGolfers(picksRes.data.golfers);
         setHasExistingTeam(true);
+        setOriginalTeamSnapshot(
+          picksRes.data.golfers.map((g: Golfer) => ({
+            id: g.id,
+            firstName: g.firstName,
+            lastName: g.lastName,
+            price: g.price,
+          }))
+        );
         if (picksRes.data.captainId) {
-          setExistingCaptainId(picksRes.data.captainId);
+          setSelectedCaptainId(picksRes.data.captainId);
         }
       }
 
@@ -155,6 +166,23 @@ const TeamBuilderPage: React.FC = () => {
   const budgetRemaining = TOTAL_BUDGET - budgetUsed;
   const budgetPercentage = (budgetUsed / TOTAL_BUDGET) * 100;
 
+  // Compute transfer delta for existing teams
+  const transferSummary = useMemo(() => {
+    if (!hasExistingTeam || originalTeamSnapshot.length === 0) return null;
+
+    const originalIds = new Set(originalTeamSnapshot.map((g) => g.id));
+    const currentIds = new Set(selectedGolfers.map((g) => g.id));
+
+    const removedGolfers = originalTeamSnapshot.filter((g) => !currentIds.has(g.id));
+    const addedGolfers = selectedGolfers
+      .filter((g) => !originalIds.has(g.id))
+      .map((g) => ({ id: g.id, firstName: g.firstName, lastName: g.lastName, price: g.price }));
+
+    if (removedGolfers.length === 0 && addedGolfers.length === 0) return null;
+
+    return { removedGolfers, addedGolfers };
+  }, [hasExistingTeam, originalTeamSnapshot, selectedGolfers]);
+
   const formatPrice = (price: number) => {
     return `$${(price / 1000000).toFixed(1)}M`;
   };
@@ -176,6 +204,9 @@ const TeamBuilderPage: React.FC = () => {
     // If already selected, remove them
     if (isSelected(golfer)) {
       setSelectedGolfers(selectedGolfers.filter((g) => g.id !== golfer.id));
+      if (selectedCaptainId === golfer.id) {
+        setSelectedCaptainId(null);
+      }
       return;
     }
 
@@ -192,7 +223,15 @@ const TeamBuilderPage: React.FC = () => {
   const handleRemoveGolfer = (golfer: Golfer) => {
     if (!canEditTeam) return;
     setSelectedGolfers(selectedGolfers.filter((g) => g.id !== golfer.id));
+    if (selectedCaptainId === golfer.id) {
+      setSelectedCaptainId(null);
+    }
     setToast({ message: `✕ ${golfer.firstName} ${golfer.lastName} removed`, type: 'warning' });
+  };
+
+  const handleToggleCaptain = (golferId: string) => {
+    if (!canEditTeam) return;
+    setSelectedCaptainId((prev) => (prev === golferId ? null : golferId));
   };
 
   const handleSaveTeam = async () => {
@@ -210,13 +249,14 @@ const TeamBuilderPage: React.FC = () => {
       setSaving(true);
       setError(null);
 
-      // Preserve captain if they're still in the team
       const selectedIds = selectedGolfers.map((p) => p.id);
-      const captainStillInTeam = existingCaptainId && selectedIds.includes(existingCaptainId);
+
+      // Use selectedCaptainId if it's still in the team, otherwise null
+      const captainStillInTeam = selectedCaptainId && selectedIds.includes(selectedCaptainId);
 
       const response = await post('picks-save', {
         golferIds: selectedIds,
-        captainId: captainStillInTeam ? existingCaptainId : null,
+        captainId: captainStillInTeam ? selectedCaptainId : null,
       });
 
       if (!response.success) {
@@ -505,9 +545,29 @@ const TeamBuilderPage: React.FC = () => {
                       {golfer ? (
                         <>
                           <div className="slot-golfer">
-                            <span className="slot-name">{golfer.lastName}</span>
+                            <span className="slot-name">
+                              {selectedCaptainId === golfer.id && '👑 '}
+                              {golfer.lastName}
+                            </span>
                             <span className="slot-price">{formatPrice(golfer.price)}</span>
                           </div>
+                          {canEditTeam && (
+                            <button
+                              className={`slot-captain ${selectedCaptainId === golfer.id ? 'active' : ''}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleCaptain(golfer.id);
+                              }}
+                              title={
+                                selectedCaptainId === golfer.id
+                                  ? 'Remove captain'
+                                  : 'Make captain (2× points)'
+                              }
+                              type="button"
+                            >
+                              C
+                            </button>
+                          )}
                           {canEditTeam && (
                             <button
                               className="slot-remove"
@@ -528,6 +588,26 @@ const TeamBuilderPage: React.FC = () => {
                   );
                 })}
               </div>
+
+              {/* Transfer Summary — shows outgoing/incoming when editing existing team */}
+              {transferSummary && (
+                <div className="transfer-summary">
+                  <h4>🔄 Transfer Summary</h4>
+                  <div className="transfer-changes">
+                    {transferSummary.removedGolfers.map((g) => (
+                      <span key={g.id} className="transfer-change removed">
+                        − {g.firstName} {g.lastName}
+                      </span>
+                    ))}
+                    {transferSummary.addedGolfers.map((g) => (
+                      <span key={g.id} className="transfer-change added">
+                        + {g.firstName} {g.lastName}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {canEditTeam && (
                 <button
                   className={`btn btn-save-team ${selectedGolfers.length === TEAM_SIZE && budgetRemaining >= 0 ? '' : 'btn-incomplete'}`}
