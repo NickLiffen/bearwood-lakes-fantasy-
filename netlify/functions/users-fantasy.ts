@@ -16,7 +16,7 @@ import {
   getMonthEnd,
   getSeasonStart,
 } from './_shared/utils/dates';
-import { calculatePickPoints } from './_shared/utils/scoring';
+import { calculatePickPoints, type RosterSnapshot } from './_shared/utils/scoring';
 import { getActiveSeason } from './_shared/services/seasons.service';
 
 interface FantasyUser {
@@ -134,12 +134,34 @@ export const handler: Handler = withVerifiedAuth(async () => {
         continue;
       }
 
+      // Convert gameweekRosters from ObjectIds to string-based RosterSnapshots
+      let gameweekRosters: Record<string, RosterSnapshot> | undefined;
+      if (pick.gameweekRosters && Object.keys(pick.gameweekRosters).length > 0) {
+        gameweekRosters = {};
+        for (const [gw, roster] of Object.entries(pick.gameweekRosters)) {
+          gameweekRosters[gw] = {
+            golferIds: roster.golferIds.map((id) => id.toString()),
+            captainId: roster.captainId?.toString() || null,
+          };
+        }
+      }
+
+      const pickAllIds =
+        pick.allGolferIds && pick.allGolferIds.length > 0 ? pick.allGolferIds : pick.golferIds;
+
       const points = calculatePickPoints(
-        pick,
+        {
+          golferIds: pick.golferIds,
+          captainId: pick.captainId,
+          createdAt: pick.createdAt,
+          gameweekRosters,
+          allGolferIds: pickAllIds,
+        },
         scoresByGolferTournament,
         tournamentDates,
         boundaries,
-        firstGW
+        firstGW,
+        activeSeason?.startDate ? new Date(activeSeason.startDate) : null
       );
 
       userPointsList.push({

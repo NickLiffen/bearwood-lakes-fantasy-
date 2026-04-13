@@ -154,6 +154,22 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
       ? pick.allGolferIds.map((id) => new ObjectId(id))
       : pick.golferIds.map((id) => new ObjectId(id));
 
+    // Time boundaries — must be computed before roster lookup
+    const currentWeekStart = getWeekStart(now, firstGW);
+    const currentWeekEnd = getWeekEnd(currentWeekStart, firstGW);
+
+    // Season's first gameweek
+    const seasonFirstSat = activeSeason?.startDate
+      ? getFirstGameweekStart(new Date(activeSeason.startDate), firstGW)
+      : getWeekStart(new Date(), firstGW);
+
+    // Selected week boundaries (based on date param or current)
+    const selectedWeekStart = getWeekStart(targetDate, firstGW);
+    const selectedWeekEnd = getWeekEnd(selectedWeekStart, firstGW);
+
+    // Team effective start date
+    const teamEffectiveStartDate = getTeamEffectiveStartDate(pick.createdAt, firstGW);
+
     // Determine which golfers to display — use the selected week's roster if available
     let displayGolferIds: ObjectId[];
     let displayCaptainId: string | null | undefined = pick.captainId?.toString();
@@ -200,22 +216,6 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
         tournamentId: { $in: publishedTournamentIds },
       })
       .toArray();
-
-    // Time boundaries
-    const currentWeekStart = getWeekStart(now, firstGW);
-    const currentWeekEnd = getWeekEnd(currentWeekStart, firstGW);
-
-    // Season's first gameweek
-    const seasonFirstSat = activeSeason?.startDate
-      ? getFirstGameweekStart(new Date(activeSeason.startDate), firstGW)
-      : getWeekStart(new Date(), firstGW);
-
-    // Selected week boundaries (based on date param or current)
-    const selectedWeekStart = getWeekStart(targetDate, firstGW);
-    const selectedWeekEnd = getWeekEnd(selectedWeekStart, firstGW);
-
-    // Team effective start date
-    const teamEffectiveStartDate = getTeamEffectiveStartDate(pick.createdAt, firstGW);
 
     // Navigation constraints — can't go before season's first Saturday
     const previousWeekStart = new Date(selectedWeekStart);
