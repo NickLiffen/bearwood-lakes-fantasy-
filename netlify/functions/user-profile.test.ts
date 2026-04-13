@@ -3,6 +3,7 @@ import { handler } from './user-profile';
 import { makeAuthEvent, mockContext, parseBody, createMockDb, mockCursor } from './__test-utils__';
 import { connectToDatabase } from './_shared/db';
 import { getActiveSeason } from './_shared/services/seasons.service';
+import { applyPendingChanges } from './_shared/services/picks.service';
 import type { Season } from '@shared/types';
 
 vi.mock('./_shared/auth', () => ({
@@ -262,6 +263,9 @@ describe('user-profile handler', () => {
     expect(body.data.team.golfers).toHaveLength(2);
     expect(body.data.team.totals.totalSpent).toBe(25_000_000);
     expect(body.data.captainId).toBe(golferId1.toString());
+
+    // Safety-net: applyPendingChanges should be called for the requested user
+    expect(applyPendingChanges).toHaveBeenCalledWith(targetUserId.toString());
   });
 
   it('formats history with added/removed golfers', async () => {

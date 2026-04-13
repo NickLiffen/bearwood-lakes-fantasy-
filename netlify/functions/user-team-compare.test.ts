@@ -3,6 +3,7 @@ import { handler } from './user-team-compare';
 import { makeAuthEvent, mockContext, parseBody, createMockDb, mockCursor } from './__test-utils__';
 import { connectToDatabase } from './_shared/db';
 import { getActiveSeason } from './_shared/services/seasons.service';
+import { applyPendingChanges } from './_shared/services/picks.service';
 import type { Season } from '@shared/types';
 
 const { mockVerifyToken } = vi.hoisted(() => ({
@@ -269,6 +270,10 @@ describe('user-team-compare handler', () => {
     expect(body.data.comparison.pointsDiff).toHaveProperty('week');
     expect(body.data.comparison.pointsDiff).toHaveProperty('month');
     expect(body.data.comparison.pointsDiff).toHaveProperty('season');
+
+    // Safety-net: applyPendingChanges should be called for both users
+    expect(applyPendingChanges).toHaveBeenCalledWith(currentUserId.toString());
+    expect(applyPendingChanges).toHaveBeenCalledWith(targetUserId.toString());
   });
 
   it('returns 500 on unexpected error', async () => {

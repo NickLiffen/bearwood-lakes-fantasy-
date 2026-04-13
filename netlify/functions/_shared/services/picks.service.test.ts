@@ -589,6 +589,30 @@ describe('picks.service', () => {
       expect(result).toBe(false);
     });
 
+    it('does NOT apply before 8am Saturday even with eligible pendingChangedAt', async () => {
+      vi.useFakeTimers();
+      // Current time: Saturday April 12 2025, 1am — before the 8am deadline
+      vi.setSystemTime(new Date(2025, 3, 12, 1, 0, 0));
+
+      mockPicksCollection.findOne.mockResolvedValue({
+        _id: new ObjectId(),
+        userId,
+        golferIds,
+        captainId: null,
+        pendingGolferIds: Array.from({ length: 6 }, () => new ObjectId()),
+        // Transfer submitted Friday at 2pm — would be eligible, but deadline hasn't passed
+        pendingChangedAt: new Date(2025, 3, 11, 14, 0, 0),
+        totalSpent: 30_000_000,
+        season: 2025,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const result = await applyPendingChanges(userId.toString());
+      // Should NOT apply — the 8am deadline hasn't passed yet
+      expect(result).toBe(false);
+    });
+
     it('applies transfer submitted at 7:59am Saturday when checked after 8am Saturday', async () => {
       vi.useFakeTimers();
       // We are now in the NEXT week — Saturday April 19 at 10am
@@ -669,16 +693,22 @@ describe('picks.service', () => {
       (mockPicksCollection as unknown as Record<string, unknown>).find = vi
         .fn()
         .mockReturnValue(toArrayHelper(picksWithPending));
-      mockGolfersCollection.find.mockReturnValue(
-        toArrayHelper(
-          pending1.map((id, i) => ({
+      mockGolfersCollection.find.mockReturnValue({
+        project: vi.fn().mockReturnValue(
+          toArrayHelper(
+            [...pending1, ...pending2].map((id, i) => ({
+              _id: id,
+              price: 5_000_000,
+            }))
+          )
+        ),
+        ...toArrayHelper(
+          [...pending1, ...pending2].map((id, i) => ({
             _id: id,
-            firstName: `G`,
-            lastName: `${i}`,
             price: 5_000_000,
           }))
-        )
-      );
+        ),
+      });
       mockPicksCollection.updateOne.mockResolvedValue({ modifiedCount: 1 });
 
       const result = await applyAllPendingChanges();

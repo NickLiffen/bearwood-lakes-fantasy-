@@ -404,13 +404,15 @@ export async function applyPendingChanges(userId: string): Promise<boolean> {
 
   if (!pick?.pendingChangedAt) return false;
 
-  // Check if the pending change was made before the current week's transfer deadline.
-  // The week boundary is midnight Saturday, but the user-facing transfer deadline is 8am
-  // Saturday. Transfers submitted between midnight and 8am count as "previous week."
-  const weekStart = getWeekStart(new Date(), firstGW);
+  // Check if the current week's transfer deadline has passed before applying.
+  // The week boundary is midnight Saturday, but the user-facing transfer deadline
+  // is 8am Saturday. Don't apply until the deadline has actually passed.
+  const now = new Date();
+  const weekStart = getWeekStart(now, firstGW);
   const transferDeadline = new Date(weekStart);
   transferDeadline.setHours(TEAM_ELIGIBILITY_HOUR, 0, 0, 0);
-  if (pick.pendingChangedAt >= transferDeadline) return false; // Still before deadline
+  if (now < transferDeadline) return false; // Deadline hasn't passed yet
+  if (pick.pendingChangedAt >= transferDeadline) return false; // Changed after deadline
 
   // Apply pending changes to main fields
   const updateSet: Record<string, unknown> = { updatedAt: new Date() };
@@ -420,7 +422,7 @@ export async function applyPendingChanges(userId: string): Promise<boolean> {
     updateSet.golferIds = pick.pendingGolferIds;
     // Recalculate totalSpent from pending golfers
     const golfers = await db
-      .collection('golfers')
+      .collection<GolferDocument>(GOLFERS_COLLECTION)
       .find({ _id: { $in: pick.pendingGolferIds } })
       .toArray();
     updateSet.totalSpent = golfers.reduce((sum, g) => sum + (g.price || 0), 0);
@@ -476,9 +478,15 @@ export async function applyAllPendingChanges(): Promise<{
     ? new Date(activeSeason.firstGameweekStart)
     : null;
 
-  const weekStart = getWeekStart(new Date(), firstGW);
+  const now = new Date();
+  const weekStart = getWeekStart(now, firstGW);
   const transferDeadline = new Date(weekStart);
   transferDeadline.setHours(TEAM_ELIGIBILITY_HOUR, 0, 0, 0);
+
+  // Don't apply anything until the deadline has actually passed
+  if (now < transferDeadline) {
+    return { applied: 0, total: 0, details: [] };
+  }
 
   // Find all picks with pending changes submitted before the transfer deadline
   const picksWithPending = await db
@@ -490,6 +498,32 @@ export async function applyAllPendingChanges(): Promise<{
     .toArray();
 
   const total = picksWithPending.length;
+  if (total === 0) {
+    return { applied: 0, total: 0, details: [] };
+  }
+
+  // Batch-fetch all pending golfers in one query to avoid N+1
+  const allPendingGolferIds = new Set<string>();
+  for (const pick of picksWithPending) {
+    if (pick.pendingGolferIds) {
+      for (const id of pick.pendingGolferIds) {
+        allPendingGolferIds.add(id.toString());
+      }
+    }
+  }
+
+  const golferPriceMap = new Map<string, number>();
+  if (allPendingGolferIds.size > 0) {
+    const golfers = await db
+      .collection<GolferDocument>(GOLFERS_COLLECTION)
+      .find({ _id: { $in: Array.from(allPendingGolferIds).map((id) => new ObjectId(id)) } })
+      .project<{ _id: ObjectId; price: number }>({ price: 1 })
+      .toArray();
+    for (const g of golfers) {
+      golferPriceMap.set(g._id.toString(), g.price || 0);
+    }
+  }
+
   let applied = 0;
   const details: Array<{ userId: string; pendingChangedAt: Date }> = [];
 
@@ -499,12 +533,10 @@ export async function applyAllPendingChanges(): Promise<{
 
     if (pick.pendingGolferIds && pick.pendingGolferIds.length > 0) {
       updateSet.golferIds = pick.pendingGolferIds;
-      // Recalculate totalSpent from pending golfers
-      const golfers = await db
-        .collection('golfers')
-        .find({ _id: { $in: pick.pendingGolferIds } })
-        .toArray();
-      updateSet.totalSpent = golfers.reduce((sum, g) => sum + (g.price || 0), 0);
+      updateSet.totalSpent = pick.pendingGolferIds.reduce(
+        (sum, id) => sum + (golferPriceMap.get(id.toString()) || 0),
+        0
+      );
 
       // If captain was swapped out and no pendingCaptainId set, reassign to first golfer
       if (pick.captainId && pick.pendingCaptainId === undefined) {
