@@ -25,6 +25,7 @@ import {
   formatMonthLabel,
   type RankedLeaderboardEntry,
 } from './_shared/utils/leaderboard-calculator';
+import { applyAllPendingChanges } from './_shared/services/picks.service';
 
 const PERIODS_CACHE_TTL = 60; // 60 seconds
 
@@ -103,6 +104,9 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
     }
 
     const { db } = await connectToDatabase();
+
+    // Apply any pending transfers before computing the leaderboard
+    await applyAllPendingChanges();
 
     // Get season — use explicit season param or fall back to active season
     const activeSeason = seasonParam ? await getSeasonByName(seasonParam) : await getActiveSeason();

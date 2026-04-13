@@ -3,6 +3,7 @@ import { handler } from './leaderboard-periods';
 import { makeAuthEvent, mockContext, parseBody, createMockDb, mockCursor } from './__test-utils__';
 import { connectToDatabase } from './_shared/db';
 import { getActiveSeason, getSeasonByName } from './_shared/services/seasons.service';
+import { applyAllPendingChanges } from './_shared/services/picks.service';
 
 vi.mock('./_shared/auth', () => ({
   verifyToken: vi.fn().mockReturnValue({
@@ -38,6 +39,9 @@ vi.mock('./_shared/db', () => ({ connectToDatabase: vi.fn() }));
 vi.mock('./_shared/services/seasons.service', () => ({
   getActiveSeason: vi.fn(),
   getSeasonByName: vi.fn(),
+}));
+vi.mock('./_shared/services/picks.service', () => ({
+  applyAllPendingChanges: vi.fn().mockResolvedValue({ applied: 0, total: 0, details: [] }),
 }));
 vi.mock('./_shared/utils/dates', () => ({
   getWeekStart: vi.fn().mockImplementation((d: Date) => {
@@ -118,6 +122,9 @@ describe('leaderboard-periods handler', () => {
     expect(body.success).toBe(true);
     expect(body.data.entries).toEqual([]);
     expect(body.data.tournamentCount).toBe(0);
+
+    // Safety-net: applyAllPendingChanges should be called before computing leaderboard
+    expect(applyAllPendingChanges).toHaveBeenCalled();
   });
 
   it('returns leaders summary with null leaders when no picks and action=leaders', async () => {

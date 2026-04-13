@@ -3,6 +3,7 @@ import { handler } from './user-team-compare';
 import { makeAuthEvent, mockContext, parseBody, createMockDb, mockCursor } from './__test-utils__';
 import { connectToDatabase } from './_shared/db';
 import { getActiveSeason } from './_shared/services/seasons.service';
+import { applyPendingChanges } from './_shared/services/picks.service';
 import type { Season } from '@shared/types';
 
 const { mockVerifyToken } = vi.hoisted(() => ({
@@ -30,6 +31,9 @@ vi.mock('./_shared/utils/logger', () => ({
 
 vi.mock('./_shared/db', () => ({ connectToDatabase: vi.fn() }));
 vi.mock('./_shared/services/seasons.service', () => ({ getActiveSeason: vi.fn() }));
+vi.mock('./_shared/services/picks.service', () => ({
+  applyPendingChanges: vi.fn().mockResolvedValue(false),
+}));
 vi.mock('./_shared/utils/dates', () => ({
   getWeekStart: vi.fn().mockReturnValue(new Date('2025-06-07')),
   getWeekEnd: vi.fn().mockReturnValue(new Date('2025-06-13T23:59:59.999Z')),
@@ -266,6 +270,10 @@ describe('user-team-compare handler', () => {
     expect(body.data.comparison.pointsDiff).toHaveProperty('week');
     expect(body.data.comparison.pointsDiff).toHaveProperty('month');
     expect(body.data.comparison.pointsDiff).toHaveProperty('season');
+
+    // Safety-net: applyPendingChanges should be called for both users
+    expect(applyPendingChanges).toHaveBeenCalledWith(currentUserId.toString());
+    expect(applyPendingChanges).toHaveBeenCalledWith(targetUserId.toString());
   });
 
   it('returns 500 on unexpected error', async () => {

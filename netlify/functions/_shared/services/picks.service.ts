@@ -13,7 +13,7 @@ import { GolferDocument, GOLFERS_COLLECTION } from '../models/Golfer';
 import { SettingDocument, SETTINGS_COLLECTION } from '../models/Settings';
 import { BUDGET_CAP, MAX_GOLFERS } from '../../../../shared/constants/rules';
 import type { Pick, PickWithGolfers, PickHistory } from '../../../../shared/types';
-import { getWeekStart, hasUnlimitedTransfers as checkUnlimitedTransfers } from '../utils/dates';
+import { getWeekStart, hasUnlimitedTransfers as checkUnlimitedTransfers, TEAM_ELIGIBILITY_HOUR } from '../utils/dates';
 import { getActiveSeason } from './seasons.service';
 
 async function getCurrentSeason(): Promise<number> {
@@ -404,9 +404,15 @@ export async function applyPendingChanges(userId: string): Promise<boolean> {
 
   if (!pick?.pendingChangedAt) return false;
 
-  // Check if the pending change was made before the current week started
-  const weekStart = getWeekStart(new Date(), firstGW);
-  if (pick.pendingChangedAt >= weekStart) return false; // Still in the same week
+  // Check if the current week's transfer deadline has passed before applying.
+  // The week boundary is midnight Saturday, but the user-facing transfer deadline
+  // is 8am Saturday. Don't apply until the deadline has actually passed.
+  const now = new Date();
+  const weekStart = getWeekStart(now, firstGW);
+  const transferDeadline = new Date(weekStart);
+  transferDeadline.setHours(TEAM_ELIGIBILITY_HOUR, 0, 0, 0);
+  if (now < transferDeadline) return false; // Deadline hasn't passed yet
+  if (pick.pendingChangedAt >= transferDeadline) return false; // Changed after deadline
 
   // Apply pending changes to main fields
   const updateSet: Record<string, unknown> = { updatedAt: new Date() };
@@ -416,7 +422,7 @@ export async function applyPendingChanges(userId: string): Promise<boolean> {
     updateSet.golferIds = pick.pendingGolferIds;
     // Recalculate totalSpent from pending golfers
     const golfers = await db
-      .collection('golfers')
+      .collection<GolferDocument>(GOLFERS_COLLECTION)
       .find({ _id: { $in: pick.pendingGolferIds } })
       .toArray();
     updateSet.totalSpent = golfers.reduce((sum, g) => sum + (g.price || 0), 0);
@@ -450,3 +456,118 @@ export async function applyPendingChanges(userId: string): Promise<boolean> {
 
 // Backwards compatibility alias
 export const getUserPicksWithPlayers = getUserPicksWithGolfers;
+
+/**
+ * Apply pending changes for ALL users whose pendingChangedAt is before the
+ * current week's transfer deadline (8am Saturday).
+ *
+ * Used by the scheduled function and admin endpoint to ensure transfers are
+ * applied even if users haven't visited their team page.
+ *
+ * Returns the count of picks that had pending changes applied.
+ */
+export async function applyAllPendingChanges(): Promise<{
+  applied: number;
+  total: number;
+  details: Array<{ userId: string; pendingChangedAt: Date }>;
+}> {
+  const { db } = await connectToDatabase();
+  const currentSeason = await getCurrentSeason();
+  const activeSeason = await getActiveSeason();
+  const firstGW = activeSeason?.firstGameweekStart
+    ? new Date(activeSeason.firstGameweekStart)
+    : null;
+
+  const now = new Date();
+  const weekStart = getWeekStart(now, firstGW);
+  const transferDeadline = new Date(weekStart);
+  transferDeadline.setHours(TEAM_ELIGIBILITY_HOUR, 0, 0, 0);
+
+  // Don't apply anything until the deadline has actually passed
+  if (now < transferDeadline) {
+    return { applied: 0, total: 0, details: [] };
+  }
+
+  // Find all picks with pending changes submitted before the transfer deadline
+  const picksWithPending = await db
+    .collection<PickDocument>(PICKS_COLLECTION)
+    .find({
+      season: currentSeason,
+      pendingChangedAt: { $exists: true, $lt: transferDeadline },
+    })
+    .toArray();
+
+  const total = picksWithPending.length;
+  if (total === 0) {
+    return { applied: 0, total: 0, details: [] };
+  }
+
+  // Batch-fetch all pending golfers in one query to avoid N+1
+  const allPendingGolferIds = new Set<string>();
+  for (const pick of picksWithPending) {
+    if (pick.pendingGolferIds) {
+      for (const id of pick.pendingGolferIds) {
+        allPendingGolferIds.add(id.toString());
+      }
+    }
+  }
+
+  const golferPriceMap = new Map<string, number>();
+  if (allPendingGolferIds.size > 0) {
+    const golfers = await db
+      .collection<GolferDocument>(GOLFERS_COLLECTION)
+      .find({ _id: { $in: Array.from(allPendingGolferIds).map((id) => new ObjectId(id)) } })
+      .project<{ _id: ObjectId; price: number }>({ price: 1 })
+      .toArray();
+    for (const g of golfers) {
+      golferPriceMap.set(g._id.toString(), g.price || 0);
+    }
+  }
+
+  let applied = 0;
+  const details: Array<{ userId: string; pendingChangedAt: Date }> = [];
+
+  for (const pick of picksWithPending) {
+    const updateSet: Record<string, unknown> = { updatedAt: new Date() };
+    const updateUnset: Record<string, string> = {};
+
+    if (pick.pendingGolferIds && pick.pendingGolferIds.length > 0) {
+      updateSet.golferIds = pick.pendingGolferIds;
+      updateSet.totalSpent = pick.pendingGolferIds.reduce(
+        (sum, id) => sum + (golferPriceMap.get(id.toString()) || 0),
+        0
+      );
+
+      // If captain was swapped out and no pendingCaptainId set, reassign to first golfer
+      if (pick.captainId && pick.pendingCaptainId === undefined) {
+        const captainStillOnTeam = pick.pendingGolferIds.some(
+          (id) => id.toString() === pick.captainId?.toString()
+        );
+        if (!captainStillOnTeam) {
+          updateSet.captainId = pick.pendingGolferIds[0];
+        }
+      }
+    }
+
+    if (pick.pendingCaptainId !== undefined) {
+      updateSet.captainId = pick.pendingCaptainId;
+    }
+
+    // Clear pending fields
+    updateUnset.pendingGolferIds = '';
+    updateUnset.pendingCaptainId = '';
+    updateUnset.pendingChangedAt = '';
+
+    await db
+      .collection<PickDocument>(PICKS_COLLECTION)
+      .updateOne({ _id: pick._id }, { $set: updateSet, $unset: updateUnset });
+
+    applied++;
+    details.push({
+      userId: pick.userId.toString(),
+      pendingChangedAt: pick.pendingChangedAt!,
+    });
+  }
+
+  return { applied, total, details };
+}
