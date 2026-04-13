@@ -5,7 +5,7 @@ description: Guide for using Netlify AI Gateway to access AI models. Use when ad
 
 # Netlify AI Gateway
 
-> **IMPORTANT:** Only use models listed in the "Available Models" section below. AI Gateway does not support every model a provider offers. Using an unsupported model will cause runtime errors.
+> **Note:** AI Gateway does not support every model a provider offers. Check the available models list (linked below) before choosing a model. The model IDs shown in the examples below are illustrative — verify current availability before using them.
 
 Netlify AI Gateway provides access to AI models from multiple providers without managing API keys directly. It is available on all Netlify sites.
 
@@ -68,8 +68,9 @@ npm install @google/generative-ai
 ```typescript
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-const genAI = new GoogleGenerativeAI("placeholder");
-// Configure base URL via environment variable
+// The API key parameter is required by the SDK but unused when AI Gateway
+// handles authentication. Pass any non-empty string.
+const genAI = new GoogleGenerativeAI("unused-with-ai-gateway");
 
 const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 const result = await model.generateContent("Hello!");

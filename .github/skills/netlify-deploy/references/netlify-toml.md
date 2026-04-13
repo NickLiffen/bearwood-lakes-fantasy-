@@ -25,7 +25,7 @@ Configuration file for Netlify builds and deployments.
 
 ```toml
 [build.environment]
-  NODE_VERSION = "18"
+  NODE_VERSION = "22"
 
 [context.production.environment]
   NODE_ENV = "production"

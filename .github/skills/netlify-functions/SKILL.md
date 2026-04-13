@@ -7,7 +7,11 @@ description: Guide for writing Netlify serverless functions. Use when creating A
 
 ## Modern Syntax
 
-Always use the modern default export + Config pattern. Never use the legacy `exports.handler` or named `handler` export.
+Netlify Functions support two syntax styles:
+
+### Modern syntax (default export + Config)
+
+The recommended pattern for new Netlify projects. Uses standard Web API `Request`/`Response`:
 
 ```typescript
 import type { Context, Config } from "@netlify/functions";
@@ -21,7 +25,19 @@ export const config: Config = {
 };
 ```
 
-The handler receives a standard Web API `Request` and returns a `Response`. The second argument is a Netlify `Context` object.
+### Legacy syntax (named handler export)
+
+Many existing projects use the named `handler` export with the `event`/`context` signature. This is still fully supported and is required for some special cases (event-triggered functions like `deploy-succeeded`, Identity event functions):
+
+```typescript
+import type { Handler } from "@netlify/functions";
+
+export const handler: Handler = async (event, context) => {
+  return { statusCode: 200, body: JSON.stringify({ message: "Hello" }) };
+};
+```
+
+When working in a project that already uses the named `handler` pattern, follow the existing convention for consistency. Use the modern syntax only for greenfield projects or when explicitly migrating.
 
 ## File Structure
 
@@ -140,11 +156,17 @@ export default async (req: Request) => {
 
 ## Environment Variables
 
-Use `Netlify.env` (not `process.env`) inside functions:
+Both `Netlify.env` and `process.env` work inside Netlify Functions:
 
 ```typescript
+// Netlify-specific (available in the Netlify runtime)
 const apiKey = Netlify.env.get("API_KEY");
+
+// Standard Node.js (works in Netlify, local dev, and tests)
+const apiKey = process.env.API_KEY;
 ```
+
+If the project already uses `process.env`, follow that convention for consistency — especially when unit tests stub `process.env`. Use `Netlify.env` only in greenfield projects or when the project convention calls for it.
 
 ## Resource Limits
 
