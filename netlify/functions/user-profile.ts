@@ -26,6 +26,7 @@ import {
 import { calculatePickPoints } from './_shared/utils/scoring';
 import type { TimeBoundaries } from './_shared/utils/scoring';
 import { getActiveSeason } from './_shared/services/seasons.service';
+import { applyPendingChanges } from './_shared/services/picks.service';
 
 export const handler: Handler = withVerifiedAuth(async (event) => {
   try {
@@ -78,6 +79,9 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
     const firstGW = activeSeason?.firstGameweekStart
       ? new Date(activeSeason.firstGameweekStart)
       : null;
+
+    // Apply any pending transfers from previous gameweeks before reading picks
+    await applyPendingChanges(userId);
 
     // Get user's pick for current season
     const pick = await db.collection<PickDocument>(PICKS_COLLECTION).findOne({

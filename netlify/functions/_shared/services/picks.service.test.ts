@@ -7,6 +7,8 @@ import {
   getPickHistory,
   getTransfersThisWeek,
   cancelPendingChanges,
+  applyPendingChanges,
+  applyAllPendingChanges,
 } from './picks.service';
 import { getActiveSeason } from './seasons.service';
 import type { Season } from '@shared/types/season.types';
@@ -457,6 +459,248 @@ describe('picks.service', () => {
           changedAt: expect.objectContaining({ $gte: expect.any(Date) }),
         })
       );
+    });
+  });
+
+  describe('applyPendingChanges', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('returns false when user has no pending changes', async () => {
+      mockPicksCollection.findOne.mockResolvedValue({
+        _id: new ObjectId(),
+        userId,
+        golferIds,
+        captainId: null,
+        totalSpent: 30_000_000,
+        season: 2025,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        // No pendingChangedAt
+      });
+
+      const result = await applyPendingChanges(userId.toString());
+      expect(result).toBe(false);
+    });
+
+    it('applies pending changes when pendingChangedAt is before 8am Saturday (transfer deadline)', async () => {
+      vi.useFakeTimers();
+      // Current time: Saturday April 12 2025, 10am — well past the 8am deadline
+      vi.setSystemTime(new Date(2025, 3, 12, 10, 0, 0));
+
+      const pendingGolferIds = Array.from({ length: 6 }, () => new ObjectId());
+
+      mockPicksCollection.findOne.mockResolvedValue({
+        _id: new ObjectId(),
+        userId,
+        golferIds,
+        captainId: null,
+        pendingGolferIds,
+        pendingChangedAt: new Date(2025, 3, 11, 7, 0, 0), // Friday April 11, 7am — before Saturday 8am deadline
+        totalSpent: 30_000_000,
+        season: 2025,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      mockGolfersCollection.find.mockReturnValue(
+        toArrayHelper(
+          pendingGolferIds.map((id, i) => ({
+            _id: id,
+            firstName: `New`,
+            lastName: `${i + 1}`,
+            price: 5_000_000,
+          }))
+        )
+      );
+      mockPicksCollection.updateOne.mockResolvedValue({ modifiedCount: 1 });
+
+      const result = await applyPendingChanges(userId.toString());
+      expect(result).toBe(true);
+      expect(mockPicksCollection.updateOne).toHaveBeenCalledWith(
+        expect.any(Object),
+        expect.objectContaining({
+          $set: expect.objectContaining({ golferIds: pendingGolferIds }),
+          $unset: { pendingGolferIds: '', pendingCaptainId: '', pendingChangedAt: '' },
+        })
+      );
+    });
+
+    it('applies transfer submitted at 3am Saturday when checked at 9am same Saturday (before 8am deadline)', async () => {
+      vi.useFakeTimers();
+      // Current time: Saturday April 12 2025, 9am
+      vi.setSystemTime(new Date(2025, 3, 12, 9, 0, 0));
+
+      const pendingGolferIds = Array.from({ length: 6 }, () => new ObjectId());
+
+      mockPicksCollection.findOne.mockResolvedValue({
+        _id: new ObjectId(),
+        userId,
+        golferIds,
+        captainId: null,
+        pendingGolferIds,
+        // Transfer submitted at 3am on this Saturday — before the 8am deadline
+        pendingChangedAt: new Date(2025, 3, 12, 3, 0, 0),
+        totalSpent: 30_000_000,
+        season: 2025,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      mockGolfersCollection.find.mockReturnValue(
+        toArrayHelper(
+          pendingGolferIds.map((id, i) => ({
+            _id: id,
+            firstName: `New`,
+            lastName: `${i + 1}`,
+            price: 5_000_000,
+          }))
+        )
+      );
+      mockPicksCollection.updateOne.mockResolvedValue({ modifiedCount: 1 });
+
+      const result = await applyPendingChanges(userId.toString());
+      // Should apply — 3am is before the 8am deadline, so it takes effect this gameweek
+      expect(result).toBe(true);
+    });
+
+    it('does NOT apply when pendingChangedAt is after 8am Saturday deadline', async () => {
+      vi.useFakeTimers();
+      // Current time: Saturday April 12 2025, 10am
+      vi.setSystemTime(new Date(2025, 3, 12, 10, 0, 0));
+
+      mockPicksCollection.findOne.mockResolvedValue({
+        _id: new ObjectId(),
+        userId,
+        golferIds,
+        captainId: null,
+        pendingGolferIds: Array.from({ length: 6 }, () => new ObjectId()),
+        // Transfer submitted at 8:30am Saturday — after the 8am deadline
+        pendingChangedAt: new Date(2025, 3, 12, 8, 30, 0),
+        totalSpent: 30_000_000,
+        season: 2025,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      const result = await applyPendingChanges(userId.toString());
+      // Should NOT apply — 8:30am is after the 8am deadline, deferred to next gameweek
+      expect(result).toBe(false);
+    });
+
+    it('applies transfer submitted at 7:59am Saturday when checked after 8am Saturday', async () => {
+      vi.useFakeTimers();
+      // We are now in the NEXT week — Saturday April 19 at 10am
+      vi.setSystemTime(new Date(2025, 3, 19, 10, 0, 0));
+
+      const pendingGolferIds = Array.from({ length: 6 }, () => new ObjectId());
+
+      mockPicksCollection.findOne.mockResolvedValue({
+        _id: new ObjectId(),
+        userId,
+        golferIds,
+        captainId: null,
+        pendingGolferIds,
+        // Transfer submitted at 7:59am LAST Saturday (April 12)
+        pendingChangedAt: new Date(2025, 3, 12, 7, 59, 0),
+        totalSpent: 30_000_000,
+        season: 2025,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      mockGolfersCollection.find.mockReturnValue(
+        toArrayHelper(
+          pendingGolferIds.map((id, i) => ({
+            _id: id,
+            firstName: `New`,
+            lastName: `${i + 1}`,
+            price: 5_000_000,
+          }))
+        )
+      );
+      mockPicksCollection.updateOne.mockResolvedValue({ modifiedCount: 1 });
+
+      const result = await applyPendingChanges(userId.toString());
+      // Should apply — 7:59am is before the 8am deadline, and we're in the next week
+      expect(result).toBe(true);
+    });
+  });
+
+  describe('applyAllPendingChanges', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('applies all eligible pending transfers in bulk', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(2025, 3, 12, 10, 0, 0)); // Saturday April 12 10am
+
+      const user1Id = new ObjectId();
+      const user2Id = new ObjectId();
+      const pending1 = Array.from({ length: 6 }, () => new ObjectId());
+      const pending2 = Array.from({ length: 6 }, () => new ObjectId());
+
+      const picksWithPending = [
+        {
+          _id: new ObjectId(),
+          userId: user1Id,
+          golferIds,
+          captainId: null,
+          pendingGolferIds: pending1,
+          pendingChangedAt: new Date(2025, 3, 11, 14, 0, 0), // Friday 2pm
+          totalSpent: 30_000_000,
+          season: 2025,
+        },
+        {
+          _id: new ObjectId(),
+          userId: user2Id,
+          golferIds,
+          captainId: null,
+          pendingGolferIds: pending2,
+          pendingChangedAt: new Date(2025, 3, 10, 8, 0, 0), // Thursday 8am
+          totalSpent: 30_000_000,
+          season: 2025,
+        },
+      ];
+
+      mockPicksCollection.findOne.mockResolvedValue(null);
+      (mockPicksCollection as unknown as Record<string, unknown>).find = vi
+        .fn()
+        .mockReturnValue(toArrayHelper(picksWithPending));
+      mockGolfersCollection.find.mockReturnValue(
+        toArrayHelper(
+          pending1.map((id, i) => ({
+            _id: id,
+            firstName: `G`,
+            lastName: `${i}`,
+            price: 5_000_000,
+          }))
+        )
+      );
+      mockPicksCollection.updateOne.mockResolvedValue({ modifiedCount: 1 });
+
+      const result = await applyAllPendingChanges();
+
+      expect(result.applied).toBe(2);
+      expect(result.total).toBe(2);
+      expect(result.details).toHaveLength(2);
+    });
+
+    it('returns zero when no picks have pending changes', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(2025, 3, 12, 10, 0, 0));
+
+      (mockPicksCollection as unknown as Record<string, unknown>).find = vi
+        .fn()
+        .mockReturnValue(toArrayHelper([]));
+
+      const result = await applyAllPendingChanges();
+
+      expect(result.applied).toBe(0);
+      expect(result.total).toBe(0);
+      expect(result.details).toHaveLength(0);
     });
   });
 });

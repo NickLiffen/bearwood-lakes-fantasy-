@@ -32,6 +32,9 @@ vi.mock('./_shared/utils/logger', () => ({
 
 vi.mock('./_shared/db', () => ({ connectToDatabase: vi.fn() }));
 vi.mock('./_shared/services/seasons.service', () => ({ getActiveSeason: vi.fn() }));
+vi.mock('./_shared/services/picks.service', () => ({
+  applyPendingChanges: vi.fn().mockResolvedValue(false),
+}));
 vi.mock('./_shared/utils/dates', () => ({
   getWeekStart: vi.fn().mockImplementation((d: Date) => {
     const date = new Date(d);

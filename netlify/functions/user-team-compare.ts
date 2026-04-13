@@ -19,6 +19,7 @@ import {
 } from './_shared/utils/dates';
 import { getActiveSeason } from './_shared/services/seasons.service';
 import { calculateGolferContribution, type TimeBoundaries } from './_shared/utils/scoring';
+import { applyPendingChanges } from './_shared/services/picks.service';
 
 interface GolferWithPoints {
   golfer: ReturnType<typeof toGolfer>;
@@ -62,6 +63,9 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
     }
 
     const { db } = await connectToDatabase();
+
+    // Apply any pending transfers from previous gameweeks for both users
+    await Promise.all([applyPendingChanges(currentUserId), applyPendingChanges(targetUserId)]);
 
     // Get current season
     const activeSeason = await getActiveSeason();

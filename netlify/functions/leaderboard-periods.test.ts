@@ -39,6 +39,9 @@ vi.mock('./_shared/services/seasons.service', () => ({
   getActiveSeason: vi.fn(),
   getSeasonByName: vi.fn(),
 }));
+vi.mock('./_shared/services/picks.service', () => ({
+  applyAllPendingChanges: vi.fn().mockResolvedValue({ applied: 0, total: 0, details: [] }),
+}));
 vi.mock('./_shared/utils/dates', () => ({
   getWeekStart: vi.fn().mockImplementation((d: Date) => {
     const date = new Date(d);

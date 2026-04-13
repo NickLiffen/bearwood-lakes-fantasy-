@@ -3,8 +3,8 @@
 // Week starts on Saturday at midnight for tournament counting purposes
 const WEEK_START_HOUR = 0;
 
-// Team eligibility starts at 8am on Saturday (for when new teams can start earning points)
-const TEAM_ELIGIBILITY_HOUR = 8;
+// Team eligibility / transfer deadline starts at 8am on Saturday
+export const TEAM_ELIGIBILITY_HOUR = 8;
 
 /** Check if two dates fall on the same calendar day */
 const isSameDay = (a: Date, b: Date): boolean =>

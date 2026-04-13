@@ -46,6 +46,9 @@
 [functions."scheduled-recalculate"]
   schedule = "@daily"
 
+[functions."scheduled-apply-transfers"]
+  schedule = "0 8 * * 6"
+
 # Note: Environment variables are split between local and cloud:
 # - Local development: .env file (gitignored) with localhost defaults
 # - Production/Staging: Netlify UI → Site settings → Environment variables
