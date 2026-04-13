@@ -104,13 +104,19 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
       }),
     ]);
 
-    // Get all unique golfer IDs from both teams
+    // Get all unique golfer IDs from both teams — include historical rosters
     const allGolferIds = new Set<string>();
     if (currentPick) {
-      currentPick.golferIds.forEach((id) => allGolferIds.add(id.toString()));
+      const ids = (currentPick.allGolferIds && currentPick.allGolferIds.length > 0)
+        ? currentPick.allGolferIds
+        : currentPick.golferIds;
+      ids.forEach((id) => allGolferIds.add(id.toString()));
     }
     if (targetPick) {
-      targetPick.golferIds.forEach((id) => allGolferIds.add(id.toString()));
+      const ids = (targetPick.allGolferIds && targetPick.allGolferIds.length > 0)
+        ? targetPick.allGolferIds
+        : targetPick.golferIds;
+      ids.forEach((id) => allGolferIds.add(id.toString()));
     }
 
     // Get all golfers

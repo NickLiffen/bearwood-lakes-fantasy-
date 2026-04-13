@@ -5,8 +5,8 @@ import { GolferDocument, GOLFERS_COLLECTION, toGolfer } from '../models/Golfer';
 import { ScoreDocument } from '../models/Score';
 import { TournamentDocument } from '../models/Tournament';
 import { PickHistoryDocument, PICK_HISTORY_COLLECTION } from '../models/Pick';
-import { getWeekStart, getMonthStart, getMonthEnd, getFirstGameweekStart } from '../utils/dates';
-import { calculateGolferContribution, type TimeBoundaries } from '../utils/scoring';
+import { getWeekStart, getMonthStart, getMonthEnd, getFirstGameweekStart, getGameweekNumber } from '../utils/dates';
+import { calculateGolferContribution, getRosterForGameweek, type TimeBoundaries, type RosterSnapshot } from '../utils/scoring';
 import type { TournamentType, ScoringFormat } from '@shared/types';
 
 export interface TournamentScoreInfo {
@@ -37,6 +37,9 @@ export interface GolferWithScores {
 /**
  * Compute per-golfer scores with week/month/season breakdowns.
  * Pure computation over pre-fetched data — no DB calls.
+ *
+ * When `gameweekRosters` is provided, uses per-gameweek roster lookup for
+ * correct captain assignment and roster membership filtering.
  */
 export function getTeamGolferScores(
   golfers: GolferDocument[],
@@ -47,7 +50,8 @@ export function getTeamGolferScores(
   selectedWeekStart: Date,
   selectedWeekEnd: Date,
   teamEffectiveStart: Date,
-  firstGameweekStart?: Date | null
+  firstGameweekStart?: Date | null,
+  gameweekRosters?: Record<string, RosterSnapshot> | null
 ): GolferWithScores[] {
   const tournamentMap = new Map(publishedTournaments.map((t) => [t._id.toString(), t]));
 
@@ -83,10 +87,25 @@ export function getTeamGolferScores(
   };
 
   const captainIdString = captainId?.toString();
+  const hasRosters = gameweekRosters && Object.keys(gameweekRosters).length > 0;
 
   const golfersWithScores: GolferWithScores[] = golfers.map((golfer) => {
-    const golferScores = golferScoresMap.get(golfer._id.toString()) || [];
-    const isCaptain = golfer._id.toString() === captainIdString;
+    const golferIdStr = golfer._id.toString();
+    const golferScores = golferScoresMap.get(golferIdStr) || [];
+
+    // Determine captain status — use per-gameweek roster for the selected week if available
+    let isCaptain: boolean;
+    if (hasRosters) {
+      const selectedGW = getGameweekNumber(
+        selectedWeekStart,
+        seasonStartDate || seasonFirstSat,
+        firstGameweekStart
+      );
+      const roster = getRosterForGameweek(gameweekRosters!, selectedGW);
+      isCaptain = roster ? golferIdStr === roster.captainId : golferIdStr === captainIdString;
+    } else {
+      isCaptain = golferIdStr === captainIdString;
+    }
 
     // Format scores with tournament info (for detailed display)
     const formattedScores: TournamentScoreInfo[] = golferScores
@@ -109,24 +128,49 @@ export function getTeamGolferScores(
       })
       .sort((a, b) => new Date(b.tournamentDate).getTime() - new Date(a.tournamentDate).getTime());
 
-    // Filter by time period for display lists
+    // Filter by time period for display lists — also check roster membership when available
     const weekScores = formattedScores.filter((s) => {
       const date = new Date(s.tournamentDate);
-      return date >= selectedWeekStart && date <= selectedWeekEnd && date >= teamEffectiveStart;
+      if (date < selectedWeekStart || date > selectedWeekEnd || date < teamEffectiveStart)
+        return false;
+      if (hasRosters) {
+        const gw = getGameweekNumber(
+          getWeekStart(date, firstGameweekStart),
+          seasonStartDate || seasonFirstSat,
+          firstGameweekStart
+        );
+        const roster = getRosterForGameweek(gameweekRosters!, gw);
+        if (!roster || !roster.golferIds.includes(golferIdStr)) return false;
+      }
+      return true;
     });
 
     const seasonScores = formattedScores.filter((s) => {
       const date = new Date(s.tournamentDate);
-      return date >= seasonFirstSat && date >= teamEffectiveStart;
+      if (date < seasonFirstSat || date < teamEffectiveStart) return false;
+      if (hasRosters) {
+        const gw = getGameweekNumber(
+          getWeekStart(date, firstGameweekStart),
+          seasonStartDate || seasonFirstSat,
+          firstGameweekStart
+        );
+        const roster = getRosterForGameweek(gameweekRosters!, gw);
+        if (!roster || !roster.golferIds.includes(golferIdStr)) return false;
+      }
+      return true;
     });
 
-    // Calculate totals using shared scorer (captain multiplier + boundaries)
+    // Calculate totals using shared scorer (captain multiplier + boundaries + roster awareness)
     const { weekPoints, monthPoints, seasonPoints } = calculateGolferContribution(
       golferScores,
       tournamentDates,
       boundaries,
       isCaptain,
-      teamEffectiveStart
+      teamEffectiveStart,
+      gameweekRosters,
+      golferIdStr,
+      firstGameweekStart,
+      seasonStartDate
     );
 
     return {

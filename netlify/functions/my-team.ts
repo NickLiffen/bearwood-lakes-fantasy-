@@ -19,6 +19,7 @@ import {
   getFirstGameweekStart,
   hasUnlimitedTransfers,
 } from './_shared/utils/dates';
+import { getRosterForGameweek, type RosterSnapshot } from './_shared/utils/scoring';
 import { getTransfersThisWeek, applyPendingChanges } from './_shared/services/picks.service';
 import { getActiveSeason } from './_shared/services/seasons.service';
 import { getTeamGolferScores, getTeamTransferHistory } from './_shared/services/team.service';
@@ -136,11 +137,48 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
       };
     }
 
-    // Get golfers for this pick
-    const golferIds = pick.golferIds.map((id) => new ObjectId(id));
+    // Convert gameweekRosters for scoring helpers
+    let gameweekRosters: Record<string, RosterSnapshot> | null = null;
+    if (pick.gameweekRosters && Object.keys(pick.gameweekRosters).length > 0) {
+      gameweekRosters = {};
+      for (const [gw, roster] of Object.entries(pick.gameweekRosters)) {
+        gameweekRosters[gw] = {
+          golferIds: roster.golferIds.map((id) => id.toString()),
+          captainId: roster.captainId?.toString() || null,
+        };
+      }
+    }
+
+    // Determine which golfer IDs to fetch scores for — allGolferIds covers historical golfers
+    const scoreGolferIds = (pick.allGolferIds && pick.allGolferIds.length > 0)
+      ? pick.allGolferIds.map((id) => new ObjectId(id))
+      : pick.golferIds.map((id) => new ObjectId(id));
+
+    // Determine which golfers to display — use the selected week's roster if available
+    let displayGolferIds: ObjectId[];
+    let displayCaptainId: string | null | undefined = pick.captainId?.toString();
+
+    if (gameweekRosters) {
+      const selectedGW = getGameweekNumber(
+        selectedWeekStart,
+        activeSeason?.startDate ? new Date(activeSeason.startDate) : seasonFirstSat,
+        firstGW
+      );
+      const roster = getRosterForGameweek(gameweekRosters, selectedGW);
+      if (roster) {
+        displayGolferIds = roster.golferIds.map((id) => new ObjectId(id));
+        displayCaptainId = roster.captainId;
+      } else {
+        displayGolferIds = pick.golferIds.map((id) => new ObjectId(id));
+      }
+    } else {
+      displayGolferIds = pick.golferIds.map((id) => new ObjectId(id));
+    }
+
+    // Fetch golfer documents for the display roster (may be historical)
     const golfers = await db
       .collection<GolferDocument>(GOLFERS_COLLECTION)
-      .find({ _id: { $in: golferIds } })
+      .find({ _id: { $in: displayGolferIds } })
       .toArray();
 
     // Get published or complete tournaments for current season
@@ -154,11 +192,11 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
 
     const publishedTournamentIds = publishedTournaments.map((t) => t._id);
 
-    // Get all scores for these golfers from published tournaments
+    // Get scores for ALL historical golfers (not just display roster)
     const scores = await db
       .collection<ScoreDocument>(SCORES_COLLECTION)
       .find({
-        golferId: { $in: golferIds },
+        golferId: { $in: scoreGolferIds },
         tournamentId: { $in: publishedTournamentIds },
       })
       .toArray();
@@ -197,11 +235,12 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
           publishedTournaments,
           scores,
           activeSeason?.startDate ? new Date(activeSeason.startDate) : null,
-          pick.captainId?.toString(),
+          displayCaptainId,
           selectedWeekStart,
           selectedWeekEnd,
           teamEffectiveStartDate,
-          firstGW
+          firstGW,
+          gameweekRosters
         )
       ),
       getTeamTransferHistory(db, event.user.userId, currentSeason),
@@ -264,7 +303,7 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
           team: {
             golfers: golfersWithScores,
             totals: teamTotals,
-            captainId: pick.captainId?.toString() || null,
+            captainId: displayCaptainId || null,
             period: {
               weekStart: selectedWeekStart.toISOString(),
               weekEnd: selectedWeekEnd.toISOString(),

@@ -121,11 +121,14 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
       };
     }
 
-    // Get golfers for this pick
-    const golferIds = pick.golferIds.map((id) => new ObjectId(id));
+    // Get golfers for this pick — use allGolferIds to cover historical roster
+    const scoreGolferIds = (pick.allGolferIds && pick.allGolferIds.length > 0)
+      ? pick.allGolferIds.map((id) => new ObjectId(id))
+      : pick.golferIds.map((id) => new ObjectId(id));
+    const displayGolferIds = pick.golferIds.map((id) => new ObjectId(id));
     const golfers = await db
       .collection<GolferDocument>(GOLFERS_COLLECTION)
-      .find({ _id: { $in: golferIds } })
+      .find({ _id: { $in: displayGolferIds } })
       .toArray();
 
     // Get published tournaments for current season
@@ -140,11 +143,11 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
     const tournamentMap = new Map(tournaments.map((t) => [t._id.toString(), t]));
     const tournamentIds = tournaments.map((t) => t._id);
 
-    // Get all scores for these golfers from published tournaments
+    // Get scores for ALL historical golfers (not just current roster)
     const scores = await db
       .collection<ScoreDocument>(SCORES_COLLECTION)
       .find({
-        golferId: { $in: golferIds },
+        golferId: { $in: scoreGolferIds },
         tournamentId: { $in: tournamentIds },
       })
       .toArray();
