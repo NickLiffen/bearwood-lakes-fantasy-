@@ -156,7 +156,7 @@ export async function getFullLeaderboard(season?: number): Promise<FullLeaderboa
       { $match: { season: currentSeason } },
       {
         $addFields: {
-          _lookupGolferIds: { $ifNull: ['$allGolferIds', '$golferIds'] },
+          _lookupGolferIds: { $cond: [{ $gt: [{ $size: { $ifNull: ['$allGolferIds', []] } }, 0] }, '$allGolferIds', '$golferIds'] },
         },
       },
       {
@@ -388,7 +388,7 @@ export async function getLeaderboard(season?: number): Promise<LeaderboardEntry[
       { $match: { season: currentSeason } },
       {
         $addFields: {
-          _lookupGolferIds: { $ifNull: ['$allGolferIds', '$golferIds'] },
+          _lookupGolferIds: { $cond: [{ $gt: [{ $size: { $ifNull: ['$allGolferIds', []] } }, 0] }, '$allGolferIds', '$golferIds'] },
         },
       },
       {
@@ -580,7 +580,7 @@ export async function getTournamentLeaderboard(
       { $match: { season: currentSeason } },
       {
         $addFields: {
-          _lookupGolferIds: { $ifNull: ['$allGolferIds', '$golferIds'] },
+          _lookupGolferIds: { $cond: [{ $gt: [{ $size: { $ifNull: ['$allGolferIds', []] } }, 0] }, '$allGolferIds', '$golferIds'] },
         },
       },
       {

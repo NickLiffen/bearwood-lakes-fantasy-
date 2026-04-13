@@ -23,7 +23,7 @@ import {
   getTeamEffectiveStartDate,
   getWeekEnd,
 } from './_shared/utils/dates';
-import { calculatePickPoints } from './_shared/utils/scoring';
+import { calculatePickPoints, type RosterSnapshot } from './_shared/utils/scoring';
 import type { TimeBoundaries } from './_shared/utils/scoring';
 import { getActiveSeason } from './_shared/services/seasons.service';
 import { applyPendingChanges } from './_shared/services/picks.service';
@@ -263,7 +263,8 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
       tournaments,
       currentSeason,
       boundaries,
-      firstGW
+      firstGW,
+      activeSeason?.startDate ? new Date(activeSeason.startDate) : null
     );
 
     const weekRank = calculateUserRank(userId, allUserPoints, 'weekPoints');
@@ -406,11 +407,15 @@ async function calculateAllUserPoints(
   tournaments: TournamentDocument[],
   _currentSeason: number,
   boundaries: TimeBoundaries,
-  firstGW?: Date | null
+  firstGW?: Date | null,
+  seasonStartDate?: Date | null
 ): Promise<Map<string, { weekPoints: number; monthPoints: number; seasonPoints: number }>> {
+  // Collect ALL historical golfer IDs (not just current roster)
   const allGolferIds = new Set<string>();
   for (const pick of picks) {
-    for (const golferId of pick.golferIds) {
+    const ids =
+      pick.allGolferIds && pick.allGolferIds.length > 0 ? pick.allGolferIds : pick.golferIds;
+    for (const golferId of ids) {
       allGolferIds.add(golferId.toString());
     }
   }
@@ -444,12 +449,34 @@ async function calculateAllUserPoints(
   >();
 
   for (const pick of picks) {
+    // Convert gameweekRosters from ObjectIds to string-based RosterSnapshots
+    let gameweekRosters: Record<string, RosterSnapshot> | undefined;
+    if (pick.gameweekRosters && Object.keys(pick.gameweekRosters).length > 0) {
+      gameweekRosters = {};
+      for (const [gw, roster] of Object.entries(pick.gameweekRosters)) {
+        gameweekRosters[gw] = {
+          golferIds: roster.golferIds.map((id) => id.toString()),
+          captainId: roster.captainId?.toString() || null,
+        };
+      }
+    }
+
+    const pickAllIds =
+      pick.allGolferIds && pick.allGolferIds.length > 0 ? pick.allGolferIds : pick.golferIds;
+
     const points = calculatePickPoints(
-      pick,
+      {
+        golferIds: pick.golferIds,
+        captainId: pick.captainId,
+        createdAt: pick.createdAt,
+        gameweekRosters,
+        allGolferIds: pickAllIds,
+      },
       scoresByGolferTournament,
       tournamentDates,
       boundaries,
-      firstGW
+      firstGW,
+      seasonStartDate
     );
     result.set(pick.userId.toString(), points);
   }

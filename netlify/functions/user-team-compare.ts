@@ -18,7 +18,7 @@ import {
   getTeamEffectiveStartDate,
 } from './_shared/utils/dates';
 import { getActiveSeason } from './_shared/services/seasons.service';
-import { calculateGolferContribution, type TimeBoundaries } from './_shared/utils/scoring';
+import { calculateGolferContribution, type TimeBoundaries, type RosterSnapshot } from './_shared/utils/scoring';
 import { applyPendingChanges } from './_shared/services/picks.service';
 
 interface GolferWithPoints {
@@ -175,6 +175,19 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
       seasonStart: seasonStartDate,
     };
 
+    // Helper: convert PickDocument.gameweekRosters (ObjectIds) to string-based RosterSnapshots
+    function convertRosters(pick: PickDocument): Record<string, RosterSnapshot> | undefined {
+      if (!pick.gameweekRosters || Object.keys(pick.gameweekRosters).length === 0) return undefined;
+      const rosters: Record<string, RosterSnapshot> = {};
+      for (const [gw, r] of Object.entries(pick.gameweekRosters)) {
+        rosters[gw] = {
+          golferIds: r.golferIds.map((id) => id.toString()),
+          captainId: r.captainId?.toString() || null,
+        };
+      }
+      return rosters;
+    }
+
     // Helper: per-golfer points with captain multiplier and effective start date
     function getGolferPointsForTeam(
       golferId: string,
@@ -183,12 +196,17 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
       const golferScores = scoresByGolfer.get(golferId) || [];
       const isCaptain = golferId === pick.captainId?.toString();
       const teamEffectiveStart = getTeamEffectiveStartDate(pick.createdAt, firstGW);
+      const rosters = convertRosters(pick);
       return calculateGolferContribution(
         golferScores,
         tournamentDates,
         boundaries,
         isCaptain,
-        teamEffectiveStart
+        teamEffectiveStart,
+        rosters,
+        golferId,
+        firstGW,
+        activeSeason?.startDate ? new Date(activeSeason.startDate) : null
       );
     }
 
