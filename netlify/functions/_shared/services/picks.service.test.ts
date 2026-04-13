@@ -696,14 +696,14 @@ describe('picks.service', () => {
       mockGolfersCollection.find.mockReturnValue({
         project: vi.fn().mockReturnValue(
           toArrayHelper(
-            [...pending1, ...pending2].map((id, i) => ({
+            [...pending1, ...pending2].map((id) => ({
               _id: id,
               price: 5_000_000,
             }))
           )
         ),
         ...toArrayHelper(
-          [...pending1, ...pending2].map((id, i) => ({
+          [...pending1, ...pending2].map((id) => ({
             _id: id,
             price: 5_000_000,
           }))
