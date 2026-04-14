@@ -107,7 +107,7 @@ async function fix() {
         if (!roster) continue;
         if (roster.captainId) continue; // Already has captain
 
-        const golferIds = roster.golferIds.map((id: any) => id.toString());
+        const golferIds = roster.golferIds.map((id: ObjectId) => id.toString());
         const pointsMap = gwKey === '1' ? gw1Points : gw2Points;
 
         // Find highest-scoring golfer on this team
