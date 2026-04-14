@@ -23,7 +23,7 @@ import {
   getTeamEffectiveStartDate,
   getWeekEnd,
 } from './_shared/utils/dates';
-import { calculatePickPoints } from './_shared/utils/scoring';
+import { calculatePickPoints, calculateGolferContribution, type RosterSnapshot } from './_shared/utils/scoring';
 import type { TimeBoundaries } from './_shared/utils/scoring';
 import { getActiveSeason } from './_shared/services/seasons.service';
 import { applyPendingChanges } from './_shared/services/picks.service';
@@ -121,11 +121,14 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
       };
     }
 
-    // Get golfers for this pick
-    const golferIds = pick.golferIds.map((id) => new ObjectId(id));
+    // Get golfers for this pick — use allGolferIds to cover historical roster
+    const scoreGolferIds = (pick.allGolferIds && pick.allGolferIds.length > 0)
+      ? pick.allGolferIds.map((id) => new ObjectId(id))
+      : pick.golferIds.map((id) => new ObjectId(id));
+    const displayGolferIds = pick.golferIds.map((id) => new ObjectId(id));
     const golfers = await db
       .collection<GolferDocument>(GOLFERS_COLLECTION)
-      .find({ _id: { $in: golferIds } })
+      .find({ _id: { $in: displayGolferIds } })
       .toArray();
 
     // Get published tournaments for current season
@@ -140,11 +143,11 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
     const tournamentMap = new Map(tournaments.map((t) => [t._id.toString(), t]));
     const tournamentIds = tournaments.map((t) => t._id);
 
-    // Get all scores for these golfers from published tournaments
+    // Get scores for ALL historical golfers (not just current roster)
     const scores = await db
       .collection<ScoreDocument>(SCORES_COLLECTION)
       .find({
-        golferId: { $in: golferIds },
+        golferId: { $in: scoreGolferIds },
         tournamentId: { $in: tournamentIds },
       })
       .toArray();
@@ -170,12 +173,27 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
     // Team can only earn points from tournaments after team creation
     const teamEffectiveStart = getTeamEffectiveStartDate(pick.createdAt, firstGW);
 
-    // Build golfer data with scores
+    // Convert gameweekRosters for scoring helpers
+    let gameweekRosters: Record<string, RosterSnapshot> | null = null;
+    if (pick.gameweekRosters && Object.keys(pick.gameweekRosters).length > 0) {
+      gameweekRosters = {};
+      for (const [gw, roster] of Object.entries(pick.gameweekRosters)) {
+        gameweekRosters[gw] = {
+          golferIds: roster.golferIds.map((id) => id.toString()),
+          captainId: roster.captainId?.toString() || null,
+        };
+      }
+    }
+
+    const boundaries: TimeBoundaries = { weekStart, weekEnd, monthStart, monthEnd, seasonStart };
+    const seasonStartDate = activeSeason?.startDate ? new Date(activeSeason.startDate) : null;
+
+    // Build golfer data with scores — use roster-aware scoring
     const captainIdString = pick.captainId?.toString();
     const golfersWithScores = golfers.map((golfer) => {
-      const golferScores = golferScoresMap.get(golfer._id.toString()) || [];
-      const isCaptain = golfer._id.toString() === captainIdString;
-      const captainMultiplier = isCaptain ? 2 : 1;
+      const golferIdStr = golfer._id.toString();
+      const golferScores = golferScoresMap.get(golferIdStr) || [];
+      const isCaptain = golferIdStr === captainIdString;
 
       // Format scores with tournament info
       const formattedScores = golferScores
@@ -214,13 +232,21 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
         return date >= seasonStart && date >= teamEffectiveStart;
       });
 
-      // Calculate totals with captain multiplier
-      const weekPoints =
-        weekScores.reduce((sum, s) => sum + s.multipliedPoints, 0) * captainMultiplier;
-      const monthPoints =
-        monthScores.reduce((sum, s) => sum + s.multipliedPoints, 0) * captainMultiplier;
-      const seasonPoints =
-        seasonScores.reduce((sum, s) => sum + s.multipliedPoints, 0) * captainMultiplier;
+      // Calculate totals using roster-aware scorer
+      const tournamentDates = new Map(
+        tournaments.map((t) => [t._id.toString(), new Date(t.startDate)])
+      );
+      const { weekPoints, monthPoints, seasonPoints } = calculateGolferContribution(
+        golferScores,
+        tournamentDates,
+        boundaries,
+        isCaptain,
+        teamEffectiveStart,
+        gameweekRosters,
+        golferIdStr,
+        firstGW,
+        seasonStartDate
+      );
 
       return {
         golfer: toGolfer(golfer),
@@ -251,8 +277,6 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
       .find({ season: currentSeason })
       .toArray();
 
-    const boundaries: TimeBoundaries = { weekStart, weekEnd, monthStart, monthEnd, seasonStart };
-
     // Calculate rankings (simplified - in production this would be more efficient)
     const allUserPoints = await calculateAllUserPoints(
       db,
@@ -260,7 +284,8 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
       tournaments,
       currentSeason,
       boundaries,
-      firstGW
+      firstGW,
+      activeSeason?.startDate ? new Date(activeSeason.startDate) : null
     );
 
     const weekRank = calculateUserRank(userId, allUserPoints, 'weekPoints');
@@ -403,11 +428,15 @@ async function calculateAllUserPoints(
   tournaments: TournamentDocument[],
   _currentSeason: number,
   boundaries: TimeBoundaries,
-  firstGW?: Date | null
+  firstGW?: Date | null,
+  seasonStartDate?: Date | null
 ): Promise<Map<string, { weekPoints: number; monthPoints: number; seasonPoints: number }>> {
+  // Collect ALL historical golfer IDs (not just current roster)
   const allGolferIds = new Set<string>();
   for (const pick of picks) {
-    for (const golferId of pick.golferIds) {
+    const ids =
+      pick.allGolferIds && pick.allGolferIds.length > 0 ? pick.allGolferIds : pick.golferIds;
+    for (const golferId of ids) {
       allGolferIds.add(golferId.toString());
     }
   }
@@ -441,12 +470,34 @@ async function calculateAllUserPoints(
   >();
 
   for (const pick of picks) {
+    // Convert gameweekRosters from ObjectIds to string-based RosterSnapshots
+    let gameweekRosters: Record<string, RosterSnapshot> | undefined;
+    if (pick.gameweekRosters && Object.keys(pick.gameweekRosters).length > 0) {
+      gameweekRosters = {};
+      for (const [gw, roster] of Object.entries(pick.gameweekRosters)) {
+        gameweekRosters[gw] = {
+          golferIds: roster.golferIds.map((id) => id.toString()),
+          captainId: roster.captainId?.toString() || null,
+        };
+      }
+    }
+
+    const pickAllIds =
+      pick.allGolferIds && pick.allGolferIds.length > 0 ? pick.allGolferIds : pick.golferIds;
+
     const points = calculatePickPoints(
-      pick,
+      {
+        golferIds: pick.golferIds,
+        captainId: pick.captainId,
+        createdAt: pick.createdAt,
+        gameweekRosters,
+        allGolferIds: pickAllIds,
+      },
       scoresByGolferTournament,
       tournamentDates,
       boundaries,
-      firstGW
+      firstGW,
+      seasonStartDate
     );
     result.set(pick.userId.toString(), points);
   }

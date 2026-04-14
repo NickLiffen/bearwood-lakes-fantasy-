@@ -13,14 +13,30 @@ import { GolferDocument, GOLFERS_COLLECTION } from '../models/Golfer';
 import { SettingDocument, SETTINGS_COLLECTION } from '../models/Settings';
 import { BUDGET_CAP, MAX_GOLFERS } from '../../../../shared/constants/rules';
 import type { Pick, PickWithGolfers, PickHistory } from '../../../../shared/types';
-import { getWeekStart, hasUnlimitedTransfers as checkUnlimitedTransfers, TEAM_ELIGIBILITY_HOUR } from '../utils/dates';
+import { getWeekStart, getGameweekNumber, hasUnlimitedTransfers as checkUnlimitedTransfers, TEAM_ELIGIBILITY_HOUR } from '../utils/dates';
 import { getActiveSeason } from './seasons.service';
+import type { GameweekRosterDocument } from '../models/Pick';
 
 async function getCurrentSeason(): Promise<number> {
   const activeSeason = await getActiveSeason();
   return activeSeason
     ? parseInt(activeSeason.name, 10) || new Date().getFullYear()
     : new Date().getFullYear();
+}
+
+/**
+ * Compute the current gameweek number from the active season.
+ */
+async function getCurrentGameweekNumber(): Promise<number> {
+  const activeSeason = await getActiveSeason();
+  if (!activeSeason) return 1;
+  const firstGW = activeSeason.firstGameweekStart
+    ? new Date(activeSeason.firstGameweekStart)
+    : null;
+  const seasonStartDate = new Date(activeSeason.startDate);
+  const now = new Date();
+  const weekStart = getWeekStart(now, firstGW);
+  return getGameweekNumber(weekStart, seasonStartDate, firstGW);
 }
 
 async function areTransfersOpen(): Promise<boolean> {
@@ -272,10 +288,11 @@ export async function savePicks(
     historyReason = isCaptainOnlyChange ? 'Captain change' : reason;
   }
 
-  // Save to pick history for audit trail
+  // Save to pick history for audit trail (now includes captainId)
   await historyCollection.insertOne({
     userId: userObjectId,
     golferIds: objectIds,
+    captainId: captainId ? new ObjectId(captainId) : null,
     totalSpent,
     season: currentSeason,
     changedAt: now,
@@ -303,14 +320,34 @@ export async function savePicks(
     );
   } else {
     // IMMEDIATE: write to main fields and clear any pending fields
+    // Also set gameweekRosters and allGolferIds for correct historical scoring
+    const currentGW = await getCurrentGameweekNumber();
+    const gwKey = String(currentGW);
+    const captainObjectId = captainId ? new ObjectId(captainId) : null;
+
+    const rosterEntry: GameweekRosterDocument = {
+      golferIds: objectIds,
+      captainId: captainObjectId,
+    };
+
+    // Build allGolferIds: union of existing + new
+    const existingAllIds = existingPick?.allGolferIds
+      ? existingPick.allGolferIds.map((id: string) => id)
+      : existingPick?.golferIds.map((id: string) => id) || [];
+    const newIds = golferIds;
+    const allIdsSet = new Set([...existingAllIds, ...newIds]);
+    const allGolferIds = Array.from(allIdsSet).map((id) => new ObjectId(id));
+
     await picksCollection.updateOne(
       { userId: userObjectId, season: currentSeason },
       {
         $set: {
           golferIds: objectIds,
-          captainId: captainId ? new ObjectId(captainId) : null,
+          captainId: captainObjectId,
           totalSpent,
           updatedAt: now,
+          [`gameweekRosters.${gwKey}`]: rosterEntry,
+          allGolferIds,
         },
         $setOnInsert: {
           userId: userObjectId,
@@ -418,7 +455,21 @@ export async function applyPendingChanges(userId: string): Promise<boolean> {
   const updateSet: Record<string, unknown> = { updatedAt: new Date() };
   const updateUnset: Record<string, string> = {};
 
+  // Determine the new gameweek number for the roster snapshot
+  const seasonStartDate = activeSeason?.startDate ? new Date(activeSeason.startDate) : null;
+  const currentGW = getGameweekNumber(
+    weekStart,
+    seasonStartDate || new Date(),
+    firstGW
+  );
+  const gwKey = String(currentGW);
+
+  // Determine the new golferIds and captainId
+  let newGolferIds = pick.golferIds;
+  let newCaptainId = pick.captainId || null;
+
   if (pick.pendingGolferIds && pick.pendingGolferIds.length > 0) {
+    newGolferIds = pick.pendingGolferIds;
     updateSet.golferIds = pick.pendingGolferIds;
     // Recalculate totalSpent from pending golfers
     const golfers = await db
@@ -433,14 +484,32 @@ export async function applyPendingChanges(userId: string): Promise<boolean> {
         (id) => id.toString() === pick.captainId?.toString()
       );
       if (!captainStillOnTeam) {
+        newCaptainId = pick.pendingGolferIds[0];
         updateSet.captainId = pick.pendingGolferIds[0];
       }
     }
   }
 
   if (pick.pendingCaptainId !== undefined) {
+    newCaptainId = pick.pendingCaptainId;
     updateSet.captainId = pick.pendingCaptainId;
   }
+
+  // Set the gameweek roster snapshot for the new gameweek
+  const rosterEntry: GameweekRosterDocument = {
+    golferIds: newGolferIds,
+    captainId: newCaptainId,
+  };
+  updateSet[`gameweekRosters.${gwKey}`] = rosterEntry;
+
+  // Update allGolferIds: union of existing + new golfers
+  const existingAllIds = new Set(
+    (pick.allGolferIds || pick.golferIds).map((id) => id.toString())
+  );
+  for (const id of newGolferIds) {
+    existingAllIds.add(id.toString());
+  }
+  updateSet.allGolferIds = Array.from(existingAllIds).map((id) => new ObjectId(id));
 
   // Clear pending fields
   updateUnset.pendingGolferIds = '';
@@ -524,6 +593,15 @@ export async function applyAllPendingChanges(): Promise<{
     }
   }
 
+  // Determine the current gameweek for roster snapshots
+  const seasonStartDate = activeSeason?.startDate ? new Date(activeSeason.startDate) : null;
+  const currentGW = getGameweekNumber(
+    weekStart,
+    seasonStartDate || new Date(),
+    firstGW
+  );
+  const gwKey = String(currentGW);
+
   let applied = 0;
   const details: Array<{ userId: string; pendingChangedAt: Date }> = [];
 
@@ -531,7 +609,11 @@ export async function applyAllPendingChanges(): Promise<{
     const updateSet: Record<string, unknown> = { updatedAt: new Date() };
     const updateUnset: Record<string, string> = {};
 
+    let newGolferIds = pick.golferIds;
+    let newCaptainId = pick.captainId || null;
+
     if (pick.pendingGolferIds && pick.pendingGolferIds.length > 0) {
+      newGolferIds = pick.pendingGolferIds;
       updateSet.golferIds = pick.pendingGolferIds;
       updateSet.totalSpent = pick.pendingGolferIds.reduce(
         (sum, id) => sum + (golferPriceMap.get(id.toString()) || 0),
@@ -544,14 +626,32 @@ export async function applyAllPendingChanges(): Promise<{
           (id) => id.toString() === pick.captainId?.toString()
         );
         if (!captainStillOnTeam) {
+          newCaptainId = pick.pendingGolferIds[0];
           updateSet.captainId = pick.pendingGolferIds[0];
         }
       }
     }
 
     if (pick.pendingCaptainId !== undefined) {
+      newCaptainId = pick.pendingCaptainId;
       updateSet.captainId = pick.pendingCaptainId;
     }
+
+    // Set gameweek roster snapshot
+    const rosterEntry: GameweekRosterDocument = {
+      golferIds: newGolferIds,
+      captainId: newCaptainId,
+    };
+    updateSet[`gameweekRosters.${gwKey}`] = rosterEntry;
+
+    // Update allGolferIds: union of existing + new
+    const existingAllIds = new Set(
+      (pick.allGolferIds || pick.golferIds).map((id) => id.toString())
+    );
+    for (const id of newGolferIds) {
+      existingAllIds.add(id.toString());
+    }
+    updateSet.allGolferIds = Array.from(existingAllIds).map((id) => new ObjectId(id));
 
     // Clear pending fields
     updateUnset.pendingGolferIds = '';

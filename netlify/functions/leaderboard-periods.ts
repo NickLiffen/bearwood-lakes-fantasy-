@@ -127,7 +127,7 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
     const picks = await db
       .collection<PickDocument>(PICKS_COLLECTION)
       .find({ season: currentSeason })
-      .project({ userId: 1, golferIds: 1, captainId: 1, totalSpent: 1, createdAt: 1 })
+      .project({ userId: 1, golferIds: 1, captainId: 1, totalSpent: 1, createdAt: 1, gameweekRosters: 1, allGolferIds: 1 })
       .toArray();
 
     const now = new Date();
@@ -250,7 +250,9 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
         allScores,
         weekStart,
         weekEnd,
-        firstGW
+        firstGW,
+        undefined,
+        seasonStartDate
       );
       const prevWeekData = await calculateLeaderboard(
         picks,
@@ -259,7 +261,9 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
         allScores,
         prevWeekStart,
         prevWeekEnd,
-        firstGW
+        firstGW,
+        undefined,
+        seasonStartDate
       );
       const monthData = await calculateLeaderboard(
         picks,
@@ -268,7 +272,9 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
         allScores,
         monthStart,
         monthEnd,
-        firstGW
+        firstGW,
+        undefined,
+        seasonStartDate
       );
       const prevMonthData = await calculateLeaderboard(
         picks,
@@ -277,7 +283,9 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
         allScores,
         prevMonthStart,
         prevMonthEnd,
-        firstGW
+        firstGW,
+        undefined,
+        seasonStartDate
       );
       const seasonData = await calculateLeaderboard(
         picks,
@@ -286,7 +294,9 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
         allScores,
         seasonStartDate,
         seasonEndDate,
-        firstGW
+        firstGW,
+        undefined,
+        seasonStartDate
       );
 
       const weekRanked = rankEntries(weekData.entries, prevWeekData.entries);
@@ -382,7 +392,9 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
       allScores,
       periodStart,
       periodEnd,
-      firstGW
+      firstGW,
+      undefined,
+      seasonStartDate
     );
     const previousData =
       period !== 'season'
@@ -393,7 +405,9 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
             allScores,
             prevPeriodStart,
             prevPeriodEnd,
-            firstGW
+            firstGW,
+            undefined,
+            seasonStartDate
           )
         : null;
 

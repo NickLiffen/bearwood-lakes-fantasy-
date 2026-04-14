@@ -5,7 +5,8 @@ import type { ScoreDocument } from '../models/Score';
 import type { UserDocument } from '../models/User';
 import type { PickDocument } from '../models/Pick';
 import type { TournamentDocument } from '../models/Tournament';
-import { getTeamEffectiveStartDate } from './dates';
+import { getTeamEffectiveStartDate, getWeekStart, getGameweekNumber } from './dates';
+import { getRosterForGameweek, type RosterSnapshot } from './scoring';
 
 // ────────────────────────────────────────────────────────────
 // Types
@@ -48,6 +49,9 @@ export interface CalculateLeaderboardResult {
  * Filters tournaments to the period window, applies captain 2× multiplier,
  * and respects team effective start dates.
  *
+ * When picks have `gameweekRosters`, uses per-gameweek roster lookup so
+ * transferred-out golfers still earn points for their active gameweeks.
+ *
  * @param memberSet — optional. When provided, only picks whose userId is in
  *   the set are included (league mode). When omitted, all picks are included.
  */
@@ -59,7 +63,8 @@ export function calculateLeaderboard(
   periodStart: Date,
   periodEnd: Date,
   firstGameweekStart?: Date | null,
-  memberSet?: Set<string>
+  memberSet?: Set<string>,
+  seasonStartDate?: Date | null
 ): CalculateLeaderboardResult {
   const periodTournaments = tournaments.filter((t) => {
     const startDate = new Date(t.startDate);
@@ -84,6 +89,7 @@ export function calculateLeaderboard(
   }
 
   const entries: LeaderboardRawEntry[] = [];
+  const effectiveSeasonStart = seasonStartDate || periodStart;
 
   for (const pick of picks) {
     const userId = pick.userId.toString();
@@ -92,20 +98,55 @@ export function calculateLeaderboard(
     if (!user) continue;
 
     const teamEffectiveStart = getTeamEffectiveStartDate(pick.createdAt, firstGameweekStart);
+    const hasRosters =
+      pick.gameweekRosters && Object.keys(pick.gameweekRosters).length > 0;
+
+    // Convert gameweekRosters to string-keyed RosterSnapshot for the helper
+    let rosters: Record<string, RosterSnapshot> | undefined;
+    if (hasRosters) {
+      rosters = {};
+      for (const [gw, r] of Object.entries(pick.gameweekRosters!)) {
+        rosters[gw] = {
+          golferIds: r.golferIds.map((id) => id.toString()),
+          captainId: r.captainId?.toString() || null,
+        };
+      }
+    }
+
     const captainIdStr = pick.captainId?.toString();
+
+    // Determine which golfer IDs to iterate over
+    const golferIds = hasRosters && pick.allGolferIds
+      ? pick.allGolferIds
+      : pick.golferIds;
 
     let points = 0;
     const eventsSet = new Set<string>();
 
-    for (const golferId of pick.golferIds) {
-      const playerScores = scoresByPlayerAndTournament.get(golferId.toString());
+    for (const golferId of golferIds) {
+      const golferIdStr = golferId.toString();
+      const playerScores = scoresByPlayerAndTournament.get(golferIdStr);
       if (!playerScores) continue;
 
       for (const [tournamentId, score] of playerScores) {
         const tournamentDate = tournamentDateMap.get(tournamentId);
         if (tournamentDate && tournamentDate < teamEffectiveStart) continue;
 
-        const isCaptain = score.golferId.toString() === captainIdStr;
+        let isCaptain: boolean;
+        if (rosters && tournamentDate) {
+          const weekStart = getWeekStart(tournamentDate, firstGameweekStart);
+          const gwNum = getGameweekNumber(
+            weekStart,
+            new Date(effectiveSeasonStart),
+            firstGameweekStart
+          );
+          const roster = getRosterForGameweek(rosters, gwNum);
+          if (!roster || !roster.golferIds.includes(golferIdStr)) continue;
+          isCaptain = golferIdStr === roster.captainId;
+        } else {
+          isCaptain = score.golferId.toString() === captainIdStr;
+        }
+
         points += (score.multipliedPoints || 0) * (isCaptain ? 2 : 1);
         if (score.participated) eventsSet.add(tournamentId);
       }

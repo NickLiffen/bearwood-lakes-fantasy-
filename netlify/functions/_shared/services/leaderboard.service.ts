@@ -12,6 +12,7 @@ import type {
   TeamOfTheWeekResponse,
   TeamOfTheWeekGolfer,
 } from '../../../../shared/types';
+import type { GameweekRosterDocument } from '../models/Pick';
 import {
   getWeekStart,
   getWeekEnd,
@@ -22,7 +23,7 @@ import {
   getGameweekNumber,
   formatDateString,
 } from '../utils/dates';
-import { calculatePickPoints, type TimeBoundaries, type ScoreLike } from '../utils/scoring';
+import { calculatePickPoints, type TimeBoundaries, type ScoreLike, type RosterSnapshot } from '../utils/scoring';
 import { getActiveSeason, getSeasonByName } from './seasons.service';
 import { getRedisClient, getRedisKeyPrefix } from '../rateLimit';
 
@@ -98,6 +99,8 @@ interface AggregatedPick {
   createdAt: Date;
   totalSpent: number;
   scores: AggregatedScore[];
+  gameweekRosters?: Record<string, GameweekRosterDocument>;
+  allGolferIds?: ObjectId[];
   user?: { _id: ObjectId; username: string; firstName?: string; lastName?: string };
 }
 
@@ -152,9 +155,14 @@ export async function getFullLeaderboard(season?: number): Promise<FullLeaderboa
     .aggregate<AggregatedPick>([
       { $match: { season: currentSeason } },
       {
+        $addFields: {
+          _lookupGolferIds: { $cond: [{ $gt: [{ $size: { $ifNull: ['$allGolferIds', []] } }, 0] }, '$allGolferIds', '$golferIds'] },
+        },
+      },
+      {
         $lookup: {
           from: SCORES_COLLECTION,
-          let: { golferIds: '$golferIds' },
+          let: { golferIds: '$_lookupGolferIds' },
           pipeline: [
             {
               $match: {
@@ -184,6 +192,8 @@ export async function getFullLeaderboard(season?: number): Promise<FullLeaderboa
           createdAt: 1,
           totalSpent: 1,
           scores: 1,
+          gameweekRosters: 1,
+          allGolferIds: 1,
           user: '$userArr',
         },
       },
@@ -233,18 +243,37 @@ export async function getFullLeaderboard(season?: number): Promise<FullLeaderboa
     }
     const golferIds = Array.from(golferIdSet).map((id) => new ObjectId(id));
 
+    // Convert gameweekRosters to string-keyed RosterSnapshot for the scorer
+    let gameweekRosters: Record<string, RosterSnapshot> | undefined;
+    if (pick.gameweekRosters && Object.keys(pick.gameweekRosters).length > 0) {
+      gameweekRosters = {};
+      for (const [gw, roster] of Object.entries(pick.gameweekRosters)) {
+        gameweekRosters[gw] = {
+          golferIds: roster.golferIds.map((id) => id.toString()),
+          captainId: roster.captainId?.toString() || null,
+        };
+      }
+    }
+
     const pickForScoring = {
       golferIds,
       captainId: pick.captainId,
       createdAt: pick.createdAt,
+      gameweekRosters,
+      allGolferIds: pick.allGolferIds || golferIds,
     };
+
+    const seasonStartDate = activeSeason?.startDate
+      ? new Date(activeSeason.startDate)
+      : null;
 
     const { weekPoints, monthPoints, seasonPoints } = calculatePickPoints(
       pickForScoring,
       scoresByGolferTournament,
       tournamentDateMap,
       boundaries,
-      firstGW
+      firstGW,
+      seasonStartDate
     );
 
     // Count tournaments played per period
@@ -358,9 +387,14 @@ export async function getLeaderboard(season?: number): Promise<LeaderboardEntry[
     .aggregate<AggregatedPick>([
       { $match: { season: currentSeason } },
       {
+        $addFields: {
+          _lookupGolferIds: { $cond: [{ $gt: [{ $size: { $ifNull: ['$allGolferIds', []] } }, 0] }, '$allGolferIds', '$golferIds'] },
+        },
+      },
+      {
         $lookup: {
           from: SCORES_COLLECTION,
-          let: { golferIds: '$golferIds' },
+          let: { golferIds: '$_lookupGolferIds' },
           pipeline: [
             {
               $match: {
@@ -389,6 +423,8 @@ export async function getLeaderboard(season?: number): Promise<LeaderboardEntry[
           captainId: 1,
           createdAt: 1,
           scores: 1,
+          gameweekRosters: 1,
+          allGolferIds: 1,
           user: '$userArr',
         },
       },
@@ -432,12 +468,35 @@ export async function getLeaderboard(season?: number): Promise<LeaderboardEntry[
     }
     const golferIds = Array.from(golferIdSet).map((id) => new ObjectId(id));
 
+    // Convert gameweekRosters to string-keyed RosterSnapshot
+    let gameweekRosters: Record<string, RosterSnapshot> | undefined;
+    if (pick.gameweekRosters && Object.keys(pick.gameweekRosters).length > 0) {
+      gameweekRosters = {};
+      for (const [gw, roster] of Object.entries(pick.gameweekRosters)) {
+        gameweekRosters[gw] = {
+          golferIds: roster.golferIds.map((id) => id.toString()),
+          captainId: roster.captainId?.toString() || null,
+        };
+      }
+    }
+
+    const seasonStartDate = activeSeason?.startDate
+      ? new Date(activeSeason.startDate)
+      : null;
+
     const { seasonPoints } = calculatePickPoints(
-      { golferIds, captainId: pick.captainId, createdAt: pick.createdAt },
+      {
+        golferIds,
+        captainId: pick.captainId,
+        createdAt: pick.createdAt,
+        gameweekRosters,
+        allGolferIds: pick.allGolferIds || golferIds,
+      },
       scoresByGolferTournament,
       tournamentDateMap,
       simpleBoundaries,
-      firstGW
+      firstGW,
+      seasonStartDate
     );
 
     leaderboardData.push({
@@ -520,9 +579,14 @@ export async function getTournamentLeaderboard(
     .aggregate<AggregatedPick>([
       { $match: { season: currentSeason } },
       {
+        $addFields: {
+          _lookupGolferIds: { $cond: [{ $gt: [{ $size: { $ifNull: ['$allGolferIds', []] } }, 0] }, '$allGolferIds', '$golferIds'] },
+        },
+      },
+      {
         $lookup: {
           from: SCORES_COLLECTION,
-          let: { golferIds: '$golferIds' },
+          let: { golferIds: '$_lookupGolferIds' },
           pipeline: [
             {
               $match: {
@@ -551,6 +615,8 @@ export async function getTournamentLeaderboard(
           captainId: 1,
           createdAt: 1,
           scores: 1,
+          gameweekRosters: 1,
+          allGolferIds: 1,
           user: '$userArr',
         },
       },
@@ -590,12 +656,35 @@ export async function getTournamentLeaderboard(
     }
     const golferIds = Array.from(golferIdSet).map((id) => new ObjectId(id));
 
+    // Convert gameweekRosters to string-keyed RosterSnapshot
+    let gameweekRosters: Record<string, RosterSnapshot> | undefined;
+    if (pick.gameweekRosters && Object.keys(pick.gameweekRosters).length > 0) {
+      gameweekRosters = {};
+      for (const [gw, roster] of Object.entries(pick.gameweekRosters)) {
+        gameweekRosters[gw] = {
+          golferIds: roster.golferIds.map((id) => id.toString()),
+          captainId: roster.captainId?.toString() || null,
+        };
+      }
+    }
+
+    const seasonStartDate = activeSeason?.startDate
+      ? new Date(activeSeason.startDate)
+      : null;
+
     const { seasonPoints } = calculatePickPoints(
-      { golferIds, captainId: pick.captainId, createdAt: pick.createdAt },
+      {
+        golferIds,
+        captainId: pick.captainId,
+        createdAt: pick.createdAt,
+        gameweekRosters,
+        allGolferIds: pick.allGolferIds || golferIds,
+      },
       scoresByGolferTournament,
       tournamentDateMap,
       tournamentBoundaries,
-      firstGW
+      firstGW,
+      seasonStartDate
     );
 
     leaderboardData.push({
