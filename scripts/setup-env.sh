@@ -4,10 +4,10 @@
 
 set -euo pipefail
 
-SITE_ID="bearwood-lakes-fantasy"
+SITE_ID="bececa35-78e9-4570-a05c-666ee14fad47"
 
-echo "🔗 Linking to Netlify site: $SITE_ID ..."
-npx netlify link --name "$SITE_ID"
+echo "🔗 Linking to Netlify site (bearwoodlakes) ..."
+npx netlify link --id "$SITE_ID"
 
 echo ""
 echo "📥 Pulling environment variables ..."
