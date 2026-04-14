@@ -78,6 +78,12 @@ vi.mock('./_shared/utils/dates', () => ({
     d.setHours(0, 0, 0, 0);
     return d;
   }),
+  getNextWeekStart: vi.fn().mockImplementation((d: Date) => {
+    const next = new Date(d);
+    next.setDate(next.getDate() + 7);
+    next.setHours(8, 0, 0, 0);
+    return next;
+  }),
 }));
 
 const mockSeason = {

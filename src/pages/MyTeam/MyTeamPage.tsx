@@ -58,6 +58,8 @@ interface TeamData {
     gameweek: number | null;
     hasPrevious: boolean;
     hasNext: boolean;
+    previousDate?: string | null;
+    nextDate?: string | null;
   };
   seasonStart: string;
   teamEffectiveStart: string;
@@ -164,12 +166,17 @@ const MyTeamPage: React.FC = () => {
 
   // Navigation handlers
   const handleWeekNavigation = (direction: 'prev' | 'next') => {
-    if (!selectedDate) return;
-    const current = new Date(selectedDate);
-    current.setDate(current.getDate() + (direction === 'next' ? 7 : -7));
-    const newDate = formatDateString(current);
-    setSelectedDate(newDate);
-    fetchTeam(newDate);
+    const period = teamData?.team?.period;
+    if (!period) return;
+
+    // Use backend-provided dates that correctly handle variable-length GW1
+    const targetDate =
+      direction === 'next' ? period.nextDate : period.previousDate;
+
+    if (targetDate) {
+      setSelectedDate(targetDate);
+      fetchTeam(targetDate);
+    }
   };
 
   // Handle cancelling pending changes

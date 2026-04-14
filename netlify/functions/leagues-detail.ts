@@ -15,6 +15,7 @@ import {
   getMonthEnd,
   getGameweekNumber,
   getFirstGameweekStart,
+  getNextWeekStart,
 } from './_shared/utils/dates';
 import {
   calculateLeaderboard,
@@ -335,12 +336,31 @@ export const handler = withVerifiedAuth(async (event) => {
     const firstGameweekAnchor = getFirstGameweekStart(seasonStartDate, firstGW);
     let hasPrevious = false,
       hasNext = false;
+    let previousDate: string | null = null;
+    let nextDate: string | null = null;
+
     if (period === 'week') {
       hasPrevious = periodStart > firstGameweekAnchor;
       hasNext = periodEnd < getWeekEnd(getWeekStart(now, firstGW), firstGW);
+      if (hasPrevious) {
+        const prev = new Date(periodStart);
+        prev.setDate(prev.getDate() - 1);
+        previousDate = getWeekStart(prev, firstGW).toISOString().split('T')[0];
+      }
+      if (hasNext) {
+        nextDate = getNextWeekStart(periodStart, firstGW).toISOString().split('T')[0];
+      }
     } else if (period === 'month') {
       hasPrevious = periodStart > firstGameweekAnchor;
       hasNext = periodEnd < getMonthEnd(now);
+      if (hasPrevious) {
+        previousDate = new Date(periodStart.getFullYear(), periodStart.getMonth() - 1, 1)
+          .toISOString().split('T')[0];
+      }
+      if (hasNext) {
+        nextDate = new Date(periodStart.getFullYear(), periodStart.getMonth() + 1, 1)
+          .toISOString().split('T')[0];
+      }
     }
 
     return apiResponse(200, {
@@ -356,6 +376,8 @@ export const handler = withVerifiedAuth(async (event) => {
           period === 'week' ? getGameweekNumber(periodStart, seasonStartDate, firstGW) : undefined,
         hasPrevious,
         hasNext,
+        previousDate,
+        nextDate,
       },
       tournamentCount: currentData.tournamentCount,
     });

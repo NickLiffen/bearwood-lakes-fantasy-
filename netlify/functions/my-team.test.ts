@@ -101,6 +101,12 @@ vi.mock('./_shared/utils/dates', () => {
           return isPreSeason || isBeforeFirstGameweek || isPreFirstGameWeek;
         }
       ),
+    getNextWeekStart: vi.fn().mockImplementation((d: Date) => {
+      const next = new Date(d);
+      next.setDate(next.getDate() + 7);
+      next.setHours(8, 0, 0, 0);
+      return next;
+    }),
   };
 });
 

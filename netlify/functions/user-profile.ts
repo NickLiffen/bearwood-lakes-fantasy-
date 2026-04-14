@@ -24,6 +24,7 @@ import {
   getWeekEnd,
   getGameweekNumber,
   getFirstGameweekStart,
+  getNextWeekStart,
 } from './_shared/utils/dates';
 import { calculatePickPoints, calculateGolferContribution, getRosterForGameweek, type RosterSnapshot } from './_shared/utils/scoring';
 import type { TimeBoundaries } from './_shared/utils/scoring';
@@ -472,6 +473,13 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
     const hasPrevious = weekStart > teamEffectiveStart;
     const hasNext = weekStart < currentWeekStart;
 
+    // Compute actual prev/next week dates (handles variable-length GW1)
+    const prevWeekDate = new Date(weekStart);
+    prevWeekDate.setDate(prevWeekDate.getDate() - 1);
+    const prevWeekStart = getWeekStart(prevWeekDate, firstGW);
+
+    const nextWeekDate = getNextWeekStart(weekStart, firstGW);
+
     // Format week label
     const formatWeekLabel = (date: Date) => {
       return date.toLocaleDateString('en-US', {
@@ -481,6 +489,13 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
         year: 'numeric',
       });
     };
+
+    // Compute gameweek number for display
+    const selectedGWNum = getGameweekNumber(
+      weekStart,
+      seasonStartDate || seasonFirstSat,
+      firstGW
+    );
 
     return {
       statusCode: 200,
@@ -513,8 +528,11 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
             weekStart: weekStart.toISOString(),
             weekEnd: weekEnd.toISOString(),
             label: formatWeekLabel(weekStart),
+            gameweek: selectedGWNum,
             hasPrevious,
             hasNext,
+            previousDate: hasPrevious ? prevWeekStart.toISOString().split('T')[0] : null,
+            nextDate: hasNext ? nextWeekDate.toISOString().split('T')[0] : null,
           },
           teamCreatedAt: pick.createdAt,
           teamEffectiveStart: teamEffectiveStart.toISOString(),

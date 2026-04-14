@@ -22,4 +22,6 @@ export interface PeriodInfo {
   gameweek?: number;
   hasPrevious: boolean;
   hasNext: boolean;
+  previousDate?: string | null;
+  nextDate?: string | null;
 }
