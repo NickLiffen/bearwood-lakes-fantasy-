@@ -27,7 +27,8 @@
     "db:backup": "npx tsx scripts/backup.ts",
     "db:restore": "npx tsx scripts/restore.ts",
     "db:migrate-gw1": "npx tsx scripts/migrate-gw1-friday.ts",
-    "db:simulate": "npx tsx scripts/simulate-season.ts"
+    "db:simulate": "npx tsx scripts/simulate-season.ts",
+    "setup:env": "bash scripts/setup-env.sh"
   },
   "dependencies": {
     "ioredis": "^5.9.3",
