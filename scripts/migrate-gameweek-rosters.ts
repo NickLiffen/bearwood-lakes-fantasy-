@@ -6,6 +6,10 @@
 //   npx tsx scripts/migrate-gameweek-rosters.ts --apply    # Apply changes
 
 import { MongoClient, ObjectId } from 'mongodb';
+import * as dotenv from 'dotenv';
+
+dotenv.config({ path: '.env.local' });
+dotenv.config();
 
 const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI || '';
 const MONGODB_DB_NAME = process.env.MONGODB_DB_NAME || 'bearwood-fantasy';
