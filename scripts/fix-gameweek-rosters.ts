@@ -30,6 +30,7 @@ interface PickDoc {
   golferIds: ObjectId[];
   captainId?: ObjectId | null;
   allGolferIds?: ObjectId[];
+  pendingGolferIds?: ObjectId[];
   gameweekRosters?: Record<string, { golferIds: ObjectId[]; captainId: ObjectId | null }>;
   totalSpent: number;
   season: number;
@@ -365,8 +366,8 @@ async function fix() {
       for (const id of pick.golferIds) {
         allIds.add(id.toString());
       }
-      if ((pick as any).pendingGolferIds) {
-        for (const id of (pick as any).pendingGolferIds) {
+      if (pick.pendingGolferIds) {
+        for (const id of pick.pendingGolferIds) {
           allIds.add(id.toString());
         }
       }

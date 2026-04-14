@@ -83,7 +83,7 @@ async function fix() {
 
     let fixed = 0;
     let unchanged = 0;
-    let unresolvable: string[] = [];
+    const unresolvable: string[] = [];
 
     for (const pick of picks) {
       const userId = pick.userId.toString();
