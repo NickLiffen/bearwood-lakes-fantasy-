@@ -18,6 +18,7 @@ import {
   getGameweekNumber,
   getFirstGameweekStart,
   hasUnlimitedTransfers,
+  getNextWeekStart,
 } from './_shared/utils/dates';
 import { getRosterForGameweek, type RosterSnapshot } from './_shared/utils/scoring';
 import { getTransfersThisWeek, applyPendingChanges } from './_shared/services/picks.service';
@@ -218,14 +219,18 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
       .toArray();
 
     // Navigation constraints — can't go before season's first Saturday
-    const previousWeekStart = new Date(selectedWeekStart);
-    previousWeekStart.setDate(previousWeekStart.getDate() - 7);
+    const previousWeekDate = new Date(selectedWeekStart);
+    previousWeekDate.setDate(previousWeekDate.getDate() - 1);
+    const previousWeekStart = getWeekStart(previousWeekDate, firstGW);
     const earliestWeek =
       teamEffectiveStartDate > seasonFirstSat ? teamEffectiveStartDate : seasonFirstSat;
     const hasPrevious = previousWeekStart >= earliestWeek;
 
     // Can go forward if we're not already on or past the current week
     const hasNext = selectedWeekEnd < currentWeekEnd;
+
+    // Compute actual next week date (handles variable-length GW1)
+    const nextWeekDate = getNextWeekStart(selectedWeekStart, firstGW);
 
     // Compute golfer scores and fetch transfer history in parallel
     const [golfersWithScores, filteredHistory] = await Promise.all([
@@ -319,6 +324,8 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
                 : null,
               hasPrevious,
               hasNext,
+              previousDate: hasPrevious ? previousWeekStart.toISOString().split('T')[0] : null,
+              nextDate: hasNext ? nextWeekDate.toISOString().split('T')[0] : null,
             },
             seasonStart: seasonFirstSat.toISOString(),
             teamEffectiveStart: teamEffectiveStartDate.toISOString(),

@@ -168,23 +168,27 @@ const LeagueDetailPage: React.FC = () => {
 
   const handleWeekNavigation = async (direction: 'prev' | 'next') => {
     if (!weeklyData?.period) return;
-    const currentDate = new Date(weeklyData.period.startDate);
-    currentDate.setDate(currentDate.getDate() + (direction === 'prev' ? -7 : 7));
-    const newDate = formatDateString(getSaturdayOfWeek(currentDate, season?.firstGameweekStart));
-    setWeeklyDate(newDate);
+    const targetDate =
+      direction === 'next'
+        ? weeklyData.period.nextDate
+        : weeklyData.period.previousDate;
+    if (!targetDate) return;
+    setWeeklyDate(targetDate);
     setWeeklyPage(1);
-    const data = await fetchPeriodData('week', newDate);
+    const data = await fetchPeriodData('week', targetDate);
     if (data) setWeeklyData(data);
   };
 
   const handleMonthNavigation = async (direction: 'prev' | 'next') => {
     if (!monthlyData?.period) return;
-    const currentDate = new Date(monthlyData.period.startDate);
-    currentDate.setMonth(currentDate.getMonth() + (direction === 'prev' ? -1 : 1));
-    const newDate = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-01`;
-    setMonthlyDate(newDate);
+    const targetDate =
+      direction === 'next'
+        ? monthlyData.period.nextDate
+        : monthlyData.period.previousDate;
+    if (!targetDate) return;
+    setMonthlyDate(targetDate);
     setMonthlyPage(1);
-    const data = await fetchPeriodData('month', newDate);
+    const data = await fetchPeriodData('month', targetDate);
     if (data) setMonthlyData(data);
   };
 

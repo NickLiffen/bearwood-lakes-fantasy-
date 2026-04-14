@@ -61,6 +61,12 @@ vi.mock('./_shared/utils/dates', () => ({
   getTeamEffectiveStartDate: vi.fn().mockImplementation((d: Date) => new Date(d)),
   getFirstGameweekStart: vi.fn().mockImplementation((seasonStart: Date) => new Date(seasonStart)),
   getGameweekNumber: vi.fn().mockReturnValue(1),
+  getNextWeekStart: vi.fn().mockImplementation((d: Date) => {
+    const next = new Date(d);
+    next.setDate(next.getDate() + 7);
+    next.setHours(8, 0, 0, 0);
+    return next;
+  }),
 }));
 
 const mockSeason = {
