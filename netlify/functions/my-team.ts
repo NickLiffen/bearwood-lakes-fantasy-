@@ -19,6 +19,7 @@ import {
   getFirstGameweekStart,
   hasUnlimitedTransfers,
   getNextWeekStart,
+  formatDateString,
 } from './_shared/utils/dates';
 import { getRosterForGameweek, type RosterSnapshot } from './_shared/utils/scoring';
 import { getTransfersThisWeek, applyPendingChanges } from './_shared/services/picks.service';
@@ -324,8 +325,8 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
                 : null,
               hasPrevious,
               hasNext,
-              previousDate: hasPrevious ? previousWeekStart.toISOString().split('T')[0] : null,
-              nextDate: hasNext ? nextWeekDate.toISOString().split('T')[0] : null,
+              previousDate: hasPrevious ? formatDateString(previousWeekStart) : null,
+              nextDate: hasNext ? formatDateString(nextWeekDate) : null,
             },
             seasonStart: seasonFirstSat.toISOString(),
             teamEffectiveStart: teamEffectiveStartDate.toISOString(),

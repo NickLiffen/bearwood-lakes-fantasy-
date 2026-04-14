@@ -17,6 +17,7 @@ import {
   getMonthEnd,
   getFirstGameweekStart,
   getNextWeekStart,
+  formatDateString,
 } from './_shared/utils/dates';
 import { getRedisClient, getRedisKeyPrefix } from './_shared/rateLimit';
 import {
@@ -64,6 +65,8 @@ interface PeriodInfo {
   gameweek?: number;
   hasPrevious: boolean;
   hasNext: boolean;
+  previousDate?: string | null;
+  nextDate?: string | null;
 }
 
 interface LeaderboardResponse {
@@ -427,21 +430,23 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
       if (hasPrevious) {
         const prev = new Date(periodStart);
         prev.setDate(prev.getDate() - 1);
-        previousDate = getWeekStart(prev, firstGW).toISOString().split('T')[0];
+        previousDate = formatDateString(getWeekStart(prev, firstGW));
       }
       if (hasNext) {
-        nextDate = getNextWeekStart(periodStart, firstGW).toISOString().split('T')[0];
+        nextDate = formatDateString(getNextWeekStart(periodStart, firstGW));
       }
     } else if (period === 'month') {
       hasPrevious = periodStart > firstGameweekAnchor;
       hasNext = periodEnd < getMonthEnd(now);
       if (hasPrevious) {
-        previousDate = new Date(periodStart.getFullYear(), periodStart.getMonth() - 1, 1)
-          .toISOString().split('T')[0];
+        previousDate = formatDateString(
+          new Date(periodStart.getFullYear(), periodStart.getMonth() - 1, 1)
+        );
       }
       if (hasNext) {
-        nextDate = new Date(periodStart.getFullYear(), periodStart.getMonth() + 1, 1)
-          .toISOString().split('T')[0];
+        nextDate = formatDateString(
+          new Date(periodStart.getFullYear(), periodStart.getMonth() + 1, 1)
+        );
       }
     }
 

@@ -25,6 +25,7 @@ import {
   getGameweekNumber,
   getFirstGameweekStart,
   getNextWeekStart,
+  formatDateString,
 } from './_shared/utils/dates';
 import { calculatePickPoints, calculateGolferContribution, getRosterForGameweek, type RosterSnapshot } from './_shared/utils/scoring';
 import type { TimeBoundaries } from './_shared/utils/scoring';
@@ -531,8 +532,8 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
             gameweek: selectedGWNum,
             hasPrevious,
             hasNext,
-            previousDate: hasPrevious ? prevWeekStart.toISOString().split('T')[0] : null,
-            nextDate: hasNext ? nextWeekDate.toISOString().split('T')[0] : null,
+            previousDate: hasPrevious ? formatDateString(prevWeekStart) : null,
+            nextDate: hasNext ? formatDateString(nextWeekDate) : null,
           },
           teamCreatedAt: pick.createdAt,
           teamEffectiveStart: teamEffectiveStart.toISOString(),

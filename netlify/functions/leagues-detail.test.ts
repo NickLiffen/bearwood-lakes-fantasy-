@@ -84,6 +84,12 @@ vi.mock('./_shared/utils/dates', () => ({
     next.setHours(8, 0, 0, 0);
     return next;
   }),
+  formatDateString: vi.fn().mockImplementation((d: Date) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }),
 }));
 
 const mockGetLeagueById = vi.fn();
