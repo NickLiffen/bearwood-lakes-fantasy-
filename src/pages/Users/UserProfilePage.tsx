@@ -63,8 +63,11 @@ interface PeriodInfo {
   weekStart: string;
   weekEnd: string;
   label: string;
+  gameweek?: number;
   hasPrevious: boolean;
   hasNext: boolean;
+  previousDate?: string | null;
+  nextDate?: string | null;
 }
 
 interface UserProfileData {
@@ -189,12 +192,17 @@ const UserProfilePage: React.FC = () => {
 
   // Navigation handlers
   const handleWeekNavigation = (direction: 'prev' | 'next') => {
-    if (!selectedDate) return;
-    const current = new Date(selectedDate);
-    current.setDate(current.getDate() + (direction === 'next' ? 7 : -7));
-    const newDate = formatDateString(current);
-    setSelectedDate(newDate);
-    fetchUserProfile(newDate);
+    const period = profileData?.period;
+    if (!period) return;
+
+    // Use backend-provided dates that correctly handle variable-length GW1
+    const targetDate =
+      direction === 'next' ? period.nextDate : period.previousDate;
+
+    if (targetDate) {
+      setSelectedDate(targetDate);
+      fetchUserProfile(targetDate);
+    }
   };
 
   if (loading) {
