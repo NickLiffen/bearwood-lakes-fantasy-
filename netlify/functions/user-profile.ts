@@ -140,9 +140,17 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
       }
     }
 
-    // Time boundaries - use targetDate for week calculations
+    // Time boundaries for the SELECTED gameweek (drives golfer table display)
     const weekStart = getWeekStart(targetDate, firstGW);
     const weekEnd = getWeekEnd(weekStart, firstGW);
+
+    // Time boundaries for CURRENT period (drives the stats header — never changes with navigation)
+    const now = new Date();
+    const currentWeekStart = getWeekStart(now, firstGW);
+    const currentWeekEnd = getWeekEnd(currentWeekStart, firstGW);
+    const currentMonthStart = getMonthStart(now);
+    const currentMonthEnd = getMonthEnd(now);
+    const seasonStart = getSeasonStart(currentSeason);
 
     // Hoist seasonStartDate once — used by both roster selection and scoring
     const seasonStartDate = activeSeason?.startDate ? new Date(activeSeason.startDate) : null;
@@ -207,16 +215,30 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
       golferScoresMap.get(golferId)!.push(score);
     }
 
-    // Anchor month boundaries to the selected week so stats remain consistent
-    // when navigating with ?date=.
-    const monthStart = getMonthStart(weekStart);
-    const monthEnd = getMonthEnd(weekStart);
-    const seasonStart = getSeasonStart(currentSeason);
+    // Selected-week boundaries (for golfer table — changes with gameweek nav)
+    const selectedMonthStart = getMonthStart(weekStart);
+    const selectedMonthEnd = getMonthEnd(weekStart);
 
     // Team can only earn points from tournaments after team creation
     const teamEffectiveStart = getTeamEffectiveStartDate(pick.createdAt, firstGW);
 
-    const boundaries: TimeBoundaries = { weekStart, weekEnd, monthStart, monthEnd, seasonStart };
+    // Boundaries for the selected gameweek (golfer table display)
+    const selectedBoundaries: TimeBoundaries = {
+      weekStart,
+      weekEnd,
+      monthStart: selectedMonthStart,
+      monthEnd: selectedMonthEnd,
+      seasonStart,
+    };
+
+    // Boundaries for current period (stats header — always "now")
+    const currentBoundaries: TimeBoundaries = {
+      weekStart: currentWeekStart,
+      weekEnd: currentWeekEnd,
+      monthStart: currentMonthStart,
+      monthEnd: currentMonthEnd,
+      seasonStart,
+    };
 
     // Pre-compute tournament dates lookup for roster-membership filtering
     const tournamentDates = new Map(
@@ -254,7 +276,7 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
           (a, b) => new Date(b.tournamentDate).getTime() - new Date(a.tournamentDate).getTime()
         );
 
-      // Filter by time period — also check roster membership so score lists
+      // Filter by SELECTED time period — also check roster membership so score lists
       // stay consistent with the roster-aware point totals.
       const weekScores = formattedScores.filter((s) => {
         const date = new Date(s.tournamentDate);
@@ -272,7 +294,7 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
       });
       const monthScores = formattedScores.filter((s) => {
         const date = new Date(s.tournamentDate);
-        if (date < monthStart || date > monthEnd || date < teamEffectiveStart) return false;
+        if (date < selectedMonthStart || date > selectedMonthEnd || date < teamEffectiveStart) return false;
         if (hasRosters) {
           const gw = getGameweekNumber(
             getWeekStart(date, firstGW),
@@ -299,11 +321,11 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
         return true;
       });
 
-      // Calculate totals using roster-aware scorer
+      // Per-golfer points for the SELECTED gameweek (drives the golfer table)
       const { weekPoints, monthPoints, seasonPoints } = calculateGolferContribution(
         golferScores,
         tournamentDates,
-        boundaries,
+        selectedBoundaries,
         isCaptain,
         teamEffectiveStart,
         gameweekRosters,
@@ -327,7 +349,7 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
     // Sort by season points descending
     golfersWithScores.sort((a, b) => b.seasonPoints - a.seasonPoints);
 
-    // Calculate team totals
+    // Team totals for the SELECTED gameweek (drives the golfer table totals row)
     const teamTotals = {
       weekPoints: golfersWithScores.reduce((sum, g) => sum + g.weekPoints, 0),
       monthPoints: golfersWithScores.reduce((sum, g) => sum + g.monthPoints, 0),
@@ -335,19 +357,46 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
       totalSpent: pick.totalSpent,
     };
 
-    // Get all picks for ranking
+    // Current stats for the HEADER — always reflect "right now", not the selected GW.
+    // Uses calculatePickPoints with currentBoundaries against allGolferIds.
+    const scoresByGolferTournament = new Map<string, Map<string, { golferId: ObjectId; tournamentId: ObjectId; multipliedPoints: number }>>();
+    for (const score of scores) {
+      const gid = score.golferId.toString();
+      const tid = score.tournamentId.toString();
+      if (!scoresByGolferTournament.has(gid)) scoresByGolferTournament.set(gid, new Map());
+      scoresByGolferTournament.get(gid)!.set(tid, {
+        golferId: score.golferId,
+        tournamentId: score.tournamentId,
+        multipliedPoints: score.multipliedPoints,
+      });
+    }
+    const currentStats = calculatePickPoints(
+      {
+        golferIds: pick.golferIds,
+        captainId: pick.captainId,
+        createdAt: pick.createdAt,
+        gameweekRosters: gameweekRosters || undefined,
+        allGolferIds: scoreGolferIds,
+      },
+      scoresByGolferTournament,
+      tournamentDates,
+      currentBoundaries,
+      firstGW,
+      seasonStartDate
+    );
+
+    // Get all picks for ranking (rankings always use current boundaries)
     const allPicks = await db
       .collection<PickDocument>(PICKS_COLLECTION)
       .find({ season: currentSeason })
       .toArray();
 
-    // Calculate rankings (simplified - in production this would be more efficient)
     const allUserPoints = await calculateAllUserPoints(
       db,
       allPicks,
       tournaments,
       currentSeason,
-      boundaries,
+      currentBoundaries,
       firstGW,
       activeSeason?.startDate ? new Date(activeSeason.startDate) : null
     );
@@ -420,10 +469,8 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
     );
 
     // Calculate period navigation info
-    const currentWeek = getWeekStart(new Date(), firstGW);
-    // Use teamEffectiveStart for navigation - can only go back to first week team could earn points
     const hasPrevious = weekStart > teamEffectiveStart;
-    const hasNext = weekStart < currentWeek;
+    const hasNext = weekStart < currentWeekStart;
 
     // Format week label
     const formatWeekLabel = (date: Date) => {
@@ -449,9 +496,9 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
           },
           hasTeam: true,
           stats: {
-            weekPoints: teamTotals.weekPoints,
-            monthPoints: teamTotals.monthPoints,
-            seasonPoints: teamTotals.seasonPoints,
+            weekPoints: currentStats.weekPoints,
+            monthPoints: currentStats.monthPoints,
+            seasonPoints: currentStats.seasonPoints,
             weekRank,
             monthRank,
             seasonRank,
