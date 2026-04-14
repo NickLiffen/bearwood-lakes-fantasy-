@@ -518,6 +518,9 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
             weekRank,
             monthRank,
             seasonRank,
+            // Debug: current boundaries used for stats (remove after verification)
+            _debug_currentWeekStart: currentWeekStart.toISOString(),
+            _debug_selectedWeekStart: weekStart.toISOString(),
           },
           team: {
             golfers: golfersWithScores,
