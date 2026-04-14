@@ -265,8 +265,11 @@ async function migrate() {
         // Determine effective gameweek for this entry
         let effectiveGW: number;
 
-        if (entry.reason === 'Initial pick') {
-          // Initial pick → effective from GW1
+        // All pre-season changes (before GW1 starts) should be treated as GW1 updates,
+        // regardless of the reason. This includes "Initial pick", "Team selection", etc.
+        const entryDate = new Date(entry.changedAt);
+        const gw1StartDate = getFirstGameweekStart(seasonStartDate, firstGW);
+        if (entryDate < gw1StartDate || entry.reason === 'Initial pick') {
           effectiveGW = 1;
         } else if (
           entry.reason === 'Scheduled transfer' ||
@@ -281,6 +284,9 @@ async function migrate() {
           const weekStart = getWeekStart(entry.changedAt, firstGW);
           effectiveGW = getGameweekNumber(weekStart, seasonStartDate, firstGW);
         }
+
+        // Safety: clamp to at least GW1
+        if (effectiveGW < 1) effectiveGW = 1;
 
         const gwKey = String(effectiveGW);
 
