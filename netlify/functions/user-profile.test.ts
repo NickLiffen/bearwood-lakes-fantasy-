@@ -60,6 +60,7 @@ vi.mock('./_shared/utils/dates', () => ({
   getSeasonStart: vi.fn().mockReturnValue(new Date('2025-01-01')),
   getTeamEffectiveStartDate: vi.fn().mockImplementation((d: Date) => new Date(d)),
   getFirstGameweekStart: vi.fn().mockImplementation((seasonStart: Date) => new Date(seasonStart)),
+  getGameweekNumber: vi.fn().mockReturnValue(1),
 }));
 
 const mockSeason = {
@@ -347,5 +348,71 @@ describe('user-profile handler', () => {
     expect(res!.statusCode).toBe(500);
     expect(body.success).toBe(false);
     expect(body.error).toBe('DB error');
+  });
+
+  it('displays historical roster when gameweekRosters is present', async () => {
+    const gw1Golfer = new ObjectId();
+    const gw2Golfer = new ObjectId();
+    const user = {
+      _id: targetUserId,
+      firstName: 'Ash',
+      lastName: 'Brinsford',
+      username: 'ash',
+      createdAt: new Date('2025-01-01'),
+    };
+    const pick = {
+      userId: targetUserId,
+      golferIds: [gw2Golfer], // current team has only gw2Golfer
+      captainId: gw2Golfer,
+      allGolferIds: [gw1Golfer, gw2Golfer],
+      gameweekRosters: {
+        '1': { golferIds: [gw1Golfer], captainId: gw1Golfer },
+        '2': { golferIds: [gw2Golfer], captainId: gw2Golfer },
+      },
+      totalSpent: 10_000_000,
+      season: 2025,
+      createdAt: new Date('2025-01-05'),
+      updatedAt: new Date(),
+    };
+    // Only provide GW1 golfer — the mock find doesn't filter by $in,
+    // so this ensures we see the roster selection in action
+    const golfers = [
+      {
+        _id: gw1Golfer,
+        firstName: 'GW1',
+        lastName: 'Player',
+        picture: null,
+        price: 5_000_000,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ];
+
+    setupDb({
+      user,
+      pick,
+      allPicks: [pick],
+      golfers,
+    });
+
+    // Request GW1 — captainId should be gw1Golfer, not gw2Golfer
+    const res = await handler(
+      makeAuthEvent({
+        queryStringParameters: {
+          userId: targetUserId.toString(),
+          date: '2025-01-04',
+        },
+      }),
+      mockContext
+    );
+    const body = parseBody(res!);
+
+    expect(res!.statusCode).toBe(200);
+    expect(body.data.hasTeam).toBe(true);
+    expect(body.data.team.golfers).toHaveLength(1);
+    expect(body.data.team.golfers[0].golfer.firstName).toBe('GW1');
+    // Captain should be the GW1 captain, not the current pick captain
+    expect(body.data.captainId).toBe(gw1Golfer.toString());
   });
 });
