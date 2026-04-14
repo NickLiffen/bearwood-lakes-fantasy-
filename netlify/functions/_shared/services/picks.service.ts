@@ -13,7 +13,7 @@ import { GolferDocument, GOLFERS_COLLECTION } from '../models/Golfer';
 import { SettingDocument, SETTINGS_COLLECTION } from '../models/Settings';
 import { BUDGET_CAP, MAX_GOLFERS } from '../../../../shared/constants/rules';
 import type { Pick, PickWithGolfers, PickHistory } from '../../../../shared/types';
-import { getWeekStart, getGameweekNumber, getFirstGameweekStart, hasUnlimitedTransfers as checkUnlimitedTransfers, TEAM_ELIGIBILITY_HOUR } from '../utils/dates';
+import { getWeekStart, getGameweekNumber, hasUnlimitedTransfers as checkUnlimitedTransfers, TEAM_ELIGIBILITY_HOUR } from '../utils/dates';
 import { getActiveSeason } from './seasons.service';
 import type { GameweekRosterDocument } from '../models/Pick';
 
