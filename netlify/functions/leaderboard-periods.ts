@@ -16,6 +16,8 @@ import {
   getWeekEnd as getWeekEndShared,
   getMonthEnd,
   getFirstGameweekStart,
+  getNextWeekStart,
+  formatDateString,
 } from './_shared/utils/dates';
 import { getRedisClient, getRedisKeyPrefix } from './_shared/rateLimit';
 import {
@@ -63,6 +65,8 @@ interface PeriodInfo {
   gameweek?: number;
   hasPrevious: boolean;
   hasNext: boolean;
+  previousDate?: string | null;
+  nextDate?: string | null;
 }
 
 interface LeaderboardResponse {
@@ -417,13 +421,33 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
     const firstGameweekAnchor = getFirstGameweekStart(seasonStartDate, firstGW);
     let hasPrevious = false;
     let hasNext = false;
+    let previousDate: string | null = null;
+    let nextDate: string | null = null;
 
     if (period === 'week') {
       hasPrevious = periodStart > firstGameweekAnchor;
       hasNext = periodEnd < getWeekEnd(now, firstGW);
+      if (hasPrevious) {
+        const prev = new Date(periodStart);
+        prev.setDate(prev.getDate() - 1);
+        previousDate = formatDateString(getWeekStart(prev, firstGW));
+      }
+      if (hasNext) {
+        nextDate = formatDateString(getNextWeekStart(periodStart, firstGW));
+      }
     } else if (period === 'month') {
       hasPrevious = periodStart > firstGameweekAnchor;
       hasNext = periodEnd < getMonthEnd(now);
+      if (hasPrevious) {
+        previousDate = formatDateString(
+          new Date(periodStart.getFullYear(), periodStart.getMonth() - 1, 1)
+        );
+      }
+      if (hasNext) {
+        nextDate = formatDateString(
+          new Date(periodStart.getFullYear(), periodStart.getMonth() + 1, 1)
+        );
+      }
     }
 
     const response: LeaderboardResponse = {
@@ -437,6 +461,8 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
           period === 'week' ? getGameweekNumber(periodStart, seasonStartDate, firstGW) : undefined,
         hasPrevious,
         hasNext,
+        previousDate,
+        nextDate,
       },
       tournamentCount: currentData.tournamentCount,
     };

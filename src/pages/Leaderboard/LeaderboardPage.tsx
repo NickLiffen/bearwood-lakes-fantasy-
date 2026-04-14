@@ -192,32 +192,34 @@ const LeaderboardPage: React.FC = () => {
   const handleWeekNavigation = async (direction: 'prev' | 'next') => {
     if (!weeklyData?.period) return;
 
-    const currentDate = new Date(weeklyData.period.startDate);
-    const offset = direction === 'prev' ? -7 : 7;
-    currentDate.setDate(currentDate.getDate() + offset);
+    // Use backend-provided dates that correctly handle variable-length GW1
+    const targetDate =
+      direction === 'next'
+        ? weeklyData.period.nextDate
+        : weeklyData.period.previousDate;
 
-    const newDate = formatDateString(getSaturdayOfWeek(currentDate, season?.firstGameweekStart));
+    if (!targetDate) return;
 
-    setWeeklyDate(newDate);
+    setWeeklyDate(targetDate);
     setWeeklyPage(1);
-    const data = await fetchPeriodData('week', newDate);
+    const data = await fetchPeriodData('week', targetDate);
     if (data) setWeeklyData(data);
   };
 
   const handleMonthNavigation = async (direction: 'prev' | 'next') => {
     if (!monthlyData?.period) return;
 
-    const currentDate = new Date(monthlyData.period.startDate);
-    currentDate.setMonth(currentDate.getMonth() + (direction === 'prev' ? -1 : 1));
+    // Use backend-provided dates for month navigation
+    const targetDate =
+      direction === 'next'
+        ? monthlyData.period.nextDate
+        : monthlyData.period.previousDate;
 
-    // Use consistent date format
-    const year = currentDate.getFullYear();
-    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
-    const newDate = `${year}-${month}-01`;
+    if (!targetDate) return;
 
-    setMonthlyDate(newDate);
-    setMonthlyPage(1); // Reset pagination when changing period
-    const data = await fetchPeriodData('month', newDate);
+    setMonthlyDate(targetDate);
+    setMonthlyPage(1);
+    const data = await fetchPeriodData('month', targetDate);
     if (data) setMonthlyData(data);
   };
 
