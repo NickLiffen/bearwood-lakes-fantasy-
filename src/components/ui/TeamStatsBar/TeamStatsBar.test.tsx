@@ -11,9 +11,9 @@ describe('TeamStatsBar', () => {
 
   it('renders labels', () => {
     render(<TeamStatsBar weekPoints={0} monthPoints={0} seasonPoints={0} />);
-    expect(screen.getByText('Current Week')).toBeInTheDocument();
-    expect(screen.getByText('Current Month')).toBeInTheDocument();
-    expect(screen.getByText('Season Total')).toBeInTheDocument();
+    expect(screen.getByText('Current Week Total Points')).toBeInTheDocument();
+    expect(screen.getByText('Current Month Total Points')).toBeInTheDocument();
+    expect(screen.getByText('Current Season Total Points')).toBeInTheDocument();
   });
 
   it('renders ranks when provided', () => {
