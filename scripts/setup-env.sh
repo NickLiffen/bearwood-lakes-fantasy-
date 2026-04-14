@@ -11,7 +11,7 @@ npx netlify link --id "$SITE_ID"
 
 echo ""
 echo "📥 Pulling environment variables ..."
-npx netlify env:pull --force
+npx netlify env:list --plain --context dev > .env
 
 echo ""
 echo "✅ .env created — ready to use with 'netlify dev'"
