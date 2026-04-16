@@ -71,7 +71,8 @@ describe('tournament-parse-csv', () => {
 
     expect(response.statusCode).toBe(422);
     const body = parseBody(response);
-    expect(body.error).toContain('No golfer data');
+    expect(body.error).toContain('No golfer data found');
+    expect(body.error).toContain('Stableford Points');
   });
 
   it('returns 200 with parsed tournament data on success', async () => {

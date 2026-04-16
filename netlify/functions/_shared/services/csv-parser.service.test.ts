@@ -2,7 +2,30 @@ import {
   parseTournamentCsv,
   parsePlayerName,
   detectScoringFormatFromHeader,
+  parseCsvLine,
 } from './csv-parser.service';
+
+describe('parseCsvLine', () => {
+  it('splits simple comma-separated values', () => {
+    expect(parseCsvLine('1,John Pulley,41', ',')).toEqual(['1', 'John Pulley', '41']);
+  });
+
+  it('handles quoted fields containing delimiters', () => {
+    expect(parseCsvLine('1,"Pulley, John",41', ',')).toEqual(['1', 'Pulley, John', '41']);
+  });
+
+  it('handles escaped quotes inside quoted fields', () => {
+    expect(parseCsvLine('1,"O""Neill, Kevin",38', ',')).toEqual(['1', 'O"Neill, Kevin', '38']);
+  });
+
+  it('handles tab-delimited values', () => {
+    expect(parseCsvLine('1\tJohn Pulley\t41', '\t')).toEqual(['1', 'John Pulley', '41']);
+  });
+
+  it('handles empty fields', () => {
+    expect(parseCsvLine('1,,41', ',')).toEqual(['1', '', '41']);
+  });
+});
 
 describe('parsePlayerName', () => {
   it('splits "John Pulley" into first and last', () => {
@@ -172,6 +195,34 @@ abc,Invalid Player,xyz
       lastName: 'Pulley',
       rawScore: 41,
     });
+  });
+
+  it('handles quoted player names with commas', () => {
+    const csv = `Position,Player,Stableford Points
+1,"Pulley, John",41
+2,"O'Neill, Kevin",38`;
+
+    const result = parseTournamentCsv(csv);
+
+    expect(result.golfers).toHaveLength(2);
+    expect(result.golfers[0]).toEqual({
+      position: 1,
+      firstName: 'Pulley,',
+      lastName: 'John',
+      rawScore: 41,
+    });
+  });
+
+  it('handles T-prefix tied positions', () => {
+    const csv = `Position,Player,Stableford Points
+T24,Nick Liffen,34
+T24,Steve Smith,34`;
+
+    const result = parseTournamentCsv(csv);
+
+    expect(result.golfers).toHaveLength(2);
+    expect(result.golfers[0].position).toBe(24);
+    expect(result.golfers[1].position).toBe(24);
   });
 
   it('handles large field sizes', () => {

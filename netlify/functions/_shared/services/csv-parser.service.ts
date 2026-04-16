@@ -25,6 +25,54 @@ export function parsePlayerName(player: string): { firstName: string; lastName: 
 }
 
 /**
+ * Parse a single CSV line into fields, respecting quoted values.
+ * Handles commas inside quoted fields (e.g., `"Pulley, John"`)
+ * and escaped quotes (`""` inside quoted fields).
+ */
+export function parseCsvLine(line: string, delimiter: string): string[] {
+  const fields: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  let i = 0;
+
+  while (i < line.length) {
+    const char = line[i];
+
+    if (inQuotes) {
+      if (char === '"') {
+        if (i + 1 < line.length && line[i + 1] === '"') {
+          // Escaped quote
+          current += '"';
+          i += 2;
+        } else {
+          // End of quoted field
+          inQuotes = false;
+          i++;
+        }
+      } else {
+        current += char;
+        i++;
+      }
+    } else {
+      if (char === '"') {
+        inQuotes = true;
+        i++;
+      } else if (char === delimiter) {
+        fields.push(current);
+        current = '';
+        i++;
+      } else {
+        current += char;
+        i++;
+      }
+    }
+  }
+
+  fields.push(current);
+  return fields;
+}
+
+/**
  * Detect scoring format from the CSV header row.
  * "Stableford Points" → stableford, "Nett Score" / "Medal" → medal.
  */
@@ -68,14 +116,15 @@ export function parseTournamentCsv(csvText: string): ParsedTournament {
     const line = lines[i].trim();
     if (!line) continue;
 
-    const parts = line.split(delimiter);
+    const parts = parseCsvLine(line, delimiter);
     if (parts.length < 3) continue;
 
-    const positionStr = parts[0].trim().replace(/^"/, '').replace(/"$/, '');
-    const playerStr = parts[1].trim().replace(/^"/, '').replace(/"$/, '');
-    const scoreStr = parts[2].trim().replace(/^"/, '').replace(/"$/, '');
+    const positionStr = parts[0].trim();
+    const playerStr = parts[1].trim();
+    const scoreStr = parts[2].trim();
 
-    const position = parseInt(positionStr, 10);
+    // Strip optional "T" prefix for tied positions (e.g., "T24" → 24)
+    const position = parseInt(positionStr.replace(/^T/i, ''), 10);
     const rawScore = parseInt(scoreStr, 10);
 
     if (isNaN(position) || isNaN(rawScore)) continue;
