@@ -109,11 +109,17 @@ async function fix() {
     GW2_START.setDate(GW2_START.getDate() + 7);
     GW2_START.setHours(0, 0, 0, 0);
 
+    // Transfer deadline is 8am Saturday — matches TEAM_ELIGIBILITY_HOUR in the app.
+    // Transfers submitted before 8am on GW2's Saturday still count as GW1 transfers.
+    const TEAM_ELIGIBILITY_HOUR = 8;
+    const GW2_DEADLINE = new Date(GW2_START);
+    GW2_DEADLINE.setHours(TEAM_ELIGIBILITY_HOUR, 0, 0, 0);
+
     console.log(
       `\n🔧 Apply Missed GW1 Transfers ${isDryRun ? '(DRY RUN)' : '(APPLYING CHANGES)'}\n`
     );
     console.log(`📅 Season: ${season.name}`);
-    console.log(`📅 GW1: ${GW1_START.toISOString()} → ${GW2_START.toISOString()}`);
+    console.log(`📅 GW1: ${GW1_START.toISOString()} → ${GW2_DEADLINE.toISOString()} (8am deadline)`);
     console.log('');
 
     // === Fetch golfer names and prices ===
@@ -140,7 +146,7 @@ async function fix() {
       .collection<PickHistoryDoc>('pickHistory')
       .find({
         season: seasonNum,
-        changedAt: { $gte: GW1_START, $lt: GW2_START },
+        changedAt: { $gte: GW1_START, $lt: GW2_DEADLINE },
         reason: { $in: ['Scheduled transfer', 'Scheduled captain change'] },
       })
       .sort({ changedAt: 1 })
@@ -190,7 +196,7 @@ async function fix() {
       // is within the GW1 window — this means the transfer was never applied.
       const hasGW1Pending = pick.pendingChangedAt
         && new Date(pick.pendingChangedAt) >= GW1_START
-        && new Date(pick.pendingChangedAt) < GW2_START;
+        && new Date(pick.pendingChangedAt) < GW2_DEADLINE;
 
       // === Check if gameweekRosters["2"] is correct ===
       const gw2Roster = pick.gameweekRosters?.['2'];

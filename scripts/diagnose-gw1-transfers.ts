@@ -103,10 +103,16 @@ async function diagnose() {
     GW2_START.setDate(GW2_START.getDate() + 7);
     GW2_START.setHours(0, 0, 0, 0);
 
+    // Transfer deadline is 8am Saturday — matches TEAM_ELIGIBILITY_HOUR in the app.
+    // Transfers submitted before 8am on GW2's Saturday still count as GW1 transfers.
+    const TEAM_ELIGIBILITY_HOUR = 8;
+    const GW2_DEADLINE = new Date(GW2_START);
+    GW2_DEADLINE.setHours(TEAM_ELIGIBILITY_HOUR, 0, 0, 0);
+
     console.log('\n🔍 GW1 Transfer Diagnosis (READ-ONLY)\n');
     console.log(`📅 Season: ${season.name}`);
     console.log(`📅 firstGameweekStart: ${firstGWConfig?.toISOString() || 'not set'}`);
-    console.log(`📅 GW1: ${GW1_START.toISOString()} → ${GW2_START.toISOString()}`);
+    console.log(`📅 GW1: ${GW1_START.toISOString()} → ${GW2_DEADLINE.toISOString()} (8am deadline)`);
     console.log('');
 
     // === Fetch all golfer and user names ===
@@ -133,7 +139,7 @@ async function diagnose() {
       .collection<PickHistoryDoc>('pickHistory')
       .find({
         season: seasonNum,
-        changedAt: { $gte: GW1_START, $lt: GW2_START },
+        changedAt: { $gte: GW1_START, $lt: GW2_DEADLINE },
         reason: { $in: ['Scheduled transfer', 'Scheduled captain change'] },
       })
       .sort({ changedAt: 1 })
@@ -146,7 +152,7 @@ async function diagnose() {
       .collection<PickDoc>('picks')
       .find({
         season: seasonNum,
-        pendingChangedAt: { $gte: GW1_START, $lt: GW2_START },
+        pendingChangedAt: { $gte: GW1_START, $lt: GW2_DEADLINE },
       })
       .toArray();
 
@@ -222,7 +228,7 @@ async function diagnose() {
       // Is pendingChangedAt still from GW1? (transfer still unapplied)
       const hasGW1Pending = pick.pendingChangedAt
         && new Date(pick.pendingChangedAt) >= GW1_START
-        && new Date(pick.pendingChangedAt) < GW2_START;
+        && new Date(pick.pendingChangedAt) < GW2_DEADLINE;
 
       // Does golferIds match the expected post-transfer team?
       const golferIdsCorrect = sameIdSets(currentGolferIds, expectedGolferIds);
