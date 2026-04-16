@@ -7,7 +7,7 @@ import { parsePdfBuffer } from './pdf-parser.service';
 
 describe('parsePdfBuffer integration', () => {
   it('parses the Masters Score PDF (spaced-character format) end-to-end', async () => {
-    const fixturePath = resolve(__dirname, '__fixtures__/masters-score.pdf');
+    const fixturePath = resolve(import.meta.dirname, '__fixtures__/masters-score.pdf');
     const buffer = Buffer.from(readFileSync(fixturePath));
 
     const result = await parsePdfBuffer(buffer);
