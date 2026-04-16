@@ -70,7 +70,15 @@ export const handler = withVerifiedAuth(async (event) => {
     const picks = await db
       .collection<PickDocument>(PICKS_COLLECTION)
       .find({ season: currentSeason })
-      .project({ userId: 1, golferIds: 1, captainId: 1, totalSpent: 1, createdAt: 1, gameweekRosters: 1, allGolferIds: 1 })
+      .project({
+        userId: 1,
+        golferIds: 1,
+        captainId: 1,
+        totalSpent: 1,
+        createdAt: 1,
+        gameweekRosters: 1,
+        allGolferIds: 1,
+      })
       .toArray();
 
     const memberPicks = picks.filter((p) => memberSet.has(p.userId.toString()));

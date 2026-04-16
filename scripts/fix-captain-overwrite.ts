@@ -24,6 +24,54 @@ const MONGODB_URI = process.env.MONGODB_URI || process.env.MONGO_URI || '';
 const MONGODB_DB_NAME = process.env.MONGODB_DB_NAME || 'bearwood-fantasy';
 const isDryRun = !process.argv.includes('--apply');
 
+interface SeasonDoc {
+  _id: ObjectId;
+  name: string;
+  startDate?: Date;
+  firstGameweekStart?: Date;
+  isActive?: boolean;
+}
+
+interface GolferDoc {
+  _id: ObjectId;
+  firstName: string;
+  lastName: string;
+  price?: number;
+}
+
+interface UserDoc {
+  _id: ObjectId;
+  firstName?: string;
+  lastName?: string;
+  username: string;
+}
+
+interface PickHistoryEntry {
+  _id: ObjectId;
+  userId: ObjectId;
+  season: number;
+  reason: string;
+  changedAt: Date;
+  golferIds: ObjectId[];
+  captainId?: ObjectId | null;
+}
+
+interface GameweekRoster {
+  golferIds: ObjectId[];
+  captainId?: ObjectId | null;
+}
+
+interface PickDoc {
+  _id: ObjectId;
+  userId: ObjectId;
+  season: number;
+  golferIds: ObjectId[];
+  allGolferIds?: ObjectId[];
+  captainId?: ObjectId | null;
+  totalSpent?: number;
+  gameweekRosters?: Record<string, GameweekRoster>;
+}
+
 function getSeasonFirstSaturday(date: Date): Date {
   const d = new Date(date);
   while (d.getDay() !== 6) d.setDate(d.getDate() + 1);
@@ -49,10 +97,17 @@ async function fix() {
   const db = client.db(MONGODB_DB_NAME);
 
   try {
-    const season = await db.collection('seasons').findOne({ isActive: true }) as any;
-    if (!season) { console.error('❌ No active season.'); process.exit(1); }
+    const season = await db.collection<SeasonDoc>('seasons').findOne({ isActive: true });
+    if (!season) {
+      console.error('❌ No active season.');
+      process.exit(1);
+    }
 
     const seasonNum = parseInt(season.name, 10) || new Date().getFullYear();
+    if (!season.startDate) {
+      console.error('❌ Active season has no startDate.');
+      process.exit(1);
+    }
     const GW1_START = season.firstGameweekStart
       ? new Date(season.firstGameweekStart)
       : getSeasonFirstSaturday(new Date(season.startDate));
@@ -61,17 +116,23 @@ async function fix() {
     GW2_DEADLINE.setDate(GW2_DEADLINE.getDate() + 7);
     GW2_DEADLINE.setHours(8, 0, 0, 0);
 
-    console.log(`\n🔧 Fix Captain-Overwrite Bug ${isDryRun ? '(DRY RUN)' : '(APPLYING CHANGES)'}\n`);
+    console.log(
+      `\n🔧 Fix Captain-Overwrite Bug ${isDryRun ? '(DRY RUN)' : '(APPLYING CHANGES)'}\n`
+    );
 
     // Get all GW1 scheduled entries
-    const entries = await db.collection('pickHistory').find({
-      season: seasonNum,
-      changedAt: { $gte: GW1_START, $lt: GW2_DEADLINE },
-      reason: { $in: ['Scheduled transfer', 'Scheduled captain change'] },
-    }).sort({ changedAt: 1 }).toArray();
+    const entries = await db
+      .collection<PickHistoryEntry>('pickHistory')
+      .find({
+        season: seasonNum,
+        changedAt: { $gte: GW1_START, $lt: GW2_DEADLINE },
+        reason: { $in: ['Scheduled transfer', 'Scheduled captain change'] },
+      })
+      .sort({ changedAt: 1 })
+      .toArray();
 
     // Group by user
-    const byUser = new Map<string, any[]>();
+    const byUser = new Map<string, PickHistoryEntry[]>();
     for (const e of entries) {
       const uid = e.userId.toString();
       if (!byUser.has(uid)) byUser.set(uid, []);
@@ -79,18 +140,26 @@ async function fix() {
     }
 
     // Get names
-    const golferDocs = await db.collection('golfers').find({}).toArray();
-    const golferNames = new Map(golferDocs.map((g: any) => [g._id.toString(), `${g.firstName} ${g.lastName}`]));
-    const golferPrices = new Map(golferDocs.map((g: any) => [g._id.toString(), (g.price as number) || 0]));
-    const userDocs = await db.collection('users').find({}).project({ firstName: 1, lastName: 1, username: 1 }).toArray();
-    const userNames = new Map(userDocs.map((u: any) => [u._id.toString(), `${u.firstName} ${u.lastName} (@${u.username})`]));
+    const golferDocs = await db.collection<GolferDoc>('golfers').find({}).toArray();
+    const golferNames = new Map(
+      golferDocs.map((g) => [g._id.toString(), `${g.firstName} ${g.lastName}`])
+    );
+    const golferPrices = new Map(golferDocs.map((g) => [g._id.toString(), g.price ?? 0]));
+    const userDocs = await db
+      .collection<UserDoc>('users')
+      .find({})
+      .project<UserDoc>({ firstName: 1, lastName: 1, username: 1 })
+      .toArray();
+    const userNames = new Map(
+      userDocs.map((u) => [u._id.toString(), `${u.firstName} ${u.lastName} (@${u.username})`])
+    );
 
     let fixed = 0;
 
     for (const [userId, userEntries] of Array.from(byUser)) {
       // Find last transfer followed by captain change with different golferIds
-      let lastTransfer: any = null;
-      let captainAfterTransfer: any = null;
+      let lastTransfer: PickHistoryEntry | null = null;
+      let captainAfterTransfer: PickHistoryEntry | null = null;
 
       for (const e of userEntries) {
         if (e.reason === 'Scheduled transfer') {
@@ -107,26 +176,30 @@ async function fix() {
       const userName = userNames.get(userId) || userId;
 
       // Correct state: golferIds from transfer, captainId from captain change
-      const correctGolferIds = lastTransfer.golferIds as ObjectId[];
+      const correctGolferIds = lastTransfer.golferIds;
       const correctCaptainId = captainAfterTransfer.captainId || null;
 
-      const pick = await db.collection('picks').findOne({
+      const pick = await db.collection<PickDoc>('picks').findOne({
         userId: new ObjectId(userId),
         season: seasonNum,
-      }) as any;
+      });
       if (!pick) continue;
 
       const updateSet: Record<string, unknown> = { updatedAt: new Date() };
       const changes: string[] = [];
 
       // Fix gameweekRosters["2"]
-      const rosterEntry = {
+      const rosterEntry: GameweekRoster = {
         golferIds: correctGolferIds,
         captainId: correctCaptainId,
       };
       updateSet['gameweekRosters.2'] = rosterEntry;
-      const rosterNames = correctGolferIds.map((id: any) => golferNames.get(id.toString()) || id).join(', ');
-      const capName = correctCaptainId ? golferNames.get(correctCaptainId.toString()) || 'unknown' : 'none';
+      const rosterNames = correctGolferIds
+        .map((id) => golferNames.get(id.toString()) || id.toString())
+        .join(', ');
+      const capName = correctCaptainId
+        ? golferNames.get(correctCaptainId.toString()) || 'unknown'
+        : 'none';
       changes.push(`   gameweekRosters["2"]: [${rosterNames}] captain: ${capName}`);
 
       // Fix golferIds if no GW2+ activity
@@ -140,10 +213,13 @@ async function fix() {
         if (gw2PlusCount === 0) {
           updateSet.golferIds = correctGolferIds;
           const newTotal = correctGolferIds.reduce(
-            (sum: number, id: any) => sum + (golferPrices.get(id.toString()) || 0), 0
+            (sum, id) => sum + (golferPrices.get(id.toString()) ?? 0),
+            0
           );
           updateSet.totalSpent = newTotal;
-          const oldNames = pick.golferIds.map((id: any) => golferNames.get(id.toString()) || id).join(', ');
+          const oldNames = pick.golferIds
+            .map((id) => golferNames.get(id.toString()) || id.toString())
+            .join(', ');
           changes.push(`   golferIds: [${oldNames}] → [${rosterNames}]`);
         } else {
           changes.push(`   golferIds: ⚠️  stale but ${gw2PlusCount} GW2+ changes — NOT touching`);
@@ -156,7 +232,7 @@ async function fix() {
       for (const id of pick.golferIds) allIds.add(id.toString());
       for (const id of correctGolferIds) allIds.add(id.toString());
       if (pick.gameweekRosters) {
-        for (const r of Object.values(pick.gameweekRosters) as any[]) {
+        for (const r of Object.values(pick.gameweekRosters)) {
           for (const id of r.golferIds) allIds.add(id.toString());
         }
       }
@@ -184,4 +260,7 @@ async function fix() {
   }
 }
 
-fix().catch((err) => { console.error('❌ Failed:', err); process.exit(1); });
+fix().catch((err) => {
+  console.error('❌ Failed:', err);
+  process.exit(1);
+});

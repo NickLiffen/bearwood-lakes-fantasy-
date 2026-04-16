@@ -27,7 +27,12 @@ import {
   getNextWeekStart,
   formatDateString,
 } from './_shared/utils/dates';
-import { calculatePickPoints, calculateGolferContribution, getRosterForGameweek, type RosterSnapshot } from './_shared/utils/scoring';
+import {
+  calculatePickPoints,
+  calculateGolferContribution,
+  getRosterForGameweek,
+  type RosterSnapshot,
+} from './_shared/utils/scoring';
 import type { TimeBoundaries } from './_shared/utils/scoring';
 import { getActiveSeason } from './_shared/services/seasons.service';
 import { applyPendingChanges } from './_shared/services/picks.service';
@@ -126,9 +131,10 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
     }
 
     // Get golfers for this pick — use allGolferIds to cover historical roster
-    const scoreGolferIds = (pick.allGolferIds && pick.allGolferIds.length > 0)
-      ? pick.allGolferIds.map((id) => new ObjectId(id))
-      : pick.golferIds.map((id) => new ObjectId(id));
+    const scoreGolferIds =
+      pick.allGolferIds && pick.allGolferIds.length > 0
+        ? pick.allGolferIds.map((id) => new ObjectId(id))
+        : pick.golferIds.map((id) => new ObjectId(id));
 
     // Convert gameweekRosters for scoring helpers
     let gameweekRosters: Record<string, RosterSnapshot> | null = null;
@@ -165,11 +171,7 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
     let displayCaptainId: string | null | undefined = pick.captainId?.toString();
 
     if (gameweekRosters) {
-      const selectedGW = getGameweekNumber(
-        weekStart,
-        seasonStartDate || seasonFirstSat,
-        firstGW
-      );
+      const selectedGW = getGameweekNumber(weekStart, seasonStartDate || seasonFirstSat, firstGW);
       const roster = getRosterForGameweek(gameweekRosters, selectedGW);
       if (roster) {
         displayGolferIds = roster.golferIds.map((id) => new ObjectId(id));
@@ -296,7 +298,8 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
       });
       const monthScores = formattedScores.filter((s) => {
         const date = new Date(s.tournamentDate);
-        if (date < selectedMonthStart || date > selectedMonthEnd || date < teamEffectiveStart) return false;
+        if (date < selectedMonthStart || date > selectedMonthEnd || date < teamEffectiveStart)
+          return false;
         if (hasRosters) {
           const gw = getGameweekNumber(
             getWeekStart(date, firstGW),
@@ -361,7 +364,10 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
 
     // Current stats for the HEADER — always reflect "right now", not the selected GW.
     // Uses calculatePickPoints with currentBoundaries against allGolferIds.
-    const scoresByGolferTournament = new Map<string, Map<string, { golferId: ObjectId; tournamentId: ObjectId; multipliedPoints: number }>>();
+    const scoresByGolferTournament = new Map<
+      string,
+      Map<string, { golferId: ObjectId; tournamentId: ObjectId; multipliedPoints: number }>
+    >();
     for (const score of scores) {
       const gid = score.golferId.toString();
       const tid = score.tournamentId.toString();
@@ -492,11 +498,7 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
     };
 
     // Compute gameweek number for display
-    const selectedGWNum = getGameweekNumber(
-      weekStart,
-      seasonStartDate || seasonFirstSat,
-      firstGW
-    );
+    const selectedGWNum = getGameweekNumber(weekStart, seasonStartDate || seasonFirstSat, firstGW);
 
     return {
       statusCode: 200,

@@ -88,7 +88,12 @@ const TournamentUploadPage: React.FC = () => {
 
   // Populate the review form from parsed data
   const populateReview = (
-    parsed: { name: string; date: string; scoringFormat: 'stableford' | 'medal'; golfers: ParsedGolfer[] },
+    parsed: {
+      name: string;
+      date: string;
+      scoringFormat: 'stableford' | 'medal';
+      golfers: ParsedGolfer[];
+    },
     fallbackName: string
   ) => {
     setTournamentName(parsed.name || fallbackName);

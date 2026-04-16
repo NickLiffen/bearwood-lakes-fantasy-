@@ -35,8 +35,7 @@ export const handler = withRole(
       return apiResponse(422, null, messages);
     }
 
-    const message =
-      error instanceof Error ? error.message : 'Failed to parse CSV.';
+    const message = error instanceof Error ? error.message : 'Failed to parse CSV.';
     return apiResponse(400, null, message);
   }
 });

@@ -23,6 +23,7 @@ Is user authenticated?
 **Context**: User has a project that has never been deployed to Netlify.
 
 **Steps**:
+
 1. Check authentication: `npx netlify status`
 2. If not authenticated: `npx netlify login`
 3. Initialize new site: `npx netlify init`
@@ -34,6 +35,7 @@ Is user authenticated?
 **Context**: User has a site already on Netlify and wants to link their local repo.
 
 **Steps**:
+
 1. Check authentication: `npx netlify status`
 2. Get Git remote: `git remote show origin`
 3. Link by remote: `npx netlify link --git-remote-url <URL>`
@@ -44,6 +46,7 @@ Is user authenticated?
 **Context**: User wants to test changes before pushing to production.
 
 **Steps**:
+
 1. Ensure site is linked: `npx netlify status`
 2. Make code changes
 3. Deploy preview: `npx netlify deploy`
@@ -53,6 +56,7 @@ Is user authenticated?
 ## Scenario 4: Framework-Specific Deployments
 
 ### Next.js
+
 ```toml
 [build]
   command = "npm run build"
@@ -60,6 +64,7 @@ Is user authenticated?
 ```
 
 ### React (Vite)
+
 ```toml
 [build]
   command = "npm run build"
@@ -67,6 +72,7 @@ Is user authenticated?
 ```
 
 ### Static HTML
+
 ```bash
 npx netlify deploy --dir=. --prod
 ```
@@ -74,6 +80,7 @@ npx netlify deploy --dir=. --prod
 ## Scenario 5: Monorepo Deployment
 
 Set base in netlify.toml:
+
 ```toml
 [build]
   base = "packages/frontend"
@@ -92,18 +99,22 @@ Set base in netlify.toml:
 ## Error Recovery Patterns
 
 ### "Publish directory not found"
+
 Run build locally: `npm run build`, check output directory name, update netlify.toml.
 
 ### "Command failed with exit code 1"
+
 Run build locally to reproduce: `npm run build`, fix the error, deploy again.
 
 ### "Not logged in"
+
 ```bash
 npx netlify logout
 npx netlify login
 ```
 
 ### "No site linked"
+
 ```bash
 npx netlify link    # or
 npx netlify init

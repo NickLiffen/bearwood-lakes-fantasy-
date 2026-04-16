@@ -875,9 +875,7 @@ const TeamBuilderPage: React.FC = () => {
             {filteredGolfers.length === 0 && (
               <div className="no-results">
                 <div className="no-results-icon">{isEmptyDueToBudget ? '💰' : '🔍'}</div>
-                <h3>
-                  {isEmptyDueToBudget ? 'No golfers within budget' : 'No golfers found'}
-                </h3>
+                <h3>{isEmptyDueToBudget ? 'No golfers within budget' : 'No golfers found'}</h3>
                 <p>
                   {isEmptyDueToBudget
                     ? `No golfers are priced at or below your remaining ${formatPrice(budgetRemaining)}. Try removing a golfer to free up budget.`

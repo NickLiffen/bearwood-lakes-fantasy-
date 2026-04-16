@@ -98,9 +98,7 @@ async function fix() {
     process.exit(1);
   }
 
-  const firstGWConfig = season.firstGameweekStart
-    ? new Date(season.firstGameweekStart)
-    : null;
+  const firstGWConfig = season.firstGameweekStart ? new Date(season.firstGameweekStart) : null;
 
   // GW1 start = firstGameweekStart (or first Saturday of season)
   const GW1_START = firstGWConfig || getSeasonFirstSaturday(new Date(season.startDate));
@@ -111,9 +109,7 @@ async function fix() {
   GW2_START.setDate(GW2_START.getDate() + 7);
   GW2_START.setHours(0, 0, 0, 0);
 
-  console.log(
-    `\n🔧 Fix Gameweek Rosters ${isDryRun ? '(DRY RUN)' : '(APPLYING CHANGES)'}\n`
-  );
+  console.log(`\n🔧 Fix Gameweek Rosters ${isDryRun ? '(DRY RUN)' : '(APPLYING CHANGES)'}\n`);
   console.log(`📅 Season: ${season.name}`);
   console.log(`📅 firstGameweekStart (from DB): ${firstGWConfig?.toISOString() || 'not set'}`);
   console.log(`📅 GW1: ${GW1_START.toISOString()} → ${GW2_START.toISOString()}`);
@@ -200,9 +196,8 @@ async function fix() {
 
       // === Determine if this team existed before GW1 ===
       const pickCreatedAt = new Date(pick.createdAt);
-      const firstHistoryDate = userHistory.length > 0
-        ? new Date(userHistory[0].changedAt)
-        : pickCreatedAt;
+      const firstHistoryDate =
+        userHistory.length > 0 ? new Date(userHistory[0].changedAt) : pickCreatedAt;
       const teamExistedBeforeGW1 = firstHistoryDate < GW1_START || pickCreatedAt < GW1_START;
       const teamExistedBeforeGW2 = firstHistoryDate < GW2_START || pickCreatedAt < GW2_START;
 
@@ -242,15 +237,20 @@ async function fix() {
         if (pick.gameweekRosters) {
           const hasNegativeKeys = Object.keys(pick.gameweekRosters).some((k) => Number(k) <= 0);
           if (hasNegativeKeys) {
-            const cleanedRosters: Record<string, { golferIds: ObjectId[]; captainId: ObjectId | null }> = {};
+            const cleanedRosters: Record<
+              string,
+              { golferIds: ObjectId[]; captainId: ObjectId | null }
+            > = {};
             for (const [k, v] of Object.entries(pick.gameweekRosters)) {
               if (Number(k) > 0) cleanedRosters[k] = v;
             }
             if (!isDryRun) {
-              await db.collection<PickDoc>('picks').updateOne(
-                { _id: pick._id },
-                { $set: { gameweekRosters: cleanedRosters, updatedAt: new Date() } }
-              );
+              await db
+                .collection<PickDoc>('picks')
+                .updateOne(
+                  { _id: pick._id },
+                  { $set: { gameweekRosters: cleanedRosters, updatedAt: new Date() } }
+                );
             }
             console.log(`🧹 ${userName}: Cleaned negative keys only (team created after GW2)\n`);
             fixed++;
@@ -280,13 +280,12 @@ async function fix() {
             gw2Golfers = entry.golferIds;
             gw2Captain = entry.captainId || null;
             hasGW2Transfer = true;
-          } else if (
-            entry.reason === 'Team selection' ||
-            entry.reason === 'Captain change'
-          ) {
+          } else if (entry.reason === 'Team selection' || entry.reason === 'Captain change') {
             // Immediate change during GW1 (unlimited transfers for new teams)
             // Log as exceptional for visibility
-            console.log(`   ⚠️  Immediate "${entry.reason}" during GW1 at ${changedAt.toISOString()}`);
+            console.log(
+              `   ⚠️  Immediate "${entry.reason}" during GW1 at ${changedAt.toISOString()}`
+            );
             gw1Golfers = entry.golferIds;
             gw1Captain = entry.captainId || null;
             if (!hasGW2Transfer) {
@@ -325,9 +324,7 @@ async function fix() {
         }
         // If still no captain for GW2, inherit from GW1 if on the team
         if (!gw2Captain && gw1Captain) {
-          const captainOnGW2 = gw2Golfers.some(
-            (id) => id.toString() === gw1Captain!.toString()
-          );
+          const captainOnGW2 = gw2Golfers.some((id) => id.toString() === gw1Captain!.toString());
           if (captainOnGW2) {
             gw2Captain = gw1Captain;
           }

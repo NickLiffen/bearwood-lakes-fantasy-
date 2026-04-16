@@ -44,7 +44,7 @@ describe('parsePlayerName', () => {
   });
 
   it('handles names with multiple spaces (first space is the split point)', () => {
-    expect(parsePlayerName('Kevin O\'Neill')).toEqual({
+    expect(parsePlayerName("Kevin O'Neill")).toEqual({
       firstName: 'Kevin',
       lastName: "O'Neill",
     });

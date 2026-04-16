@@ -28,14 +28,14 @@ npm install openai
 ```
 
 ```typescript
-import OpenAI from "openai";
+import OpenAI from 'openai';
 
 const openai = new OpenAI();
 // OPENAI_BASE_URL is auto-configured — no API key or base URL needed
 
 const completion = await openai.chat.completions.create({
-  model: "gpt-4o-mini",
-  messages: [{ role: "user", content: "Hello!" }],
+  model: 'gpt-4o-mini',
+  messages: [{ role: 'user', content: 'Hello!' }],
 });
 ```
 
@@ -46,16 +46,16 @@ npm install @anthropic-ai/sdk
 ```
 
 ```typescript
-import Anthropic from "@anthropic-ai/sdk";
+import Anthropic from '@anthropic-ai/sdk';
 
 const client = new Anthropic({
-  baseURL: Netlify.env.get("ANTHROPIC_BASE_URL"),
+  baseURL: Netlify.env.get('ANTHROPIC_BASE_URL'),
 });
 
 const message = await client.messages.create({
-  model: "claude-sonnet-4-5-20250929",
+  model: 'claude-sonnet-4-5-20250929',
   max_tokens: 1024,
-  messages: [{ role: "user", content: "Hello!" }],
+  messages: [{ role: 'user', content: 'Hello!' }],
 });
 ```
 
@@ -66,29 +66,29 @@ npm install @google/generative-ai
 ```
 
 ```typescript
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // The API key parameter is required by the SDK but unused when AI Gateway
 // handles authentication. Pass any non-empty string.
-const genAI = new GoogleGenerativeAI("unused-with-ai-gateway");
+const genAI = new GoogleGenerativeAI('unused-with-ai-gateway');
 
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-const result = await model.generateContent("Hello!");
+const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+const result = await model.generateContent('Hello!');
 ```
 
 ## In a Netlify Function
 
 ```typescript
-import type { Config, Context } from "@netlify/functions";
-import OpenAI from "openai";
+import type { Config, Context } from '@netlify/functions';
+import OpenAI from 'openai';
 
 export default async (req: Request, context: Context) => {
   const { prompt } = await req.json();
   const openai = new OpenAI();
 
   const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [{ role: "user", content: prompt }],
+    model: 'gpt-4o-mini',
+    messages: [{ role: 'user', content: prompt }],
   });
 
   return Response.json({
@@ -97,16 +97,16 @@ export default async (req: Request, context: Context) => {
 };
 
 export const config: Config = {
-  path: "/api/ai",
-  method: "POST",
+  path: '/api/ai',
+  method: 'POST',
 };
 ```
 
 ## Environment Variables
 
-| Variable | Provider | Set by |
-|---|---|---|
-| `OPENAI_BASE_URL` | OpenAI | Netlify (automatic) |
+| Variable             | Provider  | Set by              |
+| -------------------- | --------- | ------------------- |
+| `OPENAI_BASE_URL`    | OpenAI    | Netlify (automatic) |
 | `ANTHROPIC_BASE_URL` | Anthropic | Netlify (automatic) |
 
 These are configured automatically when AI is enabled on the site. No manual setup required.

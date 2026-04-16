@@ -18,7 +18,11 @@ import {
   getTeamEffectiveStartDate,
 } from './_shared/utils/dates';
 import { getActiveSeason } from './_shared/services/seasons.service';
-import { calculateGolferContribution, type TimeBoundaries, type RosterSnapshot } from './_shared/utils/scoring';
+import {
+  calculateGolferContribution,
+  type TimeBoundaries,
+  type RosterSnapshot,
+} from './_shared/utils/scoring';
 import { applyPendingChanges } from './_shared/services/picks.service';
 
 interface GolferWithPoints {
@@ -107,15 +111,17 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
     // Get all unique golfer IDs from both teams — include historical rosters
     const allGolferIds = new Set<string>();
     if (currentPick) {
-      const ids = (currentPick.allGolferIds && currentPick.allGolferIds.length > 0)
-        ? currentPick.allGolferIds
-        : currentPick.golferIds;
+      const ids =
+        currentPick.allGolferIds && currentPick.allGolferIds.length > 0
+          ? currentPick.allGolferIds
+          : currentPick.golferIds;
       ids.forEach((id) => allGolferIds.add(id.toString()));
     }
     if (targetPick) {
-      const ids = (targetPick.allGolferIds && targetPick.allGolferIds.length > 0)
-        ? targetPick.allGolferIds
-        : targetPick.golferIds;
+      const ids =
+        targetPick.allGolferIds && targetPick.allGolferIds.length > 0
+          ? targetPick.allGolferIds
+          : targetPick.golferIds;
       ids.forEach((id) => allGolferIds.add(id.toString()));
     }
 

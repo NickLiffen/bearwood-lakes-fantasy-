@@ -67,9 +67,8 @@ export const handler: Handler = withVerifiedAuth(async () => {
     // Get all golfer IDs from picks — use allGolferIds to cover historical rosters
     const allGolferIds = new Set<string>();
     for (const pick of picks) {
-      const ids = (pick.allGolferIds && pick.allGolferIds.length > 0)
-        ? pick.allGolferIds
-        : pick.golferIds;
+      const ids =
+        pick.allGolferIds && pick.allGolferIds.length > 0 ? pick.allGolferIds : pick.golferIds;
       for (const golferId of ids) {
         allGolferIds.add(golferId.toString());
       }

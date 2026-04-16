@@ -196,8 +196,7 @@ const UserProfilePage: React.FC = () => {
     if (!period) return;
 
     // Use backend-provided dates that correctly handle variable-length GW1
-    const targetDate =
-      direction === 'next' ? period.nextDate : period.previousDate;
+    const targetDate = direction === 'next' ? period.nextDate : period.previousDate;
 
     if (targetDate) {
       setSelectedDate(targetDate);

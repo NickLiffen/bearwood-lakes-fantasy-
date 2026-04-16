@@ -17,9 +17,23 @@ vi.mock('../db', () => ({
   connectToDatabase: vi.fn(),
 }));
 
-// Mock the seasons service used internally by picks.service
+// Mock the seasons service used internally by picks.service.
+// IMPORTANT: include startDate + firstGameweekStart. Historically this mock
+// returned only { id, name, isActive } which caused picks.service → dates.ts →
+// getSeasonFirstSaturday to hit an Invalid Date and loop forever, hanging the
+// entire vitest worker pool.
 vi.mock('./seasons.service', () => ({
-  getActiveSeason: vi.fn().mockResolvedValue({ id: '1', name: '2025', isActive: true }),
+  getActiveSeason: vi.fn().mockResolvedValue({
+    id: '1',
+    name: '2025',
+    startDate: new Date('2025-04-01T00:00:00Z'),
+    endDate: new Date('2026-03-30T23:59:59Z'),
+    firstGameweekStart: new Date('2025-04-05T00:00:00Z'),
+    isActive: true,
+    status: 'active',
+    createdAt: new Date('2025-01-01T00:00:00Z'),
+    updatedAt: new Date('2025-01-01T00:00:00Z'),
+  }),
 }));
 
 const mockPicksCollection = {

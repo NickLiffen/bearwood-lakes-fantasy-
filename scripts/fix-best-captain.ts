@@ -44,7 +44,11 @@ async function fix() {
     );
 
     // Get golfer names
-    const golferDocs = await db.collection('golfers').find({}).project({ firstName: 1, lastName: 1 }).toArray();
+    const golferDocs = await db
+      .collection('golfers')
+      .find({})
+      .project({ firstName: 1, lastName: 1 })
+      .toArray();
     const golferNames = new Map(
       golferDocs.map((g) => [g._id.toString(), `${g.firstName} ${g.lastName}`])
     );
@@ -63,9 +67,7 @@ async function fix() {
     // Get all scores with tournament dates
     const scores = await db.collection('scores').find({}).toArray();
     const tournaments = await db.collection('tournaments').find({}).project({ date: 1 }).toArray();
-    const tournamentDates = new Map(
-      tournaments.map((t) => [t._id.toString(), new Date(t.date)])
-    );
+    const tournamentDates = new Map(tournaments.map((t) => [t._id.toString(), new Date(t.date)]));
 
     // Build golfer -> total points per gameweek
     // GW1 scores: tournaments with date in GW1 range
@@ -94,10 +96,16 @@ async function fix() {
     for (const pick of picks) {
       const userId = pick.userId.toString();
       const userName = userNames.get(userId) || userId;
-      if (userName.includes('@admin')) { unchanged++; continue; }
+      if (userName.includes('@admin')) {
+        unchanged++;
+        continue;
+      }
 
       const rosters = pick.gameweekRosters;
-      if (!rosters) { unchanged++; continue; }
+      if (!rosters) {
+        unchanged++;
+        continue;
+      }
 
       let changed = false;
       const updates: Record<string, unknown> = {};

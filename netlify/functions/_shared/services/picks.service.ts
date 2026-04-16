@@ -13,7 +13,12 @@ import { GolferDocument, GOLFERS_COLLECTION } from '../models/Golfer';
 import { SettingDocument, SETTINGS_COLLECTION } from '../models/Settings';
 import { BUDGET_CAP, MAX_GOLFERS } from '../../../../shared/constants/rules';
 import type { Pick, PickWithGolfers, PickHistory } from '../../../../shared/types';
-import { getWeekStart, getGameweekNumber, hasUnlimitedTransfers as checkUnlimitedTransfers, getTransferDeadline } from '../utils/dates';
+import {
+  getWeekStart,
+  getGameweekNumber,
+  hasUnlimitedTransfers as checkUnlimitedTransfers,
+  getTransferDeadline,
+} from '../utils/dates';
 import { getActiveSeason } from './seasons.service';
 import type { GameweekRosterDocument } from '../models/Pick';
 
@@ -470,11 +475,7 @@ export async function applyPendingChanges(userId: string): Promise<boolean> {
 
   // Determine the new gameweek number for the roster snapshot
   const seasonStartDate = activeSeason?.startDate ? new Date(activeSeason.startDate) : null;
-  const currentGW = getGameweekNumber(
-    weekStart,
-    seasonStartDate || new Date(),
-    firstGW
-  );
+  const currentGW = getGameweekNumber(weekStart, seasonStartDate || new Date(), firstGW);
   const gwKey = String(currentGW);
 
   // Determine the new golferIds and captainId
@@ -516,9 +517,7 @@ export async function applyPendingChanges(userId: string): Promise<boolean> {
   updateSet[`gameweekRosters.${gwKey}`] = rosterEntry;
 
   // Update allGolferIds: union of existing + new golfers
-  const existingAllIds = new Set(
-    (pick.allGolferIds || pick.golferIds).map((id) => id.toString())
-  );
+  const existingAllIds = new Set((pick.allGolferIds || pick.golferIds).map((id) => id.toString()));
   for (const id of newGolferIds) {
     existingAllIds.add(id.toString());
   }
@@ -607,11 +606,7 @@ export async function applyAllPendingChanges(): Promise<{
 
   // Determine the current gameweek for roster snapshots
   const seasonStartDate = activeSeason?.startDate ? new Date(activeSeason.startDate) : null;
-  const currentGW = getGameweekNumber(
-    weekStart,
-    seasonStartDate || new Date(),
-    firstGW
-  );
+  const currentGW = getGameweekNumber(weekStart, seasonStartDate || new Date(), firstGW);
   const gwKey = String(currentGW);
 
   let applied = 0;

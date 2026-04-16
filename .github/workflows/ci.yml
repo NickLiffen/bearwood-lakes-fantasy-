@@ -11,6 +11,12 @@ jobs:
     name: Lint, Type Check, Test, Build
     runs-on: ubuntu-latest
 
+    env:
+      # League deadlines and gameweek boundaries are defined in UK local time
+      # (Europe/London). Pin CI to the same zone so tests that assert on
+      # local hours (e.g. 8am transfer deadline) match production behaviour.
+      TZ: Europe/London
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -32,7 +38,6 @@ jobs:
 
       - name: Run tests
         run: npm test
-        continue-on-error: true # TODO: Remove once test paths are fixed (P2)
 
       - name: Build application
         run: npm run build

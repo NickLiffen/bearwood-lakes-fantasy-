@@ -545,7 +545,9 @@ describe('my-team handler', () => {
         .fn()
         .mockReturnValueOnce(mockCursor(currentGolfers))
         .mockReturnValueOnce(mockCursor([]))
-        .mockReturnValueOnce(mockCursor([{ _id: pendingGolferId, firstName: 'Scottie', lastName: 'Scheffler' }]));
+        .mockReturnValueOnce(
+          mockCursor([{ _id: pendingGolferId, firstName: 'Scottie', lastName: 'Scheffler' }])
+        );
 
       const { mockDb } = createMockDb({
         picks: { findOne: vi.fn().mockResolvedValue(pick) },

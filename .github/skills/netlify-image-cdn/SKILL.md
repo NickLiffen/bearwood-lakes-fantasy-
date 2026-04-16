@@ -15,15 +15,15 @@ Every Netlify site has a built-in `/.netlify/images` endpoint for on-the-fly ima
 
 ## Query Parameters
 
-| Param | Description | Values |
-|---|---|---|
-| `url` | Source image path (required) | Relative path or absolute URL |
-| `w` | Width in pixels | Any positive integer |
-| `h` | Height in pixels | Any positive integer |
-| `fit` | Resize behavior | `contain` (default), `cover`, `fill` |
+| Param      | Description                   | Values                                               |
+| ---------- | ----------------------------- | ---------------------------------------------------- |
+| `url`      | Source image path (required)  | Relative path or absolute URL                        |
+| `w`        | Width in pixels               | Any positive integer                                 |
+| `h`        | Height in pixels              | Any positive integer                                 |
+| `fit`      | Resize behavior               | `contain` (default), `cover`, `fill`                 |
 | `position` | Crop alignment (with `cover`) | `center` (default), `top`, `bottom`, `left`, `right` |
-| `fm` | Output format | `avif`, `webp`, `jpg`, `png`, `gif`, `blurhash` |
-| `q` | Quality (lossy formats) | 1-100 (default: 75) |
+| `fm`       | Output format                 | `avif`, `webp`, `jpg`, `png`, `gif`, `blurhash`      |
+| `q`        | Quality (lossy formats)       | 1-100 (default: 75)                                  |
 
 When `fm` is omitted, Netlify auto-negotiates the best format based on browser support (preferring `webp`, then `avif`).
 

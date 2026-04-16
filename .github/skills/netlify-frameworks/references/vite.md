@@ -10,9 +10,9 @@ npm install @netlify/vite-plugin
 
 ```typescript
 // vite.config.ts
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import netlify from "@netlify/vite-plugin";
+import { defineConfig } from 'vite';
+import react from '@vitejs/plugin-react';
+import netlify from '@netlify/vite-plugin';
 
 export default defineConfig({
   plugins: [react(), netlify()],
@@ -43,13 +43,13 @@ Write functions in `netlify/functions/` as usual. The Vite plugin makes them ava
 
 ```typescript
 // netlify/functions/api.ts
-import type { Config, Context } from "@netlify/functions";
+import type { Config, Context } from '@netlify/functions';
 
 export default async (req: Request, context: Context) => {
-  return Response.json({ message: "Hello from API" });
+  return Response.json({ message: 'Hello from API' });
 };
 
-export const config: Config = { path: "/api/hello" };
+export const config: Config = { path: '/api/hello' };
 ```
 
 ## Forms (AJAX Pattern)
@@ -62,9 +62,9 @@ function ContactForm() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    await fetch("/", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    await fetch('/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams(formData as any).toString(),
     });
   };

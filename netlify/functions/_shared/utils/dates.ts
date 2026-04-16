@@ -249,6 +249,11 @@ export const isDateInPeriod = (date: Date, periodStart: Date, periodEnd: Date): 
  */
 export const getSeasonFirstSaturday = (seasonStartDate: Date): Date => {
   const d = new Date(seasonStartDate);
+  if (isNaN(d.getTime())) {
+    throw new Error(
+      `getSeasonFirstSaturday: invalid seasonStartDate (received ${String(seasonStartDate)})`
+    );
+  }
   while (d.getDay() !== 6) {
     d.setDate(d.getDate() + 1);
   }

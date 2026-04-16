@@ -83,8 +83,7 @@ export function calculatePickPoints(
   seasonStartDate?: Date | null
 ): PickPointsResult {
   const teamEffectiveStart = getTeamEffectiveStartDate(pick.createdAt, firstGW);
-  const hasRosters =
-    pick.gameweekRosters && Object.keys(pick.gameweekRosters).length > 0;
+  const hasRosters = pick.gameweekRosters && Object.keys(pick.gameweekRosters).length > 0;
 
   // --- Gameweek-aware path (post-fix) ---
   if (hasRosters) {
@@ -167,11 +166,7 @@ function calculateWithRosters(
 
       // Determine which gameweek this tournament falls in
       const tournamentWeekStart = getWeekStart(tournamentDate, firstGW);
-      const gwNum = getGameweekNumber(
-        tournamentWeekStart,
-        new Date(effectiveSeasonStart),
-        firstGW
-      );
+      const gwNum = getGameweekNumber(tournamentWeekStart, new Date(effectiveSeasonStart), firstGW);
 
       // Find the active roster for this gameweek
       const roster = getRosterForGameweek(rosters, gwNum);
@@ -236,11 +231,7 @@ export function calculateGolferContribution(
     let captainMultiplier: number;
     if (hasRosters && golferId) {
       const tournamentWeekStart = getWeekStart(tournamentDate, firstGW);
-      const gwNum = getGameweekNumber(
-        tournamentWeekStart,
-        new Date(effectiveSeasonStart),
-        firstGW
-      );
+      const gwNum = getGameweekNumber(tournamentWeekStart, new Date(effectiveSeasonStart), firstGW);
       const roster = getRosterForGameweek(gameweekRosters!, gwNum);
       if (!roster || !roster.golferIds.includes(golferId)) continue;
       captainMultiplier = golferId === roster.captainId ? 2 : 1;

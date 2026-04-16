@@ -14,14 +14,14 @@ Netlify Functions support two syntax styles:
 The recommended pattern for new Netlify projects. Uses standard Web API `Request`/`Response`:
 
 ```typescript
-import type { Context, Config } from "@netlify/functions";
+import type { Context, Config } from '@netlify/functions';
 
 export default async (req: Request, context: Context) => {
-  return new Response("Hello, world!");
+  return new Response('Hello, world!');
 };
 
 export const config: Config = {
-  path: "/api/hello",
+  path: '/api/hello',
 };
 ```
 
@@ -30,10 +30,10 @@ export const config: Config = {
 Many existing projects use the named `handler` export with the `event`/`context` signature. This is still fully supported and is required for some special cases (event-triggered functions like `deploy-succeeded`, Identity event functions):
 
 ```typescript
-import type { Handler } from "@netlify/functions";
+import type { Handler } from '@netlify/functions';
 
 export const handler: Handler = async (event, context) => {
-  return { statusCode: 200, body: JSON.stringify({ message: "Hello" }) };
+  return { statusCode: 200, body: JSON.stringify({ message: 'Hello' }) };
 };
 ```
 
@@ -60,7 +60,7 @@ Define custom paths via the `config` export:
 
 ```typescript
 export const config: Config = {
-  path: "/api/items",                    // Static path
+  path: '/api/items', // Static path
   // path: "/api/items/:id",            // Path parameter
   // path: ["/api/items", "/api/items/:id"], // Multiple paths
   // excludedPath: "/api/items/special", // Excluded paths
@@ -85,16 +85,20 @@ export default async (req: Request, context: Context) => {
 ```typescript
 export default async (req: Request, context: Context) => {
   switch (req.method) {
-    case "GET":    return handleGet(context.params.id);
-    case "POST":   return handlePost(await req.json());
-    case "DELETE": return handleDelete(context.params.id);
-    default:       return new Response("Method not allowed", { status: 405 });
+    case 'GET':
+      return handleGet(context.params.id);
+    case 'POST':
+      return handlePost(await req.json());
+    case 'DELETE':
+      return handleDelete(context.params.id);
+    default:
+      return new Response('Method not allowed', { status: 405 });
   }
 };
 
 export const config: Config = {
-  path: "/api/items/:id",
-  method: ["GET", "POST", "DELETE"],
+  path: '/api/items/:id',
+  method: ['GET', 'POST', 'DELETE'],
 };
 ```
 
@@ -117,11 +121,11 @@ Run on a cron schedule (UTC timezone):
 ```typescript
 export default async (req: Request) => {
   const { next_run } = await req.json();
-  console.log("Next invocation at:", next_run);
+  console.log('Next invocation at:', next_run);
 };
 
 export const config: Config = {
-  schedule: "@hourly", // or cron: "0 * * * *"
+  schedule: '@hourly', // or cron: "0 * * * *"
 };
 ```
 
@@ -133,26 +137,28 @@ Return a `ReadableStream` body for streamed responses (up to 20 MB):
 
 ```typescript
 export default async (req: Request) => {
-  const stream = new ReadableStream({ /* ... */ });
+  const stream = new ReadableStream({
+    /* ... */
+  });
   return new Response(stream, {
-    headers: { "Content-Type": "text/event-stream" },
+    headers: { 'Content-Type': 'text/event-stream' },
   });
 };
 ```
 
 ## Context Object
 
-| Property | Description |
-|---|---|
-| `context.params` | Path parameters from config |
-| `context.geo` | `{ city, country: {code, name}, latitude, longitude, subdivision, timezone, postalCode }` |
-| `context.ip` | Client IP address |
-| `context.cookies` | `.get()`, `.set()`, `.delete()` |
-| `context.deploy` | `{ context, id, published }` |
-| `context.site` | `{ id, name, url }` |
-| `context.account.id` | Team account ID |
-| `context.requestId` | Unique request ID |
-| `context.waitUntil(promise)` | Extend execution after response is sent |
+| Property                     | Description                                                                               |
+| ---------------------------- | ----------------------------------------------------------------------------------------- |
+| `context.params`             | Path parameters from config                                                               |
+| `context.geo`                | `{ city, country: {code, name}, latitude, longitude, subdivision, timezone, postalCode }` |
+| `context.ip`                 | Client IP address                                                                         |
+| `context.cookies`            | `.get()`, `.set()`, `.delete()`                                                           |
+| `context.deploy`             | `{ context, id, published }`                                                              |
+| `context.site`               | `{ id, name, url }`                                                                       |
+| `context.account.id`         | Team account ID                                                                           |
+| `context.requestId`          | Unique request ID                                                                         |
+| `context.waitUntil(promise)` | Extend execution after response is sent                                                   |
 
 ## Environment Variables
 
@@ -160,7 +166,7 @@ Both `Netlify.env` and `process.env` work inside Netlify Functions:
 
 ```typescript
 // Netlify-specific (available in the Netlify runtime)
-const apiKey = Netlify.env.get("API_KEY");
+const apiKey = Netlify.env.get('API_KEY');
 
 // Standard Node.js (works in Netlify, local dev, and tests)
 const apiKey = process.env.API_KEY;
@@ -170,14 +176,14 @@ If the project already uses `process.env`, follow that convention for consistenc
 
 ## Resource Limits
 
-| Resource | Limit |
-|---|---|
+| Resource            | Limit      |
+| ------------------- | ---------- |
 | Synchronous timeout | 60 seconds |
-| Background timeout | 15 minutes |
-| Scheduled timeout | 30 seconds |
-| Memory | 1024 MB |
-| Buffered payload | 6 MB |
-| Streamed payload | 20 MB |
+| Background timeout  | 15 minutes |
+| Scheduled timeout   | 30 seconds |
+| Memory              | 1024 MB    |
+| Buffered payload    | 6 MB       |
+| Streamed payload    | 20 MB      |
 
 ## Framework Considerations
 

@@ -274,6 +274,17 @@ describe('getSeasonFirstSaturday', () => {
     expect(result.getMinutes()).toBe(0);
     expect(result.getSeconds()).toBe(0);
   });
+
+  it('throws on Invalid Date instead of looping forever', () => {
+    // Regression: previously `new Date(undefined)` + the `while d.getDay() !== 6`
+    // loop produced an infinite loop that hung the entire vitest worker pool.
+    expect(() => getSeasonFirstSaturday(new Date(NaN))).toThrow(/invalid seasonStartDate/);
+    expect(() => getSeasonFirstSaturday(new Date('not-a-date'))).toThrow(/invalid seasonStartDate/);
+    // Passing undefined through (simulating mocks that omit startDate) also throws.
+    expect(() => getSeasonFirstSaturday(undefined as unknown as Date)).toThrow(
+      /invalid seasonStartDate/
+    );
+  });
 });
 
 describe('getGameweekNumber', () => {
