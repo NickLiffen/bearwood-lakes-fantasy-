@@ -86,7 +86,73 @@ const TournamentUploadPage: React.FC = () => {
     [existingGolfers]
   );
 
-  // Handle PDF file selection and parsing
+  // Populate the review form from parsed data
+  const populateReview = (
+    parsed: { name: string; date: string; scoringFormat: 'stableford' | 'medal'; golfers: ParsedGolfer[] },
+    fallbackName: string
+  ) => {
+    setTournamentName(parsed.name || fallbackName);
+    setTournamentDate(parsed.date);
+    setScoringFormat(parsed.scoringFormat);
+    setTournamentType('rollup_stableford');
+    setIsMultiDay(false);
+
+    const editableGolfers: EditableGolfer[] = parsed.golfers.map((g) => ({
+      ...g,
+      isNew: isGolferNew(g.firstName, g.lastName),
+    }));
+    setGolfers(editableGolfers);
+
+    setStep('review');
+  };
+
+  // Handle PDF upload — read as base64 and send to server
+  const handlePdfUpload = async (file: File) => {
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        resolve(dataUrl.split(',')[1]); // strip "data:...;base64," prefix
+      };
+      reader.onerror = () => reject(new Error('Failed to read PDF file'));
+      reader.readAsDataURL(file);
+    });
+
+    const response = await post<{
+      name: string;
+      date: string;
+      scoringFormat: 'stableford' | 'medal';
+      golfers: ParsedGolfer[];
+    }>('tournament-parse-pdf', { pdf: base64 });
+
+    if (!response.success || !response.data) {
+      setParseError(response.error || 'Failed to parse PDF. Is this an ECG leaderboard?');
+      return;
+    }
+
+    populateReview(response.data, file.name.replace(/\.pdf$/i, ''));
+  };
+
+  // Handle CSV upload — read as text and send to server
+  const handleCsvUpload = async (file: File) => {
+    const text = await file.text();
+
+    const response = await post<{
+      name: string;
+      date: string;
+      scoringFormat: 'stableford' | 'medal';
+      golfers: ParsedGolfer[];
+    }>('tournament-parse-csv', { csv: text });
+
+    if (!response.success || !response.data) {
+      setParseError(response.error || 'Failed to parse CSV. Please check the file format.');
+      return;
+    }
+
+    populateReview(response.data, file.name.replace(/\.csv$/i, ''));
+  };
+
+  // Handle file selection — auto-detect PDF or CSV
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     setParseError('');
@@ -98,8 +164,10 @@ const TournamentUploadPage: React.FC = () => {
       return;
     }
 
-    if (!file.name.toLowerCase().endsWith('.pdf')) {
-      setParseError('Please select a PDF file.');
+    const ext = file.name.split('.').pop()?.toLowerCase();
+
+    if (ext !== 'pdf' && ext !== 'csv') {
+      setParseError('Please select a PDF or CSV file.');
       return;
     }
 
@@ -112,50 +180,14 @@ const TournamentUploadPage: React.FC = () => {
     }
 
     try {
-      // Read PDF as base64 and send to server for parsing
-      const base64 = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const dataUrl = reader.result as string;
-          resolve(dataUrl.split(',')[1]); // strip "data:...;base64," prefix
-        };
-        reader.onerror = () => reject(new Error('Failed to read PDF file'));
-        reader.readAsDataURL(file);
-      });
-
-      const response = await post<{
-        name: string;
-        date: string;
-        scoringFormat: 'stableford' | 'medal';
-        golfers: ParsedGolfer[];
-      }>('tournament-parse-pdf', { pdf: base64 });
-
-      if (!response.success || !response.data) {
-        setParseError(response.error || 'Failed to parse PDF. Is this an ECG leaderboard?');
-        setParsing(false);
-        return;
+      if (ext === 'pdf') {
+        await handlePdfUpload(file);
+      } else {
+        await handleCsvUpload(file);
       }
-
-      const parsed = response.data;
-
-      // Populate review form
-      setTournamentName(parsed.name || file.name.replace('.pdf', ''));
-      setTournamentDate(parsed.date);
-      setScoringFormat(parsed.scoringFormat);
-      setTournamentType('rollup_stableford');
-      setIsMultiDay(false);
-
-      // Mark golfers as new or existing
-      const editableGolfers: EditableGolfer[] = parsed.golfers.map((g) => ({
-        ...g,
-        isNew: isGolferNew(g.firstName, g.lastName),
-      }));
-      setGolfers(editableGolfers);
-
-      setStep('review');
     } catch (err) {
       setParseError(
-        err instanceof Error ? err.message : 'Failed to parse PDF. Is this an ECG leaderboard?'
+        err instanceof Error ? err.message : 'Failed to parse file. Please check the format.'
       );
     } finally {
       setParsing(false);
@@ -267,25 +299,29 @@ const TournamentUploadPage: React.FC = () => {
       {step === 'upload' && (
         <div className="admin-card" style={{ marginBottom: '1.5rem' }}>
           <div className="admin-card-header">
-            <h2>Upload Tournament PDF</h2>
+            <h2>Upload Tournament Results</h2>
           </div>
           <div className="admin-card-body">
             <div className="form-group">
-              <label htmlFor="pdf-file">ECG Leaderboard PDF</label>
+              <label htmlFor="pdf-file">ECG Leaderboard (PDF or CSV)</label>
               <input
                 id="pdf-file"
                 type="file"
-                accept=".pdf"
+                accept=".pdf,.csv"
                 className="form-input"
                 onChange={handleFileChange}
                 disabled={parsing}
               />
               <p style={{ color: '#6b7280', fontSize: '0.85rem', marginTop: '0.25rem' }}>
-                Upload an ECG tournament leaderboard PDF. The system will extract the tournament
-                name, date, and all golfer scores automatically.
+                Upload an ECG tournament leaderboard PDF or CSV. The system will automatically
+                detect the format and extract golfer scores.
               </p>
             </div>
-            {parsing && <p style={{ color: '#2563eb', marginTop: '0.5rem' }}>⏳ Parsing PDF...</p>}
+            {parsing && (
+              <p style={{ color: '#2563eb', marginTop: '0.5rem' }}>
+                ⏳ Parsing {fileName.toLowerCase().endsWith('.csv') ? 'CSV' : 'PDF'}...
+              </p>
+            )}
           </div>
         </div>
       )}
