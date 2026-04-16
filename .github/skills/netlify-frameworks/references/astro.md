@@ -18,21 +18,21 @@ npm install @astrojs/netlify
 
 ```typescript
 // astro.config.mjs
-import { defineConfig } from "astro/config";
-import netlify from "@astrojs/netlify";
+import { defineConfig } from 'astro/config';
+import netlify from '@astrojs/netlify';
 
 export default defineConfig({
-  output: "server",  // or "hybrid" for mixed static/SSR
+  output: 'server', // or "hybrid" for mixed static/SSR
   adapter: netlify(),
 });
 ```
 
 ## Output Modes
 
-| Mode | Behavior |
-|---|---|
-| `"static"` | Fully pre-rendered at build time (no adapter needed) |
-| `"server"` | All pages rendered on request (SSR) |
+| Mode       | Behavior                                                                        |
+| ---------- | ------------------------------------------------------------------------------- |
+| `"static"` | Fully pre-rendered at build time (no adapter needed)                            |
+| `"server"` | All pages rendered on request (SSR)                                             |
 | `"hybrid"` | Static by default, opt-in to SSR per page with `export const prerender = false` |
 
 ## What the Adapter Does
@@ -48,11 +48,11 @@ Astro API routes (in `src/pages/api/`) are handled by the adapter:
 
 ```typescript
 // src/pages/api/items.ts
-import type { APIRoute } from "astro";
+import type { APIRoute } from 'astro';
 
 export const GET: APIRoute = async () => {
   return new Response(JSON.stringify({ items: [] }), {
-    headers: { "Content-Type": "application/json" },
+    headers: { 'Content-Type': 'application/json' },
   });
 };
 
@@ -85,7 +85,7 @@ For form submissions that should redirect back with feedback, handle the POST in
 export const POST: APIRoute = async ({ request, redirect }) => {
   const formData = await request.formData();
   // Process form...
-  return redirect("/contact?success=true");
+  return redirect('/contact?success=true');
 };
 ```
 

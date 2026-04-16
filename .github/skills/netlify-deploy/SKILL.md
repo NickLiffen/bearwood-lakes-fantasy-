@@ -10,6 +10,7 @@ Deploy web projects to Netlify using the Netlify CLI with intelligent detection 
 ## Overview
 
 This skill automates Netlify deployments by:
+
 - Verifying Netlify CLI authentication
 - Detecting project configuration and framework
 - Linking to existing sites or creating new ones
@@ -32,6 +33,7 @@ The skill uses the **pre-authenticated Netlify CLI** approach:
 3. Fail gracefully if authentication cannot be established
 
 Authentication uses either:
+
 - **Browser-based OAuth** (primary): `netlify login` opens browser for authentication
 - **API Key** (alternative): Set `NETLIFY_AUTH_TOKEN` environment variable
 
@@ -46,6 +48,7 @@ npx netlify status
 ```
 
 **Expected output patterns**:
+
 - ✅ Authenticated: Shows logged-in user email and site link status
 - ❌ Not authenticated: "Not logged into any site" or authentication error
 
@@ -70,6 +73,7 @@ Tokens can be generated at: https://app.netlify.com/user/applications#personal-a
 ### 2. Detect Site Link Status
 
 From `netlify status` output, determine:
+
 - **Linked**: Site already connected to Netlify (shows site name/URL)
 - **Not linked**: Need to link or create site
 
@@ -127,6 +131,7 @@ npx netlify deploy --prod
 ### 6. Report Results
 
 After deployment, report to user:
+
 - **Deploy URL**: Unique URL for this deployment
 - **Site URL**: Production URL (if production deploy)
 - **Deploy logs**: Link to Netlify dashboard for logs
@@ -135,10 +140,12 @@ After deployment, report to user:
 ## Handling netlify.toml
 
 If a `netlify.toml` file exists, the CLI uses it automatically. If not, the CLI will prompt for:
+
 - **Build command**: e.g., `npm run build`, `next build`
 - **Publish directory**: e.g., `dist`, `build`, `.next`
 
 Common framework defaults:
+
 - **Next.js**: build command `npm run build`, publish `.next`
 - **React (Vite)**: build command `npm run build`, publish `dist`
 - **Static HTML**: no build command, publish current directory

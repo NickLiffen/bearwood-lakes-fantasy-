@@ -44,6 +44,7 @@ Create a static HTML file in `public/` (e.g. `public/__forms.html`) containing a
 ```
 
 **Rules:**
+
 - The form `name` must exactly match the `form-name` value used in your component's fetch call
 - Include every field your component submits — Netlify validates field names against the registered form
 - Without this file, Netlify cannot detect the form and submissions will silently fail
@@ -62,13 +63,13 @@ Your component must also include a hidden `form-name` input:
 ### Vanilla JavaScript
 
 ```javascript
-const form = document.querySelector("form");
-form.addEventListener("submit", async (e) => {
+const form = document.querySelector('form');
+form.addEventListener('submit', async (e) => {
   e.preventDefault();
   const formData = new FormData(form);
-  await fetch("/", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+  await fetch('/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams(formData).toString(),
   });
 });
@@ -86,9 +87,9 @@ function ContactForm() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     // For SSR apps, use the skeleton file path instead of "/" (e.g. "/__forms.html")
-    const response = await fetch("/__forms.html", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    const response = await fetch('/__forms.html', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams(formData as any).toString(),
     });
     if (response.ok) {
@@ -140,7 +141,7 @@ For reCAPTCHA, add `data-netlify-recaptcha="true"` to the form and include `<div
 For AJAX file uploads, use `FormData` directly — do **not** set `Content-Type` (the browser sets it with the correct boundary):
 
 ```javascript
-await fetch("/", { method: "POST", body: new FormData(form) });
+await fetch('/', { method: 'POST', body: new FormData(form) });
 ```
 
 **Limits:** 8 MB max request size, 30-second timeout, one file per input field.
@@ -164,9 +165,9 @@ Authorization: Bearer <PERSONAL_ACCESS_TOKEN>
 
 Key endpoints:
 
-| Action | Method | Path |
-|---|---|---|
-| List forms | GET | `/api/v1/sites/{site_id}/forms` |
-| Get submissions | GET | `/api/v1/forms/{form_id}/submissions` |
-| Get spam | GET | `/api/v1/forms/{form_id}/submissions?state=spam` |
-| Delete submission | DELETE | `/api/v1/submissions/{id}` |
+| Action            | Method | Path                                             |
+| ----------------- | ------ | ------------------------------------------------ |
+| List forms        | GET    | `/api/v1/sites/{site_id}/forms`                  |
+| Get submissions   | GET    | `/api/v1/forms/{form_id}/submissions`            |
+| Get spam          | GET    | `/api/v1/forms/{form_id}/submissions?state=spam` |
+| Delete submission | DELETE | `/api/v1/submissions/{id}`                       |

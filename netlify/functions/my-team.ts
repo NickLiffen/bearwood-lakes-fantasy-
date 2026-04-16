@@ -152,9 +152,10 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
     }
 
     // Determine which golfer IDs to fetch scores for — allGolferIds covers historical golfers
-    const scoreGolferIds = (pick.allGolferIds && pick.allGolferIds.length > 0)
-      ? pick.allGolferIds.map((id) => new ObjectId(id))
-      : pick.golferIds.map((id) => new ObjectId(id));
+    const scoreGolferIds =
+      pick.allGolferIds && pick.allGolferIds.length > 0
+        ? pick.allGolferIds.map((id) => new ObjectId(id))
+        : pick.golferIds.map((id) => new ObjectId(id));
 
     // Time boundaries — must be computed before roster lookup
     const currentWeekStart = getWeekStart(now, firstGW);

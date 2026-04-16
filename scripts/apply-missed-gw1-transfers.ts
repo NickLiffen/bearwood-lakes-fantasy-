@@ -100,9 +100,7 @@ async function fix() {
     }
 
     const seasonNum = parseInt(season.name, 10) || new Date().getFullYear();
-    const firstGWConfig = season.firstGameweekStart
-      ? new Date(season.firstGameweekStart)
-      : null;
+    const firstGWConfig = season.firstGameweekStart ? new Date(season.firstGameweekStart) : null;
     const GW1_START = firstGWConfig || getSeasonFirstSaturday(new Date(season.startDate));
     const firstSat = getSeasonFirstSaturday(GW1_START);
     const GW2_START = new Date(firstSat);
@@ -119,7 +117,9 @@ async function fix() {
       `\n🔧 Apply Missed GW1 Transfers ${isDryRun ? '(DRY RUN)' : '(APPLYING CHANGES)'}\n`
     );
     console.log(`📅 Season: ${season.name}`);
-    console.log(`📅 GW1: ${GW1_START.toISOString()} → ${GW2_DEADLINE.toISOString()} (8am deadline)`);
+    console.log(
+      `📅 GW1: ${GW1_START.toISOString()} → ${GW2_DEADLINE.toISOString()} (8am deadline)`
+    );
     console.log('');
 
     // === Fetch golfer names and prices ===
@@ -194,15 +194,17 @@ async function fix() {
       // === Determine if the GW1 pending change is still unapplied ===
       // Only touch live fields (golferIds/captainId/pending*) when pendingChangedAt
       // is within the GW1 window — this means the transfer was never applied.
-      const hasGW1Pending = pick.pendingChangedAt
-        && new Date(pick.pendingChangedAt) >= GW1_START
-        && new Date(pick.pendingChangedAt) < GW2_DEADLINE;
+      const hasGW1Pending =
+        pick.pendingChangedAt &&
+        new Date(pick.pendingChangedAt) >= GW1_START &&
+        new Date(pick.pendingChangedAt) < GW2_DEADLINE;
 
       // === Check if gameweekRosters["2"] is correct ===
       const gw2Roster = pick.gameweekRosters?.['2'];
       const gw2GolfersOk = gw2Roster && sameIds(gw2Roster.golferIds, expectedGolferIds);
-      const gw2CaptainOk = gw2Roster
-        && (gw2Roster.captainId?.toString() || null) === (expectedCaptainId?.toString() || null);
+      const gw2CaptainOk =
+        gw2Roster &&
+        (gw2Roster.captainId?.toString() || null) === (expectedCaptainId?.toString() || null);
       const gw2FullyOk = gw2GolfersOk && gw2CaptainOk;
 
       // If nothing needs fixing, skip
@@ -221,8 +223,12 @@ async function fix() {
         if (!sameIds(pick.golferIds, expectedGolferIds)) {
           updateSet.golferIds = expectedGolferIds;
 
-          const oldNames = pick.golferIds.map((id) => golferNames.get(id.toString()) || id).join(', ');
-          const newNames = expectedGolferIds.map((id) => golferNames.get(id.toString()) || id).join(', ');
+          const oldNames = pick.golferIds
+            .map((id) => golferNames.get(id.toString()) || id)
+            .join(', ');
+          const newNames = expectedGolferIds
+            .map((id) => golferNames.get(id.toString()) || id)
+            .join(', ');
           changes.push(`   golferIds: [${oldNames}] → [${newNames}]`);
 
           // Recalculate totalSpent
@@ -263,19 +269,23 @@ async function fix() {
         // ROSTER-ONLY path: golferIds is stale but pendingChangedAt was already cleared.
         // Only safe to fix if the user has NOT made any GW2+ changes (which would have
         // legitimately changed golferIds to something else).
-        const gw2PlusHistory = await db
-          .collection<PickHistoryDoc>('pickHistory')
-          .countDocuments({
-            userId: new ObjectId(userId),
-            season: seasonNum,
-            changedAt: { $gte: GW2_DEADLINE },
-          });
+        const gw2PlusHistory = await db.collection<PickHistoryDoc>('pickHistory').countDocuments({
+          userId: new ObjectId(userId),
+          season: seasonNum,
+          changedAt: { $gte: GW2_DEADLINE },
+        });
 
         if (gw2PlusHistory === 0) {
           updateSet.golferIds = expectedGolferIds;
-          const oldNames = pick.golferIds.map((id) => golferNames.get(id.toString()) || id).join(', ');
-          const newNames = expectedGolferIds.map((id) => golferNames.get(id.toString()) || id).join(', ');
-          changes.push(`   golferIds: [${oldNames}] → [${newNames}] (no GW2+ activity, safe to fix)`);
+          const oldNames = pick.golferIds
+            .map((id) => golferNames.get(id.toString()) || id)
+            .join(', ');
+          const newNames = expectedGolferIds
+            .map((id) => golferNames.get(id.toString()) || id)
+            .join(', ');
+          changes.push(
+            `   golferIds: [${oldNames}] → [${newNames}] (no GW2+ activity, safe to fix)`
+          );
 
           const newTotal = expectedGolferIds.reduce(
             (sum, id) => sum + (golferPrices.get(id.toString()) || 0),
@@ -283,7 +293,9 @@ async function fix() {
           );
           updateSet.totalSpent = newTotal;
         } else {
-          changes.push(`   golferIds: ⚠️  stale but user has ${gw2PlusHistory} GW2+ changes — NOT touching`);
+          changes.push(
+            `   golferIds: ⚠️  stale but user has ${gw2PlusHistory} GW2+ changes — NOT touching`
+          );
         }
       }
 
@@ -328,7 +340,9 @@ async function fix() {
 
       // === Print changes ===
       const fixType = hasGW1Pending ? 'LIVE+ROSTER' : 'ROSTER-ONLY';
-      console.log(`\n🔧 ${userName} [${fixType}] (transfer: ${new Date(transfer.changedAt).toISOString()})`);
+      console.log(
+        `\n🔧 ${userName} [${fixType}] (transfer: ${new Date(transfer.changedAt).toISOString()})`
+      );
       for (const change of changes) {
         console.log(change);
       }
@@ -339,10 +353,7 @@ async function fix() {
         if (Object.keys(updateUnset).length > 0) {
           updateQuery.$unset = updateUnset;
         }
-        await db.collection<PickDoc>('picks').updateOne(
-          { _id: pick._id },
-          updateQuery
-        );
+        await db.collection<PickDoc>('picks').updateOne({ _id: pick._id }, updateQuery);
       }
 
       if (hasGW1Pending) {

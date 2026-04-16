@@ -170,8 +170,7 @@ const MyTeamPage: React.FC = () => {
     if (!period) return;
 
     // Use backend-provided dates that correctly handle variable-length GW1
-    const targetDate =
-      direction === 'next' ? period.nextDate : period.previousDate;
+    const targetDate = direction === 'next' ? period.nextDate : period.previousDate;
 
     if (targetDate) {
       setSelectedDate(targetDate);
@@ -493,9 +492,7 @@ const MyTeamPage: React.FC = () => {
                     teamData.pendingChanges.pendingCaptainId !== team?.captainId &&
                     (() => {
                       const pendingCaptainId = teamData.pendingChanges!.pendingCaptainId;
-                      const oldCaptain = team?.golfers.find(
-                        (g) => g.golfer.id === team?.captainId
-                      );
+                      const oldCaptain = team?.golfers.find((g) => g.golfer.id === team?.captainId);
                       const newCaptain = team?.golfers.find(
                         (g) => g.golfer.id === pendingCaptainId
                       );
@@ -510,7 +507,11 @@ const MyTeamPage: React.FC = () => {
                       const newName = newCaptain
                         ? `${newCaptain.golfer.firstName} ${newCaptain.golfer.lastName}`
                         : (pendingAddedCaptain?.name ?? 'None');
-                      return <p>Captain change scheduled: {oldName} → {newName}</p>;
+                      return (
+                        <p>
+                          Captain change scheduled: {oldName} → {newName}
+                        </p>
+                      );
                     })()}
                   {teamData.pendingChanges.pendingChangedAt && (
                     <p className="pending-date">

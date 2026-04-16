@@ -242,9 +242,7 @@ export function parseTournamentText(rawText: string): ParsedTournament {
               .trim();
           } else {
             // No date — strip subtitle like " - Men's Individual"
-            name = line
-              .replace(/\s*[-–—]+\s+\w[\w\s']*$/, '')
-              .trim();
+            name = line.replace(/\s*[-–—]+\s+\w[\w\s']*$/, '').trim();
           }
         }
         continue;
@@ -269,7 +267,8 @@ export function parseTournamentText(rawText: string): ParsedTournament {
     }
 
     // Try all format regexes (most specific first)
-    const match = line.match(purseRowRegex) || line.match(toParRowRegex) || line.match(simpleRowRegex);
+    const match =
+      line.match(purseRowRegex) || line.match(toParRowRegex) || line.match(simpleRowRegex);
     if (match) {
       const position = parseInt(match[1].replace(/^T/i, ''), 10);
       const fullName = match[2].trim();

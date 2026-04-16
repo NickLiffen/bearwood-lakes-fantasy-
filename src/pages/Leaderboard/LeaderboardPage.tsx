@@ -194,9 +194,7 @@ const LeaderboardPage: React.FC = () => {
 
     // Use backend-provided dates that correctly handle variable-length GW1
     const targetDate =
-      direction === 'next'
-        ? weeklyData.period.nextDate
-        : weeklyData.period.previousDate;
+      direction === 'next' ? weeklyData.period.nextDate : weeklyData.period.previousDate;
 
     if (!targetDate) return;
 
@@ -211,9 +209,7 @@ const LeaderboardPage: React.FC = () => {
 
     // Use backend-provided dates for month navigation
     const targetDate =
-      direction === 'next'
-        ? monthlyData.period.nextDate
-        : monthlyData.period.previousDate;
+      direction === 'next' ? monthlyData.period.nextDate : monthlyData.period.previousDate;
 
     if (!targetDate) return;
 

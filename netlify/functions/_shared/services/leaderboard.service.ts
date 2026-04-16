@@ -23,7 +23,12 @@ import {
   getGameweekNumber,
   formatDateString,
 } from '../utils/dates';
-import { calculatePickPoints, type TimeBoundaries, type ScoreLike, type RosterSnapshot } from '../utils/scoring';
+import {
+  calculatePickPoints,
+  type TimeBoundaries,
+  type ScoreLike,
+  type RosterSnapshot,
+} from '../utils/scoring';
 import { getActiveSeason, getSeasonByName } from './seasons.service';
 import { getRedisClient, getRedisKeyPrefix } from '../rateLimit';
 
@@ -156,7 +161,13 @@ export async function getFullLeaderboard(season?: number): Promise<FullLeaderboa
       { $match: { season: currentSeason } },
       {
         $addFields: {
-          _lookupGolferIds: { $cond: [{ $gt: [{ $size: { $ifNull: ['$allGolferIds', []] } }, 0] }, '$allGolferIds', '$golferIds'] },
+          _lookupGolferIds: {
+            $cond: [
+              { $gt: [{ $size: { $ifNull: ['$allGolferIds', []] } }, 0] },
+              '$allGolferIds',
+              '$golferIds',
+            ],
+          },
         },
       },
       {
@@ -263,9 +274,7 @@ export async function getFullLeaderboard(season?: number): Promise<FullLeaderboa
       allGolferIds: pick.allGolferIds || golferIds,
     };
 
-    const seasonStartDate = activeSeason?.startDate
-      ? new Date(activeSeason.startDate)
-      : null;
+    const seasonStartDate = activeSeason?.startDate ? new Date(activeSeason.startDate) : null;
 
     const { weekPoints, monthPoints, seasonPoints } = calculatePickPoints(
       pickForScoring,
@@ -388,7 +397,13 @@ export async function getLeaderboard(season?: number): Promise<LeaderboardEntry[
       { $match: { season: currentSeason } },
       {
         $addFields: {
-          _lookupGolferIds: { $cond: [{ $gt: [{ $size: { $ifNull: ['$allGolferIds', []] } }, 0] }, '$allGolferIds', '$golferIds'] },
+          _lookupGolferIds: {
+            $cond: [
+              { $gt: [{ $size: { $ifNull: ['$allGolferIds', []] } }, 0] },
+              '$allGolferIds',
+              '$golferIds',
+            ],
+          },
         },
       },
       {
@@ -480,9 +495,7 @@ export async function getLeaderboard(season?: number): Promise<LeaderboardEntry[
       }
     }
 
-    const seasonStartDate = activeSeason?.startDate
-      ? new Date(activeSeason.startDate)
-      : null;
+    const seasonStartDate = activeSeason?.startDate ? new Date(activeSeason.startDate) : null;
 
     const { seasonPoints } = calculatePickPoints(
       {
@@ -580,7 +593,13 @@ export async function getTournamentLeaderboard(
       { $match: { season: currentSeason } },
       {
         $addFields: {
-          _lookupGolferIds: { $cond: [{ $gt: [{ $size: { $ifNull: ['$allGolferIds', []] } }, 0] }, '$allGolferIds', '$golferIds'] },
+          _lookupGolferIds: {
+            $cond: [
+              { $gt: [{ $size: { $ifNull: ['$allGolferIds', []] } }, 0] },
+              '$allGolferIds',
+              '$golferIds',
+            ],
+          },
         },
       },
       {
@@ -668,9 +687,7 @@ export async function getTournamentLeaderboard(
       }
     }
 
-    const seasonStartDate = activeSeason?.startDate
-      ? new Date(activeSeason.startDate)
-      : null;
+    const seasonStartDate = activeSeason?.startDate ? new Date(activeSeason.startDate) : null;
 
     const { seasonPoints } = calculatePickPoints(
       {

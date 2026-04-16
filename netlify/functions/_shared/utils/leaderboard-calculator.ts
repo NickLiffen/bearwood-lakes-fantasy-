@@ -98,8 +98,7 @@ export function calculateLeaderboard(
     if (!user) continue;
 
     const teamEffectiveStart = getTeamEffectiveStartDate(pick.createdAt, firstGameweekStart);
-    const hasRosters =
-      pick.gameweekRosters && Object.keys(pick.gameweekRosters).length > 0;
+    const hasRosters = pick.gameweekRosters && Object.keys(pick.gameweekRosters).length > 0;
 
     // Convert gameweekRosters to string-keyed RosterSnapshot for the helper
     let rosters: Record<string, RosterSnapshot> | undefined;
@@ -116,9 +115,7 @@ export function calculateLeaderboard(
     const captainIdStr = pick.captainId?.toString();
 
     // Determine which golfer IDs to iterate over
-    const golferIds = hasRosters && pick.allGolferIds
-      ? pick.allGolferIds
-      : pick.golferIds;
+    const golferIds = hasRosters && pick.allGolferIds ? pick.allGolferIds : pick.golferIds;
 
     let points = 0;
     const eventsSet = new Set<string>();

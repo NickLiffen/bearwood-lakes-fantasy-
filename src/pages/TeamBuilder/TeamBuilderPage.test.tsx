@@ -55,8 +55,20 @@ const makeGolfer = (id: string, firstName: string, lastName: string, price = 800
   picture: '',
   price,
   isActive: true,
-  stats2024: { timesBonusScored: 0, timesFinished1st: 0, timesFinished2nd: 0, timesFinished3rd: 0, timesPlayed: 5 },
-  stats2025: { timesBonusScored: 0, timesFinished1st: 0, timesFinished2nd: 0, timesFinished3rd: 0, timesPlayed: 5 },
+  stats2024: {
+    timesBonusScored: 0,
+    timesFinished1st: 0,
+    timesFinished2nd: 0,
+    timesFinished3rd: 0,
+    timesPlayed: 5,
+  },
+  stats2025: {
+    timesBonusScored: 0,
+    timesFinished1st: 0,
+    timesFinished2nd: 0,
+    timesFinished3rd: 0,
+    timesPlayed: 5,
+  },
 });
 
 const allGolfers = [
@@ -72,11 +84,13 @@ const allGolfers = [
 
 const existingTeam = allGolfers.slice(0, 6);
 
-function setupMocks(options: {
-  hasTeam?: boolean;
-  captainId?: string | null;
-  transfersOpen?: boolean;
-} = {}) {
+function setupMocks(
+  options: {
+    hasTeam?: boolean;
+    captainId?: string | null;
+    transfersOpen?: boolean;
+  } = {}
+) {
   const { hasTeam = false, captainId = null, transfersOpen = true } = options;
 
   mockGet.mockImplementation((endpoint: string) => {
@@ -95,7 +109,12 @@ function setupMocks(options: {
     if (endpoint === 'settings-public') {
       return Promise.resolve({
         success: true,
-        data: { transfersOpen, registrationOpen: true, currentSeason: 2025, allowNewTeamCreation: true },
+        data: {
+          transfersOpen,
+          registrationOpen: true,
+          currentSeason: 2025,
+          allowNewTeamCreation: true,
+        },
       });
     }
     return Promise.resolve({ success: true, data: null });
@@ -176,8 +195,9 @@ describe('TeamBuilderPage', () => {
       });
 
       // All 6 golfers should be displayed
-      const slotsBeforeClick = screen.getAllByTitle('Make captain (2× points)').length +
-        (screen.queryAllByTitle('Remove captain').length);
+      const slotsBeforeClick =
+        screen.getAllByTitle('Make captain (2× points)').length +
+        screen.queryAllByTitle('Remove captain').length;
       expect(slotsBeforeClick).toBe(6);
 
       // Click captain toggle — should NOT remove golfer
@@ -206,9 +226,12 @@ describe('TeamBuilderPage', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Save Team' }));
 
       await waitFor(() => {
-        expect(mockPost).toHaveBeenCalledWith('picks-save', expect.objectContaining({
-          captainId: 'g1',
-        }));
+        expect(mockPost).toHaveBeenCalledWith(
+          'picks-save',
+          expect.objectContaining({
+            captainId: 'g1',
+          })
+        );
       });
     });
 
@@ -230,9 +253,12 @@ describe('TeamBuilderPage', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Save Team' }));
 
       await waitFor(() => {
-        expect(mockPost).toHaveBeenCalledWith('picks-save', expect.objectContaining({
-          captainId: expect.any(String),
-        }));
+        expect(mockPost).toHaveBeenCalledWith(
+          'picks-save',
+          expect.objectContaining({
+            captainId: expect.any(String),
+          })
+        );
         const callArgs = mockPost.mock.calls[0][1];
         expect(callArgs.captainId).not.toBe('g1');
       });

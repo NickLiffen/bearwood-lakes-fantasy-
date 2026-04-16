@@ -14,12 +14,12 @@ npm install @netlify/blobs
 ## Getting a Store
 
 ```typescript
-import { getStore } from "@netlify/blobs";
+import { getStore } from '@netlify/blobs';
 
-const store = getStore({ name: "my-store" });
+const store = getStore({ name: 'my-store' });
 
 // Use "strong" consistency when you need immediate reads after writes
-const store = getStore({ name: "my-store", consistency: "strong" });
+const store = getStore({ name: 'my-store', consistency: 'strong' });
 ```
 
 ## CRUD Operations
@@ -30,43 +30,43 @@ These are the **only** store methods. Do not invent others.
 
 ```typescript
 // String or binary data
-await store.set("key", "value");
-await store.set("key", fileBuffer);
+await store.set('key', 'value');
+await store.set('key', fileBuffer);
 
 // With metadata
-await store.set("key", data, {
-  metadata: { contentType: "image/png", uploadedAt: new Date().toISOString() },
+await store.set('key', data, {
+  metadata: { contentType: 'image/png', uploadedAt: new Date().toISOString() },
 });
 
 // JSON data
-await store.setJSON("key", { name: "Example", count: 42 });
+await store.setJSON('key', { name: 'Example', count: 42 });
 ```
 
 ### Read
 
 ```typescript
 // Text (default)
-const text = await store.get("key");                    // string | null
+const text = await store.get('key'); // string | null
 
 // Typed retrieval
-const json = await store.get("key", { type: "json" });  // object | null
-const stream = await store.get("key", { type: "stream" });
-const blob = await store.get("key", { type: "blob" });
-const buffer = await store.get("key", { type: "arrayBuffer" });
+const json = await store.get('key', { type: 'json' }); // object | null
+const stream = await store.get('key', { type: 'stream' });
+const blob = await store.get('key', { type: 'blob' });
+const buffer = await store.get('key', { type: 'arrayBuffer' });
 
 // With metadata
-const result = await store.getWithMetadata("key");
+const result = await store.getWithMetadata('key');
 // { data: any, etag: string, metadata: object } | null
 
 // Metadata only (no data download)
-const meta = await store.getMetadata("key");
+const meta = await store.getMetadata('key');
 // { etag: string, metadata: object } | null
 ```
 
 ### Delete
 
 ```typescript
-await store.delete("key");
+await store.delete('key');
 ```
 
 ### List
@@ -76,7 +76,7 @@ const { blobs } = await store.list();
 // blobs: [{ etag: string, key: string }, ...]
 
 // Filter by prefix
-const { blobs } = await store.list({ prefix: "uploads/" });
+const { blobs } = await store.list({ prefix: 'uploads/' });
 ```
 
 ## Store Types
@@ -86,11 +86,11 @@ const { blobs } = await store.list({ prefix: "uploads/" });
 
 ## Limits
 
-| Limit | Value |
-|---|---|
-| Max object size | 5 GB |
-| Store name max length | 64 bytes |
-| Key max length | 600 bytes |
+| Limit                 | Value     |
+| --------------------- | --------- |
+| Max object size       | 5 GB      |
+| Store name max length | 64 bytes  |
+| Key max length        | 600 bytes |
 
 ## Local Development
 

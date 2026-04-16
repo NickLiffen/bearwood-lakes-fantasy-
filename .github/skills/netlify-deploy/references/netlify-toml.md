@@ -36,6 +36,7 @@ Configuration file for Netlify builds and deployments.
 Netlify auto-detects frameworks, but you can override:
 
 ### React (Vite)
+
 ```toml
 [build]
   command = "npm run build"
@@ -43,6 +44,7 @@ Netlify auto-detects frameworks, but you can override:
 ```
 
 ### Next.js
+
 ```toml
 [build]
   command = "npm run build"
@@ -50,6 +52,7 @@ Netlify auto-detects frameworks, but you can override:
 ```
 
 ### Astro
+
 ```toml
 [build]
   command = "npm run build"
@@ -146,6 +149,7 @@ Netlify auto-detects frameworks, but you can override:
 ## Common Patterns
 
 ### Single Page Application (SPA)
+
 ```toml
 [build]
   command = "npm run build"
@@ -158,6 +162,7 @@ Netlify auto-detects frameworks, but you can override:
 ```
 
 ### Multiple Redirects with Country-Based Routing
+
 ```toml
 [[redirects]]
   from = "/"

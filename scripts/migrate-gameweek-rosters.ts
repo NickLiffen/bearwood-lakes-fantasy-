@@ -59,10 +59,7 @@ function getSeasonFirstSaturday(seasonStartDate: Date): Date {
   return d;
 }
 
-function getFirstGameweekStart(
-  seasonStartDate: Date,
-  firstGameweekStart?: Date | null
-): Date {
+function getFirstGameweekStart(seasonStartDate: Date, firstGameweekStart?: Date | null): Date {
   if (firstGameweekStart) {
     const d = new Date(firstGameweekStart);
     d.setHours(0, 0, 0, 0);
@@ -169,10 +166,7 @@ async function migrate() {
     console.log('');
 
     // Get all picks for this season
-    const picks = await db
-      .collection<PickDoc>('picks')
-      .find({ season: seasonNum })
-      .toArray();
+    const picks = await db.collection<PickDoc>('picks').find({ season: seasonNum }).toArray();
 
     console.log(`👥 Found ${picks.length} picks to process\n`);
 
@@ -228,7 +222,10 @@ async function migrate() {
       if (history.length === 0) {
         console.log(`⚠️  ${userName}: No pick history found, creating roster from current team`);
         // Create GW1 roster from current team
-        const gameweekRosters: Record<string, { golferIds: ObjectId[]; captainId: ObjectId | null }> = {
+        const gameweekRosters: Record<
+          string,
+          { golferIds: ObjectId[]; captainId: ObjectId | null }
+        > = {
           '1': {
             golferIds: pick.golferIds,
             captainId: pick.captainId || null,
@@ -247,13 +244,16 @@ async function migrate() {
           );
         }
 
-        console.log(`  ✅ Set GW1 roster: [${pick.golferIds.map((id) => golferNames.get(id.toString()) || id).join(', ')}]`);
+        console.log(
+          `  ✅ Set GW1 roster: [${pick.golferIds.map((id) => golferNames.get(id.toString()) || id).join(', ')}]`
+        );
         updated++;
         continue;
       }
 
       // Reconstruct gameweek rosters from history
-      const gameweekRosters: Record<string, { golferIds: ObjectId[]; captainId: ObjectId | null }> = {};
+      const gameweekRosters: Record<string, { golferIds: ObjectId[]; captainId: ObjectId | null }> =
+        {};
       const allHistoricalGolferIds = new Set<string>();
 
       for (const entry of history) {

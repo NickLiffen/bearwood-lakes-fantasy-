@@ -8,6 +8,7 @@ description: Guide for controlling caching on Netlify's CDN. Use when configurin
 ## Default Behavior
 
 **Static assets** are cached automatically:
+
 - CDN: cached for 1 year, invalidated on every deploy
 - Browser: always revalidates (`max-age=0, must-revalidate`)
 - No configuration needed
@@ -18,11 +19,11 @@ description: Guide for controlling caching on Netlify's CDN. Use when configurin
 
 Three headers control caching, from most to least specific:
 
-| Header | Who sees it | Use case |
-|---|---|---|
+| Header                      | Who sees it                                | Use case         |
+| --------------------------- | ------------------------------------------ | ---------------- |
 | `Netlify-CDN-Cache-Control` | Netlify CDN only (stripped before browser) | CDN-only caching |
-| `CDN-Cache-Control` | All CDN caches (stripped before browser) | Multi-CDN setups |
-| `Cache-Control` | Browser and all caches | General caching |
+| `CDN-Cache-Control`         | All CDN caches (stripped before browser)   | Multi-CDN setups |
+| `Cache-Control`             | Browser and all caches                     | General caching  |
 
 ### Common Patterns
 
@@ -30,22 +31,22 @@ Three headers control caching, from most to least specific:
 // Cache at CDN for 1 hour, browser always revalidates
 return new Response(body, {
   headers: {
-    "Netlify-CDN-Cache-Control": "public, s-maxage=3600, must-revalidate",
-    "Cache-Control": "public, max-age=0, must-revalidate",
+    'Netlify-CDN-Cache-Control': 'public, s-maxage=3600, must-revalidate',
+    'Cache-Control': 'public, max-age=0, must-revalidate',
   },
 });
 
 // Stale-while-revalidate (serve stale for 2 min while refreshing)
 return new Response(body, {
   headers: {
-    "Netlify-CDN-Cache-Control": "public, max-age=60, stale-while-revalidate=120",
+    'Netlify-CDN-Cache-Control': 'public, max-age=60, stale-while-revalidate=120',
   },
 });
 
 // Durable cache (shared across edge nodes, serverless functions only)
 return new Response(body, {
   headers: {
-    "Netlify-CDN-Cache-Control": "public, durable, max-age=60, stale-while-revalidate=120",
+    'Netlify-CDN-Cache-Control': 'public, durable, max-age=60, stale-while-revalidate=120',
   },
 });
 ```
@@ -69,8 +70,8 @@ Tag responses for selective cache invalidation:
 ```typescript
 return new Response(body, {
   headers: {
-    "Netlify-Cache-ID": "product,listing",
-    "Netlify-CDN-Cache-Control": "public, s-maxage=86400",
+    'Netlify-Cache-ID': 'product,listing',
+    'Netlify-CDN-Cache-Control': 'public, s-maxage=86400',
   },
 });
 ```
@@ -78,11 +79,11 @@ return new Response(body, {
 Purge by tag:
 
 ```typescript
-import { purgeCache } from "@netlify/functions";
+import { purgeCache } from '@netlify/functions';
 
 export default async () => {
-  await purgeCache({ tags: ["product"] });
-  return new Response("Purged", { status: 202 });
+  await purgeCache({ tags: ['product'] });
+  return new Response('Purged', { status: 202 });
 };
 ```
 
@@ -101,7 +102,7 @@ Customize what creates separate cache entries:
 ```typescript
 return new Response(body, {
   headers: {
-    "Netlify-Vary": "cookie=ab_test|is_logged_in",
+    'Netlify-Vary': 'cookie=ab_test|is_logged_in',
     // Other options: query=param1|param2, header=X-Custom, country=us|de, language=en|fr
   },
 });
@@ -110,20 +111,25 @@ return new Response(body, {
 ## Framework-Specific Caching
 
 ### Next.js
+
 ISR uses Netlify's durable cache automatically (runtime 5.5.0+). `revalidatePath` and `revalidateTag` trigger cache purge.
 
 ### Astro / Remix
+
 Full control over cache headers in server routes. Set `Netlify-CDN-Cache-Control` in responses for CDN caching.
 
 ### Nuxt
+
 Default Nitro preset handles caching. ISR-style patterns use `routeRules` with `swr` or `isr` options.
 
 ### Vite SPA
+
 Static assets are cached by default. API responses from Netlify Functions need explicit cache headers.
 
 ## Debugging
 
 Check the `Cache-Status` response header:
+
 - `HIT` — served from cache
 - `MISS` — generated fresh
 - `REVALIDATED` — stale content was revalidated

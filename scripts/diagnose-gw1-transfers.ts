@@ -94,9 +94,7 @@ async function diagnose() {
     }
 
     const seasonNum = parseInt(season.name, 10) || new Date().getFullYear();
-    const firstGWConfig = season.firstGameweekStart
-      ? new Date(season.firstGameweekStart)
-      : null;
+    const firstGWConfig = season.firstGameweekStart ? new Date(season.firstGameweekStart) : null;
     const GW1_START = firstGWConfig || getSeasonFirstSaturday(new Date(season.startDate));
     const firstSat = getSeasonFirstSaturday(GW1_START);
     const GW2_START = new Date(firstSat);
@@ -112,7 +110,9 @@ async function diagnose() {
     console.log('\n🔍 GW1 Transfer Diagnosis (READ-ONLY)\n');
     console.log(`📅 Season: ${season.name}`);
     console.log(`📅 firstGameweekStart: ${firstGWConfig?.toISOString() || 'not set'}`);
-    console.log(`📅 GW1: ${GW1_START.toISOString()} → ${GW2_DEADLINE.toISOString()} (8am deadline)`);
+    console.log(
+      `📅 GW1: ${GW1_START.toISOString()} → ${GW2_DEADLINE.toISOString()} (8am deadline)`
+    );
     console.log('');
 
     // === Fetch all golfer and user names ===
@@ -156,13 +156,12 @@ async function diagnose() {
       })
       .toArray();
 
-    console.log(`⏳ Found ${picksWithGW1Pending.length} pick(s) with GW1-era pendingChangedAt still set\n`);
+    console.log(
+      `⏳ Found ${picksWithGW1Pending.length} pick(s) with GW1-era pendingChangedAt still set\n`
+    );
 
     // === 3. Get all picks for cross-referencing ===
-    const allPicks = await db
-      .collection<PickDoc>('picks')
-      .find({ season: seasonNum })
-      .toArray();
+    const allPicks = await db.collection<PickDoc>('picks').find({ season: seasonNum }).toArray();
     const picksByUser = new Map(allPicks.map((p) => [p.userId.toString(), p]));
 
     // === 4. Analyse each GW1 scheduled transfer ===
@@ -226,9 +225,10 @@ async function diagnose() {
       // === Check each field ===
 
       // Is pendingChangedAt still from GW1? (transfer still unapplied)
-      const hasGW1Pending = pick.pendingChangedAt
-        && new Date(pick.pendingChangedAt) >= GW1_START
-        && new Date(pick.pendingChangedAt) < GW2_DEADLINE;
+      const hasGW1Pending =
+        pick.pendingChangedAt &&
+        new Date(pick.pendingChangedAt) >= GW1_START &&
+        new Date(pick.pendingChangedAt) < GW2_DEADLINE;
 
       // Does golferIds match the expected post-transfer team?
       const golferIdsCorrect = sameIdSets(currentGolferIds, expectedGolferIds);
@@ -275,11 +275,17 @@ async function diagnose() {
 
       const icon = fixType === 'OK' ? '✅' : '🔴';
       console.log(`\n${icon} ${userName} [${fixType}]`);
-      console.log(`   Transfer: ${removedNames || '?'} → ${addedNames || '?'} (${lastTransfer.reason})`);
+      console.log(
+        `   Transfer: ${removedNames || '?'} → ${addedNames || '?'} (${lastTransfer.reason})`
+      );
       console.log(`   Date: ${new Date(lastTransfer.changedAt).toISOString()}`);
-      console.log(`   golferIds:          ${golferIdsCorrect ? '✅ Correct' : '❌ Still shows OLD team'}`);
+      console.log(
+        `   golferIds:          ${golferIdsCorrect ? '✅ Correct' : '❌ Still shows OLD team'}`
+      );
       console.log(`   gameweekRosters[2]: ${gw2RosterStatus}`);
-      console.log(`   GW1 pending:        ${hasGW1Pending ? '❌ Still set' : '✅ Cleared / not from GW1'}`);
+      console.log(
+        `   GW1 pending:        ${hasGW1Pending ? '❌ Still set' : '✅ Cleared / not from GW1'}`
+      );
 
       if (fixType !== 'OK') {
         affectedUsers.push({ name: userName, type: fixType });
@@ -316,7 +322,9 @@ async function diagnose() {
     }
 
     const totalFixes = needsLiveFix + needsRosterFix;
-    console.log(`\n${totalFixes > 0 ? '⚠️  Run apply-missed-gw1-transfers.ts to fix these.' : '✅ All transfers look correct!'}\n`);
+    console.log(
+      `\n${totalFixes > 0 ? '⚠️  Run apply-missed-gw1-transfers.ts to fix these.' : '✅ All transfers look correct!'}\n`
+    );
   } finally {
     await client.close();
   }

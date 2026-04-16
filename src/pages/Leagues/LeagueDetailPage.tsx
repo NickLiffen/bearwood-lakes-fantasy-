@@ -169,9 +169,7 @@ const LeagueDetailPage: React.FC = () => {
   const handleWeekNavigation = async (direction: 'prev' | 'next') => {
     if (!weeklyData?.period) return;
     const targetDate =
-      direction === 'next'
-        ? weeklyData.period.nextDate
-        : weeklyData.period.previousDate;
+      direction === 'next' ? weeklyData.period.nextDate : weeklyData.period.previousDate;
     if (!targetDate) return;
     setWeeklyDate(targetDate);
     setWeeklyPage(1);
@@ -182,9 +180,7 @@ const LeagueDetailPage: React.FC = () => {
   const handleMonthNavigation = async (direction: 'prev' | 'next') => {
     if (!monthlyData?.period) return;
     const targetDate =
-      direction === 'next'
-        ? monthlyData.period.nextDate
-        : monthlyData.period.previousDate;
+      direction === 'next' ? monthlyData.period.nextDate : monthlyData.period.previousDate;
     if (!targetDate) return;
     setMonthlyDate(targetDate);
     setMonthlyPage(1);

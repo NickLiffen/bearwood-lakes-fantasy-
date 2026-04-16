@@ -29,27 +29,27 @@ Identity does **not** currently work with `netlify dev`. You must deploy to Netl
 Log in from the browser:
 
 ```typescript
-import { login, getUser } from '@netlify/identity'
+import { login, getUser } from '@netlify/identity';
 
-const user = await login('user@example.com', '<password>')
-console.log(`Hello, ${user.name}`)
+const user = await login('user@example.com', '<password>');
+console.log(`Hello, ${user.name}`);
 
 // Later, check auth state
-const currentUser = await getUser()
+const currentUser = await getUser();
 ```
 
 Protect a Netlify Function:
 
 ```typescript
 // netlify/functions/protected.mts
-import { getUser } from '@netlify/identity'
-import type { Context } from '@netlify/functions'
+import { getUser } from '@netlify/identity';
+import type { Context } from '@netlify/functions';
 
 export default async (req: Request, context: Context) => {
-  const user = await getUser()
-  if (!user) return new Response('Unauthorized', { status: 401 })
-  return Response.json({ id: user.id, email: user.email })
-}
+  const user = await getUser();
+  if (!user) return new Response('Unauthorized', { status: 401 });
+  return Response.json({ id: user.id, email: user.email });
+};
 ```
 
 ## Core API
@@ -66,21 +66,21 @@ import {
   oauthLogin,
   onAuthChange,
   getSettings,
-} from '@netlify/identity'
+} from '@netlify/identity';
 ```
 
 ### Login
 
 ```typescript
-import { login, AuthError } from '@netlify/identity'
+import { login, AuthError } from '@netlify/identity';
 
 async function handleLogin(email: string, password: string) {
   try {
-    const user = await login(email, password)
-    showSuccess(`Welcome back, ${user.name ?? user.email}`)
+    const user = await login(email, password);
+    showSuccess(`Welcome back, ${user.name ?? user.email}`);
   } catch (error) {
     if (error instanceof AuthError) {
-      showError(error.status === 401 ? 'Invalid email or password.' : error.message)
+      showError(error.status === 401 ? 'Invalid email or password.' : error.message);
     }
   }
 }
@@ -91,21 +91,21 @@ async function handleLogin(email: string, password: string) {
 After signup, check `user.emailVerified` to determine if the user was auto-confirmed or needs to confirm their email.
 
 ```typescript
-import { signup, AuthError } from '@netlify/identity'
+import { signup, AuthError } from '@netlify/identity';
 
 async function handleSignup(email: string, password: string, name: string) {
   try {
-    const user = await signup(email, password, { full_name: name })
+    const user = await signup(email, password, { full_name: name });
     if (user.emailVerified) {
       // Autoconfirm ON — user is logged in immediately
-      showSuccess('Account created. You are now logged in.')
+      showSuccess('Account created. You are now logged in.');
     } else {
       // Autoconfirm OFF — confirmation email sent
-      showSuccess('Check your email to confirm your account.')
+      showSuccess('Check your email to confirm your account.');
     }
   } catch (error) {
     if (error instanceof AuthError) {
-      showError(error.status === 403 ? 'Signups are not allowed.' : error.message)
+      showError(error.status === 403 ? 'Signups are not allowed.' : error.message);
     }
   }
 }
@@ -114,9 +114,9 @@ async function handleSignup(email: string, password: string, name: string) {
 ### Logout
 
 ```typescript
-import { logout } from '@netlify/identity'
+import { logout } from '@netlify/identity';
 
-await logout()
+await logout();
 ```
 
 ### OAuth
@@ -124,11 +124,11 @@ await logout()
 OAuth is a two-step flow: `oauthLogin(provider)` redirects away from the site, then `handleAuthCallback()` processes the redirect when the user returns.
 
 ```typescript
-import { oauthLogin } from '@netlify/identity'
+import { oauthLogin } from '@netlify/identity';
 
 // Step 1: Redirect to provider (navigates away — never returns)
 function handleOAuthClick(provider: 'google' | 'github' | 'gitlab' | 'bitbucket') {
-  oauthLogin(provider)
+  oauthLogin(provider);
 }
 ```
 
@@ -139,34 +139,34 @@ Enable providers in **Project configuration > Identity > External providers** be
 Always call `handleAuthCallback()` on page load in any app that uses OAuth, password recovery, invites, or email confirmation. It processes all callback types via the URL hash.
 
 ```typescript
-import { handleAuthCallback, AuthError } from '@netlify/identity'
+import { handleAuthCallback, AuthError } from '@netlify/identity';
 
 async function processCallback() {
   try {
-    const result = await handleAuthCallback()
-    if (!result) return // No callback hash — normal page load
+    const result = await handleAuthCallback();
+    if (!result) return; // No callback hash — normal page load
 
     switch (result.type) {
       case 'oauth':
-        showSuccess(`Logged in as ${result.user?.email}`)
-        break
+        showSuccess(`Logged in as ${result.user?.email}`);
+        break;
       case 'confirmation':
-        showSuccess('Email confirmed. You are now logged in.')
-        break
+        showSuccess('Email confirmed. You are now logged in.');
+        break;
       case 'recovery':
         // User is authenticated but must set a new password
-        showPasswordResetForm(result.user)
-        break
+        showPasswordResetForm(result.user);
+        break;
       case 'invite':
         // User must set a password to accept the invite
-        showInviteAcceptForm(result.token)
-        break
+        showInviteAcceptForm(result.token);
+        break;
       case 'email_change':
-        showSuccess('Email address updated.')
-        break
+        showSuccess('Email address updated.');
+        break;
     }
   } catch (error) {
-    if (error instanceof AuthError) showError(error.message)
+    if (error instanceof AuthError) showError(error.message);
   }
 }
 ```
@@ -174,30 +174,30 @@ async function processCallback() {
 ### Auth State
 
 ```typescript
-import { getUser, onAuthChange, AUTH_EVENTS } from '@netlify/identity'
+import { getUser, onAuthChange, AUTH_EVENTS } from '@netlify/identity';
 
 // Check current user (never throws — returns null if not authenticated)
-const user = await getUser()
+const user = await getUser();
 
 // Subscribe to auth state changes (returns unsubscribe function)
 const unsubscribe = onAuthChange((event, user) => {
   switch (event) {
     case AUTH_EVENTS.LOGIN:
-      console.log('Logged in:', user?.email)
-      break
+      console.log('Logged in:', user?.email);
+      break;
     case AUTH_EVENTS.LOGOUT:
-      console.log('Logged out')
-      break
+      console.log('Logged out');
+      break;
     case AUTH_EVENTS.TOKEN_REFRESH:
-      break
+      break;
     case AUTH_EVENTS.USER_UPDATED:
-      console.log('Profile updated:', user?.email)
-      break
+      console.log('Profile updated:', user?.email);
+      break;
     case AUTH_EVENTS.RECOVERY:
-      console.log('Password recovery initiated')
-      break
+      console.log('Password recovery initiated');
+      break;
   }
-})
+});
 ```
 
 ### Settings-Driven UI
@@ -205,24 +205,24 @@ const unsubscribe = onAuthChange((event, user) => {
 Fetch the project's Identity settings to conditionally render signup forms and OAuth buttons.
 
 ```typescript
-import { getSettings } from '@netlify/identity'
+import { getSettings } from '@netlify/identity';
 
-const settings = await getSettings()
+const settings = await getSettings();
 // settings.autoconfirm — boolean
 // settings.disableSignup — boolean
 // settings.providers — Record<AuthProvider, boolean>
 
-if (!settings.disableSignup) showSignupForm()
+if (!settings.disableSignup) showSignupForm();
 
 for (const [provider, enabled] of Object.entries(settings.providers)) {
-  if (enabled) showOAuthButton(provider)
+  if (enabled) showOAuthButton(provider);
 }
 ```
 
 ## Minimal React Example
 
 ```tsx
-import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react';
 import {
   getUser,
   handleAuthCallback,
@@ -230,34 +230,34 @@ import {
   logout,
   oauthLogin,
   onAuthChange,
-} from '@netlify/identity'
+} from '@netlify/identity';
 
 function App() {
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    ;(async () => {
-      await handleAuthCallback()
-      setUser(await getUser())
-      setLoading(false)
-    })()
-    return onAuthChange((_event, currentUser) => setUser(currentUser))
-  }, [])
+    (async () => {
+      await handleAuthCallback();
+      setUser(await getUser());
+      setLoading(false);
+    })();
+    return onAuthChange((_event, currentUser) => setUser(currentUser));
+  }, []);
 
   const handleLogin = async (email, password) => {
-    const currentUser = await login(email, password)
-    setUser(currentUser)
-  }
+    const currentUser = await login(email, password);
+    setUser(currentUser);
+  };
 
-  const handleGoogleLogin = () => oauthLogin('google')
+  const handleGoogleLogin = () => oauthLogin('google');
 
   const handleSignOut = async () => {
-    await logout()
-    setUser(null)
-  }
+    await logout();
+    setUser(null);
+  };
 
-  if (loading) return <p>Loading...</p>
+  if (loading) return <p>Loading...</p>;
   // Render login form or user details based on `user` state
 }
 ```
@@ -271,12 +271,12 @@ function App() {
 
 `getUser()` and `isAuthenticated()` never throw — they return `null` and `false` respectively on failure.
 
-| Status | Meaning |
-|--------|---------|
-| 401 | Invalid credentials or expired token |
-| 403 | Action not allowed (e.g., signups disabled) |
-| 422 | Validation error (e.g., weak password, malformed email) |
-| 404 | User or resource not found |
+| Status | Meaning                                                 |
+| ------ | ------------------------------------------------------- |
+| 401    | Invalid credentials or expired token                    |
+| 403    | Action not allowed (e.g., signups disabled)             |
+| 422    | Validation error (e.g., weak password, malformed email) |
+| 404    | User or resource not found                              |
 
 ## Identity Event Functions
 
@@ -286,10 +286,10 @@ Special serverless functions that trigger on Identity lifecycle events. These us
 
 ```typescript
 // netlify/functions/identity-signup.mts
-import type { Handler, HandlerEvent, HandlerContext } from '@netlify/functions'
+import type { Handler, HandlerEvent, HandlerContext } from '@netlify/functions';
 
 const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
-  const { user } = JSON.parse(event.body || '{}')
+  const { user } = JSON.parse(event.body || '{}');
 
   return {
     statusCode: 200,
@@ -299,10 +299,10 @@ const handler: Handler = async (event: HandlerEvent, context: HandlerContext) =>
         roles: ['member'],
       },
     }),
-  }
-}
+  };
+};
 
-export { handler }
+export { handler };
 ```
 
 The response body replaces `app_metadata` and/or `user_metadata` on the user record — include all fields you want to keep.

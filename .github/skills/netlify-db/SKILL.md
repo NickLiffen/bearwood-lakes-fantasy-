@@ -10,11 +10,13 @@ Netlify DB provisions a managed Neon Postgres database automatically. No Neon ac
 ## When to Use DB vs Blobs
 
 **Use Netlify DB when:**
+
 - Storing structured, relational data
 - Data will grow over time
 - Need queries, filtering, joins, or aggregations
 
 **Use Netlify Blobs instead when:**
+
 - Storing files (images, documents, exports)
 - A handful of records with no growth expectation
 - Simple key-value storage with no relational needs
@@ -36,13 +38,13 @@ Prerequisites: logged into Netlify CLI and site linked (`netlify link`).
 `@netlify/neon` wraps `@neondatabase/serverless`. No connection string needed — it auto-configures.
 
 ```typescript
-import { neon } from "@netlify/neon";
+import { neon } from '@netlify/neon';
 const sql = neon();
 
-const users = await sql("SELECT * FROM users");
-await sql("INSERT INTO users (name) VALUES ($1)", ["Jane"]);
-await sql("UPDATE users SET name = $1 WHERE id = $2", ["Jane", 1]);
-await sql("DELETE FROM users WHERE id = $1", [1]);
+const users = await sql('SELECT * FROM users');
+await sql('INSERT INTO users (name) VALUES ($1)', ['Jane']);
+await sql('UPDATE users SET name = $1 WHERE id = $2', ['Jane', 1]);
+await sql('DELETE FROM users WHERE id = $1', [1]);
 ```
 
 ## Drizzle ORM Integration
@@ -52,42 +54,42 @@ For most projects, use Drizzle ORM on top of Netlify DB.
 ### drizzle.config.ts
 
 ```typescript
-import { defineConfig } from "drizzle-kit";
+import { defineConfig } from 'drizzle-kit';
 
 export default defineConfig({
-  dialect: "postgresql",
+  dialect: 'postgresql',
   dbCredentials: { url: process.env.NETLIFY_DATABASE_URL! },
-  schema: "./db/schema.ts",
-  out: "./migrations",
-  migrations: { prefix: "timestamp" }, // Avoids conflicts across branches
+  schema: './db/schema.ts',
+  out: './migrations',
+  migrations: { prefix: 'timestamp' }, // Avoids conflicts across branches
 });
 ```
 
 ### db/index.ts
 
 ```typescript
-import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
-import * as schema from "./schema";
+import { neon } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-http';
+import * as schema from './schema';
 
 const sql = neon(process.env.NETLIFY_DATABASE_URL!);
 export const db = drizzle(sql, { schema });
-export * from "./schema";
+export * from './schema';
 ```
 
 ### Schema Example
 
 ```typescript
 // db/schema.ts
-import { integer, pgTable, varchar, text, boolean, timestamp } from "drizzle-orm/pg-core";
+import { integer, pgTable, varchar, text, boolean, timestamp } from 'drizzle-orm/pg-core';
 
-export const items = pgTable("items", {
+export const items = pgTable('items', {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   title: varchar({ length: 255 }).notNull(),
   description: text(),
-  isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
 });
 
 export type Item = typeof items.$inferSelect;
@@ -97,13 +99,17 @@ export type NewItem = typeof items.$inferInsert;
 ### Query Patterns
 
 ```typescript
-import { db, items } from "../db";
-import { eq } from "drizzle-orm";
+import { db, items } from '../db';
+import { eq } from 'drizzle-orm';
 
 const all = await db.select().from(items);
 const [one] = await db.select().from(items).where(eq(items.id, id)).limit(1);
-const [created] = await db.insert(items).values({ title: "New" }).returning();
-const [updated] = await db.update(items).set({ title: "Updated" }).where(eq(items.id, id)).returning();
+const [created] = await db.insert(items).values({ title: 'New' }).returning();
+const [updated] = await db
+  .update(items)
+  .set({ title: 'Updated' })
+  .where(eq(items.id, id))
+  .returning();
 await db.delete(items).where(eq(items.id, id));
 ```
 

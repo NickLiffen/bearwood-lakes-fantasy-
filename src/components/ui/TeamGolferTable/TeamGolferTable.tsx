@@ -94,10 +94,26 @@ const TeamGolferTable: React.FC<TeamGolferTableProps> = ({
         return (
           <span
             className={`dt-text-primary ${hasBreakdown ? 'score-clickable' : ''}`}
-            onClick={hasBreakdown ? (e) => { e.stopPropagation(); setBreakdownGolfer(data); } : undefined}
+            onClick={
+              hasBreakdown
+                ? (e) => {
+                    e.stopPropagation();
+                    setBreakdownGolfer(data);
+                  }
+                : undefined
+            }
             role={hasBreakdown ? 'button' : undefined}
             tabIndex={hasBreakdown ? 0 : undefined}
-            onKeyDown={hasBreakdown ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setBreakdownGolfer(data); } } : undefined}
+            onKeyDown={
+              hasBreakdown
+                ? (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setBreakdownGolfer(data);
+                    }
+                  }
+                : undefined
+            }
             title={hasBreakdown ? 'Click to see score breakdown' : undefined}
           >
             {data.weekPoints}

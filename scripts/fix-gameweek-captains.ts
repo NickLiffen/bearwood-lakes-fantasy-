@@ -36,9 +36,7 @@ async function fix() {
     process.exit(1);
   }
 
-  console.log(
-    `\n🔧 Fix Gameweek Captains ${isDryRun ? '(DRY RUN)' : '(APPLYING CHANGES)'}\n`
-  );
+  console.log(`\n🔧 Fix Gameweek Captains ${isDryRun ? '(DRY RUN)' : '(APPLYING CHANGES)'}\n`);
 
   const client = await MongoClient.connect(MONGODB_URI);
   const db = client.db(MONGODB_DB_NAME);
@@ -88,10 +86,16 @@ async function fix() {
     for (const pick of picks) {
       const userId = pick.userId.toString();
       const userName = userNames.get(userId) || userId;
-      if (userName.includes('@admin')) { unchanged++; continue; }
+      if (userName.includes('@admin')) {
+        unchanged++;
+        continue;
+      }
 
       const rosters = pick.gameweekRosters;
-      if (!rosters) { unchanged++; continue; }
+      if (!rosters) {
+        unchanged++;
+        continue;
+      }
 
       let changed = false;
       const updates: Record<string, unknown> = {};
@@ -123,9 +127,7 @@ async function fix() {
 
         if (newCaptainId) {
           const captainName = golferNames.get(newCaptainId) || newCaptainId;
-          console.log(
-            `🔧 ${userName}: GW${gwKey} captain set to ${captainName}`
-          );
+          console.log(`🔧 ${userName}: GW${gwKey} captain set to ${captainName}`);
           updates[`gameweekRosters.${gwKey}.captainId`] = new ObjectId(newCaptainId);
           changed = true;
         } else {
@@ -137,9 +139,7 @@ async function fix() {
       if (changed) {
         updates.updatedAt = new Date();
         if (!isDryRun) {
-          await db
-            .collection<PickDoc>('picks')
-            .updateOne({ _id: pick._id }, { $set: updates });
+          await db.collection<PickDoc>('picks').updateOne({ _id: pick._id }, { $set: updates });
         }
         fixed++;
       } else {

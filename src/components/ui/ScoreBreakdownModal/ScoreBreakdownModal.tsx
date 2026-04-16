@@ -70,9 +70,7 @@ const ScoreBreakdownModal: React.FC<ScoreBreakdownModalProps> = ({
         {/* Header */}
         <div className="modal-header">
           <div className="breakdown-header-info">
-            <h2>
-              📊 Score Breakdown
-            </h2>
+            <h2>📊 Score Breakdown</h2>
             <p className="breakdown-golfer-name">
               {golferName}
               {isCaptain && <span className="captain-badge">👑 Captain</span>}
@@ -154,9 +152,7 @@ const ScoreBreakdownModal: React.FC<ScoreBreakdownModalProps> = ({
                             × {score.multiplier} ({getTournamentTypeLabel(score.tournamentType)})
                           </span>
                           <span className="score-row-value"></span>
-                          <span className="score-row-points">
-                            {afterTournamentMultiplier} pts
-                          </span>
+                          <span className="score-row-points">{afterTournamentMultiplier} pts</span>
                         </div>
                       )}
 
