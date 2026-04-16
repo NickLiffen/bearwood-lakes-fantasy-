@@ -1,6 +1,6 @@
 // Shared date utilities for backend functions
 
-// Week starts on Saturday at midnight (UTC) for tournament counting purposes
+// Week starts on Saturday at midnight (local server time) for tournament counting purposes
 const WEEK_START_HOUR = 0;
 
 // The UK timezone used for all user-facing deadlines (handles GMT ↔ BST automatically)
@@ -159,7 +159,6 @@ export const getNextWeekStart = (date: Date, firstGameweekStart?: Date | null): 
   nextWeek.setDate(nextWeek.getDate() + 7);
   nextWeek.setHours(0, 0, 0, 0);
   return getTransferDeadline(nextWeek);
-  return nextWeek;
 };
 
 /**

@@ -78,15 +78,20 @@ export async function getTransfersThisWeek(userId: string): Promise<number> {
   const firstGW = activeSeason?.firstGameweekStart
     ? new Date(activeSeason.firstGameweekStart)
     : null;
-  const weekStart = getWeekStart(new Date(), firstGW);
+  const now = new Date();
+  const weekStart = getWeekStart(now, firstGW);
 
-  // Count transfers since the transfer deadline (8am UK Saturday), not midnight.
-  // This ensures Saturday 00:00–07:59 transfers count toward the previous week.
-  const deadline = getTransferDeadline(weekStart);
+  // Count transfers since the most recent transfer deadline (8am UK Saturday).
+  // Between Saturday midnight and 8am, the current week's deadline is in the
+  // future, so we use the previous week's deadline instead.
+  const thisWeekDeadline = getTransferDeadline(weekStart);
+  const previousWeekStart = new Date(weekStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const windowStart =
+    now < thisWeekDeadline ? getTransferDeadline(previousWeekStart) : thisWeekDeadline;
 
   const count = await db.collection<PickHistoryDocument>(PICK_HISTORY_COLLECTION).countDocuments({
     userId: new ObjectId(userId),
-    changedAt: { $gte: deadline },
+    changedAt: { $gte: windowStart },
     reason: { $nin: ['Initial pick', 'Captain change', 'Scheduled captain change'] },
   });
 
