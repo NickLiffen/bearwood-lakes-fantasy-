@@ -523,9 +523,9 @@ describe('getTransferDeadline', () => {
     expect(deadline.getUTCDate()).toBe(10);
   });
 
-  it('returns 07:00 UTC just after BST starts (late March)', () => {
-    // Saturday March 28, 2026 — just after clocks go forward (BST starts March 29)
-    // March 28 is still GMT, so 8am UK = 8am UTC
+  it('returns 08:00 UTC for last Saturday before BST starts (still GMT)', () => {
+    // Saturday March 28, 2026 — still GMT (BST starts March 29)
+    // 8am UK = 8am UTC in GMT
     const sat = new Date(Date.UTC(2026, 2, 28, 0, 0, 0));
     const deadline = getTransferDeadline(sat);
     expect(deadline.getUTCHours()).toBe(8);

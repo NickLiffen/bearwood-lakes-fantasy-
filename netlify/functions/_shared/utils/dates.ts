@@ -7,23 +7,23 @@ const WEEK_START_HOUR = 0;
 const UK_TIMEZONE = 'Europe/London';
 
 // Team eligibility / transfer deadline is 8am UK local time on Saturday.
-// Exported for tests; use getTransferDeadline() for actual deadline computation.
+// Used inside getTransferDeadline() for the actual UK-local deadline computation.
 export const TEAM_ELIGIBILITY_HOUR = 8;
 
 /**
  * Get the transfer deadline as a UTC Date for a given Saturday week-start.
  *
- * The deadline is Saturday at 8am **UK local time** (Europe/London).
+ * The deadline is Saturday at TEAM_ELIGIBILITY_HOUR (8am) **UK local time** (Europe/London).
  * During BST (late March – late October) this is 07:00 UTC.
  * During GMT (late October – late March) this is 08:00 UTC.
  */
 export const getTransferDeadline = (weekStart: Date): Date => {
-  // Build a UK-local date string for this Saturday at 08:00.
   // weekStart is computed using local setHours() throughout the codebase,
   // so we use local getters to extract the calendar date.
   const year = weekStart.getFullYear();
   const month = String(weekStart.getMonth() + 1).padStart(2, '0');
   const day = String(weekStart.getDate()).padStart(2, '0');
+  const hourStr = String(TEAM_ELIGIBILITY_HOUR).padStart(2, '0');
 
   // Use Intl to find the UTC offset for this date in Europe/London
   const formatter = new Intl.DateTimeFormat('en-GB', {
@@ -37,14 +37,14 @@ export const getTransferDeadline = (weekStart: Date): Date => {
     hour12: false,
   });
 
-  // Create a candidate date at 08:00 UTC, then adjust for the UK offset
-  const candidateUtc = new Date(`${year}-${month}-${day}T08:00:00Z`);
+  // Create a candidate date at TEAM_ELIGIBILITY_HOUR UTC, then adjust for the UK offset
+  const candidateUtc = new Date(`${year}-${month}-${day}T${hourStr}:00:00Z`);
   const parts = formatter.formatToParts(candidateUtc);
   const ukHour = parseInt(parts.find((p) => p.type === 'hour')?.value || '0', 10);
 
-  // If the UK hour is 9 when we set 08:00 UTC, the offset is +1 (BST)
-  // so we need to subtract 1 hour to get 08:00 UK = 07:00 UTC
-  const offsetHours = ukHour - 8;
+  // If the UK hour differs from TEAM_ELIGIBILITY_HOUR, adjust by the offset
+  // e.g. BST: ukHour=9 when we set 08:00 UTC → offset=+1 → subtract 1h → 07:00 UTC
+  const offsetHours = ukHour - TEAM_ELIGIBILITY_HOUR;
   const deadline = new Date(candidateUtc.getTime() - offsetHours * 60 * 60 * 1000);
   return deadline;
 };

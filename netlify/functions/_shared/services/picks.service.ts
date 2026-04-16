@@ -407,8 +407,15 @@ export async function cancelPendingChanges(userId: string): Promise<void> {
   const firstGW = activeSeason?.firstGameweekStart
     ? new Date(activeSeason.firstGameweekStart)
     : null;
-  const weekStart = getWeekStart(new Date(), firstGW);
+  const now = new Date();
+  const weekStart = getWeekStart(now, firstGW);
   const userObjectId = new ObjectId(userId);
+
+  // Use the same deadline-based window as getTransfersThisWeek()
+  const thisWeekDeadline = getTransferDeadline(weekStart);
+  const previousWeekStart = new Date(weekStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const windowStart =
+    now < thisWeekDeadline ? getTransferDeadline(previousWeekStart) : thisWeekDeadline;
 
   // Clear pending fields on the picks document
   await db.collection<PickDocument>(PICKS_COLLECTION).updateOne(
@@ -423,7 +430,7 @@ export async function cancelPendingChanges(userId: string): Promise<void> {
   await db.collection<PickHistoryDocument>(PICK_HISTORY_COLLECTION).deleteMany({
     userId: userObjectId,
     season: currentSeason,
-    changedAt: { $gte: weekStart },
+    changedAt: { $gte: windowStart },
     reason: { $in: ['Scheduled transfer', 'Scheduled captain change'] },
   });
 }
