@@ -46,8 +46,13 @@
 [functions."scheduled-recalculate"]
   schedule = "@daily"
 
+# Transfer deadline is 8am UK local time (Europe/London).
+# BST (summer): 8am UK = 7am UTC. GMT (winter): 8am UK = 8am UTC.
+# Run at both 7am and 8am UTC to cover both seasons.
+# The code's getTransferDeadline() gates on 8am UK local,
+# so the early run is a no-op when it hasn't passed yet.
 [functions."scheduled-apply-transfers"]
-  schedule = "0 8 * * 6"
+  schedule = "0 7,8 * * 6"
 
 # Note: Environment variables are split between local and cloud:
 # - Local development: .env file (gitignored) with localhost defaults

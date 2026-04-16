@@ -13,7 +13,7 @@ import { GolferDocument, GOLFERS_COLLECTION } from '../models/Golfer';
 import { SettingDocument, SETTINGS_COLLECTION } from '../models/Settings';
 import { BUDGET_CAP, MAX_GOLFERS } from '../../../../shared/constants/rules';
 import type { Pick, PickWithGolfers, PickHistory } from '../../../../shared/types';
-import { getWeekStart, getGameweekNumber, hasUnlimitedTransfers as checkUnlimitedTransfers, TEAM_ELIGIBILITY_HOUR } from '../utils/dates';
+import { getWeekStart, getGameweekNumber, hasUnlimitedTransfers as checkUnlimitedTransfers, getTransferDeadline } from '../utils/dates';
 import { getActiveSeason } from './seasons.service';
 import type { GameweekRosterDocument } from '../models/Pick';
 
@@ -80,11 +80,13 @@ export async function getTransfersThisWeek(userId: string): Promise<number> {
     : null;
   const weekStart = getWeekStart(new Date(), firstGW);
 
-  // Count pickHistory entries for this user since weekStart
-  // Exclude initial picks (reason === 'Initial pick')
+  // Count transfers since the transfer deadline (8am UK Saturday), not midnight.
+  // This ensures Saturday 00:00–07:59 transfers count toward the previous week.
+  const deadline = getTransferDeadline(weekStart);
+
   const count = await db.collection<PickHistoryDocument>(PICK_HISTORY_COLLECTION).countDocuments({
     userId: new ObjectId(userId),
-    changedAt: { $gte: weekStart },
+    changedAt: { $gte: deadline },
     reason: { $nin: ['Initial pick', 'Captain change', 'Scheduled captain change'] },
   });
 
@@ -443,11 +445,10 @@ export async function applyPendingChanges(userId: string): Promise<boolean> {
 
   // Check if the current week's transfer deadline has passed before applying.
   // The week boundary is midnight Saturday, but the user-facing transfer deadline
-  // is 8am Saturday. Don't apply until the deadline has actually passed.
+  // is 8am UK local time on Saturday. Don't apply until the deadline has actually passed.
   const now = new Date();
   const weekStart = getWeekStart(now, firstGW);
-  const transferDeadline = new Date(weekStart);
-  transferDeadline.setHours(TEAM_ELIGIBILITY_HOUR, 0, 0, 0);
+  const transferDeadline = getTransferDeadline(weekStart);
   if (now < transferDeadline) return false; // Deadline hasn't passed yet
   if (pick.pendingChangedAt >= transferDeadline) return false; // Changed after deadline
 
@@ -549,8 +550,7 @@ export async function applyAllPendingChanges(): Promise<{
 
   const now = new Date();
   const weekStart = getWeekStart(now, firstGW);
-  const transferDeadline = new Date(weekStart);
-  transferDeadline.setHours(TEAM_ELIGIBILITY_HOUR, 0, 0, 0);
+  const transferDeadline = getTransferDeadline(weekStart);
 
   // Don't apply anything until the deadline has actually passed
   if (now < transferDeadline) {

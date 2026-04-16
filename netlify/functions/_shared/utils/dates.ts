@@ -1,10 +1,53 @@
 // Shared date utilities for backend functions
 
-// Week starts on Saturday at midnight for tournament counting purposes
+// Week starts on Saturday at midnight (UTC) for tournament counting purposes
 const WEEK_START_HOUR = 0;
 
-// Team eligibility / transfer deadline starts at 8am on Saturday
+// The UK timezone used for all user-facing deadlines (handles GMT ↔ BST automatically)
+const UK_TIMEZONE = 'Europe/London';
+
+// Team eligibility / transfer deadline is 8am UK local time on Saturday.
+// Exported for tests; use getTransferDeadline() for actual deadline computation.
 export const TEAM_ELIGIBILITY_HOUR = 8;
+
+/**
+ * Get the transfer deadline as a UTC Date for a given Saturday week-start.
+ *
+ * The deadline is Saturday at 8am **UK local time** (Europe/London).
+ * During BST (late March – late October) this is 07:00 UTC.
+ * During GMT (late October – late March) this is 08:00 UTC.
+ */
+export const getTransferDeadline = (weekStart: Date): Date => {
+  // Build a UK-local date string for this Saturday at 08:00.
+  // weekStart is computed using local setHours() throughout the codebase,
+  // so we use local getters to extract the calendar date.
+  const year = weekStart.getFullYear();
+  const month = String(weekStart.getMonth() + 1).padStart(2, '0');
+  const day = String(weekStart.getDate()).padStart(2, '0');
+
+  // Use Intl to find the UTC offset for this date in Europe/London
+  const formatter = new Intl.DateTimeFormat('en-GB', {
+    timeZone: UK_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+
+  // Create a candidate date at 08:00 UTC, then adjust for the UK offset
+  const candidateUtc = new Date(`${year}-${month}-${day}T08:00:00Z`);
+  const parts = formatter.formatToParts(candidateUtc);
+  const ukHour = parseInt(parts.find((p) => p.type === 'hour')?.value || '0', 10);
+
+  // If the UK hour is 9 when we set 08:00 UTC, the offset is +1 (BST)
+  // so we need to subtract 1 hour to get 08:00 UK = 07:00 UTC
+  const offsetHours = ukHour - 8;
+  const deadline = new Date(candidateUtc.getTime() - offsetHours * 60 * 60 * 1000);
+  return deadline;
+};
 
 /** Check if two dates fall on the same calendar day */
 const isSameDay = (a: Date, b: Date): boolean =>
@@ -107,15 +150,15 @@ export const getNextWeekStart = (date: Date, firstGameweekStart?: Date | null): 
       const firstSat = getSeasonFirstSaturday(firstGameweekStart);
       const gw2Start = new Date(firstSat);
       gw2Start.setDate(gw2Start.getDate() + 7);
-      gw2Start.setHours(TEAM_ELIGIBILITY_HOUR, 0, 0, 0);
-      return gw2Start;
+      gw2Start.setHours(0, 0, 0, 0);
+      return getTransferDeadline(gw2Start);
     }
   }
 
   const nextWeek = new Date(currentWeekStart);
   nextWeek.setDate(nextWeek.getDate() + 7);
-  // Use 8am for team eligibility
-  nextWeek.setHours(TEAM_ELIGIBILITY_HOUR, 0, 0, 0);
+  nextWeek.setHours(0, 0, 0, 0);
+  return getTransferDeadline(nextWeek);
   return nextWeek;
 };
 
