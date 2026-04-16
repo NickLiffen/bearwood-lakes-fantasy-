@@ -13,6 +13,7 @@ import {
   getGameweekNumber,
   getFirstGameweekStart,
   hasUnlimitedTransfers,
+  getTransferDeadline,
 } from './dates';
 
 describe('getWeekStart', () => {
@@ -502,5 +503,53 @@ describe('hasUnlimitedTransfers', () => {
   it('returns false on GW1 day after configured kickoff time (e.g. 09:00 > 08:00)', () => {
     const now = new Date('2026-04-03T09:00:00Z'); // 9am on GW1 day, kickoff was 8am
     expect(hasUnlimitedTransfers(seasonStart, firstGW, undefined, now)).toBe(false);
+  });
+});
+
+describe('getTransferDeadline', () => {
+  it('returns 07:00 UTC for a BST Saturday (summer)', () => {
+    // Saturday July 4, 2026 — BST (UTC+1), so 8am UK = 7am UTC
+    const sat = new Date(Date.UTC(2026, 6, 4, 0, 0, 0));
+    const deadline = getTransferDeadline(sat);
+    expect(deadline.getUTCHours()).toBe(7);
+    expect(deadline.getUTCDate()).toBe(4);
+  });
+
+  it('returns 08:00 UTC for a GMT Saturday (winter)', () => {
+    // Saturday January 10, 2026 — GMT (UTC+0), so 8am UK = 8am UTC
+    const sat = new Date(Date.UTC(2026, 0, 10, 0, 0, 0));
+    const deadline = getTransferDeadline(sat);
+    expect(deadline.getUTCHours()).toBe(8);
+    expect(deadline.getUTCDate()).toBe(10);
+  });
+
+  it('returns 08:00 UTC for last Saturday before BST starts (still GMT)', () => {
+    // Saturday March 28, 2026 — still GMT (BST starts March 29)
+    // 8am UK = 8am UTC in GMT
+    const sat = new Date(Date.UTC(2026, 2, 28, 0, 0, 0));
+    const deadline = getTransferDeadline(sat);
+    expect(deadline.getUTCHours()).toBe(8);
+  });
+
+  it('returns 07:00 UTC for first Saturday after BST starts', () => {
+    // Saturday April 4, 2026 — BST is active, so 8am UK = 7am UTC
+    const sat = new Date(Date.UTC(2026, 3, 4, 0, 0, 0));
+    const deadline = getTransferDeadline(sat);
+    expect(deadline.getUTCHours()).toBe(7);
+  });
+
+  it('returns 08:00 UTC just after GMT starts (late October)', () => {
+    // Saturday October 31, 2026 — clocks go back (GMT starts Oct 25)
+    // October 31 is GMT, so 8am UK = 8am UTC
+    const sat = new Date(Date.UTC(2026, 9, 31, 0, 0, 0));
+    const deadline = getTransferDeadline(sat);
+    expect(deadline.getUTCHours()).toBe(8);
+  });
+
+  it('returns 07:00 UTC for last Saturday before GMT starts', () => {
+    // Saturday October 24, 2026 — still BST, so 8am UK = 7am UTC
+    const sat = new Date(Date.UTC(2026, 9, 24, 0, 0, 0));
+    const deadline = getTransferDeadline(sat);
+    expect(deadline.getUTCHours()).toBe(7);
   });
 });
