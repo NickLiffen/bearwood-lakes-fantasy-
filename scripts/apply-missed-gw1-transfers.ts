@@ -259,6 +259,32 @@ async function fix() {
         updateUnset.pendingCaptainId = '';
         updateUnset.pendingChangedAt = '';
         changes.push('   Cleared: pendingGolferIds, pendingCaptainId, pendingChangedAt');
+      } else if (!sameIds(pick.golferIds, expectedGolferIds)) {
+        // ROSTER-ONLY path: golferIds is stale but pendingChangedAt was already cleared.
+        // Only safe to fix if the user has NOT made any GW2+ changes (which would have
+        // legitimately changed golferIds to something else).
+        const gw2PlusHistory = await db
+          .collection<PickHistoryDoc>('pickHistory')
+          .countDocuments({
+            userId: new ObjectId(userId),
+            season: seasonNum,
+            changedAt: { $gte: GW2_DEADLINE },
+          });
+
+        if (gw2PlusHistory === 0) {
+          updateSet.golferIds = expectedGolferIds;
+          const oldNames = pick.golferIds.map((id) => golferNames.get(id.toString()) || id).join(', ');
+          const newNames = expectedGolferIds.map((id) => golferNames.get(id.toString()) || id).join(', ');
+          changes.push(`   golferIds: [${oldNames}] → [${newNames}] (no GW2+ activity, safe to fix)`);
+
+          const newTotal = expectedGolferIds.reduce(
+            (sum, id) => sum + (golferPrices.get(id.toString()) || 0),
+            0
+          );
+          updateSet.totalSpent = newTotal;
+        } else {
+          changes.push(`   golferIds: ⚠️  stale but user has ${gw2PlusHistory} GW2+ changes — NOT touching`);
+        }
       }
 
       // === Fix 2: Ensure gameweekRosters["2"] is correct ===
