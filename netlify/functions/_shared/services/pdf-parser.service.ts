@@ -13,6 +13,44 @@ interface TextItem {
   x: number;
   y: number;
   text: string;
+  width: number;
+}
+
+/**
+ * Detect whether a row of text items contains spaced-out individual characters
+ * (common in some PDF generators that render each glyph separately).
+ */
+function isSpacedCharRow(row: TextItem[]): boolean {
+  if (row.length < 3) return false;
+  const singleCharCount = row.filter((item) => item.text.length === 1).length;
+  return singleCharCount > row.length * 0.7;
+}
+
+/**
+ * Join row items using gap analysis to reconstruct words from individually-spaced characters.
+ * Computes the whitespace between end of one item and start of next; inserts a space
+ * only when the gap exceeds a threshold derived from the row's own character widths.
+ */
+export function joinRowByGaps(row: TextItem[]): string {
+  if (row.length === 0) return '';
+  if (row.length === 1) return row[0].text;
+
+  // Compute median character width for an adaptive threshold
+  const widths = row.map((item) => item.width).filter((w) => w > 0);
+  widths.sort((a, b) => a - b);
+  const medianWidth = widths.length > 0 ? widths[Math.floor(widths.length / 2)] : 5;
+
+  // Threshold: whitespace larger than 30% of median char width → word boundary
+  const threshold = medianWidth * 0.3;
+
+  let result = row[0].text;
+  for (let i = 1; i < row.length; i++) {
+    const prev = row[i - 1];
+    const curr = row[i];
+    const whitespace = curr.x - (prev.x + prev.width);
+    result += whitespace > threshold ? ' ' + curr.text : curr.text;
+  }
+  return result;
 }
 
 /**
@@ -39,7 +77,8 @@ export async function extractTextFromPdfBuffer(buffer: Buffer): Promise<string> 
         const s = (rawItem as { str: string }).str.trim();
         if (!s) continue;
         const transform = (rawItem as { transform: number[] }).transform;
-        items.push({ x: transform[4], y: transform[5], text: s });
+        const w = (rawItem as { width?: number }).width ?? 0;
+        items.push({ x: transform[4], y: transform[5], text: s, width: w });
       }
 
       // Sort by Y descending (PDF coordinates go bottom-up, so top of page = highest Y)
@@ -62,8 +101,12 @@ export async function extractTextFromPdfBuffer(buffer: Buffer): Promise<string> 
       if (currentRow.length > 0) rows.push(currentRow);
 
       // Sort items within each row by X (left to right), join into lines
+      // Uses gap-based reconstruction for rows with individually-spaced characters
       const lines = rows.map((row) => {
         row.sort((a, b) => a.x - b.x);
+        if (isSpacedCharRow(row)) {
+          return joinRowByGaps(row);
+        }
         return row.map((item) => item.text).join(' ');
       });
 
@@ -155,17 +198,61 @@ export function parseTournamentText(rawText: string): ParsedTournament {
   const golfers: ParsedGolfer[] = [];
 
   // Format A: purse column — e.g. "1 Ashley Brinsford 46 £130.00"
-  const purseRowRegex = /^(\d+)\s+(.+?)\s+(-?\d+)\s+£[\d,.]+$/;
+  const purseRowRegex = /^(T?\d+)\s+(.+?)\s+(-?\d+)\s+£[\d,.]+$/;
   // Format B: to-par + total + thru — e.g. "1  Tony Grover   -4 40  F"
-  const toParRowRegex = /^(\d+)\s+(.+?)\s+([+-]?\d+|E)\s+(\d+)\s+F$/;
-  const isDataRow = (line: string) => purseRowRegex.test(line) || toParRowRegex.test(line);
+  const toParRowRegex = /^(T?\d+)\s+(.+?)\s+([+-]?\d+|E)\s+(\d+)\s+F$/;
+  // Format C: simple stableford — e.g. "1 John Pulley 41" or "T24 Trevor Mason 34"
+  const simpleRowRegex = /^(T?\d+)\s+(.+?)\s+([+-]?\d{1,3})$/;
+
+  const isDataRow = (line: string) =>
+    purseRowRegex.test(line) || toParRowRegex.test(line) || simpleRowRegex.test(line);
 
   const datePattern = /^\d{1,2}\s+\w+\s+\d{4}$/;
+
+  // Header-like patterns that should never be used as the tournament name
+  const isHeaderLine = (line: string) => {
+    const lower = line.toLowerCase();
+    return (
+      lower.includes('pos.') ||
+      lower.includes('leaderboard') ||
+      lower.includes('purse') ||
+      lower.includes('thru') ||
+      lower.startsWith('total ')
+    );
+  };
 
   for (const line of lines) {
     if (line.startsWith('Pos.') || line.startsWith('Total Purse')) continue;
     if (line.includes('Leaderboard') && !isDataRow(line)) continue;
 
+    // Detect scoring format early — before name extraction so keywords
+    // like "stableford" / "medal" are captured even in formats without dates
+    if (line.toLowerCase().includes('stableford') || line.toLowerCase().includes('medal')) {
+      if (!isDataRow(line)) {
+        scoringFormat = detectScoringFormat(line);
+
+        // Also use this line as the tournament name if we don't have one yet
+        // and it's not a column header (e.g., "Men's Individual Stableford")
+        if (!name && !isHeaderLine(line)) {
+          if (line.match(/\d{2}\/\d{2}\/\d{2,4}/)) {
+            // Line has an embedded date — strip it and trailing dashes
+            name = line
+              .replace(/\s*\d{2}\/\d{2}\/\d{2,4}\s*$/, '')
+              .replace(/\s*[-–—]+\s*$/, '')
+              .trim();
+          } else {
+            // No date — strip subtitle like " - Men's Individual"
+            name = line
+              .replace(/\s*[-–—]+\s+\w[\w\s']*$/, '')
+              .trim();
+          }
+        }
+        continue;
+      }
+    }
+
+    // Name extraction: either from a line with an embedded date, or as a fallback
+    // for PDFs without dates (first non-data, non-header line)
     if (!name && !isDataRow(line) && !datePattern.test(line)) {
       if (line.match(/\d{2}\/\d{2}\/\d{2,4}/)) {
         name = line
@@ -181,19 +268,19 @@ export function parseTournamentText(rawText: string): ParsedTournament {
       continue;
     }
 
-    if (line.toLowerCase().includes('stableford') || line.toLowerCase().includes('medal')) {
-      if (!isDataRow(line)) {
-        scoringFormat = detectScoringFormat(line);
-        continue;
-      }
-    }
-
-    const match = line.match(purseRowRegex) || line.match(toParRowRegex);
+    // Try all format regexes (most specific first)
+    const match = line.match(purseRowRegex) || line.match(toParRowRegex) || line.match(simpleRowRegex);
     if (match) {
-      const position = parseInt(match[1], 10);
+      const position = parseInt(match[1].replace(/^T/i, ''), 10);
       const fullName = match[2].trim();
-      // For purse format, score is group 3; for to-par format, total points is group 4
-      const rawScore = match[4] !== undefined ? parseInt(match[4], 10) : parseInt(match[3], 10);
+      // For purse format, score is group 3; for to-par format, total points is group 4;
+      // for simple format, score is group 3
+      let rawScore: number;
+      if (line.match(toParRowRegex) && match[4] !== undefined) {
+        rawScore = parseInt(match[4], 10);
+      } else {
+        rawScore = parseInt(match[3], 10);
+      }
 
       const nameParts = fullName.split(/\s+/);
       const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
