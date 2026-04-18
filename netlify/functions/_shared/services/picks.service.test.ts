@@ -372,6 +372,137 @@ describe('picks.service', () => {
         ).rejects.toThrow('Transfer limit reached');
       });
     });
+
+    // Regression tests for the "no-captain" bug class on the IMMEDIATE save path.
+    // savePicks used to write captainId:null whenever captainId arg was undefined
+    // or null — initial team creation and unlimited-transfers saves could both
+    // leave a team with no captain. These guard against re-introducing that.
+
+    it('auto-assigns first golfer as captainId on initial pick when captainId is undefined', async () => {
+      mockPicksCollection.findOne.mockResolvedValue(null);
+      mockGolfersCollection.find.mockReturnValue(
+        toArrayHelper(
+          makeGolferDocs([5_000_000, 5_000_000, 5_000_000, 5_000_000, 5_000_000, 5_000_000])
+        )
+      );
+      mockHistoryCollection.insertOne.mockResolvedValue({ insertedId: new ObjectId() });
+      mockPicksCollection.updateOne.mockResolvedValue({ modifiedCount: 1 });
+
+      await savePicks(userId.toString(), golferIdStrings);
+
+      const updateCall = mockPicksCollection.updateOne.mock.calls[0];
+      const $set = updateCall[1].$set;
+      // Captain must be set to the first golfer — never null on a non-empty team.
+      expect($set.captainId).not.toBeNull();
+      expect($set.captainId.toString()).toBe(golferIdStrings[0]);
+      const rosterKey = Object.keys($set).find((k) => k.startsWith('gameweekRosters.'));
+      expect($set[rosterKey!].captainId.toString()).toBe(golferIdStrings[0]);
+    });
+
+    it('preserves existing captain on unlimited-transfer save when captainId is undefined and captain still on team', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-04-01T12:00:00Z'));
+
+      vi.mocked(getActiveSeason).mockResolvedValue({
+        id: '1',
+        name: '2026',
+        startDate: new Date('2026-03-01'),
+        firstGameweekStart: new Date('2026-04-03T08:00:00Z'),
+        isActive: true,
+      } as unknown as Season);
+
+      // Existing pick with a real captain — captain IS in the new golfer list
+      const existingPick = {
+        _id: new ObjectId(),
+        userId,
+        golferIds: golferIds.map((id) => new ObjectId(id)),
+        captainId: new ObjectId(golferIdStrings[2]),
+        totalSpent: 30_000_000,
+        season: 2026,
+        createdAt: new Date('2026-03-15'),
+        updatedAt: new Date('2026-03-15'),
+      };
+      mockPicksCollection.findOne
+        .mockResolvedValueOnce(existingPick)
+        .mockResolvedValueOnce(existingPick);
+
+      // Transfer: replace golfer at index 5 with a new one; keep captain (index 2)
+      const newGolferIds = [...golferIdStrings.slice(0, 5), new ObjectId().toString()];
+      mockGolfersCollection.find.mockReturnValue(
+        toArrayHelper(
+          newGolferIds.map((id, i) => ({
+            _id: new ObjectId(id),
+            firstName: `G`,
+            lastName: `${i}`,
+            price: 5_000_000,
+            isActive: true,
+          }))
+        )
+      );
+      mockHistoryCollection.insertOne.mockResolvedValue({ insertedId: new ObjectId() });
+      mockPicksCollection.updateOne.mockResolvedValue({ modifiedCount: 1 });
+
+      // Call without captainId (undefined)
+      await savePicks(userId.toString(), newGolferIds, 'Transfer', undefined, 2026);
+
+      const $set = mockPicksCollection.updateOne.mock.calls[0][1].$set;
+      // Must preserve existing captain at index 2 — NOT null, NOT index 0
+      expect($set.captainId).not.toBeNull();
+      expect($set.captainId.toString()).toBe(golferIdStrings[2]);
+    });
+
+    it('auto-assigns first golfer on unlimited-transfer save when captainId is null and previous captain was transferred out', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-04-01T12:00:00Z'));
+
+      vi.mocked(getActiveSeason).mockResolvedValue({
+        id: '1',
+        name: '2026',
+        startDate: new Date('2026-03-01'),
+        firstGameweekStart: new Date('2026-04-03T08:00:00Z'),
+        isActive: true,
+      } as unknown as Season);
+
+      const oldCaptainId = new ObjectId();
+      const existingPick = {
+        _id: new ObjectId(),
+        userId,
+        golferIds: [oldCaptainId, ...golferIds.slice(1).map((id) => new ObjectId(id))],
+        captainId: oldCaptainId, // this golfer is being transferred out
+        totalSpent: 30_000_000,
+        season: 2026,
+        createdAt: new Date('2026-03-15'),
+        updatedAt: new Date('2026-03-15'),
+      };
+      mockPicksCollection.findOne
+        .mockResolvedValueOnce(existingPick)
+        .mockResolvedValueOnce(existingPick);
+
+      // New team does NOT include oldCaptainId
+      const newGolferIds = [...golferIdStrings.slice(1), new ObjectId().toString()];
+      mockGolfersCollection.find.mockReturnValue(
+        toArrayHelper(
+          newGolferIds.map((id, i) => ({
+            _id: new ObjectId(id),
+            firstName: `G`,
+            lastName: `${i}`,
+            price: 5_000_000,
+            isActive: true,
+          }))
+        )
+      );
+      mockHistoryCollection.insertOne.mockResolvedValue({ insertedId: new ObjectId() });
+      mockPicksCollection.updateOne.mockResolvedValue({ modifiedCount: 1 });
+
+      // Client sends null captainId (legacy path) — backend must still end up
+      // with a valid captain.
+      await savePicks(userId.toString(), newGolferIds, 'Transfer', null, 2026);
+
+      const $set = mockPicksCollection.updateOne.mock.calls[0][1].$set;
+      expect($set.captainId).not.toBeNull();
+      // Falls back to first golfer in new team
+      expect($set.captainId.toString()).toBe(newGolferIds[0]);
+    });
   });
 
   describe('getUserPicks', () => {

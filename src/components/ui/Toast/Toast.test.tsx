@@ -72,4 +72,32 @@ describe('Toast', () => {
     });
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it('does not call onClose twice when action is clicked then the auto-dismiss timer fires', () => {
+    // Regression guard: previously the auto-dismiss timer was not cancelled
+    // when the action button triggered a close, which could schedule a second
+    // onClose.
+    const onClose = vi.fn();
+    const onAction = vi.fn();
+    render(
+      <Toast
+        message="Captain set"
+        duration={1000}
+        onClose={onClose}
+        action={{ label: 'Undo', onClick: onAction }}
+      />
+    );
+    // Click Undo before the auto-dismiss fires
+    act(() => {
+      vi.advanceTimersByTime(500);
+      screen.getByRole('button', { name: 'Undo' }).click();
+      // Fade-out animation
+      vi.advanceTimersByTime(300);
+    });
+    // Now let the original auto-dismiss timer elapse
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
 });

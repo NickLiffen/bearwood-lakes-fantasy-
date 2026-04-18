@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import './Toast.css';
 
 interface ToastAction {
@@ -22,20 +22,36 @@ const Toast: React.FC<ToastProps> = ({
   action,
 }) => {
   const [visible, setVisible] = useState(true);
+  const autoDismissRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closedRef = useRef(false);
+
+  const scheduleClose = () => {
+    if (closedRef.current) return;
+    closedRef.current = true;
+    if (autoDismissRef.current) {
+      clearTimeout(autoDismissRef.current);
+      autoDismissRef.current = null;
+    }
+    setVisible(false);
+    setTimeout(onClose, 300); // Wait for fade-out animation
+  };
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setVisible(false);
-      setTimeout(onClose, 300); // Wait for fade-out animation
+    autoDismissRef.current = setTimeout(() => {
+      scheduleClose();
     }, duration);
-    return () => clearTimeout(timer);
+    return () => {
+      if (autoDismissRef.current) clearTimeout(autoDismissRef.current);
+    };
+    // scheduleClose is stable-enough via refs; we deliberately only reset on
+    // duration/onClose changes so the timer isn't restarted on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [duration, onClose]);
 
   const handleActionClick = () => {
     if (!action) return;
     action.onClick();
-    setVisible(false);
-    setTimeout(onClose, 300);
+    scheduleClose();
   };
 
   return (

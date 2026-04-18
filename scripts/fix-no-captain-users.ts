@@ -102,12 +102,27 @@ function getSeasonFirstSaturday(date: Date): Date {
   return d;
 }
 
+// Mirror of netlify/functions/_shared/utils/dates.ts:getWeekStart — normalises
+// to midnight of the preceding Saturday so GW arithmetic is time-of-day safe.
+function getWeekStart(date: Date): Date {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  const day = d.getDay();
+  // Saturday = 6; diff to the previous Saturday
+  const diffToSaturday = (day + 1) % 7;
+  d.setDate(d.getDate() - diffToSaturday);
+  return d;
+}
+
 function getCurrentGameweek(seasonStart: Date, firstGameweekStart: Date | null): number {
+  // Normalise both anchor and "now" to their week-start (Saturday midnight)
+  // so that a firstGameweekStart like 2026-04-04 08:00 produces the same GW
+  // number as the backend's getGameweekNumber helper.
   const anchor = firstGameweekStart
-    ? new Date(firstGameweekStart)
-    : getSeasonFirstSaturday(seasonStart);
-  const now = new Date();
-  const diffMs = now.getTime() - anchor.getTime();
+    ? getWeekStart(firstGameweekStart)
+    : getWeekStart(getSeasonFirstSaturday(seasonStart));
+  const nowWeekStart = getWeekStart(new Date());
+  const diffMs = nowWeekStart.getTime() - anchor.getTime();
   const diffWeeks = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000));
   return Math.max(1, diffWeeks + 1);
 }

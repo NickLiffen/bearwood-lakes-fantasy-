@@ -207,20 +207,23 @@
 .btn-make-pending-captain {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   background: rgba(255, 193, 7, 0.15);
   border: 1px solid rgba(255, 193, 7, 0.4);
   color: #f57f17;
   font-size: 0.75rem;
   font-weight: 600;
-  padding: 0.25rem 0.6rem;
+  padding: 0.5rem 0.75rem;
   border-radius: 20px;
   cursor: pointer;
   margin-left: 0.35rem;
   white-space: nowrap;
-  min-height: 28px;
+  /* 44×44 minimum tap target (Apple HIG / WCAG 2.5.5) */
+  min-height: 44px;
   min-width: 44px;
   transition: all 0.2s;
   vertical-align: middle;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .btn-make-pending-captain:hover:not(:disabled) {
@@ -240,20 +243,23 @@
 .pending-captain-badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   background: rgba(255, 193, 7, 0.2);
   border: 1px solid rgba(255, 193, 7, 0.4);
   color: #f57f17;
   font-size: 0.75rem;
   font-weight: 700;
-  padding: 0.2rem 0.5rem;
+  padding: 0.5rem 0.75rem;
   border-radius: 20px;
   margin-left: 0.35rem;
   white-space: nowrap;
   vertical-align: middle;
   cursor: pointer;
-  min-height: 28px;
+  /* 44×44 minimum tap target (Apple HIG / WCAG 2.5.5) */
+  min-height: 44px;
   min-width: 44px;
   transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .pending-captain-badge:hover:not(:disabled) {

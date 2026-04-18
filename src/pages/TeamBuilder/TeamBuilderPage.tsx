@@ -251,16 +251,17 @@ const TeamBuilderPage: React.FC = () => {
 
       const selectedIds = selectedGolfers.map((p) => p.id);
 
-      // Use selectedCaptainId only if it's still in the team.
-      // If the captain was transferred out, omit captainId entirely so the server
-      // treats it as "no change" and the backend fallback assigns a captain if needed.
-      const captainStillInTeam = selectedCaptainId && selectedIds.includes(selectedCaptainId);
-      const body: { golferIds: string[]; captainId?: string } = {
+      // Always send a valid captainId with the save payload.
+      // If the previously selected captain is no longer in the team, fall back
+      // to the first golfer so the backend never receives an omitted or null
+      // captainId that could be persisted as null. The backend also has a
+      // safety net, but sending a valid id here is simpler and defense-in-depth.
+      const captainStillInTeam = !!selectedCaptainId && selectedIds.includes(selectedCaptainId);
+      const captainId = captainStillInTeam ? selectedCaptainId! : selectedIds[0];
+      const body: { golferIds: string[]; captainId: string } = {
         golferIds: selectedIds,
+        captainId,
       };
-      if (captainStillInTeam) {
-        body.captainId = selectedCaptainId;
-      }
 
       const response = await post('picks-save', body);
 

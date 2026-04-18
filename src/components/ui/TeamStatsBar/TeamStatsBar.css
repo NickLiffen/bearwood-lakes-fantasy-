@@ -83,19 +83,23 @@
 
 /* Captain Toggle Button */
 .captain-toggle {
-  width: 28px;
-  height: 28px;
+  /* 44×44 minimum tap target (Apple HIG / WCAG 2.5.5) — this is the primary
+     captain control on every golfer row. Misstapping this button was the root
+     cause of the "no captain" production incident. */
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: 2px solid #d1d5db;
   background: transparent;
   color: #9ca3af;
-  font-size: 0.75rem;
+  font-size: 0.95rem;
   font-weight: 700;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   transition: all 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .captain-toggle:hover {

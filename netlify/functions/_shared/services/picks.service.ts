@@ -335,7 +335,29 @@ export async function savePicks(
     // Also set gameweekRosters and allGolferIds for correct historical scoring
     const currentGW = await getCurrentGameweekNumber();
     const gwKey = String(currentGW);
-    const captainObjectId = captainId ? new ObjectId(captainId) : null;
+
+    // Resolve the captainId to persist. Rules (mirroring the apply path):
+    //   - explicit non-null → honor it
+    //   - undefined or null → try to preserve the existing captain if still on team
+    //   - else → auto-assign golferIds[0] so we never write captainId:null on a
+    //     non-empty team. This is the backstop that prevents the legacy
+    //     "no-captain" bug from re-surfacing through the immediate save path
+    //     (initial team creation, unlimited-transfers saves).
+    let captainObjectId: ObjectId | null;
+    if (captainId) {
+      captainObjectId = new ObjectId(captainId);
+    } else {
+      const existingCaptainStr = existingPick?.captainId?.toString();
+      const existingCaptainStillOnTeam =
+        existingCaptainStr && golferIds.includes(existingCaptainStr);
+      if (existingCaptainStillOnTeam) {
+        captainObjectId = new ObjectId(existingCaptainStr);
+      } else if (objectIds.length > 0) {
+        captainObjectId = objectIds[0];
+      } else {
+        captainObjectId = null;
+      }
+    }
 
     const rosterEntry: GameweekRosterDocument = {
       golferIds: objectIds,
