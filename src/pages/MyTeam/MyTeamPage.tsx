@@ -100,7 +100,12 @@ const MyTeamPage: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<string>('');
   const [weekOptions, setWeekOptions] = useState<PeriodOption[]>([]);
   const [savingCaptain, setSavingCaptain] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'warning' } | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: 'success' | 'warning';
+    action?: { label: string; onClick: () => void };
+    duration?: number;
+  } | null>(null);
   const [captainBannerDismissed, setCaptainBannerDismissed] = useState(
     () => localStorage.getItem('captainBannerDismissed') === 'true'
   );
@@ -197,17 +202,27 @@ const MyTeamPage: React.FC = () => {
     }
   };
 
-  // Handle setting a golfer as captain
+  // Handle setting a golfer as captain.
+  //
+  // Captain selection is set-only: clicking on the current (or pending) captain
+  // is a no-op. To change captain, click on a different golfer. This prevents
+  // accidental "no captain" states from double-taps or misclicks.
+  // After a successful set, we show a toast with an Undo action (8s window) so
+  // mis-taps remain recoverable with a single click.
   const handleSetCaptain = async (golferId: string) => {
     if (!teamData?.team || savingCaptain) return;
 
-    // Determine new captain: toggle off if clicking the effective captain
-    // Use pending captain when a pending change exists, otherwise active captain
+    // Effective captain: pending when a pending change exists, otherwise active
     const effectiveCaptainId =
       teamData.pendingChanges?.pendingCaptainId !== undefined
         ? teamData.pendingChanges.pendingCaptainId
         : teamData.team.captainId;
-    const newCaptainId = golferId === effectiveCaptainId ? null : golferId;
+
+    // No-op when clicking the current captain's C — captain is set-only.
+    if (golferId === effectiveCaptainId) return;
+
+    const newCaptainId = golferId;
+    const previousCaptainId = effectiveCaptainId; // may be null if no captain yet
 
     // Find golfer name for toast (check current team and pending additions)
     const golfer = teamData.team.golfers.find((g) => g.golfer.id === golferId);
@@ -270,25 +285,34 @@ const MyTeamPage: React.FC = () => {
       });
 
       if (response.success) {
-        // Show toast based on whether the change was deferred
+        // Build an Undo action that re-sets the previous captain.
+        // Only offered when there was a previous captain to revert to.
+        const undoAction =
+          previousCaptainId && previousCaptainId !== newCaptainId
+            ? {
+                label: 'Undo',
+                onClick: () => {
+                  // Fire-and-forget: call handleSetCaptain with previous id.
+                  // Guard with setTimeout so current toast dismiss animation can complete.
+                  setTimeout(() => handleSetCaptain(previousCaptainId), 0);
+                },
+              }
+            : undefined;
+
         if (willBeDeferred) {
-          if (newCaptainId) {
-            setToast({
-              message: `👑 Captain scheduled for next gameweek: ${golferName}`,
-              type: 'success',
-            });
-          } else {
-            setToast({
-              message: `👑 Captain removal scheduled for next gameweek`,
-              type: 'success',
-            });
-          }
+          setToast({
+            message: `👑 Captain scheduled for next gameweek: ${golferName}`,
+            type: 'success',
+            action: undoAction,
+            duration: 8000,
+          });
         } else {
-          if (newCaptainId) {
-            setToast({ message: `👑 Captain Set: ${golferName}`, type: 'success' });
-          } else {
-            setToast({ message: `👑 Captain Removed`, type: 'warning' });
-          }
+          setToast({
+            message: `👑 Captain Set: ${golferName}`,
+            type: 'success',
+            action: undoAction,
+            duration: 8000,
+          });
         }
         // Re-fetch to sync with authoritative server state (silent to avoid spinner flash)
         fetchTeam(selectedDate, { silent: true });
@@ -464,14 +488,13 @@ const MyTeamPage: React.FC = () => {
                                   {i > 0 && ', '}
                                   {g.name}
                                   {pendingCaptainId === g.id ? (
-                                    <button
-                                      className="pending-captain-badge"
-                                      onClick={() => handleSetCaptain(g.id)}
-                                      disabled={savingCaptain}
-                                      title="Remove captain"
+                                    <span
+                                      className="pending-captain-badge pending-captain-badge--active"
+                                      title="Pending captain (2× points)"
+                                      aria-label="Pending captain"
                                     >
                                       👑 Captain
-                                    </button>
+                                    </span>
                                   ) : (
                                     <button
                                       className="btn-make-pending-captain"
@@ -606,7 +629,15 @@ const MyTeamPage: React.FC = () => {
           </div>
         </div>
       </PageLayout>
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          action={toast.action}
+          duration={toast.duration}
+          onClose={() => setToast(null)}
+        />
+      )}
     </>
   );
 };

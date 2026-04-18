@@ -94,3 +94,71 @@ Quick-reference commands and step-by-step recovery for Bearwood Lakes Fantasy Go
 - **Before any admin action** (score entry, price changes): `npm run db:backup`
 - **Automated**: Daily at 6 AM UTC via GitHub Actions
 - **Retention**: 30 days (GitHub Actions artifacts)
+
+---
+
+## Captain Data Incidents
+
+Signs of the "no-captain" bug class: users showing no captain (0 × multiplier)
+in the leaderboard, `picks.captainId: null` for an active-season user, or a
+user reporting that their captain selection "disappeared".
+
+### Root causes (fixed, see PR history)
+
+1. **Frontend toggle bug** — clicking the C button on the already-active
+   captain in `TeamGolferTable` / `MyTeamPage` used to set `captainId: null`.
+   A double-tap was enough to wipe the selection.
+2. **Backend null/undefined asymmetry** — `applyPendingChanges` only auto-
+   assigned a new captain when `pendingCaptainId` was `undefined`. Explicit
+   `null` bypassed the safety net.
+3. **TeamBuilder conflation** — when the captain was transferred out, the
+   save payload sent `captainId: null` instead of omitting the field.
+
+Post-fix, the apply path always leaves a non-null `captainId` when
+`golferIds` is non-empty (final safety check in `picks.service.ts`).
+
+### Detection queries
+
+```js
+// mongosh — users with no captain in the active season
+use bearwood-fantasy;
+db.seasons.findOne({ isActive: true });
+// substitute season number from `name` above
+db.picks.find({ season: 2026, captainId: null }).toArray();
+
+// Any picks that ever received an explicit null pendingCaptainId
+db.picks.find({ season: 2026, pendingCaptainId: null }).toArray();
+```
+
+### Remediation
+
+Use `scripts/fix-no-captain-users.ts`. The script picks a captain per user
+in this priority order:
+
+1. **Ed-style** — if `pickHistory` shows a non-null captain set then wiped
+   to null within 60 seconds, and the chosen golfer is still on the team,
+   restore to that golfer.
+2. **GW1 roster** — else, use `gameweekRosters[1].captainId` if it is still
+   on the current team.
+3. **Skip** — otherwise, log for manual review.
+
+```bash
+# Dry run (default — shows proposed changes, writes nothing)
+npx tsx scripts/fix-no-captain-users.ts
+
+# Target specific users only
+npx tsx scripts/fix-no-captain-users.ts --users=<userId1>,<userId2>
+
+# Execute (writes picks.captainId, gameweekRosters[currentGw], pickHistory)
+npx tsx scripts/fix-no-captain-users.ts --execute
+```
+
+The script uses an optimistic lock on `updatedAt` and writes a
+`pickHistory` audit entry with
+`reason: 'Admin correction: restored captain (no-captain bug fix)'`.
+
+After running, verify:
+
+```js
+db.picks.countDocuments({ season: <N>, captainId: null }); // expect 0
+```

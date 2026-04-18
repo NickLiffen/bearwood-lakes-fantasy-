@@ -381,5 +381,49 @@ describe('TeamBuilderPage', () => {
         expect(screen.queryByTitle('Remove captain')).not.toBeInTheDocument();
       });
     });
+
+    it('sends first golfer as captainId when captain has been transferred out (null-captain regression guard)', async () => {
+      // Ed-style bug: captain transferred out used to send captainId:null,
+      // which the backend apply honoured as "clear captain". The TeamBuilder
+      // now always sends a valid captainId (first selected golfer when the
+      // previous captain has been removed) as a defensive client-side guard.
+      setupMocks({ hasTeam: true, captainId: 'g1', transfersOpen: true });
+      renderPage();
+
+      await waitFor(() => {
+        expect(screen.getByTitle('Remove captain')).toBeInTheDocument();
+      });
+
+      // Remove g1 (the captain) — replace with a different golfer so the team stays at TEAM_SIZE
+      const removeButtons = screen.getAllByTitle('Remove golfer');
+      fireEvent.click(removeButtons[0]);
+
+      // Add Koepka to replace McIlroy
+      const koepkaCard = screen.getByText('Brooks Koepka').closest('.golfer-card-compact')!;
+      fireEvent.click(koepkaCard);
+      await waitFor(() => {
+        expect(screen.getByText(/Add to Team/)).toBeInTheDocument();
+      });
+      fireEvent.click(screen.getByText(/Add to Team/));
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'Save Team' })).toBeInTheDocument();
+      });
+      mockPost.mockClear();
+      fireEvent.click(screen.getByRole('button', { name: 'Save Team' }));
+
+      await waitFor(() => {
+        expect(mockPost).toHaveBeenCalledWith('picks-save', expect.any(Object));
+      });
+      const [endpoint, body] = mockPost.mock.calls[0];
+      expect(endpoint).toBe('picks-save');
+      // captainId MUST be present and non-null — never omitted, never null,
+      // never the removed golfer.
+      expect(body.captainId).toBeDefined();
+      expect(body.captainId).not.toBeNull();
+      expect(body.captainId).not.toBe('g1');
+      expect(body.golferIds).toContain(body.captainId);
+      expect(body.golferIds).toHaveLength(6);
+    });
   });
 });

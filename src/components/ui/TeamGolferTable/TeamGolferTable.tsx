@@ -39,15 +39,20 @@ const TeamGolferTable: React.FC<TeamGolferTableProps> = ({
       align: 'center',
       render: (data) => {
         if (isOwnTeam && onSetCaptain) {
+          const isActive = data.isCaptain;
           return (
             <button
               type="button"
-              className={`captain-toggle ${data.isCaptain ? 'active' : ''}`}
+              className={`captain-toggle ${isActive ? 'active' : ''}`}
               onClick={(e) => {
                 e.stopPropagation();
+                // No-op when clicking the current captain's badge.
+                // Captain selection is set-only: to change captain, click the C on another golfer.
+                if (isActive) return;
                 onSetCaptain(data.golfer.id);
               }}
-              title={data.isCaptain ? 'Remove captain' : 'Make captain'}
+              title={isActive ? 'Your captain (2× points)' : 'Make captain'}
+              aria-pressed={isActive}
             >
               C
             </button>
