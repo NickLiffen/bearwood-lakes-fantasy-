@@ -111,4 +111,37 @@ describe('TeamGolferTable', () => {
     fireEvent.click(screen.getByLabelText('Close'));
     expect(screen.queryByText('📊 Score Breakdown')).not.toBeInTheDocument();
   });
+
+  it('calls onSetCaptain with golfer id when C button is clicked on non-captain', () => {
+    const onSetCaptain = vi.fn();
+    render(
+      <MemoryRouter>
+        <TeamGolferTable golfers={mockGolfers} isOwnTeam onSetCaptain={onSetCaptain} />
+      </MemoryRouter>
+    );
+    fireEvent.click(screen.getByTitle('Make captain'));
+    expect(onSetCaptain).toHaveBeenCalledWith('1');
+  });
+
+  it('does NOT call onSetCaptain when C button is clicked on the current captain (set-only)', () => {
+    // This is the regression guard for the toggle-to-null bug that broke
+    // Ed Saliba's captain. Clicking on the active captain must be a no-op.
+    const captainGolfers: GolferData[] = [
+      {
+        golfer: { id: '1', firstName: 'Tiger', lastName: 'Woods', picture: '' },
+        weekPoints: 12,
+        isCaptain: true,
+      },
+    ];
+    const onSetCaptain = vi.fn();
+    render(
+      <MemoryRouter>
+        <TeamGolferTable golfers={captainGolfers} isOwnTeam onSetCaptain={onSetCaptain} />
+      </MemoryRouter>
+    );
+    // Title on the active captain's C is descriptive, not "Remove" — no unset affordance.
+    const cButton = screen.getByTitle(/Your captain/);
+    fireEvent.click(cButton);
+    expect(onSetCaptain).not.toHaveBeenCalled();
+  });
 });

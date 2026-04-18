@@ -44,4 +44,32 @@ describe('Toast', () => {
 
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it('renders an action button when action prop is provided', () => {
+    render(
+      <Toast
+        message="Captain set"
+        onClose={vi.fn()}
+        action={{ label: 'Undo', onClick: vi.fn() }}
+      />
+    );
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeInTheDocument();
+  });
+
+  it('invokes action.onClick and closes when action button is clicked', () => {
+    const onClose = vi.fn();
+    const onAction = vi.fn();
+    render(
+      <Toast message="Captain set" onClose={onClose} action={{ label: 'Undo', onClick: onAction }} />
+    );
+    act(() => {
+      screen.getByRole('button', { name: 'Undo' }).click();
+    });
+    expect(onAction).toHaveBeenCalledTimes(1);
+    // Close fires after fade-out
+    act(() => {
+      vi.advanceTimersByTime(300);
+    });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
 });

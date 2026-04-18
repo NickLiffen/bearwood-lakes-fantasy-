@@ -251,13 +251,18 @@ const TeamBuilderPage: React.FC = () => {
 
       const selectedIds = selectedGolfers.map((p) => p.id);
 
-      // Use selectedCaptainId if it's still in the team, otherwise null
+      // Use selectedCaptainId only if it's still in the team.
+      // If the captain was transferred out, omit captainId entirely so the server
+      // treats it as "no change" and the backend fallback assigns a captain if needed.
       const captainStillInTeam = selectedCaptainId && selectedIds.includes(selectedCaptainId);
-
-      const response = await post('picks-save', {
+      const body: { golferIds: string[]; captainId?: string } = {
         golferIds: selectedIds,
-        captainId: captainStillInTeam ? selectedCaptainId : null,
-      });
+      };
+      if (captainStillInTeam) {
+        body.captainId = selectedCaptainId;
+      }
+
+      const response = await post('picks-save', body);
 
       if (!response.success) {
         throw new Error(response.error || 'Failed to save team');

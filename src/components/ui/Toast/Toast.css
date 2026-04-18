@@ -15,6 +15,10 @@
   text-align: center;
   min-width: 200px;
   max-width: 90vw;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  justify-content: center;
   transition:
     opacity 0.3s ease,
     transform 0.3s ease;
@@ -64,4 +68,24 @@
     min-width: 80vw;
     font-size: 0.9rem;
   }
+}
+
+.toast-action {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 6px;
+  color: white;
+  font-weight: 700;
+  font-size: 0.9rem;
+  padding: 0.25rem 0.75rem;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: background 0.15s ease;
+}
+
+.toast-action:hover,
+.toast-action:focus {
+  background: rgba(255, 255, 255, 0.35);
+  outline: none;
 }

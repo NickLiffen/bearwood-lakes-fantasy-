@@ -492,8 +492,11 @@ export async function applyPendingChanges(userId: string): Promise<boolean> {
       .toArray();
     updateSet.totalSpent = golfers.reduce((sum, g) => sum + (g.price || 0), 0);
 
-    // If captain was swapped out and no pendingCaptainId set, reassign to first golfer
-    if (pick.captainId && pick.pendingCaptainId === undefined) {
+    // If captain was swapped out and no explicit captain selection, reassign to first golfer.
+    // Covers both: pendingCaptainId missing (undefined) and pendingCaptainId explicitly null.
+    // The explicit-null case happens when a UI accidentally sends null (historic bug) or
+    // when a transfer removes the current captain without the user picking a new one.
+    if (pick.captainId && pick.pendingCaptainId == null) {
       const captainStillOnTeam = pick.pendingGolferIds.some(
         (id) => id.toString() === pick.captainId?.toString()
       );
@@ -504,9 +507,21 @@ export async function applyPendingChanges(userId: string): Promise<boolean> {
     }
   }
 
-  if (pick.pendingCaptainId !== undefined) {
+  if (pick.pendingCaptainId != null) {
+    // Explicit non-null captain selection — honor it.
     newCaptainId = pick.pendingCaptainId;
     updateSet.captainId = pick.pendingCaptainId;
+  }
+
+  // Final safety check: apply must never leave a team with no captain.
+  // If captainId would end up null but we have golferIds, auto-assign the first golfer.
+  // This catches edge cases like pendingCaptainId: null with no pendingGolferIds,
+  // or any future bug that clears captain without a replacement.
+  if (!updateSet.captainId && newGolferIds.length > 0) {
+    if (newCaptainId == null || !newGolferIds.some((id) => id.toString() === newCaptainId?.toString())) {
+      newCaptainId = newGolferIds[0];
+      updateSet.captainId = newGolferIds[0];
+    }
   }
 
   // Set the gameweek roster snapshot for the new gameweek
@@ -627,8 +642,9 @@ export async function applyAllPendingChanges(): Promise<{
         0
       );
 
-      // If captain was swapped out and no pendingCaptainId set, reassign to first golfer
-      if (pick.captainId && pick.pendingCaptainId === undefined) {
+      // If captain was swapped out and no explicit captain selection, reassign to first golfer.
+      // Covers both: pendingCaptainId missing (undefined) and pendingCaptainId explicitly null.
+      if (pick.captainId && pick.pendingCaptainId == null) {
         const captainStillOnTeam = pick.pendingGolferIds.some(
           (id) => id.toString() === pick.captainId?.toString()
         );
@@ -639,9 +655,18 @@ export async function applyAllPendingChanges(): Promise<{
       }
     }
 
-    if (pick.pendingCaptainId !== undefined) {
+    if (pick.pendingCaptainId != null) {
+      // Explicit non-null captain selection — honor it.
       newCaptainId = pick.pendingCaptainId;
       updateSet.captainId = pick.pendingCaptainId;
+    }
+
+    // Final safety check: apply must never leave a team with no captain.
+    if (!updateSet.captainId && newGolferIds.length > 0) {
+      if (newCaptainId == null || !newGolferIds.some((id) => id.toString() === newCaptainId?.toString())) {
+        newCaptainId = newGolferIds[0];
+        updateSet.captainId = newGolferIds[0];
+      }
     }
 
     // Set gameweek roster snapshot

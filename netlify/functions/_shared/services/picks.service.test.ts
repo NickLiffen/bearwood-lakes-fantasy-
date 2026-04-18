@@ -664,6 +664,123 @@ describe('picks.service', () => {
       // Should apply — 7:59am is before the 8am deadline, and we're in the next week
       expect(result).toBe(true);
     });
+
+    // Regression guards for the "no captain after apply" bug (Ed Saliba incident).
+    // The frontend used to be able to POST captainId:null; the backend's apply
+    // fallback only covered pendingCaptainId:undefined. See RUNBOOK.md "Captain
+    // data incidents".
+
+    it('auto-assigns first pending golfer as captain when pendingCaptainId is explicitly null and captain was transferred out', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(2025, 3, 12, 10, 0, 0));
+
+      const currentCaptain = new ObjectId();
+      const currentGolfers = [currentCaptain, ...Array.from({ length: 5 }, () => new ObjectId())];
+      const pendingGolferIds = Array.from({ length: 6 }, () => new ObjectId());
+
+      mockPicksCollection.findOne.mockResolvedValue({
+        _id: new ObjectId(),
+        userId,
+        golferIds: currentGolfers,
+        captainId: currentCaptain,
+        pendingGolferIds, // captain not in this list
+        pendingCaptainId: null, // EXPLICIT null — the bug case
+        pendingChangedAt: new Date(2025, 3, 11, 7, 0, 0),
+        totalSpent: 30_000_000,
+        season: 2025,
+      });
+
+      mockGolfersCollection.find.mockReturnValue(
+        toArrayHelper(pendingGolferIds.map((id) => ({ _id: id, price: 5_000_000 })))
+      );
+      mockPicksCollection.updateOne.mockResolvedValue({ modifiedCount: 1 });
+
+      const result = await applyPendingChanges(userId.toString());
+      expect(result).toBe(true);
+
+      const updateCall = mockPicksCollection.updateOne.mock.calls[0];
+      const $set = updateCall[1].$set;
+      // captainId must be the first pending golfer — NOT null
+      expect($set.captainId).toEqual(pendingGolferIds[0]);
+      expect($set.captainId).not.toBeNull();
+    });
+
+    it('preserves existing captain when pendingCaptainId is explicitly null and captain is still on the team', async () => {
+      // If a client somehow sends null while the user's captain is still on
+      // the team, we must NOT wipe it. The safety check picks golferIds[0] only
+      // when captainId ends up null; here captain should be preserved.
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(2025, 3, 12, 10, 0, 0));
+
+      const currentCaptain = new ObjectId();
+      // captain is at index 2 — the safety check would pick [0] if it fired, so
+      // this test validates we preserve the actual captain rather than clobber.
+      const keepOnTeam = [
+        new ObjectId(),
+        new ObjectId(),
+        currentCaptain,
+        new ObjectId(),
+        new ObjectId(),
+      ];
+      const pendingGolferIds = [...keepOnTeam, new ObjectId()];
+
+      mockPicksCollection.findOne.mockResolvedValue({
+        _id: new ObjectId(),
+        userId,
+        golferIds: [currentCaptain, ...Array.from({ length: 5 }, () => new ObjectId())],
+        captainId: currentCaptain,
+        pendingGolferIds,
+        pendingCaptainId: null,
+        pendingChangedAt: new Date(2025, 3, 11, 7, 0, 0),
+        totalSpent: 30_000_000,
+        season: 2025,
+      });
+
+      mockGolfersCollection.find.mockReturnValue(
+        toArrayHelper(pendingGolferIds.map((id) => ({ _id: id, price: 5_000_000 })))
+      );
+      mockPicksCollection.updateOne.mockResolvedValue({ modifiedCount: 1 });
+
+      const result = await applyPendingChanges(userId.toString());
+      expect(result).toBe(true);
+
+      const $set = mockPicksCollection.updateOne.mock.calls[0][1].$set;
+      // We didn't set captainId in updateSet (no explicit change + captain still on team),
+      // but the roster snapshot should keep the original captain.
+      const rosterKey = Object.keys($set).find((k) => k.startsWith('gameweekRosters.'));
+      expect(rosterKey).toBeDefined();
+      expect($set[rosterKey!].captainId).toEqual(currentCaptain);
+    });
+
+    it('final safety check: never leaves captainId null when team has golfers (pendingCaptainId=null, no pendingGolferIds)', async () => {
+      // Edge case — legacy data with captainId:null and no pending transfer.
+      // Covers users who never set a captain. Safety check should assign golferIds[0].
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(2025, 3, 12, 10, 0, 0));
+
+      mockPicksCollection.findOne.mockResolvedValue({
+        _id: new ObjectId(),
+        userId,
+        golferIds,
+        captainId: null,
+        // No pendingGolferIds. Just a null pendingCaptainId scheduled.
+        pendingCaptainId: null,
+        pendingChangedAt: new Date(2025, 3, 11, 7, 0, 0),
+        totalSpent: 30_000_000,
+        season: 2025,
+      });
+      mockPicksCollection.updateOne.mockResolvedValue({ modifiedCount: 1 });
+
+      const result = await applyPendingChanges(userId.toString());
+      expect(result).toBe(true);
+
+      const $set = mockPicksCollection.updateOne.mock.calls[0][1].$set;
+      // Roster snapshot should have a non-null captainId
+      const rosterKey = Object.keys($set).find((k) => k.startsWith('gameweekRosters.'));
+      expect($set[rosterKey!].captainId).toEqual(golferIds[0]);
+      // And the top-level captainId should be set on the document
+      expect($set.captainId).toEqual(golferIds[0]);
+    });
   });
 
   describe('applyAllPendingChanges', () => {
