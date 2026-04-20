@@ -3,9 +3,13 @@
 
 import { withAdmin, AuthenticatedEvent } from './_shared/middleware';
 import { generateFantasyCsv } from './_shared/services/fantasy-csv.service';
-import { internalError } from './_shared/utils/response';
+import { internalError, methodNotAllowed } from './_shared/utils/response';
 
 export const handler = withAdmin(async (event: AuthenticatedEvent) => {
+  if (event.httpMethod !== 'GET') {
+    return methodNotAllowed();
+  }
+
   try {
     const queryParams = event.queryStringParameters || {};
     const season = queryParams.season ? parseInt(queryParams.season, 10) : undefined;
@@ -28,6 +32,6 @@ export const handler = withAdmin(async (event: AuthenticatedEvent) => {
     if (message === 'Season not found') {
       return { statusCode: 404, body: JSON.stringify({ success: false, error: message }) };
     }
-    return internalError(message);
+    return internalError(error);
   }
 });

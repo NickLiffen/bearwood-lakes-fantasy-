@@ -10,10 +10,7 @@ dotenv.config({ path: '.env.local' });
 dotenv.config();
 
 import { MongoClient, ObjectId } from 'mongodb';
-import {
-  generateFantasyCsv,
-  GolferCsvRow,
-} from '../netlify/functions/_shared/services/fantasy-csv.service';
+import { generateFantasyCsv } from '../netlify/functions/_shared/services/fantasy-csv.service';
 import {
   getWeekStart,
   getGameweekNumber,
@@ -86,6 +83,13 @@ async function main() {
 
   const checks: CheckResult[] = [];
 
+  // Load picks once for ownership checks
+  const picks = await db
+    .collection(PICKS_COLLECTION)
+    .find({ season: seasonNumber })
+    .toArray();
+  const totalPicks = picks.length;
+
   for (const golferRow of samples) {
     console.log(`🏌️  Checking: ${golferRow.name}`);
 
@@ -146,12 +150,6 @@ async function main() {
     }
 
     // ── Check 3: Current ownership ──
-    const picks = await db
-      .collection(PICKS_COLLECTION)
-      .find({ season: seasonNumber })
-      .toArray();
-    const totalPicks = picks.length;
-
     const currentCount = picks.filter((p: any) =>
       (p.golferIds as ObjectId[]).some((id) => id.toString() === golferDoc._id.toString())
     ).length;
@@ -182,7 +180,7 @@ async function main() {
   }
 
   // 4. CSV format checks
-  const lines = csv.split('\n');
+  const lines = csv.split('\r\n');
   const headerCols = lines[0].split(',').length;
   const expectedCols = 2 + maxGameweek * 2 + 2;
 

@@ -582,6 +582,70 @@ describe('fantasy-csv.service', () => {
     });
   });
 
+  describe('mid-season team creation (rosters start at GW > 1)', () => {
+    it('does not count pick for gameweeks before its first roster snapshot', async () => {
+      // Pick that joined mid-season — gameweekRosters starts at GW3 only
+      const midSeasonPicks = [
+        {
+          _id: pick1Id,
+          userId: user1,
+          golferIds: [tigerId, roryId],
+          captainId: tigerId,
+          totalSpent: 23.5,
+          season: 2026,
+          createdAt: new Date(2026, 2, 15),
+          updatedAt: new Date(),
+          gameweekRosters: {
+            '1': { golferIds: [tigerId, roryId], captainId: tigerId },
+            '2': { golferIds: [tigerId, jonId], captainId: tigerId },
+            '3': { golferIds: [roryId, jonId], captainId: roryId },
+          },
+        },
+        {
+          _id: pick2Id,
+          userId: user2,
+          golferIds: [jonId, roryId],
+          captainId: jonId,
+          totalSpent: 21.5,
+          season: 2026,
+          createdAt: new Date(2026, 3, 18),
+          updatedAt: new Date(),
+          gameweekRosters: {
+            // Only has GW3 — joined mid-season
+            '3': { golferIds: [tigerId, jonId], captainId: tigerId },
+          },
+        },
+      ];
+
+      setupMockDb({ picks: midSeasonPicks });
+      const result = await generateFantasyCsv();
+
+      const tiger = result.rows.find((r) => r.name === 'Tiger Woods')!;
+      const jon = result.rows.find((r) => r.name === 'Jon Rahm')!;
+
+      // Pick2 has gameweekRosters but no key <= GW1 or GW2
+      // Falls back to pick2.golferIds = [Jon, Rory] for GW1 and GW2
+
+      // Tiger GW1: pick1 has Tiger → 1/2 = 50%
+      expect(tiger.gameweekOwnership.get(1)).toBe(50);
+
+      // Tiger GW2: pick1 has Tiger, pick2 fallback [Jon, Rory] → 1/2 = 50%
+      expect(tiger.gameweekOwnership.get(2)).toBe(50);
+
+      // Tiger GW3: pick1 has [Rory, Jon], pick2 has [Tiger, Jon] → 1/2 = 50%
+      expect(tiger.gameweekOwnership.get(3)).toBe(50);
+
+      // Jon GW1: pick1 has [Tiger, Rory], pick2 fallback [Jon, Rory] → 1/2 = 50%
+      expect(jon.gameweekOwnership.get(1)).toBe(50);
+
+      // Jon GW2: pick1 has [Tiger, Jon], pick2 fallback [Jon, Rory] → 2/2 = 100%
+      expect(jon.gameweekOwnership.get(2)).toBe(100);
+
+      // Jon GW3: pick1 [Rory, Jon], pick2 [Tiger, Jon] → 2/2 = 100%
+      expect(jon.gameweekOwnership.get(3)).toBe(100);
+    });
+  });
+
   describe('edge cases', () => {
     it('throws when season not found', async () => {
       setupMockDb({ seasons: [] });
@@ -656,7 +720,7 @@ describe('fantasy-csv.service', () => {
   describe('generateCsvString — CSV format', () => {
     it('produces correct headers', () => {
       const csv = generateCsvString([], 3);
-      const headerLine = csv.split('\n')[0];
+      const headerLine = csv.split('\r\n')[0];
       expect(headerLine).toBe(
         'Golfer_name,Value,' +
           'Gameweek_1_Points,Gameweek_1_Ownership_Percentage,' +
@@ -685,7 +749,7 @@ describe('fantasy-csv.service', () => {
       ];
 
       const csv = generateCsvString(rows, 2);
-      const lines = csv.split('\n');
+      const lines = csv.split('\r\n');
       const headerCols = lines[0].split(',').length;
       const dataCols = lines[1].split(',').length;
       expect(headerCols).toBe(dataCols);
@@ -706,7 +770,7 @@ describe('fantasy-csv.service', () => {
       ];
 
       const csv = generateCsvString(rows, 3);
-      const dataLine = csv.split('\n')[1];
+      const dataLine = csv.split('\r\n')[1];
       const cells = dataLine.split(',');
       // GW1 points and ownership should be 0
       expect(cells[2]).toBe('0'); // GW1 points
@@ -729,7 +793,7 @@ describe('fantasy-csv.service', () => {
       ];
 
       const csv = generateCsvString(rows, 1);
-      const dataLine = csv.split('\n')[1];
+      const dataLine = csv.split('\r\n')[1];
       // Name should be quoted
       expect(dataLine.startsWith('"O\'Connor, Jr."')).toBe(true);
     });
@@ -747,7 +811,7 @@ describe('fantasy-csv.service', () => {
       ];
 
       const csv = generateCsvString(rows, 1);
-      const dataLine = csv.split('\n')[1];
+      const dataLine = csv.split('\r\n')[1];
       // Quotes inside should be doubled
       expect(dataLine.startsWith('"The ""Big"" Cat"')).toBe(true);
     });
@@ -760,7 +824,7 @@ describe('fantasy-csv.service', () => {
     it('produces parseable CSV with full dataset', async () => {
       setupMockDb();
       const result = await generateFantasyCsv();
-      const lines = result.csv.split('\n');
+      const lines = result.csv.split('\r\n');
 
       // Header + 3 golfer rows
       expect(lines.length).toBe(4);
@@ -779,7 +843,7 @@ describe('fantasy-csv.service', () => {
     it('every cell in the CSV matches hand-calculated values', async () => {
       setupMockDb();
       const result = await generateFantasyCsv();
-      const lines = result.csv.split('\n');
+      const lines = result.csv.split('\r\n');
 
       // Rows sorted by total points desc: Tiger (50), Rory (50), Jon (30)
       // Tiger and Rory both have 50 — order between them may vary, but Jon is last

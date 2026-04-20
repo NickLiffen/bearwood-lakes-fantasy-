@@ -1,7 +1,6 @@
 // Fantasy CSV export service
 // Generates a wide-format CSV with per-gameweek points and ownership % for every active golfer.
 
-import { ObjectId } from 'mongodb';
 import { connectToDatabase } from '../db';
 import { GolferDocument, GOLFERS_COLLECTION } from '../models/Golfer';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from '../models/Tournament';
@@ -220,12 +219,17 @@ export function generateCsvString(rows: GolferCsvRow[], maxGameweek: number): st
     lines.push(cells.join(','));
   }
 
-  return lines.join('\n');
+  return lines.join('\r\n');
 }
 
 /** Escape a CSV field per RFC 4180. */
 function escapeCsvField(value: string): string {
-  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+  if (
+    value.includes(',') ||
+    value.includes('"') ||
+    value.includes('\n') ||
+    value.includes('\r')
+  ) {
     return `"${value.replace(/"/g, '""')}"`;
   }
   return value;
