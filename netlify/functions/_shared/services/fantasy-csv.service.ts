@@ -81,7 +81,9 @@ export async function generateFantasyCsv(
     .toArray();
 
   // Accumulate golfer → GW → total multipliedPoints
-  // and golfer → GW → count of tournaments actually played (participated === true).
+  // and golfer → GW → count of tournaments actually played. Match the Score model
+  // (toScore: `doc.participated ?? true`) and treat undefined/missing `participated`
+  // on legacy score docs as a play — only an explicit `false` is a no-show.
   const golferGwPoints = new Map<string, Map<number, number>>();
   const golferGwPlays = new Map<string, Map<number, number>>();
   for (const score of scores) {
@@ -93,7 +95,7 @@ export async function generateFantasyCsv(
     const gwMap = golferGwPoints.get(golferId)!;
     gwMap.set(gwNum, (gwMap.get(gwNum) || 0) + score.multipliedPoints);
 
-    if (score.participated) {
+    if (score.participated !== false) {
       if (!golferGwPlays.has(golferId)) golferGwPlays.set(golferId, new Map());
       const playMap = golferGwPlays.get(golferId)!;
       playMap.set(gwNum, (playMap.get(gwNum) || 0) + 1);

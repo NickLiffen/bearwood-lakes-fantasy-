@@ -172,7 +172,9 @@ async function main() {
           : undefined,
     });
     // ── Check 5: Cumulative plays at maxGameweek ──
-    const participatedScores = scores.filter((s: any) => s.participated === true);
+    // Mirror the Score model semantics (toScore: `doc.participated ?? true`):
+    // legacy docs without `participated` are treated as a play.
+    const participatedScores = scores.filter((s: any) => s.participated !== false);
     let cumulativeViaDb = 0;
     const directGwPlays = new Map<number, number>();
     for (const score of participatedScores) {

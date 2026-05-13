@@ -777,6 +777,26 @@ describe('fantasy-csv.service', () => {
       expect(tiger.gameweekCumulativePlays.get(3)).toBe(2);
     });
 
+    it('counts legacy score docs with participated missing/undefined as a play', async () => {
+      // Score model normalizes missing `participated` to true (toScore: `doc.participated ?? true`).
+      // The service reads raw ScoreDocuments, so it must apply the same default.
+      const scores = buildScores().map((s) => {
+        const isTigerGw1 =
+          s.golferId.toString() === tigerId.toString() &&
+          s.tournamentId.toString() === tournamentA.toString();
+        if (!isTigerGw1) return s;
+        const { participated: _participated, ...rest } = s;
+        return rest as typeof s;
+      });
+      setupMockDb({ scores });
+      const result = await generateFantasyCsv();
+
+      const tiger = result.rows.find((r) => r.name === 'Tiger Woods')!;
+      expect(tiger.gameweekCumulativePlays.get(1)).toBe(1);
+      expect(tiger.gameweekCumulativePlays.get(2)).toBe(2);
+      expect(tiger.gameweekCumulativePlays.get(3)).toBe(3);
+    });
+
     it('emits a zero-filled series for golfers with no plays', async () => {
       const scoresWithoutJon = buildScores().filter(
         (s) => s.golferId.toString() !== jonId.toString()
