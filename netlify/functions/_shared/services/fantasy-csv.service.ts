@@ -18,6 +18,9 @@ export interface GolferCsvRow {
   value: number;
   gameweekPoints: Map<number, number>;
   gameweekOwnership: Map<number, number>;
+  // Running total of tournaments this golfer has participated in
+  // up to and including each gameweek.
+  gameweekCumulativePlays: Map<number, number>;
   totalPoints: number;
   currentOwnership: number;
 }
@@ -78,7 +81,9 @@ export async function generateFantasyCsv(
     .toArray();
 
   // Accumulate golfer → GW → total multipliedPoints
+  // and golfer → GW → count of tournaments actually played (participated === true).
   const golferGwPoints = new Map<string, Map<number, number>>();
+  const golferGwPlays = new Map<string, Map<number, number>>();
   for (const score of scores) {
     const golferId = score.golferId.toString();
     const gwNum = tournamentGwMap.get(score.tournamentId.toString());
@@ -87,6 +92,12 @@ export async function generateFantasyCsv(
     if (!golferGwPoints.has(golferId)) golferGwPoints.set(golferId, new Map());
     const gwMap = golferGwPoints.get(golferId)!;
     gwMap.set(gwNum, (gwMap.get(gwNum) || 0) + score.multipliedPoints);
+
+    if (score.participated) {
+      if (!golferGwPlays.has(golferId)) golferGwPlays.set(golferId, new Map());
+      const playMap = golferGwPlays.get(golferId)!;
+      playMap.set(gwNum, (playMap.get(gwNum) || 0) + 1);
+    }
   }
 
   // 5. Load picks for this season
@@ -106,8 +117,7 @@ export async function generateFantasyCsv(
       const rosterGolferIds = resolveRosterForGw(pick, gw, gwStr);
 
       for (const golferId of rosterGolferIds) {
-        if (!golferGwOwnership.has(golferId))
-          golferGwOwnership.set(golferId, new Map());
+        if (!golferGwOwnership.has(golferId)) golferGwOwnership.set(golferId, new Map());
         const ownerMap = golferGwOwnership.get(golferId)!;
         ownerMap.set(gw, (ownerMap.get(gw) || 0) + 1);
       }
@@ -128,6 +138,7 @@ export async function generateFantasyCsv(
     const golferId = golfer._id.toString();
     const gwPoints = golferGwPoints.get(golferId) || new Map<number, number>();
     const gwOwnershipCounts = golferGwOwnership.get(golferId) || new Map<number, number>();
+    const gwPlays = golferGwPlays.get(golferId) || new Map<number, number>();
 
     let totalPoints = 0;
     for (const pts of gwPoints.values()) totalPoints += pts;
@@ -140,11 +151,21 @@ export async function generateFantasyCsv(
       gwOwnershipPct.set(gw, totalPicks > 0 ? roundPct(count / totalPicks) : 0);
     }
 
+    // Build cumulative plays series across 1..maxGameweek so a flat week
+    // (no plays) still emits the running total from the previous week.
+    const gwCumulativePlays = new Map<number, number>();
+    let runningPlays = 0;
+    for (let gw = 1; gw <= maxGameweek; gw++) {
+      runningPlays += gwPlays.get(gw) || 0;
+      gwCumulativePlays.set(gw, runningPlays);
+    }
+
     return {
       name: `${golfer.firstName} ${golfer.lastName}`,
       value: golfer.price,
       gameweekPoints: gwPoints,
       gameweekOwnership: gwOwnershipPct,
+      gameweekCumulativePlays: gwCumulativePlays,
       totalPoints,
       currentOwnership,
     };
@@ -201,6 +222,7 @@ export function generateCsvString(rows: GolferCsvRow[], maxGameweek: number): st
   for (let gw = 1; gw <= maxGameweek; gw++) {
     headers.push(`Gameweek_${gw}_Points`);
     headers.push(`Gameweek_${gw}_Ownership_Percentage`);
+    headers.push(`Gameweek_${gw}_Times_Played`);
   }
   headers.push('Total_Points', 'Current_Ownership_Percentage');
 
@@ -212,6 +234,7 @@ export function generateCsvString(rows: GolferCsvRow[], maxGameweek: number): st
     for (let gw = 1; gw <= maxGameweek; gw++) {
       cells.push(String(row.gameweekPoints.get(gw) || 0));
       cells.push(String(row.gameweekOwnership.get(gw) || 0));
+      cells.push(String(row.gameweekCumulativePlays.get(gw) || 0));
     }
 
     cells.push(String(row.totalPoints));
@@ -224,12 +247,7 @@ export function generateCsvString(rows: GolferCsvRow[], maxGameweek: number): st
 
 /** Escape a CSV field per RFC 4180. */
 function escapeCsvField(value: string): string {
-  if (
-    value.includes(',') ||
-    value.includes('"') ||
-    value.includes('\n') ||
-    value.includes('\r')
-  ) {
+  if (value.includes(',') || value.includes('"') || value.includes('\n') || value.includes('\r')) {
     return `"${value.replace(/"/g, '""')}"`;
   }
   return value;

@@ -717,15 +717,89 @@ describe('fantasy-csv.service', () => {
     });
   });
 
+  describe('cumulative plays per gameweek', () => {
+    it('computes a running total of tournaments actually played', async () => {
+      setupMockDb();
+      const result = await generateFantasyCsv();
+
+      // From buildScores():
+      //   Tiger plays TourA (GW1), TourB (GW2), TourD (GW3) → 1, 2, 3
+      //   Rory  plays TourA (GW1), TourC (GW2), TourD (GW3) → 1, 2, 3
+      //   Jon   plays            TourB (GW2), TourD (GW3) → 0, 1, 2
+      const tiger = result.rows.find((r) => r.name === 'Tiger Woods')!;
+      const rory = result.rows.find((r) => r.name === 'Rory McIlroy')!;
+      const jon = result.rows.find((r) => r.name === 'Jon Rahm')!;
+
+      expect(tiger.gameweekCumulativePlays.get(1)).toBe(1);
+      expect(tiger.gameweekCumulativePlays.get(2)).toBe(2);
+      expect(tiger.gameweekCumulativePlays.get(3)).toBe(3);
+
+      expect(rory.gameweekCumulativePlays.get(1)).toBe(1);
+      expect(rory.gameweekCumulativePlays.get(2)).toBe(2);
+      expect(rory.gameweekCumulativePlays.get(3)).toBe(3);
+
+      expect(jon.gameweekCumulativePlays.get(1)).toBe(0);
+      expect(jon.gameweekCumulativePlays.get(2)).toBe(1);
+      expect(jon.gameweekCumulativePlays.get(3)).toBe(2);
+    });
+
+    it('keeps the cumulative value flat across a skipped gameweek', async () => {
+      // Tiger only plays Tournament A (GW1) and Tournament D (GW3) — skips GW2.
+      // Expected cumulative: GW1=1, GW2=1, GW3=2.
+      const scoresTigerSkipsGw2 = buildScores().filter((s) => {
+        if (s.golferId.toString() !== tigerId.toString()) return true;
+        return s.tournamentId.toString() !== tournamentB.toString();
+      });
+      setupMockDb({ scores: scoresTigerSkipsGw2 });
+      const result = await generateFantasyCsv();
+
+      const tiger = result.rows.find((r) => r.name === 'Tiger Woods')!;
+      expect(tiger.gameweekCumulativePlays.get(1)).toBe(1);
+      expect(tiger.gameweekCumulativePlays.get(2)).toBe(1);
+      expect(tiger.gameweekCumulativePlays.get(3)).toBe(2);
+    });
+
+    it('excludes score docs with participated=false (no-shows)', async () => {
+      // Mark Tiger's GW1 score as a no-show. Cumulative for Tiger:
+      // GW1=0, GW2=1 (TourB), GW3=2 (TourD).
+      const scores = buildScores().map((s) => {
+        const isTigerGw1 =
+          s.golferId.toString() === tigerId.toString() &&
+          s.tournamentId.toString() === tournamentA.toString();
+        return isTigerGw1 ? { ...s, participated: false } : s;
+      });
+      setupMockDb({ scores });
+      const result = await generateFantasyCsv();
+
+      const tiger = result.rows.find((r) => r.name === 'Tiger Woods')!;
+      expect(tiger.gameweekCumulativePlays.get(1)).toBe(0);
+      expect(tiger.gameweekCumulativePlays.get(2)).toBe(1);
+      expect(tiger.gameweekCumulativePlays.get(3)).toBe(2);
+    });
+
+    it('emits a zero-filled series for golfers with no plays', async () => {
+      const scoresWithoutJon = buildScores().filter(
+        (s) => s.golferId.toString() !== jonId.toString()
+      );
+      setupMockDb({ scores: scoresWithoutJon });
+      const result = await generateFantasyCsv();
+
+      const jon = result.rows.find((r) => r.name === 'Jon Rahm')!;
+      expect(jon.gameweekCumulativePlays.get(1)).toBe(0);
+      expect(jon.gameweekCumulativePlays.get(2)).toBe(0);
+      expect(jon.gameweekCumulativePlays.get(3)).toBe(0);
+    });
+  });
+
   describe('generateCsvString — CSV format', () => {
     it('produces correct headers', () => {
       const csv = generateCsvString([], 3);
       const headerLine = csv.split('\r\n')[0];
       expect(headerLine).toBe(
         'Golfer_name,Value,' +
-          'Gameweek_1_Points,Gameweek_1_Ownership_Percentage,' +
-          'Gameweek_2_Points,Gameweek_2_Ownership_Percentage,' +
-          'Gameweek_3_Points,Gameweek_3_Ownership_Percentage,' +
+          'Gameweek_1_Points,Gameweek_1_Ownership_Percentage,Gameweek_1_Times_Played,' +
+          'Gameweek_2_Points,Gameweek_2_Ownership_Percentage,Gameweek_2_Times_Played,' +
+          'Gameweek_3_Points,Gameweek_3_Ownership_Percentage,Gameweek_3_Times_Played,' +
           'Total_Points,Current_Ownership_Percentage'
       );
     });
@@ -743,6 +817,10 @@ describe('fantasy-csv.service', () => {
             [1, 50],
             [2, 75],
           ]),
+          gameweekCumulativePlays: new Map([
+            [1, 1],
+            [2, 3],
+          ]),
           totalPoints: 15,
           currentOwnership: 60,
         },
@@ -753,8 +831,8 @@ describe('fantasy-csv.service', () => {
       const headerCols = lines[0].split(',').length;
       const dataCols = lines[1].split(',').length;
       expect(headerCols).toBe(dataCols);
-      // 2 fixed + 2*2 GW cols + 2 trailing = 8
-      expect(headerCols).toBe(8);
+      // 2 fixed + 2*3 GW cols + 2 trailing = 10
+      expect(headerCols).toBe(10);
     });
 
     it('fills missing gameweek data with 0', () => {
@@ -764,6 +842,11 @@ describe('fantasy-csv.service', () => {
           value: 8,
           gameweekPoints: new Map([[2, 15]]), // only GW2
           gameweekOwnership: new Map([[2, 33.3]]),
+          gameweekCumulativePlays: new Map([
+            [1, 0],
+            [2, 1],
+            [3, 1],
+          ]),
           totalPoints: 15,
           currentOwnership: 25,
         },
@@ -772,12 +855,16 @@ describe('fantasy-csv.service', () => {
       const csv = generateCsvString(rows, 3);
       const dataLine = csv.split('\r\n')[1];
       const cells = dataLine.split(',');
-      // GW1 points and ownership should be 0
+      // GW1 points, ownership, plays
       expect(cells[2]).toBe('0'); // GW1 points
       expect(cells[3]).toBe('0'); // GW1 ownership
-      // GW2 should have values
-      expect(cells[4]).toBe('15');
-      expect(cells[5]).toBe('33.3');
+      expect(cells[4]).toBe('0'); // GW1 cumulative plays
+      // GW2 points, ownership, plays
+      expect(cells[5]).toBe('15');
+      expect(cells[6]).toBe('33.3');
+      expect(cells[7]).toBe('1'); // GW2 cumulative plays
+      // GW3 plays still 1 (no new plays)
+      expect(cells[10]).toBe('1');
     });
 
     it('escapes names containing commas', () => {
@@ -787,6 +874,7 @@ describe('fantasy-csv.service', () => {
           value: 9,
           gameweekPoints: new Map(),
           gameweekOwnership: new Map(),
+          gameweekCumulativePlays: new Map(),
           totalPoints: 0,
           currentOwnership: 0,
         },
@@ -805,6 +893,7 @@ describe('fantasy-csv.service', () => {
           value: 9,
           gameweekPoints: new Map(),
           gameweekOwnership: new Map(),
+          gameweekCumulativePlays: new Map(),
           totalPoints: 0,
           currentOwnership: 0,
         },
@@ -830,7 +919,8 @@ describe('fantasy-csv.service', () => {
       expect(lines.length).toBe(4);
 
       // Each line should have the same number of columns
-      const expectedCols = 2 + 3 * 2 + 2; // name+value + 3GW*(pts+own) + total+currentOwn = 10
+      // name+value + 3GW*(pts+own+plays) + total+currentOwn = 13
+      const expectedCols = 2 + 3 * 3 + 2;
       for (const line of lines) {
         // Count columns (accounting for quoted fields)
         const cols = parseCsvLine(line);
@@ -854,38 +944,50 @@ describe('fantasy-csv.service', () => {
       const roryRow = dataRows.find((r) => r[0] === 'Rory McIlroy')!;
       const jonRow = dataRows.find((r) => r[0] === 'Jon Rahm')!;
 
-      // Tiger: value=12, GW1=20/75, GW2=18/75, GW3=12/75, total=50, current=75
+      // Tiger: value=12,
+      //   GW1=20/75/1, GW2=18/75/2, GW3=12/75/3, total=50, current=75
       expect(tigerRow[1]).toBe('12');
       expect(tigerRow[2]).toBe('20'); // GW1 pts
       expect(tigerRow[3]).toBe('75'); // GW1 own
-      expect(tigerRow[4]).toBe('18'); // GW2 pts
-      expect(tigerRow[5]).toBe('75'); // GW2 own
-      expect(tigerRow[6]).toBe('12'); // GW3 pts
-      expect(tigerRow[7]).toBe('75'); // GW3 own
-      expect(tigerRow[8]).toBe('50'); // total
-      expect(tigerRow[9]).toBe('75'); // current own
+      expect(tigerRow[4]).toBe('1'); // GW1 cumulative plays
+      expect(tigerRow[5]).toBe('18'); // GW2 pts
+      expect(tigerRow[6]).toBe('75'); // GW2 own
+      expect(tigerRow[7]).toBe('2'); // GW2 cumulative plays
+      expect(tigerRow[8]).toBe('12'); // GW3 pts
+      expect(tigerRow[9]).toBe('75'); // GW3 own
+      expect(tigerRow[10]).toBe('3'); // GW3 cumulative plays
+      expect(tigerRow[11]).toBe('50'); // total
+      expect(tigerRow[12]).toBe('75'); // current own
 
-      // Rory: value=11.5, GW1=15/75, GW2=10/75, GW3=25/75, total=50, current=75
+      // Rory: value=11.5,
+      //   GW1=15/75/1, GW2=10/75/2, GW3=25/75/3, total=50, current=75
       expect(roryRow[1]).toBe('11.5');
       expect(roryRow[2]).toBe('15');
       expect(roryRow[3]).toBe('75');
-      expect(roryRow[4]).toBe('10');
-      expect(roryRow[5]).toBe('75');
-      expect(roryRow[6]).toBe('25');
-      expect(roryRow[7]).toBe('75');
-      expect(roryRow[8]).toBe('50');
+      expect(roryRow[4]).toBe('1');
+      expect(roryRow[5]).toBe('10');
+      expect(roryRow[6]).toBe('75');
+      expect(roryRow[7]).toBe('2');
+      expect(roryRow[8]).toBe('25');
       expect(roryRow[9]).toBe('75');
+      expect(roryRow[10]).toBe('3');
+      expect(roryRow[11]).toBe('50');
+      expect(roryRow[12]).toBe('75');
 
-      // Jon: value=10, GW1=0/50, GW2=22/50, GW3=8/50, total=30, current=50
+      // Jon: value=10,
+      //   GW1=0/50/0, GW2=22/50/1, GW3=8/50/2, total=30, current=50
       expect(jonRow[1]).toBe('10');
       expect(jonRow[2]).toBe('0');
       expect(jonRow[3]).toBe('50');
-      expect(jonRow[4]).toBe('22');
-      expect(jonRow[5]).toBe('50');
-      expect(jonRow[6]).toBe('8');
-      expect(jonRow[7]).toBe('50');
-      expect(jonRow[8]).toBe('30');
+      expect(jonRow[4]).toBe('0');
+      expect(jonRow[5]).toBe('22');
+      expect(jonRow[6]).toBe('50');
+      expect(jonRow[7]).toBe('1');
+      expect(jonRow[8]).toBe('8');
       expect(jonRow[9]).toBe('50');
+      expect(jonRow[10]).toBe('2');
+      expect(jonRow[11]).toBe('30');
+      expect(jonRow[12]).toBe('50');
     });
   });
 });

@@ -11,10 +11,7 @@ dotenv.config();
 
 import { MongoClient, ObjectId } from 'mongodb';
 import { generateFantasyCsv } from '../netlify/functions/_shared/services/fantasy-csv.service';
-import {
-  getWeekStart,
-  getGameweekNumber,
-} from '../netlify/functions/_shared/utils/dates';
+import { getWeekStart, getGameweekNumber } from '../netlify/functions/_shared/utils/dates';
 
 const SCORES_COLLECTION = 'scores';
 const PICKS_COLLECTION = 'picks';
@@ -84,10 +81,7 @@ async function main() {
   const checks: CheckResult[] = [];
 
   // Load picks once for ownership checks
-  const picks = await db
-    .collection(PICKS_COLLECTION)
-    .find({ season: seasonNumber })
-    .toArray();
+  const picks = await db.collection(PICKS_COLLECTION).find({ season: seasonNumber }).toArray();
   const totalPicks = picks.length;
 
   for (const golferRow of samples) {
@@ -177,17 +171,52 @@ async function main() {
           ? `total=${golferRow.totalPoints}, sum=${gwSum}`
           : undefined,
     });
+    // ── Check 5: Cumulative plays at maxGameweek ──
+    const participatedScores = scores.filter((s: any) => s.participated === true);
+    let cumulativeViaDb = 0;
+    const directGwPlays = new Map<number, number>();
+    for (const score of participatedScores) {
+      const gwNum = tournamentGwMap.get(score.tournamentId.toString());
+      if (gwNum === undefined) continue;
+      directGwPlays.set(gwNum, (directGwPlays.get(gwNum) || 0) + 1);
+    }
+    for (let gw = 1; gw <= maxGameweek; gw++) {
+      cumulativeViaDb += directGwPlays.get(gw) || 0;
+      const csvCum = golferRow.gameweekCumulativePlays.get(gw) || 0;
+      checks.push({
+        name: `${golferRow.name}: GW${gw} cumulative plays`,
+        passed: csvCum === cumulativeViaDb,
+        details: csvCum !== cumulativeViaDb ? `CSV=${csvCum}, DB=${cumulativeViaDb}` : undefined,
+      });
+    }
+
+    // ── Check 6: Cumulative series is non-decreasing ──
+    let lastCum = 0;
+    let monotonic = true;
+    for (let gw = 1; gw <= maxGameweek; gw++) {
+      const cum = golferRow.gameweekCumulativePlays.get(gw) || 0;
+      if (cum < lastCum) {
+        monotonic = false;
+        break;
+      }
+      lastCum = cum;
+    }
+    checks.push({
+      name: `${golferRow.name}: Cumulative plays monotonic non-decreasing`,
+      passed: monotonic,
+    });
   }
 
   // 4. CSV format checks
   const lines = csv.split('\r\n');
   const headerCols = lines[0].split(',').length;
-  const expectedCols = 2 + maxGameweek * 2 + 2;
+  const expectedCols = 2 + maxGameweek * 3 + 2;
 
   checks.push({
     name: 'CSV header column count',
     passed: headerCols === expectedCols,
-    details: headerCols !== expectedCols ? `got=${headerCols}, expected=${expectedCols}` : undefined,
+    details:
+      headerCols !== expectedCols ? `got=${headerCols}, expected=${expectedCols}` : undefined,
   });
 
   checks.push({
