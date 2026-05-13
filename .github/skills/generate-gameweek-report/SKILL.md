@@ -24,7 +24,13 @@ The following environment variables **must** be available in the runtime:
 These are stored as GitHub Actions secrets and injected at workflow runtime.
 
 **GitHub Actions workflow requirements (if running via scheduled automation):**
-- `permissions: issues: write, contents: read`
+
+```yaml
+permissions:
+  issues: write
+  contents: read
+```
+
 - `GH_TOKEN: ${{ github.token }}` or a PAT with issue-write scope
 - `TZ: Europe/London` — set in the job `env` to ensure correct UK time calculations
 
@@ -43,7 +49,7 @@ The season uses a Saturday-to-Friday gameweek cycle. The active season may have 
 **IMPORTANT: Use the date utility functions to find the last completed gameweek.** Do NOT manually subtract 7 days — this breaks for custom GW1 start dates. Instead:
 
 ```typescript
-import { getWeekStart, getWeekEnd, getGameweekNumber } from './netlify/functions/_shared/utils/dates';
+import { getWeekStart, getWeekEnd, getGameweekNumber } from '../netlify/functions/_shared/utils/dates';
 
 const now = new Date();
 const firstGW = season.firstGameweekStart ? new Date(season.firstGameweekStart) : null;
@@ -56,9 +62,9 @@ const completedWeekStart = getWeekStart(previousReferenceDate, firstGW);
 const completedWeekEnd = getWeekEnd(completedWeekStart, firstGW);
 const gameweekNumber = getGameweekNumber(completedWeekStart, seasonStartDate, firstGW);
 
-// Verify the week is actually completed
-if (completedWeekEnd >= now) {
-  console.log('No completed gameweek to report on');
+// Guard: exit if no completed gameweek exists yet (e.g., during GW1)
+if (gameweekNumber < 1 || completedWeekEnd >= now) {
+  console.log('No completed gameweek to report on yet');
   process.exit(0);
 }
 ```
@@ -154,7 +160,7 @@ For each tournament in the completed gameweek:
 
 Query the `pickHistory` collection for transfers during the gameweek period. **Important nuances:**
 
-- **Filter out non-transfer entries** — exclude records with these `reason` values: `Initial pick`, `Captain change`, `Scheduled captain change`. Only include entries with `reason` containing `transfer` (e.g., `Scheduled transfer`, `Manual transfer`).
+- **Filter out non-transfer entries** — use a `$nin` exclusion list matching what the codebase uses: `reason: { $nin: ['Initial pick', 'Captain change', 'Scheduled captain change', 'Team selection'] }`. This keeps actual transfer entries like `Transfer`, `Scheduled transfer`, and `Transfer (deferred)`.
 - **Compute in/out golfer diffs** — `pickHistory` stores the resulting roster, not explicit transfer pairs. To determine which golfers were transferred in/out:
   1. For each user with a transfer history entry in this gameweek, find the entry just before it (the previous state)
   2. `out = previousGolferIds - currentGolferIds`
@@ -376,12 +382,12 @@ Team value / total spent follows the same pattern. Budget cap is £50M (`50_000_
 | `scores` | `golferId`, `tournamentId`, `participated`, `position`, `rawScore`, `basePoints`, `bonusPoints`, `multipliedPoints` |
 | `golfers` | `firstName`, `lastName`, `price`, `isActive` |
 
-### Game Constants (from `shared/constants/rules.ts`)
+### Game Constants
 
-- Budget cap: £50M (`50_000_000` stored value)
-- Team size: exactly 6 golfers
-- 1 free transfer per week (during active season)
-- Captain earns 2× points
+- Budget cap: £50M (`50_000_000` stored value) — from `shared/constants/rules.ts`
+- Team size: exactly 6 golfers — from `shared/constants/rules.ts`
+- Transfer limits per week — from season settings (`maxTransfersPerWeek` field on the `seasons` collection)
+- Captain earns 2× points — implemented in `netlify/functions/_shared/utils/leaderboard-calculator.ts` (not stored in rules.ts)
 
 ## Error Handling
 
