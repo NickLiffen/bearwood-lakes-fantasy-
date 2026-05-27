@@ -19,6 +19,7 @@ const golferEntrySchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
   lastName: z.string().min(1, 'Last name is required'),
   rawScore: z.number().int(),
+  price: z.number().min(0).optional(),
 });
 
 export const tournamentUploadSchema = z

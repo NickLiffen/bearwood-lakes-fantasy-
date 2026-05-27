@@ -148,12 +148,12 @@ export async function processTournamentUpload(
       golferId = golfer._id;
       golfersMatched++;
     } else {
-      // Create new golfer
+      // Create new golfer with provided price or fallback to minimum
       const newGolfer: Omit<GolferDocument, '_id'> = {
         firstName: golferData.firstName,
         lastName: golferData.lastName,
         picture: '',
-        price: 1,
+        price: golferData.price ?? 1,
         isActive: true,
         stats2024: { ...defaultStats2024 },
         stats2025: { ...defaultStats2025 },
