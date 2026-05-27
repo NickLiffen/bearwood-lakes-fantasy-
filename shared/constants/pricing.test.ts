@@ -7,6 +7,9 @@ import {
   MEAN_AVG_PTS,
   MIN_SAMPLE_SIZE,
   calculatePrice,
+  NEW_PLAYER_MIN_PRICE,
+  NEW_PLAYER_MAX_PRICE,
+  calculateNewPlayerPrice,
 } from './pricing';
 
 describe('pricing constants', () => {
@@ -107,5 +110,58 @@ describe('calculatePrice', () => {
         expect(price).toBeLessThanOrEqual(MAX_PRICE);
       }
     });
+  });
+});
+
+describe('calculateNewPlayerPrice', () => {
+  it('returns NEW_PLAYER_MAX_PRICE for 1st place', () => {
+    expect(calculateNewPlayerPrice(1, 20)).toBe(NEW_PLAYER_MAX_PRICE);
+  });
+
+  it('returns NEW_PLAYER_MIN_PRICE for last place', () => {
+    expect(calculateNewPlayerPrice(20, 20)).toBe(NEW_PLAYER_MIN_PRICE);
+  });
+
+  it('returns NEW_PLAYER_MAX_PRICE when totalPlayers <= 1', () => {
+    expect(calculateNewPlayerPrice(1, 1)).toBe(NEW_PLAYER_MAX_PRICE);
+    expect(calculateNewPlayerPrice(1, 0)).toBe(NEW_PLAYER_MAX_PRICE);
+  });
+
+  it('clamps out-of-range positions (position > totalPlayers)', () => {
+    const price = calculateNewPlayerPrice(25, 20);
+    expect(price).toBeGreaterThanOrEqual(NEW_PLAYER_MIN_PRICE);
+    expect(price).toBeLessThanOrEqual(NEW_PLAYER_MAX_PRICE);
+  });
+
+  it('clamps position 0 or negative to at most NEW_PLAYER_MAX_PRICE', () => {
+    expect(calculateNewPlayerPrice(0, 20)).toBeLessThanOrEqual(NEW_PLAYER_MAX_PRICE);
+  });
+
+  it('rounds to nearest ROUND_TO', () => {
+    for (let pos = 1; pos <= 20; pos++) {
+      const price = calculateNewPlayerPrice(pos, 20);
+      expect(price % ROUND_TO).toBe(0);
+    }
+  });
+
+  it('all outputs are within [NEW_PLAYER_MIN_PRICE, NEW_PLAYER_MAX_PRICE]', () => {
+    for (let pos = 1; pos <= 30; pos++) {
+      const price = calculateNewPlayerPrice(pos, 30);
+      expect(price).toBeGreaterThanOrEqual(NEW_PLAYER_MIN_PRICE);
+      expect(price).toBeLessThanOrEqual(NEW_PLAYER_MAX_PRICE);
+    }
+  });
+
+  it('preserves monotonicity: better position → higher price', () => {
+    const prices = Array.from({ length: 20 }, (_, i) => calculateNewPlayerPrice(i + 1, 20));
+    for (let i = 1; i < prices.length; i++) {
+      expect(prices[i]).toBeLessThanOrEqual(prices[i - 1]);
+    }
+  });
+
+  it('produces expected mid-field value (~£7.4M for 10th of 20)', () => {
+    const price = calculateNewPlayerPrice(10, 20);
+    expect(price).toBeGreaterThanOrEqual(7_000_000);
+    expect(price).toBeLessThanOrEqual(8_000_000);
   });
 });

@@ -10,6 +10,7 @@ import {
   type TournamentType,
   type ScoringFormat,
 } from '../../../../shared/types/tournament.types';
+import { calculateNewPlayerPrice } from '../../../../shared/constants/pricing';
 
 interface UploadResult {
   tournamentCreated: boolean;
@@ -29,6 +30,7 @@ interface ExistingGolfer {
 
 interface EditableGolfer extends ParsedGolfer {
   isNew: boolean;
+  recommendedPrice?: number;
 }
 
 type Step = 'upload' | 'review' | 'results';
@@ -102,10 +104,16 @@ const TournamentUploadPage: React.FC = () => {
     setTournamentType('rollup_stableford');
     setIsMultiDay(false);
 
-    const editableGolfers: EditableGolfer[] = parsed.golfers.map((g) => ({
-      ...g,
-      isNew: isGolferNew(g.firstName, g.lastName),
-    }));
+    const editableGolfers: EditableGolfer[] = parsed.golfers.map((g) => {
+      const isNew = isGolferNew(g.firstName, g.lastName);
+      return {
+        ...g,
+        isNew,
+        recommendedPrice: isNew
+          ? calculateNewPlayerPrice(g.position, parsed.golfers.length)
+          : undefined,
+      };
+    });
     setGolfers(editableGolfers);
 
     setStep('review');
@@ -223,8 +231,20 @@ const TournamentUploadPage: React.FC = () => {
           field === 'firstName' ? (value as string) : golfer.firstName,
           field === 'lastName' ? (value as string) : golfer.lastName
         );
-      } else if (field === 'position' || field === 'rawScore') {
+        if (golfer.isNew) {
+          golfer.recommendedPrice = calculateNewPlayerPrice(golfer.position, prev.length);
+        } else {
+          golfer.recommendedPrice = undefined;
+        }
+      } else if (field === 'position') {
         (golfer[field] as number) = value as number;
+        if (golfer.isNew) {
+          golfer.recommendedPrice = calculateNewPlayerPrice(value as number, prev.length);
+        }
+      } else if (field === 'rawScore') {
+        (golfer[field] as number) = value as number;
+      } else if (field === 'recommendedPrice') {
+        golfer.recommendedPrice = value as number;
       }
 
       updated[index] = golfer;
@@ -256,6 +276,7 @@ const TournamentUploadPage: React.FC = () => {
           firstName: g.firstName,
           lastName: g.lastName,
           rawScore: g.rawScore,
+          ...(g.isNew && g.recommendedPrice != null ? { price: g.recommendedPrice } : {}),
         })),
       };
 
@@ -480,6 +501,7 @@ const TournamentUploadPage: React.FC = () => {
                     <th>First Name</th>
                     <th>Last Name</th>
                     <th style={{ width: '80px' }}>Score</th>
+                    <th style={{ width: '120px' }}>Price</th>
                     <th style={{ width: '80px' }}>Status</th>
                     <th style={{ width: '50px' }}></th>
                   </tr>
@@ -537,6 +559,39 @@ const TournamentUploadPage: React.FC = () => {
                             }
                           }}
                         />
+                      </td>
+                      <td>
+                        {golfer.isNew ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>£</span>
+                            <input
+                              type="number"
+                              className="form-input"
+                              value={
+                                golfer.recommendedPrice != null
+                                  ? Math.round(golfer.recommendedPrice / 100_000) / 10
+                                  : ''
+                              }
+                              step={0.1}
+                              min={3.5}
+                              max={14.5}
+                              style={{ width: '70px', padding: '0.25rem' }}
+                              onChange={(e) => {
+                                const { value } = e.target;
+                                if (value === '') return;
+                                const millions = parseFloat(value);
+                                if (!Number.isNaN(millions)) {
+                                  const priceValue =
+                                    Math.round((millions * 1_000_000) / 100_000) * 100_000;
+                                  updateGolfer(index, 'recommendedPrice', priceValue);
+                                }
+                              }}
+                            />
+                            <span style={{ fontSize: '0.8rem', color: '#6b7280' }}>M</span>
+                          </div>
+                        ) : (
+                          <span style={{ color: '#9ca3af', fontSize: '0.8rem' }}>—</span>
+                        )}
                       </td>
                       <td>
                         {golfer.isNew ? (

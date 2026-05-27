@@ -32,3 +32,27 @@ export function calculatePrice(normalizedScore: number): number {
   const rounded = Math.round(rawPrice / ROUND_TO) * ROUND_TO;
   return Math.min(Math.max(rounded, MIN_PRICE), MAX_PRICE);
 }
+
+// --- New player pricing (compressed range for first-tournament valuation) ---
+
+/** Minimum price for a brand-new golfer (bottom of field) */
+export const NEW_PLAYER_MIN_PRICE = 4_500_000;
+
+/** Maximum price for a brand-new golfer (top of field) */
+export const NEW_PLAYER_MAX_PRICE = 10_000_000;
+
+/**
+ * Calculate a recommended price for a new golfer based on their finishing
+ * position in a single tournament. Uses linear interpolation within a
+ * compressed range (£4.5M–£10M) since one tournament is limited data.
+ */
+export function calculateNewPlayerPrice(position: number, totalPlayers: number): number {
+  if (totalPlayers <= 1) return NEW_PLAYER_MAX_PRICE;
+
+  const normalized = (totalPlayers - position) / (totalPlayers - 1);
+  const clamped = Math.max(0, Math.min(1, normalized));
+  const range = NEW_PLAYER_MAX_PRICE - NEW_PLAYER_MIN_PRICE;
+  const rawPrice = NEW_PLAYER_MIN_PRICE + clamped * range;
+  const rounded = Math.round(rawPrice / ROUND_TO) * ROUND_TO;
+  return Math.min(Math.max(rounded, NEW_PLAYER_MIN_PRICE), NEW_PLAYER_MAX_PRICE);
+}
