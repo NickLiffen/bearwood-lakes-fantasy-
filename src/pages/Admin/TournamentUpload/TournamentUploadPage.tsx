@@ -276,7 +276,7 @@ const TournamentUploadPage: React.FC = () => {
           firstName: g.firstName,
           lastName: g.lastName,
           rawScore: g.rawScore,
-          ...(g.isNew && g.recommendedPrice ? { price: g.recommendedPrice } : {}),
+          ...(g.isNew && g.recommendedPrice != null ? { price: g.recommendedPrice } : {}),
         })),
       };
 
@@ -568,7 +568,7 @@ const TournamentUploadPage: React.FC = () => {
                               type="number"
                               className="form-input"
                               value={
-                                golfer.recommendedPrice
+                                golfer.recommendedPrice != null
                                   ? Math.round(golfer.recommendedPrice / 100_000) / 10
                                   : ''
                               }
