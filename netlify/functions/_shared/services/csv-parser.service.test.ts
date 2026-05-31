@@ -3,6 +3,8 @@ import {
   parsePlayerName,
   detectScoringFormatFromHeader,
   parseCsvLine,
+  parseMedalScore,
+  mapHeaderColumns,
 } from './csv-parser.service';
 
 describe('parseCsvLine', () => {
@@ -267,5 +269,152 @@ T24,Steve Smith,34`;
 
     expect(result.golfers).toHaveLength(1);
     expect(result.golfers[0].firstName).toBe('Alex');
+  });
+});
+
+describe('parseMedalScore', () => {
+  it('parses signed integers', () => {
+    expect(parseMedalScore('-3')).toBe(-3);
+    expect(parseMedalScore('+1')).toBe(1);
+    expect(parseMedalScore('0')).toBe(0);
+  });
+
+  it('treats E as level par (0)', () => {
+    expect(parseMedalScore('E')).toBe(0);
+    expect(parseMedalScore('e')).toBe(0);
+  });
+
+  it('returns NaN for empty or non-numeric values', () => {
+    expect(Number.isNaN(parseMedalScore(''))).toBe(true);
+    expect(Number.isNaN(parseMedalScore('DNF'))).toBe(true);
+    expect(Number.isNaN(parseMedalScore('--2'))).toBe(true);
+  });
+});
+
+describe('mapHeaderColumns', () => {
+  it('maps the legacy Position/Player/Stableford layout', () => {
+    const cols = mapHeaderColumns(['Position', 'Player', 'Stableford Points']);
+    expect(cols.position).toBe(0);
+    expect(cols.player).toBe(1);
+    expect(cols.stableford).toBe(2);
+    expect(cols.firstName).toBe(-1);
+    expect(cols.lastName).toBe(-1);
+    expect(cols.toPar).toBe(-1);
+    expect(cols.totalNet).toBe(-1);
+  });
+
+  it('maps the split-name medal layout', () => {
+    const cols = mapHeaderColumns([
+      'Position',
+      'First Name',
+      'Last Name',
+      'Total Net',
+      'To Par',
+      'Purse',
+      'Division',
+    ]);
+    expect(cols.position).toBe(0);
+    expect(cols.firstName).toBe(1);
+    expect(cols.lastName).toBe(2);
+    expect(cols.totalNet).toBe(3);
+    expect(cols.toPar).toBe(4);
+    expect(cols.player).toBe(-1);
+  });
+
+  it('is case-insensitive and ignores extra whitespace', () => {
+    const cols = mapHeaderColumns(['  POSITION ', 'first name', '  Last  Name', 'TO PAR']);
+    expect(cols.position).toBe(0);
+    expect(cols.firstName).toBe(1);
+    expect(cols.lastName).toBe(2);
+    expect(cols.toPar).toBe(3);
+  });
+});
+
+describe('parseTournamentCsv (split-name medal format)', () => {
+  it('parses the combined male+female medal CSV exported by this app', () => {
+    const csv = `Position,First Name,Last Name,Total Net,To Par
+1,David,Smillie,64,-8
+2,Aidan,Sinclair,68,-4
+3,Martin,Langhorn,70,-2
+7,Nick,Liffen,71,-1
+8,Tracy,Vincent,71,-1
+9,David,Husk,72,E
+11,Matthew,Hele,73,+1`;
+
+    const result = parseTournamentCsv(csv);
+
+    expect(result.scoringFormat).toBe('medal');
+    expect(result.golfers).toHaveLength(7);
+    expect(result.golfers[0]).toEqual({
+      position: 1,
+      firstName: 'David',
+      lastName: 'Smillie',
+      rawScore: -8,
+    });
+    expect(result.golfers[5]).toEqual({
+      position: 9,
+      firstName: 'David',
+      lastName: 'Husk',
+      rawScore: 0,
+    });
+    expect(result.golfers[6].rawScore).toBe(1);
+  });
+
+  it('keeps last name in its own field rather than collapsing into first name', () => {
+    const csv = `Position,First Name,Last Name,Total Net,To Par
+1,Tracy,Vincent,71,-1`;
+
+    const result = parseTournamentCsv(csv);
+
+    expect(result.golfers[0].firstName).toBe('Tracy');
+    expect(result.golfers[0].lastName).toBe('Vincent');
+  });
+
+  it('uses To Par over Total Net when both are present', () => {
+    const csv = `Position,First Name,Last Name,Total Net,To Par
+1,David,Smillie,64,-8`;
+
+    const result = parseTournamentCsv(csv);
+
+    expect(result.golfers[0].rawScore).toBe(-8);
+  });
+
+  it('falls back to Total Net when To Par column is absent', () => {
+    const csv = `Position,First Name,Last Name,Total Net
+1,David,Smillie,-8`;
+
+    const result = parseTournamentCsv(csv);
+
+    expect(result.scoringFormat).toBe('medal');
+    expect(result.golfers[0].rawScore).toBe(-8);
+  });
+
+  it('tolerates extra trailing columns like Purse and Division', () => {
+    const csv = `Position,First Name,Last Name,Total Net,To Par,Purse,Division
+1,David,Smillie,64,-8,185.00,M
+8,Tracy,Vincent,71,-1,29.00,F`;
+
+    const result = parseTournamentCsv(csv);
+
+    expect(result.golfers).toHaveLength(2);
+    expect(result.golfers[1]).toEqual({
+      position: 8,
+      firstName: 'Tracy',
+      lastName: 'Vincent',
+      rawScore: -1,
+    });
+  });
+
+  it('skips rows with non-numeric scores (e.g. WD/DNF)', () => {
+    const csv = `Position,First Name,Last Name,Total Net,To Par
+1,David,Smillie,64,-8
+WD,Keith,Wright,WD,-
+NR,Rod,Finch,NR,-
+2,Aidan,Sinclair,68,-4`;
+
+    const result = parseTournamentCsv(csv);
+
+    expect(result.golfers).toHaveLength(2);
+    expect(result.golfers.map((g) => g.lastName)).toEqual(['Smillie', 'Sinclair']);
   });
 });
