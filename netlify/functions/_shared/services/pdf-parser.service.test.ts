@@ -138,6 +138,54 @@ Total Purse Allocated: £265.00`;
     expect(result.golfers).toHaveLength(1);
   });
 
+  it('parses medal-with-purse format using to-par as rawScore', () => {
+    // Real layout from "26th May Midweek Medal.pdf" — rows have 5 fields:
+    // position, name, to-par, total-net, £purse. Without the dedicated
+    // medal-purse regex, the to-par value would be absorbed into the name and
+    // the gross total would be used as the score.
+    const text = `Midweek Medal
+To Par Total
+Pos. Player Purse
+Net Net
+1 Duncan Scott -4 68 £144.00
+2 Stephen Vincent -1 71 £86.00
+6 Adam Taylor E 72 £0.00
+8 Trevor Denison +1 73 £0.00
+27 John (Chas) Trayhorn +8 80 £0.00
+40 Tony Grover +18 90 £0.00`;
+
+    const result = parseTournamentText(text);
+
+    expect(result.scoringFormat).toBe('medal');
+    expect(result.golfers).toEqual([
+      { position: 1, firstName: 'Duncan', lastName: 'Scott', rawScore: -4 },
+      { position: 2, firstName: 'Stephen', lastName: 'Vincent', rawScore: -1 },
+      { position: 6, firstName: 'Adam', lastName: 'Taylor', rawScore: 0 },
+      { position: 8, firstName: 'Trevor', lastName: 'Denison', rawScore: 1 },
+      { position: 27, firstName: 'John (Chas)', lastName: 'Trayhorn', rawScore: 8 },
+      { position: 40, firstName: 'Tony', lastName: 'Grover', rawScore: 18 },
+    ]);
+  });
+
+  it('skips withdrawn / no-return rows in medal-with-purse format', () => {
+    // These rows don't start with a numeric position so none of the row
+    // regexes should match.
+    const text = `Midweek Medal
+1 Duncan Scott -4 68 £144.00
+WD Stephen Chambers - WD £0.00
+NR Clive Chaffers - NR £0.00
+NS Brian Kelly - NS £0.00`;
+
+    const result = parseTournamentText(text);
+    expect(result.golfers).toHaveLength(1);
+    expect(result.golfers[0]).toEqual({
+      position: 1,
+      firstName: 'Duncan',
+      lastName: 'Scott',
+      rawScore: -4,
+    });
+  });
+
   it('handles negative scores for medal format', () => {
     const medalText = `Weekend Medal 05/04/2026
 5 April 2026
