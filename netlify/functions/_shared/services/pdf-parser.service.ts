@@ -199,13 +199,20 @@ export function parseTournamentText(rawText: string): ParsedTournament {
 
   // Format A: purse column — e.g. "1 Ashley Brinsford 46 £130.00"
   const purseRowRegex = /^(T?\d+)\s+(.+?)\s+(-?\d+)\s+£[\d,.]+$/;
+  // Format A2: medal with purse — e.g. "1 Duncan Scott -4 68 £144.00"
+  // Captures: position, name, to-par (signed int or "E"), total-net, purse.
+  // Must be tried BEFORE purseRowRegex (which would absorb the to-par into the name).
+  const medalPurseRowRegex = /^(T?\d+)\s+(.+?)\s+([+-]?\d+|E)\s+(\d+)\s+£[\d,.]+$/;
   // Format B: to-par + total + thru — e.g. "1  Tony Grover   -4 40  F"
   const toParRowRegex = /^(T?\d+)\s+(.+?)\s+([+-]?\d+|E)\s+(\d+)\s+F$/;
   // Format C: simple stableford — e.g. "1 John Pulley 41" or "T24 Trevor Mason 34"
   const simpleRowRegex = /^(T?\d+)\s+(.+?)\s+([+-]?\d{1,3})$/;
 
   const isDataRow = (line: string) =>
-    purseRowRegex.test(line) || toParRowRegex.test(line) || simpleRowRegex.test(line);
+    medalPurseRowRegex.test(line) ||
+    purseRowRegex.test(line) ||
+    toParRowRegex.test(line) ||
+    simpleRowRegex.test(line);
 
   const datePattern = /^\d{1,2}\s+\w+\s+\d{4}$/;
 
@@ -266,16 +273,28 @@ export function parseTournamentText(rawText: string): ParsedTournament {
       continue;
     }
 
-    // Try all format regexes (most specific first)
+    // Try all format regexes (most specific first).
+    // medalPurseRowRegex must come before purseRowRegex — otherwise a 5-column
+    // medal row (pos name to-par total £purse) gets matched by purseRowRegex
+    // with the to-par value swallowed into the name.
+    const medalPurseMatch = line.match(medalPurseRowRegex);
     const match =
-      line.match(purseRowRegex) || line.match(toParRowRegex) || line.match(simpleRowRegex);
+      medalPurseMatch ||
+      line.match(purseRowRegex) ||
+      line.match(toParRowRegex) ||
+      line.match(simpleRowRegex);
     if (match) {
       const position = parseInt(match[1].replace(/^T/i, ''), 10);
       const fullName = match[2].trim();
-      // For purse format, score is group 3; for to-par format, total points is group 4;
-      // for simple format, score is group 3
+      // Score selection:
+      //   - medal-purse format: use to-par (group 3), with "E" → 0
+      //   - to-par format: total points (group 4)
+      //   - purse / simple formats: score (group 3)
       let rawScore: number;
-      if (line.match(toParRowRegex) && match[4] !== undefined) {
+      if (medalPurseMatch) {
+        const toPar = match[3];
+        rawScore = toPar === 'E' ? 0 : parseInt(toPar, 10);
+      } else if (line.match(toParRowRegex) && match[4] !== undefined) {
         rawScore = parseInt(match[4], 10);
       } else {
         rawScore = parseInt(match[3], 10);
