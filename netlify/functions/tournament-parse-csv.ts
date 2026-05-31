@@ -24,7 +24,7 @@ export const handler = withRole(
       return apiResponse(
         422,
         null,
-        'No golfer data found in the CSV. Please check the file headers: Position, Player, and either Stableford Points or Nett Score.'
+        'No golfer data found in the CSV. Expected headers are Position plus either Player or First Name + Last Name, and a score column (Stableford Points, To Par, Total Net, or Nett Score).'
       );
     }
 
