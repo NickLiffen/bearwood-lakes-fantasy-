@@ -11,7 +11,7 @@ import {
 } from '../models/Pick';
 import { GolferDocument, GOLFERS_COLLECTION } from '../models/Golfer';
 import { SettingDocument, SETTINGS_COLLECTION } from '../models/Settings';
-import { BUDGET_CAP, MAX_GOLFERS, UNLIMITED_TRANSFER_GAMEWEEKS } from '../../../../shared/constants/rules';
+import { BUDGET_CAP, MAX_GOLFERS, UNLIMITED_TRANSFER_GAMEWEEKS } from '@shared/constants/rules';
 import type { Pick, PickWithGolfers, PickHistory } from '../../../../shared/types';
 import {
   getWeekStart,

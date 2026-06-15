@@ -191,8 +191,8 @@ export interface MyTeamResponse {
   transfersOpen: boolean;
   transfersUsedThisWeek?: number;
   maxTransfersPerWeek?: number;
-  unlimitedTransfers?: boolean;
-  bonusUnlimitedTransfers?: boolean;
+  unlimitedTransfers: boolean;
+  bonusUnlimitedTransfers: boolean;
   teamCreatedAt?: string;
   teamEffectiveStart?: string;
   team?: {

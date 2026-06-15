@@ -25,7 +25,7 @@ import { getRosterForGameweek, type RosterSnapshot } from './_shared/utils/scori
 import { getTransfersThisWeek, applyPendingChanges } from './_shared/services/picks.service';
 import { getActiveSeason } from './_shared/services/seasons.service';
 import { getTeamGolferScores, getTeamTransferHistory } from './_shared/services/team.service';
-import { UNLIMITED_TRANSFER_GAMEWEEKS } from '../../shared/constants/rules';
+import { UNLIMITED_TRANSFER_GAMEWEEKS } from '@shared/constants/rules';
 
 /**
  * Format week label like "Jan 4 - Jan 10"
