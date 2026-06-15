@@ -373,7 +373,119 @@ describe('picks.service', () => {
       });
     });
 
-    // Regression tests for the "no-captain" bug class on the IMMEDIATE save path.
+    // One-off promo weeks (UNLIMITED_TRANSFER_GAMEWEEKS, e.g. GW12 for the Club
+    // Champs run) lift BOTH transfer limits — the weekly count and the
+    // per-transfer golfer-swap cap — while STILL deferring the change to the next
+    // gameweek (so transfers made in GW12 apply for GW13).
+    describe('unlimited transfers during a promo gameweek (GW12)', () => {
+      afterEach(() => {
+        vi.useRealTimers();
+      });
+
+      const set2026Season = () => {
+        // GW1 anchored on Fri 3 Apr 2026 → GW12 is the week starting Sat 20 Jun 2026.
+        vi.mocked(getActiveSeason).mockResolvedValue({
+          id: '1',
+          name: '2026',
+          startDate: new Date('2026-03-01'),
+          firstGameweekStart: new Date('2026-04-03T08:00:00Z'),
+          isActive: true,
+        } as unknown as Season);
+      };
+
+      it('allows transfers beyond the weekly limit and a full-team swap, still deferred', async () => {
+        vi.useFakeTimers();
+        // Tue 23 Jun 2026 — comfortably inside GW12 (Sat 20 → Fri 26 Jun)
+        vi.setSystemTime(new Date('2026-06-23T12:00:00Z'));
+        set2026Season();
+
+        const existingPick = {
+          _id: new ObjectId(),
+          userId,
+          golferIds: golferIds.map((id) => new ObjectId(id)),
+          captainId: new ObjectId(golferIdStrings[0]),
+          totalSpent: 30_000_000,
+          season: 2026,
+          createdAt: new Date('2026-03-15'),
+          updatedAt: new Date('2026-03-15'),
+        };
+        mockPicksCollection.findOne.mockResolvedValue(existingPick);
+
+        // Tighten limits so BOTH would normally block: max 1 transfer/week and
+        // max 2 golfers per swap. The promo gameweek must bypass both.
+        mockSettingsCollection.findOne.mockImplementation(({ key }: { key: string }) => {
+          if (key === 'transfersOpen') return Promise.resolve({ key, value: true });
+          if (key === 'allowNewTeamCreation') return Promise.resolve({ key, value: true });
+          if (key === 'maxTransfersPerWeek') return Promise.resolve({ key, value: 1 });
+          if (key === 'maxPlayersPerTransfer') return Promise.resolve({ key, value: 2 });
+          return Promise.resolve(null);
+        });
+
+        // Already used 5 transfers this week (would normally be blocked at max=1)
+        mockHistoryCollection.countDocuments.mockResolvedValue(5);
+
+        // Swap ALL 6 golfers in one go (would normally exceed maxPlayersPerTransfer=2)
+        const newGolferIds = Array.from({ length: 6 }, () => new ObjectId().toString());
+        mockGolfersCollection.find.mockReturnValue(
+          toArrayHelper(
+            newGolferIds.map((id, i) => ({
+              _id: new ObjectId(id),
+              firstName: 'G',
+              lastName: `${i}`,
+              price: 5_000_000,
+              isActive: true,
+            }))
+          )
+        );
+        mockHistoryCollection.insertOne.mockResolvedValue({ insertedId: new ObjectId() });
+        mockPicksCollection.updateOne.mockResolvedValue({ modifiedCount: 1 });
+
+        const result = await savePicks(userId.toString(), newGolferIds, 'Transfer', undefined, 2026);
+
+        // Still deferred — applies at the next gameweek (GW13)
+        expect(result.deferred).toBe(true);
+
+        // Deferred path writes pending fields, NOT the live golferIds
+        const $set = mockPicksCollection.updateOne.mock.calls[0][1].$set;
+        expect($set.pendingGolferIds).toBeDefined();
+        expect($set.pendingGolferIds).toHaveLength(6);
+        expect($set.pendingChangedAt).toBeDefined();
+        expect($set.golferIds).toBeUndefined();
+
+        // History recorded as a scheduled (deferred) transfer
+        expect(mockHistoryCollection.insertOne).toHaveBeenCalledWith(
+          expect.objectContaining({ reason: 'Scheduled transfer' })
+        );
+      });
+
+      it('still enforces the transfer limit in a non-promo gameweek (GW11)', async () => {
+        vi.useFakeTimers();
+        // Mon 15 Jun 2026 — inside GW11 (Sat 13 → Fri 19 Jun), not a promo week
+        vi.setSystemTime(new Date('2026-06-15T12:00:00Z'));
+        set2026Season();
+
+        const existingPick = {
+          _id: new ObjectId(),
+          userId,
+          golferIds: golferIds.map((id) => new ObjectId(id)),
+          captainId: null,
+          totalSpent: 30_000_000,
+          season: 2026,
+          createdAt: new Date('2026-03-15'),
+          updatedAt: new Date('2026-03-15'),
+        };
+        mockPicksCollection.findOne.mockResolvedValue(existingPick);
+        mockHistoryCollection.countDocuments.mockResolvedValue(1);
+
+        const newGolferIds = [...golferIdStrings.slice(1), new ObjectId().toString()];
+
+        await expect(
+          savePicks(userId.toString(), newGolferIds, 'Transfer', null, 2026)
+        ).rejects.toThrow('Transfer limit reached');
+      });
+    });
+
+
     // savePicks used to write captainId:null whenever captainId arg was undefined
     // or null — initial team creation and unlimited-transfers saves could both
     // leave a team with no captain. These guard against re-introducing that.

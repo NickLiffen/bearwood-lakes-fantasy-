@@ -75,6 +75,7 @@ interface MyTeamApiResponse {
   maxTransfersPerWeek: number;
   transfersUsedThisWeek: number;
   unlimitedTransfers: boolean;
+  bonusUnlimitedTransfers?: boolean;
   team: TeamData | null;
   history?: Array<{
     changedAt: string;
@@ -429,9 +430,12 @@ const MyTeamPage: React.FC = () => {
                       <span className="transfers-info">
                         {teamData.unlimitedTransfers
                           ? 'Unlimited transfers (pre-season)'
-                          : `Transfers: ${teamData.transfersUsedThisWeek} / ${teamData.maxTransfersPerWeek} used this week`}
+                          : teamData.bonusUnlimitedTransfers
+                            ? 'Unlimited transfers this week 🏆 — applies for GW13 (Club Champs)'
+                            : `Transfers: ${teamData.transfersUsedThisWeek} / ${teamData.maxTransfersPerWeek} used this week`}
                       </span>
                       {teamData.unlimitedTransfers ||
+                      teamData.bonusUnlimitedTransfers ||
                       teamData.transfersUsedThisWeek < teamData.maxTransfersPerWeek ? (
                         <Link to="/team-builder" className="btn-edit-team">
                           Edit Team →

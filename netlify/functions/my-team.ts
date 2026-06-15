@@ -25,6 +25,7 @@ import { getRosterForGameweek, type RosterSnapshot } from './_shared/utils/scori
 import { getTransfersThisWeek, applyPendingChanges } from './_shared/services/picks.service';
 import { getActiveSeason } from './_shared/services/seasons.service';
 import { getTeamGolferScores, getTeamTransferHistory } from './_shared/services/team.service';
+import { UNLIMITED_TRANSFER_GAMEWEEKS } from '../../shared/constants/rules';
 
 /**
  * Format week label like "Jan 4 - Jan 10"
@@ -121,6 +122,15 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
       now
     );
 
+    // One-off promo (e.g. GW12 Club Champs run): every player gets unlimited transfers
+    // this gameweek, while changes still defer to the next gameweek. Distinct from
+    // `unlimitedTransfers`, which the client uses to decide immediate-vs-deferred.
+    const currentGameweek = seasonStartDate
+      ? getGameweekNumber(getWeekStart(now, firstGW), seasonStartDate, firstGW)
+      : null;
+    const bonusUnlimitedTransfers =
+      currentGameweek != null && UNLIMITED_TRANSFER_GAMEWEEKS.includes(currentGameweek);
+
     if (!pick) {
       return {
         statusCode: 200,
@@ -133,6 +143,7 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
             maxTransfersPerWeek,
             transfersUsedThisWeek: 0,
             unlimitedTransfers: hasUnlimitedTransfers(seasonStartDate, firstGW, undefined, now),
+            bonusUnlimitedTransfers,
             team: null,
           },
         }),
@@ -307,6 +318,7 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
           maxTransfersPerWeek,
           transfersUsedThisWeek,
           unlimitedTransfers,
+          bonusUnlimitedTransfers,
           team: {
             golfers: golfersWithScores,
             totals: teamTotals,

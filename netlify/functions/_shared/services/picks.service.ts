@@ -11,7 +11,7 @@ import {
 } from '../models/Pick';
 import { GolferDocument, GOLFERS_COLLECTION } from '../models/Golfer';
 import { SettingDocument, SETTINGS_COLLECTION } from '../models/Settings';
-import { BUDGET_CAP, MAX_GOLFERS } from '../../../../shared/constants/rules';
+import { BUDGET_CAP, MAX_GOLFERS, UNLIMITED_TRANSFER_GAMEWEEKS } from '../../../../shared/constants/rules';
 import type { Pick, PickWithGolfers, PickHistory } from '../../../../shared/types';
 import {
   getWeekStart,
@@ -214,6 +214,16 @@ export async function savePicks(
       checkNow
     );
 
+    // One-off promo weeks (e.g. GW12 for the Club Champs run) lift the transfer limits
+    // while STILL deferring the change to the next gameweek. This is distinct from
+    // `hasUnlimitedTransfers`, which also applies changes immediately (pre-season).
+    const currentWeekStart = getWeekStart(checkNow, firstGW);
+    const currentGameweek = seasonStartDate
+      ? getGameweekNumber(currentWeekStart, seasonStartDate, firstGW)
+      : null;
+    const isUnlimitedGameweek =
+      currentGameweek != null && UNLIMITED_TRANSFER_GAMEWEEKS.includes(currentGameweek);
+
     if (isCaptainOnlyChange) {
       // Captain-only changes: need transfersOpen when in-season, no transfer limit
       if (!hasUnlimitedTransfers && !transfersOpen) {
@@ -225,7 +235,7 @@ export async function savePicks(
         throw new Error('Transfers are currently locked');
       }
 
-      if (!hasUnlimitedTransfers) {
+      if (!hasUnlimitedTransfers && !isUnlimitedGameweek) {
         // Enforce weekly transfer limit
         if (transfersUsed >= maxTransfers) {
           throw new Error(
