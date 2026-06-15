@@ -4,6 +4,7 @@ import { makeAuthEvent, mockContext, parseBody, createMockDb, mockCursor } from 
 import { connectToDatabase } from './_shared/db';
 import { getActiveSeason } from './_shared/services/seasons.service';
 import { getTransfersThisWeek } from './_shared/services/picks.service';
+import { getGameweekNumber } from './_shared/utils/dates';
 import type { Season } from '@shared/types';
 
 const { mockVerifyToken } = vi.hoisted(() => ({
@@ -760,6 +761,34 @@ describe('my-team handler', () => {
       expect(res!.statusCode).toBe(200);
       expect(body.data.hasTeam).toBe(false);
       expect(body.data.unlimitedTransfers).toBe(true);
+    });
+  });
+
+  describe('bonusUnlimitedTransfers flag (one-off promo gameweek)', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('is true during a promo gameweek (GW12)', async () => {
+      vi.mocked(getGameweekNumber).mockReturnValue(12);
+      setupDb(); // No pick
+
+      const res = await handler(makeAuthEvent(), mockContext);
+      const body = parseBody(res!);
+
+      expect(res!.statusCode).toBe(200);
+      expect(body.data.bonusUnlimitedTransfers).toBe(true);
+    });
+
+    it('is false outside a promo gameweek (GW11)', async () => {
+      vi.mocked(getGameweekNumber).mockReturnValue(11);
+      setupDb(); // No pick
+
+      const res = await handler(makeAuthEvent(), mockContext);
+      const body = parseBody(res!);
+
+      expect(res!.statusCode).toBe(200);
+      expect(body.data.bonusUnlimitedTransfers).toBe(false);
     });
   });
 });

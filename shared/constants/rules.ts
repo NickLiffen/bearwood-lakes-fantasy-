@@ -4,6 +4,13 @@ export const BUDGET_CAP = 50_000_000; // $50m budget
 export const MAX_GOLFERS = 6; // Exactly 6 golfers per team
 export const MIN_GOLFERS = 6; // Must have exactly 6 golfers
 
+// One-off promo: gameweeks during which every player gets UNLIMITED transfers
+// (both the weekly transfer count and the per-transfer golfer-swap cap are lifted).
+// Changes still defer to the following gameweek, so transfers made during GW12 are
+// unlimited and apply for GW13 — the Club Champs weekend.
+// Reset to [] after the Club Champs weekend to restore the normal transfer limits.
+export const UNLIMITED_TRANSFER_GAMEWEEKS: readonly number[] = [12];
+
 // Backwards compatibility aliases
 export const MAX_PLAYERS = MAX_GOLFERS;
 export const MIN_PLAYERS = MIN_GOLFERS;
