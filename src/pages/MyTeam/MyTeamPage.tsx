@@ -431,7 +431,7 @@ const MyTeamPage: React.FC = () => {
                         {teamData.unlimitedTransfers
                           ? 'Unlimited transfers (pre-season)'
                           : teamData.bonusUnlimitedTransfers
-                            ? 'Unlimited transfers this week 🏆 — applies for GW13 (Club Champs)'
+                            ? 'Unlimited transfers this week 🏆 — locks Thu 25 Jun 8am for GW13 (Club Champs)'
                             : `Transfers: ${teamData.transfersUsedThisWeek} / ${teamData.maxTransfersPerWeek} used this week`}
                       </span>
                       {teamData.unlimitedTransfers ||

@@ -1,5 +1,11 @@
 // Shared date utilities for backend functions
 
+import {
+  resolveOverriddenWeekStart,
+  resolveNextBoundaryFromOverride,
+  normalizeWeekStartForNumbering,
+} from '@shared/constants/rules';
+
 // Week starts on Saturday at midnight (local server time) for tournament counting purposes
 const WEEK_START_HOUR = 0;
 
@@ -65,6 +71,12 @@ const isSameDay = (a: Date, b: Date): boolean =>
  * All subsequent weeks follow the normal Saturday cadence.
  */
 export const getWeekStart = (date: Date = new Date(), firstGameweekStart?: Date | null): Date => {
+  // One-off gameweek boundary override (e.g. Club Champs GW13 pulled forward to Thursday).
+  // Takes precedence over the normal Saturday cadence; the override windows never overlap
+  // with the custom GW1 start, so the ordering here is safe.
+  const overridden = resolveOverriddenWeekStart(date);
+  if (overridden) return overridden;
+
   // If a custom GW1 start is provided, check whether `date` falls inside GW1
   if (firstGameweekStart) {
     const gw1Start = new Date(firstGameweekStart);
@@ -111,6 +123,13 @@ export const getWeekStart = (date: Date = new Date(), firstGameweekStart?: Date 
  * on or after `firstGameweekStart`.
  */
 export const getWeekEnd = (weekStart: Date, firstGameweekStart?: Date | null): Date => {
+  // One-off override: when this week's boundary is overridden (or it is the shortened week
+  // immediately before an override), the next boundary comes from the override table.
+  const overrideNext = resolveNextBoundaryFromOverride(weekStart);
+  if (overrideNext) {
+    return new Date(overrideNext.getTime() - 1);
+  }
+
   if (firstGameweekStart) {
     const gw1Start = new Date(firstGameweekStart);
     gw1Start.setHours(0, 0, 0, 0);
@@ -140,6 +159,13 @@ export const getWeekEnd = (weekStart: Date, firstGameweekStart?: Date | null): D
  */
 export const getNextWeekStart = (date: Date, firstGameweekStart?: Date | null): Date => {
   const currentWeekStart = getWeekStart(date, firstGameweekStart);
+
+  // One-off override: if an override changes the next boundary (either because we're in the
+  // shortened week before it, or in the overridden week itself), use that boundary's 8am.
+  const overrideNext = resolveNextBoundaryFromOverride(currentWeekStart);
+  if (overrideNext) {
+    return getTransferDeadline(overrideNext);
+  }
 
   // If we're inside GW1, the next week is GW2 (first normal Saturday cadence)
   if (firstGameweekStart) {
@@ -292,7 +318,10 @@ export const getGameweekNumber = (
   firstGameweekStart?: Date | null
 ): number => {
   const anchor = getFirstGameweekStart(seasonStartDate, firstGameweekStart);
-  const diffMs = weekStart.getTime() - anchor.getTime();
+  // Keep numbering anchored to the normal Saturday cadence: an overridden (early) week-start
+  // still resolves to the same gameweek number it would have had on its normal Saturday.
+  const numberingWeekStart = normalizeWeekStartForNumbering(weekStart);
+  const diffMs = numberingWeekStart.getTime() - anchor.getTime();
   const diffWeeks = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000));
   return diffWeeks + 1;
 };
