@@ -478,20 +478,26 @@ const MyTeamPage: React.FC = () => {
                       const removed = teamData.pendingChanges!.removedGolfers ?? [];
                       const added = teamData.pendingChanges!.addedGolfers ?? [];
                       if (added.length === 0 && removed.length === 0) return null;
-                      const removedNames = removed.map((g) => g.name).join(', ');
                       const pendingCaptainId = teamData.pendingChanges!.pendingCaptainId;
+                      // Pair each outgoing golfer with the incoming one by index so every
+                      // swap renders on its own line (mobile-friendly). The team is always
+                      // 6 golfers, so counts match; mismatches degrade gracefully.
+                      const rowCount = Math.max(removed.length, added.length);
                       return (
-                        <p>
-                          {removed.length > 0 && <>Swapping out {removedNames}</>}
-                          {removed.length > 0 && added.length > 0 && ' → '}
-                          {added.length > 0 && (
-                            <>
-                              {removed.length === 0 ? 'A' : 'a'}dding{' '}
-                              {added.map((g, i) => (
-                                <React.Fragment key={g.id}>
-                                  {i > 0 && ', '}
-                                  {g.name}
-                                  {pendingCaptainId === g.id ? (
+                        <div className="pending-swap-list">
+                          {Array.from({ length: rowCount }).map((_, i) => {
+                            const out = removed[i];
+                            const inc = added[i];
+                            const rowKey = inc?.id ?? out?.id ?? `swap-${i}`;
+                            return (
+                              <div className="pending-swap-row" key={rowKey}>
+                                <span className="pending-swap-names">
+                                  {out && <span className="pending-swap-out">{out.name}</span>}
+                                  {out && inc && <span className="pending-swap-arrow">→</span>}
+                                  {inc && <span className="pending-swap-in">{inc.name}</span>}
+                                </span>
+                                {inc &&
+                                  (pendingCaptainId === inc.id ? (
                                     <span
                                       className="pending-captain-badge pending-captain-badge--active"
                                       title="Pending captain (2× points)"
@@ -502,17 +508,16 @@ const MyTeamPage: React.FC = () => {
                                   ) : (
                                     <button
                                       className="btn-make-pending-captain"
-                                      onClick={() => handleSetCaptain(g.id)}
+                                      onClick={() => handleSetCaptain(inc.id)}
                                       disabled={savingCaptain}
                                     >
                                       Make Captain
                                     </button>
-                                  )}
-                                </React.Fragment>
-                              ))}
-                            </>
-                          )}
-                        </p>
+                                  ))}
+                              </div>
+                            );
+                          })}
+                        </div>
                       );
                     })()}
                   {teamData.pendingChanges.pendingCaptainId !== undefined &&

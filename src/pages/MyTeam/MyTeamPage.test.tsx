@@ -158,8 +158,17 @@ describe('MyTeamPage', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/Swapping out Tiger Woods/)).toBeInTheDocument();
-      expect(screen.getByText(/adding Scottie Scheffler/)).toBeInTheDocument();
+      // The swap renders inside the "Scheduled for Next Gameweek" banner as a
+      // single paired "<out> → <in>" row, not as loose text anywhere on the page.
+      const banner = screen
+        .getByText('Scheduled for Next Gameweek')
+        .closest('.pending-changes-banner') as HTMLElement;
+      expect(banner).toBeInTheDocument();
+
+      const swapRow = banner.querySelector('.pending-swap-row');
+      expect(swapRow).toBeInTheDocument();
+      // Outgoing and incoming are paired in order within the same row.
+      expect(swapRow).toHaveTextContent(/Tiger Woods.*→.*Scottie Scheffler/);
     });
   });
 
