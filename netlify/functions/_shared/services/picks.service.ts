@@ -18,6 +18,7 @@ import {
   getGameweekNumber,
   hasUnlimitedTransfers as checkUnlimitedTransfers,
   getTransferDeadline,
+  getActiveTransferWindowGameweek,
 } from '../utils/dates';
 import { getActiveSeason } from './seasons.service';
 import type { GameweekRosterDocument } from '../models/Pick';
@@ -90,7 +91,9 @@ export async function getTransfersThisWeek(userId: string): Promise<number> {
   // Between Saturday midnight and 8am, the current week's deadline is in the
   // future, so we use the previous week's deadline instead.
   const thisWeekDeadline = getTransferDeadline(weekStart);
-  const previousWeekStart = new Date(weekStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+  // Use the true previous gameweek boundary (handles the Club Champs override + GW1's
+  // variable length) rather than a naive minus-7-days, which would land mid-week.
+  const previousWeekStart = getWeekStart(new Date(weekStart.getTime() - 1), firstGW);
   const windowStart =
     now < thisWeekDeadline ? getTransferDeadline(previousWeekStart) : thisWeekDeadline;
 
@@ -217,10 +220,9 @@ export async function savePicks(
     // One-off promo weeks (e.g. GW12 for the Club Champs run) lift the transfer limits
     // while STILL deferring the change to the next gameweek. This is distinct from
     // `hasUnlimitedTransfers`, which also applies changes immediately (pre-season).
-    const currentWeekStart = getWeekStart(checkNow, firstGW);
-    const currentGameweek = seasonStartDate
-      ? getGameweekNumber(currentWeekStart, seasonStartDate, firstGW)
-      : null;
+    // Uses the deadline-aware window so the promo stays active right up to the 8am
+    // deadline rather than ending at the midnight gameweek boundary.
+    const currentGameweek = getActiveTransferWindowGameweek(checkNow, seasonStartDate, firstGW);
     const isUnlimitedGameweek =
       currentGameweek != null && UNLIMITED_TRANSFER_GAMEWEEKS.includes(currentGameweek);
 
@@ -450,7 +452,9 @@ export async function cancelPendingChanges(userId: string): Promise<void> {
 
   // Use the same deadline-based window as getTransfersThisWeek()
   const thisWeekDeadline = getTransferDeadline(weekStart);
-  const previousWeekStart = new Date(weekStart.getTime() - 7 * 24 * 60 * 60 * 1000);
+  // Use the true previous gameweek boundary (handles the Club Champs override + GW1's
+  // variable length) rather than a naive minus-7-days, which would land mid-week.
+  const previousWeekStart = getWeekStart(new Date(weekStart.getTime() - 1), firstGW);
   const windowStart =
     now < thisWeekDeadline ? getTransferDeadline(previousWeekStart) : thisWeekDeadline;
 

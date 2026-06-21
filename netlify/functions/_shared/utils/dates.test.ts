@@ -14,6 +14,7 @@ import {
   getFirstGameweekStart,
   hasUnlimitedTransfers,
   getTransferDeadline,
+  getActiveTransferWindowGameweek,
 } from './dates';
 
 describe('getWeekStart', () => {
@@ -669,6 +670,35 @@ describe('GW13 Club Champs one-off boundary override (25 Jun 2026)', () => {
       const gw14 = new Date(2026, 6, 4);
       gw14.setHours(0, 0, 0, 0);
       expect(getGameweekNumber(gw14, seasonStart, firstGW)).toBe(14);
+    });
+  });
+
+  describe('getActiveTransferWindowGameweek (deadline-aware unlimited window)', () => {
+    it('reports GW12 during the GW12 week, well before any boundary', () => {
+      const midGw12 = new Date(2026, 5, 22, 12, 0); // Mon 22 Jun, midday
+      expect(getActiveTransferWindowGameweek(midGw12, seasonStart, firstGW)).toBe(12);
+    });
+
+    it('still reports GW12 between the Thu 25 Jun midnight boundary and the 8am deadline', () => {
+      // Key Club Champs fix: the unlimited promo must stay active until 8am, not switch
+      // off 8 hours early at the midnight gameweek boundary.
+      const beforeDeadline = new Date(Date.UTC(2026, 5, 25, 2, 0)); // 03:00 BST Thu 25 Jun
+      expect(getActiveTransferWindowGameweek(beforeDeadline, seasonStart, firstGW)).toBe(12);
+    });
+
+    it('reports GW13 once the Thu 25 Jun 8am deadline has passed', () => {
+      const afterDeadline = new Date(Date.UTC(2026, 5, 25, 9, 0)); // 10:00 BST Thu 25 Jun
+      expect(getActiveTransferWindowGameweek(afterDeadline, seasonStart, firstGW)).toBe(13);
+    });
+
+    it('reports the previous gameweek between a normal Saturday midnight and 8am', () => {
+      // GW12 starts Sat 20 Jun; before its 8am deadline the active window is still GW11.
+      const beforeGw12Deadline = new Date(Date.UTC(2026, 5, 20, 2, 0)); // 03:00 BST Sat 20 Jun
+      expect(getActiveTransferWindowGameweek(beforeGw12Deadline, seasonStart, firstGW)).toBe(11);
+    });
+
+    it('returns null when no season start date is provided', () => {
+      expect(getActiveTransferWindowGameweek(new Date(2026, 5, 22), null, firstGW)).toBeNull();
     });
   });
 });

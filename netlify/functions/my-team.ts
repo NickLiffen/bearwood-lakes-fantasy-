@@ -19,6 +19,7 @@ import {
   getFirstGameweekStart,
   hasUnlimitedTransfers,
   getNextWeekStart,
+  getActiveTransferWindowGameweek,
   formatDateString,
 } from './_shared/utils/dates';
 import { getRosterForGameweek, type RosterSnapshot } from './_shared/utils/scoring';
@@ -125,9 +126,9 @@ export const handler: Handler = withVerifiedAuth(async (event: AuthenticatedEven
     // One-off promo (e.g. GW12 Club Champs run): every player gets unlimited transfers
     // this gameweek, while changes still defer to the next gameweek. Distinct from
     // `unlimitedTransfers`, which the client uses to decide immediate-vs-deferred.
-    const currentGameweek = seasonStartDate
-      ? getGameweekNumber(getWeekStart(now, firstGW), seasonStartDate, firstGW)
-      : null;
+    // Uses the deadline-aware window so the promo stays active right up to the 8am
+    // deadline rather than ending at the midnight gameweek boundary.
+    const currentGameweek = getActiveTransferWindowGameweek(now, seasonStartDate, firstGW);
     const bonusUnlimitedTransfers =
       currentGameweek != null && UNLIMITED_TRANSFER_GAMEWEEKS.includes(currentGameweek);
 

@@ -327,6 +327,38 @@ export const getGameweekNumber = (
 };
 
 /**
+ * The gameweek number for the *active transfer window* at `now`.
+ *
+ * The week boundary is midnight, but the user-facing transfer deadline is 8am UK
+ * (see getTransferDeadline). Between midnight and the deadline the active transfer
+ * window still belongs to the *previous* gameweek — this mirrors the deadline-based
+ * window already used by getTransfersThisWeek()/cancelPendingChanges(), so any
+ * per-gameweek transfer flag (e.g. the UNLIMITED_TRANSFER_GAMEWEEKS promo) lines up
+ * with the advertised 8am deadline instead of switching 8 hours early at midnight.
+ *
+ * This matters for the Club Champs one-off: GW12's unlimited window stays active
+ * right up to the pulled-forward Thu 25 Jun 8am deadline rather than ending at the
+ * Thu 00:00 boundary.
+ *
+ * Returns null when no seasonStartDate is available.
+ */
+export const getActiveTransferWindowGameweek = (
+  now: Date,
+  seasonStartDate: Date | null,
+  firstGameweekStart?: Date | null
+): number | null => {
+  if (!seasonStartDate) return null;
+  const currentWeekStart = getWeekStart(now, firstGameweekStart);
+  const deadline = getTransferDeadline(currentWeekStart);
+  // Before the 8am deadline we are still inside the previous gameweek's transfer window.
+  const windowWeekStart =
+    now < deadline
+      ? getWeekStart(new Date(currentWeekStart.getTime() - 1), firstGameweekStart)
+      : currentWeekStart;
+  return getGameweekNumber(windowWeekStart, seasonStartDate, firstGameweekStart);
+};
+
+/**
  * Determine whether unlimited transfers apply right now.
  *
  * Unlimited transfers are granted when ANY of these is true:

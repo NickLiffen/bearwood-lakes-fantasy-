@@ -4,7 +4,7 @@ import { makeAuthEvent, mockContext, parseBody, createMockDb, mockCursor } from 
 import { connectToDatabase } from './_shared/db';
 import { getActiveSeason } from './_shared/services/seasons.service';
 import { getTransfersThisWeek } from './_shared/services/picks.service';
-import { getGameweekNumber } from './_shared/utils/dates';
+import { getActiveTransferWindowGameweek } from './_shared/utils/dates';
 import type { Season } from '@shared/types';
 
 const { mockVerifyToken } = vi.hoisted(() => ({
@@ -76,6 +76,7 @@ vi.mock('./_shared/utils/dates', () => {
       ),
     getTeamEffectiveStartDate: vi.fn().mockImplementation(getTeamEffectiveStartDateImpl),
     getGameweekNumber: vi.fn().mockReturnValue(3),
+    getActiveTransferWindowGameweek: vi.fn().mockReturnValue(3),
     getSeasonFirstSaturday: vi.fn().mockImplementation(getSeasonFirstSaturdayImpl),
     getFirstGameweekStart: vi.fn().mockImplementation(getFirstGameweekStartImpl),
     hasUnlimitedTransfers: vi
@@ -770,7 +771,7 @@ describe('my-team handler', () => {
     });
 
     it('is true during a promo gameweek (GW12)', async () => {
-      vi.mocked(getGameweekNumber).mockReturnValue(12);
+      vi.mocked(getActiveTransferWindowGameweek).mockReturnValue(12);
       setupDb(); // No pick
 
       const res = await handler(makeAuthEvent(), mockContext);
@@ -781,7 +782,7 @@ describe('my-team handler', () => {
     });
 
     it('is false outside a promo gameweek (GW11)', async () => {
-      vi.mocked(getGameweekNumber).mockReturnValue(11);
+      vi.mocked(getActiveTransferWindowGameweek).mockReturnValue(11);
       setupDb(); // No pick
 
       const res = await handler(makeAuthEvent(), mockContext);

@@ -368,10 +368,10 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
     if (period === 'week') {
       periodStart = getWeekStart(referenceDate, firstGW);
       periodEnd = getWeekEnd(referenceDate, firstGW);
-      prevPeriodStart = new Date(periodStart);
-      prevPeriodStart.setDate(prevPeriodStart.getDate() - 7);
-      prevPeriodEnd = new Date(periodEnd);
-      prevPeriodEnd.setDate(prevPeriodEnd.getDate() - 7);
+      // Derive the previous gameweek from its true boundary (handles the Club Champs
+      // override + GW1's variable length) rather than a naive minus-7-days.
+      prevPeriodStart = getWeekStart(new Date(periodStart.getTime() - 1), firstGW);
+      prevPeriodEnd = getWeekEnd(prevPeriodStart, firstGW);
       periodLabel = formatWeekLabel(
         periodStart,
         periodEnd,
