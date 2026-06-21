@@ -158,8 +158,9 @@ describe('MyTeamPage', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/Swapping out Tiger Woods/)).toBeInTheDocument();
-      expect(screen.getByText(/adding Scottie Scheffler/)).toBeInTheDocument();
+      // Each swap renders on its own line: "<out> → <in>".
+      expect(screen.getByText('Tiger Woods')).toBeInTheDocument();
+      expect(screen.getByText('Scottie Scheffler')).toBeInTheDocument();
     });
   });
 

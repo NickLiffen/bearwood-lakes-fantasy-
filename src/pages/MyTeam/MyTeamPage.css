@@ -175,6 +175,50 @@
   margin: 0.25rem 0 0;
 }
 
+/* Scheduled transfers — one swap per line (mobile-friendly) */
+.pending-swap-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0.5rem 0 0;
+}
+
+.pending-swap-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+  font-size: 0.9rem;
+  color: rgba(0, 0, 0, 0.75);
+}
+
+.pending-swap-names {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.pending-swap-out {
+  color: rgba(0, 0, 0, 0.55);
+}
+
+.pending-swap-arrow {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.pending-swap-in {
+  font-weight: 600;
+  color: var(--dark-text);
+}
+
+/* Push the captain control to the end of each swap line */
+.pending-swap-row .btn-make-pending-captain,
+.pending-swap-row .pending-captain-badge {
+  margin-left: auto;
+}
+
 .pending-changes-banner .pending-date {
   font-size: 0.8rem;
   color: rgba(0, 0, 0, 0.5);
@@ -936,6 +980,14 @@
 
   .pending-changes-banner .banner-text p {
     word-break: break-word;
+  }
+
+  .pending-swap-row {
+    word-break: break-word;
+  }
+
+  .pending-swap-names {
+    flex: 1 1 auto;
   }
 
   .btn-cancel-pending {
