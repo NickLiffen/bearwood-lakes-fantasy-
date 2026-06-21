@@ -243,10 +243,11 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
       // Current week
       const weekStart = getWeekStart(now, firstGW);
       const weekEnd = getWeekEnd(now, firstGW);
-      const prevWeekStart = new Date(weekStart);
-      prevWeekStart.setDate(prevWeekStart.getDate() - 7);
-      const prevWeekEnd = new Date(weekEnd);
-      prevWeekEnd.setDate(prevWeekEnd.getDate() - 7);
+      // Previous week — derive from the true previous gameweek boundary so it stays
+      // correct across the Club Champs override (and GW1's variable length) rather
+      // than a naive minus-7-days, which would land mid-week and skew rank deltas.
+      const prevWeekStart = getWeekStart(new Date(weekStart.getTime() - 1), firstGW);
+      const prevWeekEnd = getWeekEnd(prevWeekStart, firstGW);
 
       // Current month
       const monthStart = getMonthStart(now);

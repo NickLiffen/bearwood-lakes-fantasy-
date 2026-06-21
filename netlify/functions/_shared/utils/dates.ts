@@ -64,11 +64,16 @@ const isSameDay = (a: Date, b: Date): boolean =>
 /**
  * Get the start of the gameweek containing the given date.
  *
- * Normal weeks run Saturday 00:00 → Friday 23:59:59.
- * When `firstGameweekStart` is supplied, GW1 may begin on a non-Saturday.
- * GW1 runs from `firstGameweekStart` at 00:00 until the Saturday that is
- * 7 days after the first Saturday on or after `firstGameweekStart`.
- * All subsequent weeks follow the normal Saturday cadence.
+ * Normal weeks run Saturday 00:00 → Friday 23:59:59, so the returned date is
+ * usually a Saturday. There are two documented exceptions, so callers must NOT
+ * assume `getDay() === 6`:
+ *  - When `firstGameweekStart` is supplied, GW1 may begin on a non-Saturday.
+ *    GW1 runs from `firstGameweekStart` at 00:00 until the Saturday that is
+ *    7 days after the first Saturday on or after `firstGameweekStart`.
+ *  - When a one-off boundary override applies (see GAMEWEEK_BOUNDARY_OVERRIDES,
+ *    e.g. Club Champs GW13 pulled forward to Thursday) the week-start is the
+ *    overridden day rather than the Saturday.
+ * All other weeks follow the normal Saturday cadence.
  */
 export const getWeekStart = (date: Date = new Date(), firstGameweekStart?: Date | null): Date => {
   // One-off gameweek boundary override (e.g. Club Champs GW13 pulled forward to Thursday).

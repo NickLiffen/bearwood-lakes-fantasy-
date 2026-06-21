@@ -12,9 +12,13 @@ export interface PeriodOption {
 }
 
 /**
- * Get the Saturday midnight of the week containing the given date.
- * If firstGameweekStart is provided and the date falls within GW1
- * (>= firstGameweekStart at 00:00 and < GW2 start), returns firstGameweekStart at 00:00.
+ * Get the start day of the gameweek containing the given date (normally Saturday
+ * midnight). The result is NOT always a Saturday, so callers must not assume
+ * `getDay() === 6`:
+ *  - If firstGameweekStart is provided and the date falls within GW1
+ *    (>= firstGameweekStart at 00:00 and < GW2 start), returns firstGameweekStart at 00:00.
+ *  - If a one-off boundary override applies (see GAMEWEEK_BOUNDARY_OVERRIDES,
+ *    e.g. Club Champs GW13 pulled forward to Thursday), returns the overridden day.
  */
 export const getSaturdayOfWeek = (date: Date, firstGameweekStart?: string): Date => {
   // One-off gameweek boundary override (e.g. Club Champs GW13 pulled forward to Thursday).
