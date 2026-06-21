@@ -51,8 +51,14 @@
 # Run at both 7am and 8am UTC to cover both seasons.
 # The code's getTransferDeadline() gates on 8am UK local,
 # so the early run is a no-op when it hasn't passed yet.
+#
+# ONE-OFF (Club Champs GW13): also run on Thursday (day 4) so the GW13 transfer deadline,
+# pulled forward to Thu 25 Jun 2026 8am UK (07:00 UTC, BST), is applied on the day.
+# applyAllPendingChanges() is idempotent and gated on `now >= getTransferDeadline(weekStart)`,
+# so the extra Thursday runs are no-ops on any other week.
+# Revert to "0 7,8 * * 6" after the Club Champs weekend.
 [functions."scheduled-apply-transfers"]
-  schedule = "0 7,8 * * 6"
+  schedule = "0 7,8 * * 4,6"
 
 # Note: Environment variables are split between local and cloud:
 # - Local development: .env file (gitignored) with localhost defaults

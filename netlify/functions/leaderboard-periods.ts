@@ -243,10 +243,11 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
       // Current week
       const weekStart = getWeekStart(now, firstGW);
       const weekEnd = getWeekEnd(now, firstGW);
-      const prevWeekStart = new Date(weekStart);
-      prevWeekStart.setDate(prevWeekStart.getDate() - 7);
-      const prevWeekEnd = new Date(weekEnd);
-      prevWeekEnd.setDate(prevWeekEnd.getDate() - 7);
+      // Previous week — derive from the true previous gameweek boundary so it stays
+      // correct across the Club Champs override (and GW1's variable length) rather
+      // than a naive minus-7-days, which would land mid-week and skew rank deltas.
+      const prevWeekStart = getWeekStart(new Date(weekStart.getTime() - 1), firstGW);
+      const prevWeekEnd = getWeekEnd(prevWeekStart, firstGW);
 
       // Current month
       const monthStart = getMonthStart(now);
@@ -368,10 +369,10 @@ export const handler: Handler = withVerifiedAuth(async (event) => {
     if (period === 'week') {
       periodStart = getWeekStart(referenceDate, firstGW);
       periodEnd = getWeekEnd(referenceDate, firstGW);
-      prevPeriodStart = new Date(periodStart);
-      prevPeriodStart.setDate(prevPeriodStart.getDate() - 7);
-      prevPeriodEnd = new Date(periodEnd);
-      prevPeriodEnd.setDate(prevPeriodEnd.getDate() - 7);
+      // Derive the previous gameweek from its true boundary (handles the Club Champs
+      // override + GW1's variable length) rather than a naive minus-7-days.
+      prevPeriodStart = getWeekStart(new Date(periodStart.getTime() - 1), firstGW);
+      prevPeriodEnd = getWeekEnd(prevPeriodStart, firstGW);
       periodLabel = formatWeekLabel(
         periodStart,
         periodEnd,

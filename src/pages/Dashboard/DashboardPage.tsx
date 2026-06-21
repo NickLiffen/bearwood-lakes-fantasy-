@@ -8,12 +8,41 @@ import { useAuth } from '../../hooks/useAuth';
 import { useApiClient } from '../../hooks/useApiClient';
 import { useActiveSeason } from '../../hooks/useActiveSeason';
 import { useDocumentTitle } from '../../hooks/useDocumentTitle';
+import { GAMEWEEK_BOUNDARY_OVERRIDES } from '@shared/constants/rules';
 import './DashboardPage.css';
+
+// One-off gameweek boundary override: the weekly transfer deadline (local 8am) when `now`
+// falls in an override-affected window, else null. Used to pull the Club Champs (GW13)
+// deadline forward from Sat 27 Jun to Thu 25 Jun 2026.
+const OVERRIDE_DEADLINE_HOUR = 8;
+const getOverrideWeeklyDeadline = (now: Date): Date | null => {
+  const parseLocal = (iso: string, hour: number): Date => {
+    const [year, month, day] = iso.split('-').map(Number);
+    return new Date(year, month - 1, day, hour, 0, 0, 0);
+  };
+  const addDays = (date: Date, days: number): Date => {
+    const d = new Date(date);
+    d.setDate(d.getDate() + days);
+    return d;
+  };
+  for (const o of GAMEWEEK_BOUNDARY_OVERRIDES) {
+    const early = parseLocal(o.overriddenWeekStart, OVERRIDE_DEADLINE_HOUR); // e.g. Thu 25 Jun 8am
+    const normal = parseLocal(o.normalWeekStart, OVERRIDE_DEADLINE_HOUR);
+    const prev = addDays(normal, -7); // deadline that begins the shortened preceding week
+    const resume = addDays(normal, 7); // deadline where the normal cadence resumes
+    if (now >= prev && now < early) return early;
+    if (now >= early && now < resume) return resume;
+  }
+  return null;
+};
 
 // Get the next weekly deadline at 8am
 // During GW1 (when firstGameweekStart is provided and we're before GW2), deadline is the
 // first Saturday after GW1 start + 7 days (GW2 start). After that, normal Saturday 8am.
 const getNextWeeklyDeadline = (firstGameweekStart?: string): Date => {
+  const overrideDeadline = getOverrideWeeklyDeadline(new Date());
+  if (overrideDeadline) return overrideDeadline;
+
   const now = new Date();
 
   // If we have a GW1 override, check if we're currently in GW1

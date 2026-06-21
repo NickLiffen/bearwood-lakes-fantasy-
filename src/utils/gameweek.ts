@@ -1,16 +1,30 @@
 // Shared gameweek/period utilities — single source of truth for MyTeamPage, UserProfilePage, and LeaderboardPage
 
+import {
+  resolveOverriddenWeekStart,
+  normalizeWeekStartForNumbering,
+  applyWeekStartOverrideForDisplay,
+} from '@shared/constants/rules';
+
 export interface PeriodOption {
   value: string;
   label: string;
 }
 
 /**
- * Get the Saturday midnight of the week containing the given date.
- * If firstGameweekStart is provided and the date falls within GW1
- * (>= firstGameweekStart at 00:00 and < GW2 start), returns firstGameweekStart at 00:00.
+ * Get the start day of the gameweek containing the given date (normally Saturday
+ * midnight). The result is NOT always a Saturday, so callers must not assume
+ * `getDay() === 6`:
+ *  - If firstGameweekStart is provided and the date falls within GW1
+ *    (>= firstGameweekStart at 00:00 and < GW2 start), returns firstGameweekStart at 00:00.
+ *  - If a one-off boundary override applies (see GAMEWEEK_BOUNDARY_OVERRIDES,
+ *    e.g. Club Champs GW13 pulled forward to Thursday), returns the overridden day.
  */
 export const getSaturdayOfWeek = (date: Date, firstGameweekStart?: string): Date => {
+  // One-off gameweek boundary override (e.g. Club Champs GW13 pulled forward to Thursday).
+  const overridden = resolveOverriddenWeekStart(date);
+  if (overridden) return overridden;
+
   if (firstGameweekStart) {
     const gw1Start = new Date(firstGameweekStart);
     gw1Start.setHours(0, 0, 0, 0);
@@ -86,7 +100,10 @@ export const getGameweekNumber = (
   firstGameweekStart?: string
 ): number => {
   const anchor = getFirstGameweekStart(seasonStartDate, firstGameweekStart);
-  const diffMs = weekStart.getTime() - anchor.getTime();
+  // Keep numbering anchored to the normal Saturday cadence so an overridden (early)
+  // week-start still resolves to its normal gameweek number.
+  const numberingWeekStart = normalizeWeekStartForNumbering(weekStart);
+  const diffMs = numberingWeekStart.getTime() - anchor.getTime();
   const diffWeeks = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000));
   return diffWeeks + 1;
 };
@@ -137,21 +154,27 @@ export const generateWeekOptions = (
     const effectiveStart = new Date(teamEffectiveStart);
     effectiveStart.setHours(0, 0, 0, 0);
 
-    // Start from whichever is later: GW1 start or team effective start
-    const start =
-      gw1Start >= effectiveStart ? gw1Start : getSaturdayOfWeek(effectiveStart, firstGameweekStart);
+    // Start from whichever is later: GW1 start or team effective start.
+    // Normalise any override start back to its Saturday so the cadence stays aligned.
+    const start = normalizeWeekStartForNumbering(
+      gw1Start >= effectiveStart ? gw1Start : getSaturdayOfWeek(effectiveStart, firstGameweekStart)
+    );
 
-    // Generate forward from start to current week (or GW1 if pre-season)
-    const endWeek = now < gw1Start ? gw1Start : currentWeekStart;
+    // Generate forward from start to current week (or GW1 if pre-season).
+    // The loop iterates on the Saturday cadence, so the bound is normalised back to the
+    // normal Saturday even when the current week's boundary is overridden.
+    const endWeek = now < gw1Start ? gw1Start : normalizeWeekStartForNumbering(currentWeekStart);
 
     // GW1 may start on a non-Saturday, so we handle the first iteration specially
     // then jump to GW2 (normal Saturday cadence) for all subsequent weeks.
     let current = new Date(start);
     while (current <= endWeek) {
       const gw = getGameweekNumber(current, new Date(seasonStartDate), firstGameweekStart);
+      // Emit the overridden (early) start as the option date when an override applies.
+      const displayStart = applyWeekStartOverrideForDisplay(current);
       options.push({
-        value: formatDateString(current),
-        label: formatWeekLabel(current, gw),
+        value: formatDateString(displayStart),
+        label: formatWeekLabel(displayStart, gw),
       });
 
       if (firstGameweekStart && current.getTime() === gw1Start.getTime()) {
@@ -165,14 +188,16 @@ export const generateWeekOptions = (
 
     options.reverse();
   } else {
-    // Fallback: generate backwards from current week to team effective start
+    // Fallback: generate backwards from current week to team effective start.
+    // Iterate on the Saturday cadence (normalised) and emit overridden display dates.
     const effectiveStart = new Date(teamEffectiveStart);
     effectiveStart.setHours(0, 0, 0, 0);
-    let current = currentWeekStart;
+    let current = normalizeWeekStartForNumbering(currentWeekStart);
     while (current >= effectiveStart) {
+      const displayStart = applyWeekStartOverrideForDisplay(current);
       options.push({
-        value: formatDateString(current),
-        label: formatWeekLabel(current),
+        value: formatDateString(displayStart),
+        label: formatWeekLabel(displayStart),
       });
       current = new Date(current);
       current.setDate(current.getDate() - 7);
@@ -181,9 +206,10 @@ export const generateWeekOptions = (
 
   // Always include at least one option
   if (options.length === 0) {
+    const displayStart = applyWeekStartOverrideForDisplay(currentWeekStart);
     options.push({
-      value: formatDateString(currentWeekStart),
-      label: formatWeekLabel(currentWeekStart),
+      value: formatDateString(displayStart),
+      label: formatWeekLabel(displayStart),
     });
   }
 

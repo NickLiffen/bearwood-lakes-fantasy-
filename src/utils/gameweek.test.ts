@@ -271,3 +271,64 @@ describe('GW1 Friday start (firstGameweekStart override)', () => {
     });
   });
 });
+
+describe('GW13 Club Champs one-off boundary override (25 Jun 2026)', () => {
+  const seasonStart = new Date(2026, 3, 1); // April 1
+  const firstGW = '2026-04-03T08:00:00'; // Friday April 3
+
+  describe('getSaturdayOfWeek', () => {
+    it('returns Thu 25 Jun for the Women\'s champs day (Thu 25 Jun)', () => {
+      const result = getSaturdayOfWeek(new Date(2026, 5, 25, 12, 0), firstGW);
+      expect(result.getMonth()).toBe(5); // June
+      expect(result.getDate()).toBe(25);
+      expect(result.getDay()).toBe(4); // Thursday
+    });
+
+    it('returns Thu 25 Jun for the Men\'s champs day (Sat 27 Jun)', () => {
+      const result = getSaturdayOfWeek(new Date(2026, 5, 27, 9, 0), firstGW);
+      expect(result.getDate()).toBe(25);
+      expect(result.getDay()).toBe(4); // Thursday
+    });
+
+    it('resumes the normal Saturday cadence on Sat 4 Jul (GW14)', () => {
+      const result = getSaturdayOfWeek(new Date(2026, 6, 4, 9, 0), firstGW);
+      expect(result.getDate()).toBe(4);
+      expect(result.getDay()).toBe(6); // Saturday
+    });
+
+    it('keeps the shortened GW12 on its normal Saturday (Sat 20 Jun)', () => {
+      const result = getSaturdayOfWeek(new Date(2026, 5, 23, 12, 0), firstGW); // Tue 23 Jun
+      expect(result.getDate()).toBe(20);
+      expect(result.getDay()).toBe(6);
+    });
+  });
+
+  describe('getGameweekNumber', () => {
+    it('numbers the overridden (Thu 25 Jun) week as GW13, not GW12', () => {
+      const overridden = new Date(2026, 5, 25);
+      overridden.setHours(0, 0, 0, 0);
+      expect(getGameweekNumber(overridden, seasonStart, firstGW)).toBe(13);
+    });
+
+    it('numbers the shortened GW12 (Sat 20 Jun) as GW12', () => {
+      const gw12 = new Date(2026, 5, 20);
+      gw12.setHours(0, 0, 0, 0);
+      expect(getGameweekNumber(gw12, seasonStart, firstGW)).toBe(12);
+    });
+  });
+
+  describe('generateWeekOptions', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('emits the GW13 option dated Thu 25 Jun when in champs week', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date(2026, 5, 26, 12, 0)); // Fri 26 Jun, within GW13
+      const options = generateWeekOptions('2026-04-01', '2026-04-01', firstGW);
+      // Most recent option (index 0) is the current week — GW13.
+      expect(options[0].value).toBe('2026-06-25');
+      expect(options[0].label).toContain('Gameweek 13');
+    });
+  });
+});

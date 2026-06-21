@@ -14,6 +14,7 @@ import {
   getFirstGameweekStart,
   hasUnlimitedTransfers,
   getTransferDeadline,
+  getActiveTransferWindowGameweek,
 } from './dates';
 
 describe('getWeekStart', () => {
@@ -562,5 +563,142 @@ describe('getTransferDeadline', () => {
     const sat = new Date(Date.UTC(2026, 9, 24, 0, 0, 0));
     const deadline = getTransferDeadline(sat);
     expect(deadline.getUTCHours()).toBe(7);
+  });
+});
+
+describe('GW13 Club Champs one-off boundary override (25 Jun 2026)', () => {
+  // 2026 season: GW1 = Fri Apr 3. Override pulls GW13 from Sat 27 Jun → Thu 25 Jun.
+  const seasonStart = new Date(2026, 3, 1);
+  const firstGW = new Date(2026, 3, 3, 8, 0);
+
+  describe('getWeekStart', () => {
+    it('returns Thu 25 Jun for the Women\'s champs day (Thu 25 Jun)', () => {
+      const result = getWeekStart(new Date(2026, 5, 25, 12, 0), firstGW);
+      expect(result.getMonth()).toBe(5); // June
+      expect(result.getDate()).toBe(25);
+      expect(result.getDay()).toBe(4); // Thursday
+      expect(result.getHours()).toBe(0);
+    });
+
+    it('returns Thu 25 Jun for the Men\'s champs day (Sat 27 Jun)', () => {
+      const result = getWeekStart(new Date(2026, 5, 27, 9, 0), firstGW);
+      expect(result.getDate()).toBe(25);
+      expect(result.getDay()).toBe(4); // Thursday
+    });
+
+    it('returns Thu 25 Jun for the last day of GW13 (Fri 3 Jul)', () => {
+      const result = getWeekStart(new Date(2026, 6, 3, 23, 0), firstGW);
+      expect(result.getMonth()).toBe(5); // June
+      expect(result.getDate()).toBe(25);
+    });
+
+    it('resumes the normal Saturday cadence on Sat 4 Jul (GW14)', () => {
+      const result = getWeekStart(new Date(2026, 6, 4, 9, 0), firstGW);
+      expect(result.getMonth()).toBe(6); // July
+      expect(result.getDate()).toBe(4);
+      expect(result.getDay()).toBe(6); // Saturday
+    });
+
+    it('keeps the shortened GW12 on its normal Saturday (Sat 20 Jun)', () => {
+      const result = getWeekStart(new Date(2026, 5, 23, 12, 0), firstGW); // Tue 23 Jun
+      expect(result.getDate()).toBe(20);
+      expect(result.getDay()).toBe(6); // Saturday
+    });
+  });
+
+  describe('getWeekEnd', () => {
+    it('shortens GW12 to end Wed 24 Jun 23:59:59.999', () => {
+      const gw12Start = new Date(2026, 5, 20);
+      gw12Start.setHours(0, 0, 0, 0);
+      const result = getWeekEnd(gw12Start, firstGW);
+      expect(result.getMonth()).toBe(5); // June
+      expect(result.getDate()).toBe(24);
+      expect(result.getHours()).toBe(23);
+      expect(result.getMinutes()).toBe(59);
+      expect(result.getSeconds()).toBe(59);
+      expect(result.getMilliseconds()).toBe(999);
+    });
+
+    it('extends GW13 to end Fri 3 Jul 23:59:59.999', () => {
+      const gw13Start = new Date(2026, 5, 25);
+      gw13Start.setHours(0, 0, 0, 0);
+      const result = getWeekEnd(gw13Start, firstGW);
+      expect(result.getMonth()).toBe(6); // July
+      expect(result.getDate()).toBe(3);
+      expect(result.getHours()).toBe(23);
+      expect(result.getMinutes()).toBe(59);
+    });
+  });
+
+  describe('getNextWeekStart / deadline', () => {
+    it('returns Thu 25 Jun 8am UK (07:00 UTC, BST) as the next deadline from GW12', () => {
+      const result = getNextWeekStart(new Date(2026, 5, 21, 12, 0), firstGW); // Sun 21 Jun, GW12
+      expect(result.getUTCDate()).toBe(25);
+      expect(result.getUTCMonth()).toBe(5); // June
+      expect(result.getUTCHours()).toBe(7); // 8am BST
+    });
+
+    it('returns Sat 4 Jul 8am UK (07:00 UTC) as the next deadline from within GW13', () => {
+      const result = getNextWeekStart(new Date(2026, 5, 26, 12, 0), firstGW); // Fri 26 Jun, GW13
+      expect(result.getUTCDate()).toBe(4);
+      expect(result.getUTCMonth()).toBe(6); // July
+      expect(result.getUTCHours()).toBe(7);
+    });
+
+    it('transfer deadline for the overridden week is Thu 25 Jun 07:00 UTC', () => {
+      const weekStart = getWeekStart(new Date(2026, 5, 26, 12, 0), firstGW); // → Thu 25 Jun
+      const deadline = getTransferDeadline(weekStart);
+      expect(deadline.getUTCDate()).toBe(25);
+      expect(deadline.getUTCHours()).toBe(7);
+    });
+  });
+
+  describe('getGameweekNumber', () => {
+    it('numbers the overridden (Thu 25 Jun) week as GW13, not GW12', () => {
+      const overridden = new Date(2026, 5, 25);
+      overridden.setHours(0, 0, 0, 0);
+      expect(getGameweekNumber(overridden, seasonStart, firstGW)).toBe(13);
+    });
+
+    it('numbers the shortened GW12 (Sat 20 Jun) as GW12', () => {
+      const gw12 = new Date(2026, 5, 20);
+      gw12.setHours(0, 0, 0, 0);
+      expect(getGameweekNumber(gw12, seasonStart, firstGW)).toBe(12);
+    });
+
+    it('numbers the resumed GW14 (Sat 4 Jul) as GW14', () => {
+      const gw14 = new Date(2026, 6, 4);
+      gw14.setHours(0, 0, 0, 0);
+      expect(getGameweekNumber(gw14, seasonStart, firstGW)).toBe(14);
+    });
+  });
+
+  describe('getActiveTransferWindowGameweek (deadline-aware unlimited window)', () => {
+    it('reports GW12 during the GW12 week, well before any boundary', () => {
+      const midGw12 = new Date(2026, 5, 22, 12, 0); // Mon 22 Jun, midday
+      expect(getActiveTransferWindowGameweek(midGw12, seasonStart, firstGW)).toBe(12);
+    });
+
+    it('still reports GW12 between the Thu 25 Jun midnight boundary and the 8am deadline', () => {
+      // Key Club Champs fix: the unlimited promo must stay active until 8am, not switch
+      // off 8 hours early at the midnight gameweek boundary.
+      const beforeDeadline = new Date(Date.UTC(2026, 5, 25, 2, 0)); // 03:00 BST Thu 25 Jun
+      expect(getActiveTransferWindowGameweek(beforeDeadline, seasonStart, firstGW)).toBe(12);
+    });
+
+    it('reports GW13 once the Thu 25 Jun 8am deadline has passed', () => {
+      const afterDeadline = new Date(Date.UTC(2026, 5, 25, 9, 0)); // 10:00 BST Thu 25 Jun
+      expect(getActiveTransferWindowGameweek(afterDeadline, seasonStart, firstGW)).toBe(13);
+    });
+
+    it('reports the previous gameweek between a normal Saturday midnight and 8am', () => {
+      // GW12 starts Sat 20 Jun; before its 8am deadline the active window is still GW11.
+      const beforeGw12Deadline = new Date(Date.UTC(2026, 5, 20, 2, 0)); // 03:00 BST Sat 20 Jun
+      expect(getActiveTransferWindowGameweek(beforeGw12Deadline, seasonStart, firstGW)).toBe(11);
+    });
+
+    it('returns null when no season start date is provided', () => {
+      expect(getActiveTransferWindowGameweek(new Date(2026, 5, 22), null, firstGW)).toBeNull();
+    });
   });
 });
