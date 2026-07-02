@@ -7,7 +7,9 @@ export type TournamentType =
   | 'weekend_medal'
   | 'presidents_cup'
   | 'founders'
-  | 'club_champs_nett';
+  | 'club_champs_nett'
+  | 'seniors_club_champs'
+  | 'ladies_club_champs';
 export type ScoringFormat = 'stableford' | 'medal';
 export type GolferCountTier = '0-10' | '10-20' | '20+';
 
@@ -74,6 +76,9 @@ export const TOURNAMENT_TYPE_CONFIG: Record<
     defaultScoringFormat: ScoringFormat;
     forcedScoringFormat: ScoringFormat | null; // null = user can choose
     defaultMultiDay: boolean;
+    // Number of finishing positions that earn base points (e.g. 3 = top 1/2/3,
+    // 2 = top 1/2 only). Positions beyond this earn 0 base points.
+    paidPositions: number;
   }
 > = {
   rollup_stableford: {
@@ -82,6 +87,7 @@ export const TOURNAMENT_TYPE_CONFIG: Record<
     defaultScoringFormat: 'stableford',
     forcedScoringFormat: 'stableford',
     defaultMultiDay: false,
+    paidPositions: 3,
   },
   weekday_medal: {
     label: 'Weekday Medal',
@@ -89,6 +95,7 @@ export const TOURNAMENT_TYPE_CONFIG: Record<
     defaultScoringFormat: 'medal',
     forcedScoringFormat: 'medal',
     defaultMultiDay: false,
+    paidPositions: 3,
   },
   weekend_medal: {
     label: 'Weekend Medal',
@@ -96,6 +103,7 @@ export const TOURNAMENT_TYPE_CONFIG: Record<
     defaultScoringFormat: 'medal',
     forcedScoringFormat: 'medal',
     defaultMultiDay: false,
+    paidPositions: 3,
   },
   presidents_cup: {
     label: 'Presidents Cup',
@@ -103,6 +111,7 @@ export const TOURNAMENT_TYPE_CONFIG: Record<
     defaultScoringFormat: 'stableford',
     forcedScoringFormat: null,
     defaultMultiDay: false,
+    paidPositions: 3,
   },
   founders: {
     label: 'Founders',
@@ -110,6 +119,7 @@ export const TOURNAMENT_TYPE_CONFIG: Record<
     defaultScoringFormat: 'stableford',
     forcedScoringFormat: null,
     defaultMultiDay: true,
+    paidPositions: 3,
   },
   club_champs_nett: {
     label: 'Club Champs Nett',
@@ -117,6 +127,23 @@ export const TOURNAMENT_TYPE_CONFIG: Record<
     defaultScoringFormat: 'medal',
     forcedScoringFormat: null,
     defaultMultiDay: true,
+    paidPositions: 3,
+  },
+  seniors_club_champs: {
+    label: 'Seniors Club Champs',
+    multiplier: 5,
+    defaultScoringFormat: 'medal',
+    forcedScoringFormat: null,
+    defaultMultiDay: true,
+    paidPositions: 2,
+  },
+  ladies_club_champs: {
+    label: 'Ladies Club Champs',
+    multiplier: 5,
+    defaultScoringFormat: 'medal',
+    forcedScoringFormat: null,
+    defaultMultiDay: true,
+    paidPositions: 2,
   },
 };
 
@@ -133,9 +160,23 @@ export function getTournamentTypeLabel(type: TournamentType): string {
 // Position-based points (same for all field sizes)
 const POSITION_POINTS: Record<number, number> = { 1: 10, 2: 7, 3: 5 };
 
-// Helper to calculate base points from position
-export function getBasePointsForPosition(position: number | null): number {
+// Default paid-positions cap, derived from the size of the points table so the
+// two stay in sync if POSITION_POINTS ever changes.
+const DEFAULT_PAID_POSITIONS = Object.keys(POSITION_POINTS).length;
+
+// Helper to calculate base points from position.
+// Optionally pass the tournament type to respect its paid-positions cap
+// (e.g. Seniors/Ladies Club Champs pay 1st & 2nd only). When omitted, the
+// full points table applies for backward compatibility.
+export function getBasePointsForPosition(
+  position: number | null,
+  type?: TournamentType
+): number {
   if (position === null) return 0;
+  const paidPositions = type
+    ? (TOURNAMENT_TYPE_CONFIG[type]?.paidPositions ?? DEFAULT_PAID_POSITIONS)
+    : DEFAULT_PAID_POSITIONS;
+  if (position > paidPositions) return 0;
   return POSITION_POINTS[position] ?? 0;
 }
 

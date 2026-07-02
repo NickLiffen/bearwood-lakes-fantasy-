@@ -112,6 +112,8 @@ describe('tournamentUploadSchema', () => {
       'presidents_cup',
       'founders',
       'club_champs_nett',
+      'seniors_club_champs',
+      'ladies_club_champs',
     ];
     for (const type of types) {
       const result = tournamentUploadSchema.safeParse({

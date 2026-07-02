@@ -37,6 +37,33 @@ describe('getBasePointsForPosition', () => {
   it('returns 0 for negative position', () => {
     expect(getBasePointsForPosition(-1)).toBe(0);
   });
+
+  describe('paid positions by tournament type', () => {
+    it('awards 3rd place for types that pay top 3 (e.g. club_champs_nett)', () => {
+      expect(getBasePointsForPosition(1, 'club_champs_nett')).toBe(10);
+      expect(getBasePointsForPosition(2, 'club_champs_nett')).toBe(7);
+      expect(getBasePointsForPosition(3, 'club_champs_nett')).toBe(5);
+      expect(getBasePointsForPosition(4, 'club_champs_nett')).toBe(0);
+    });
+
+    it('does NOT award 3rd place for seniors_club_champs (top 2 only)', () => {
+      expect(getBasePointsForPosition(1, 'seniors_club_champs')).toBe(10);
+      expect(getBasePointsForPosition(2, 'seniors_club_champs')).toBe(7);
+      expect(getBasePointsForPosition(3, 'seniors_club_champs')).toBe(0);
+      expect(getBasePointsForPosition(4, 'seniors_club_champs')).toBe(0);
+    });
+
+    it('does NOT award 3rd place for ladies_club_champs (top 2 only)', () => {
+      expect(getBasePointsForPosition(1, 'ladies_club_champs')).toBe(10);
+      expect(getBasePointsForPosition(2, 'ladies_club_champs')).toBe(7);
+      expect(getBasePointsForPosition(3, 'ladies_club_champs')).toBe(0);
+      expect(getBasePointsForPosition(4, 'ladies_club_champs')).toBe(0);
+    });
+
+    it('falls back to top-3 behaviour when no type is provided', () => {
+      expect(getBasePointsForPosition(3)).toBe(5);
+    });
+  });
 });
 
 describe('getBonusPoints', () => {
@@ -146,12 +173,20 @@ describe('TOURNAMENT_TYPE_CONFIG', () => {
     'presidents_cup',
     'founders',
     'club_champs_nett',
+    'seniors_club_champs',
+    'ladies_club_champs',
   ];
 
-  it('contains all 6 tournament types', () => {
-    expect(Object.keys(TOURNAMENT_TYPE_CONFIG)).toHaveLength(6);
+  it('contains all 8 tournament types', () => {
+    expect(Object.keys(TOURNAMENT_TYPE_CONFIG)).toHaveLength(8);
     for (const t of allTypes) {
       expect(TOURNAMENT_TYPE_CONFIG).toHaveProperty(t);
+    }
+  });
+
+  it('every type declares a paidPositions value', () => {
+    for (const t of allTypes) {
+      expect(TOURNAMENT_TYPE_CONFIG[t].paidPositions).toBeGreaterThanOrEqual(2);
     }
   });
 
@@ -162,6 +197,7 @@ describe('TOURNAMENT_TYPE_CONFIG', () => {
     expect(cfg.defaultScoringFormat).toBe('stableford');
     expect(cfg.forcedScoringFormat).toBe('stableford');
     expect(cfg.defaultMultiDay).toBe(false);
+    expect(cfg.paidPositions).toBe(3);
   });
 
   it('weekday_medal has correct config', () => {
@@ -171,6 +207,7 @@ describe('TOURNAMENT_TYPE_CONFIG', () => {
     expect(cfg.defaultScoringFormat).toBe('medal');
     expect(cfg.forcedScoringFormat).toBe('medal');
     expect(cfg.defaultMultiDay).toBe(false);
+    expect(cfg.paidPositions).toBe(3);
   });
 
   it('weekend_medal has correct config', () => {
@@ -180,6 +217,7 @@ describe('TOURNAMENT_TYPE_CONFIG', () => {
     expect(cfg.defaultScoringFormat).toBe('medal');
     expect(cfg.forcedScoringFormat).toBe('medal');
     expect(cfg.defaultMultiDay).toBe(false);
+    expect(cfg.paidPositions).toBe(3);
   });
 
   it('presidents_cup has correct config', () => {
@@ -189,6 +227,7 @@ describe('TOURNAMENT_TYPE_CONFIG', () => {
     expect(cfg.defaultScoringFormat).toBe('stableford');
     expect(cfg.forcedScoringFormat).toBeNull();
     expect(cfg.defaultMultiDay).toBe(false);
+    expect(cfg.paidPositions).toBe(3);
   });
 
   it('founders has correct config', () => {
@@ -198,6 +237,7 @@ describe('TOURNAMENT_TYPE_CONFIG', () => {
     expect(cfg.defaultScoringFormat).toBe('stableford');
     expect(cfg.forcedScoringFormat).toBeNull();
     expect(cfg.defaultMultiDay).toBe(true);
+    expect(cfg.paidPositions).toBe(3);
   });
 
   it('club_champs_nett has correct config', () => {
@@ -207,6 +247,27 @@ describe('TOURNAMENT_TYPE_CONFIG', () => {
     expect(cfg.defaultScoringFormat).toBe('medal');
     expect(cfg.forcedScoringFormat).toBeNull();
     expect(cfg.defaultMultiDay).toBe(true);
+    expect(cfg.paidPositions).toBe(3);
+  });
+
+  it('seniors_club_champs mirrors Mens Club Champs but pays top 2 only', () => {
+    const cfg = TOURNAMENT_TYPE_CONFIG.seniors_club_champs;
+    expect(cfg.label).toBe('Seniors Club Champs');
+    expect(cfg.multiplier).toBe(5);
+    expect(cfg.defaultScoringFormat).toBe('medal');
+    expect(cfg.forcedScoringFormat).toBeNull();
+    expect(cfg.defaultMultiDay).toBe(true);
+    expect(cfg.paidPositions).toBe(2);
+  });
+
+  it('ladies_club_champs mirrors Mens Club Champs but pays top 2 only', () => {
+    const cfg = TOURNAMENT_TYPE_CONFIG.ladies_club_champs;
+    expect(cfg.label).toBe('Ladies Club Champs');
+    expect(cfg.multiplier).toBe(5);
+    expect(cfg.defaultScoringFormat).toBe('medal');
+    expect(cfg.forcedScoringFormat).toBeNull();
+    expect(cfg.defaultMultiDay).toBe(true);
+    expect(cfg.paidPositions).toBe(2);
   });
 });
 
@@ -218,6 +279,8 @@ describe('getMultiplierForType', () => {
     ['presidents_cup', 3],
     ['founders', 4],
     ['club_champs_nett', 5],
+    ['seniors_club_champs', 5],
+    ['ladies_club_champs', 5],
   ] as [TournamentType, number][])('returns %i for %s', (type, expected) => {
     expect(getMultiplierForType(type)).toBe(expected);
   });
@@ -231,6 +294,8 @@ describe('getTournamentTypeLabel', () => {
     ['presidents_cup', 'Presidents Cup'],
     ['founders', 'Founders'],
     ['club_champs_nett', 'Club Champs Nett'],
+    ['seniors_club_champs', 'Seniors Club Champs'],
+    ['ladies_club_champs', 'Ladies Club Champs'],
   ] as [TournamentType, string][])('returns "%s" for %s', (type, expected) => {
     expect(getTournamentTypeLabel(type)).toBe(expected);
   });

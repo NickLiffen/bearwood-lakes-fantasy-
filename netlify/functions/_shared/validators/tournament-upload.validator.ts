@@ -10,6 +10,8 @@ const tournamentTypes: [TournamentType, ...TournamentType[]] = [
   'presidents_cup',
   'founders',
   'club_champs_nett',
+  'seniors_club_champs',
+  'ladies_club_champs',
 ];
 
 const scoringFormats: [ScoringFormat, ...ScoringFormat[]] = ['stableford', 'medal'];

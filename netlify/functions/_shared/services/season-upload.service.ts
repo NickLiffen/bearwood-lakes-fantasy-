@@ -255,7 +255,7 @@ export async function processSeasonUpload(csvText: string): Promise<SeasonUpload
       affectedGolferIds.add(golferId.toString());
 
       // Calculate points using tournament's scoring format and multi-day setting
-      const basePoints = getBasePointsForPosition(row.position);
+      const basePoints = getBasePointsForPosition(row.position, csvType);
       const rawScore = row.rawScore;
       const bonusPoints = getBonusPoints(rawScore, scoringFormat, isMultiDay);
       const multipliedPoints = (basePoints + bonusPoints) * multiplier;
