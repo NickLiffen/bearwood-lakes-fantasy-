@@ -169,7 +169,7 @@ export async function processTournamentUpload(
     affectedGolferIds.add(golferId.toString());
 
     // Calculate fantasy points
-    const basePoints = getBasePointsForPosition(golferData.position);
+    const basePoints = getBasePointsForPosition(golferData.position, tournamentType);
     const bonusPoints = getBonusPoints(golferData.rawScore, scoringFormat, isMultiDay);
     const multipliedPoints = (basePoints + bonusPoints) * multiplier;
 

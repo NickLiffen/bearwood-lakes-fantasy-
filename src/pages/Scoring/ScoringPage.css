@@ -141,6 +141,13 @@
   gap: var(--spacing-xs);
 }
 
+.points-note {
+  font-size: 0.8rem;
+  color: var(--muted-text);
+  margin-top: var(--spacing-md);
+  line-height: 1.4;
+}
+
 .points-row {
   display: flex;
   justify-content: space-between;

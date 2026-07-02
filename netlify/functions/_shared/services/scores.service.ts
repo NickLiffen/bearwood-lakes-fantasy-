@@ -59,7 +59,7 @@ export async function enterScore(data: EnterScoreRequest): Promise<Score> {
   let multipliedPoints = 0;
 
   if (data.participated) {
-    basePoints = getBasePointsForPosition(data.position);
+    basePoints = getBasePointsForPosition(data.position, tournament.tournamentType);
     bonusPoints = getBonusPoints(data.rawScore, scoringFormat, isMultiDay);
     multipliedPoints = (basePoints + bonusPoints) * tournament.multiplier;
   }
@@ -119,7 +119,7 @@ export async function bulkEnterScores(data: BulkEnterScoresRequest): Promise<Sco
     let multipliedPoints = 0;
 
     if (scoreData.participated) {
-      basePoints = getBasePointsForPosition(scoreData.position);
+      basePoints = getBasePointsForPosition(scoreData.position, tournament.tournamentType);
       bonusPoints = getBonusPoints(scoreData.rawScore, scoringFormat, isMultiDay);
       multipliedPoints = (basePoints + bonusPoints) * tournament.multiplier;
     }
@@ -249,7 +249,7 @@ export async function recalculateScoresForTournament(tournamentId: string): Prom
     let multipliedPoints = 0;
 
     if (score.participated) {
-      basePoints = getBasePointsForPosition(score.position);
+      basePoints = getBasePointsForPosition(score.position, tournament.tournamentType);
       bonusPoints = getBonusPoints(score.rawScore, scoringFormat, isMultiDay);
       multipliedPoints = (basePoints + bonusPoints) * tournament.multiplier;
     }

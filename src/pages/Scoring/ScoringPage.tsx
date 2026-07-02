@@ -97,6 +97,10 @@ const ScoringPage: React.FC = () => {
                   <span className="points-value">0 points</span>
                 </div>
               </div>
+              <p className="points-note">
+                Note: Seniors Club Champs and Ladies Club Champs award 1st and 2nd place only —
+                there is no 3rd place, so 3rd and below earn 0 position points.
+              </p>
             </div>
             <div className="points-group">
               <h3>Bonus Points</h3>
