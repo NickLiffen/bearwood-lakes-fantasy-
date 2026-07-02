@@ -160,16 +160,22 @@ export function getTournamentTypeLabel(type: TournamentType): string {
 // Position-based points (same for all field sizes)
 const POSITION_POINTS: Record<number, number> = { 1: 10, 2: 7, 3: 5 };
 
+// Default paid-positions cap, derived from the size of the points table so the
+// two stay in sync if POSITION_POINTS ever changes.
+const DEFAULT_PAID_POSITIONS = Object.keys(POSITION_POINTS).length;
+
 // Helper to calculate base points from position.
 // Optionally pass the tournament type to respect its paid-positions cap
 // (e.g. Seniors/Ladies Club Champs pay 1st & 2nd only). When omitted, the
-// full top-3 table applies for backward compatibility.
+// full points table applies for backward compatibility.
 export function getBasePointsForPosition(
   position: number | null,
   type?: TournamentType
 ): number {
   if (position === null) return 0;
-  const paidPositions = type ? (TOURNAMENT_TYPE_CONFIG[type]?.paidPositions ?? 3) : 3;
+  const paidPositions = type
+    ? (TOURNAMENT_TYPE_CONFIG[type]?.paidPositions ?? DEFAULT_PAID_POSITIONS)
+    : DEFAULT_PAID_POSITIONS;
   if (position > paidPositions) return 0;
   return POSITION_POINTS[position] ?? 0;
 }

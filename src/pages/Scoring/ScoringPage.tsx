@@ -98,8 +98,9 @@ const ScoringPage: React.FC = () => {
                 </div>
               </div>
               <p className="points-note">
-                Note: Seniors Club Champs and Ladies Club Champs award 1st and 2nd place only —
-                there is no 3rd place, so 3rd and below earn 0 position points.
+                Note: Seniors Club Champs and Ladies Club Champs award 1st and 2nd place only.
+                A 3rd-place finisher earns no position points (unlike other events, where 3rd
+                earns 5).
               </p>
             </div>
             <div className="points-group">
