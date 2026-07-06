@@ -178,7 +178,8 @@ export function parseEcgDate(dateStr: string): string {
  */
 export function detectScoringFormat(text: string): 'stableford' | 'medal' {
   const lower = text.toLowerCase();
-  if (lower.includes('medal')) return 'medal';
+  // "nett" (net-to-par) leaderboards — e.g. club championships — are medal events
+  if (lower.includes('medal') || lower.includes('nett')) return 'medal';
   return 'stableford';
 }
 
@@ -197,22 +198,35 @@ export function parseTournamentText(rawText: string): ParsedTournament {
   let scoringFormat: 'stableford' | 'medal' = 'stableford';
   const golfers: ParsedGolfer[] = [];
 
-  // Format A: purse column — e.g. "1 Ashley Brinsford 46 £130.00"
-  const purseRowRegex = /^(T?\d+)\s+(.+?)\s+(-?\d+)\s+£[\d,.]+$/;
+  // Format A: purse column — e.g. "1 Ashley Brinsford 46 £130.00" (also supports $)
+  const purseRowRegex = /^(T?\d+)\s+(.+?)\s+(-?\d+)\s+[£$][\d,.]+$/;
   // Format A2: medal with purse — e.g. "1 Duncan Scott -4 68 £144.00"
   // Captures: position, name, to-par (signed int or "E"), total-net, purse.
   // Must be tried BEFORE purseRowRegex (which would absorb the to-par into the name).
-  const medalPurseRowRegex = /^(T?\d+)\s+(.+?)\s+([+-]?\d+|E)\s+(\d+)\s+£[\d,.]+$/;
+  const medalPurseRowRegex = /^(T?\d+)\s+(.+?)\s+([+-]?\d+|E)\s+(\d+)\s+[£$][\d,.]+$/;
   // Format B: to-par + total + thru — e.g. "1  Tony Grover   -4 40  F"
   const toParRowRegex = /^(T?\d+)\s+(.+?)\s+([+-]?\d+|E)\s+(\d+)\s+F$/;
   // Format C: simple stableford — e.g. "1 John Pulley 41" or "T24 Trevor Mason 34"
   const simpleRowRegex = /^(T?\d+)\s+(.+?)\s+([+-]?\d{1,3})$/;
+  // Format D: 2-day club-championship medal (nett) —
+  // e.g. "1 Lucie Robson +8 76 76 152" or "1 Jit Aujla +6 76 74 150 £140.00"
+  // Columns: Pos · Player · To-Par(Nett) · R1 · R2 · Total · optional purse ($ or £).
+  // The score we want is the To-Par(Nett) value (E = level par). This MUST be tried
+  // before medalPurseRowRegex/simpleRowRegex, which would otherwise swallow the round
+  // scores into the name and read the wrong number.
+  const twoDayNettRowRegex =
+    /^(T?\d+)\s+(.+?)\s+([+-]?\d+|E)\s+(\d+)\s+(\d+)\s+(\d+)(?:\s+[£$][\d,.]+)?$/;
 
   const isDataRow = (line: string) =>
+    twoDayNettRowRegex.test(line) ||
     medalPurseRowRegex.test(line) ||
     purseRowRegex.test(line) ||
     toParRowRegex.test(line) ||
     simpleRowRegex.test(line);
+
+  // Rows for players who did not complete (No Return / Withdrawn / Did Not Finish)
+  // carry no valid score and must be excluded from results.
+  const isIncompleteRow = (line: string) => /(?:^|\s)(?:NR|WD|DNF)(?:\s|$)/.test(line);
 
   const datePattern = /^\d{1,2}\s+\w+\s+\d{4}$/;
 
@@ -231,10 +245,16 @@ export function parseTournamentText(rawText: string): ParsedTournament {
   for (const line of lines) {
     if (line.startsWith('Pos.') || line.startsWith('Total Purse')) continue;
     if (line.includes('Leaderboard') && !isDataRow(line)) continue;
+    // Skip players who did not complete (NR / WD / DNF) — they have no valid score
+    if (isIncompleteRow(line)) continue;
 
     // Detect scoring format early — before name extraction so keywords
-    // like "stableford" / "medal" are captured even in formats without dates
-    if (line.toLowerCase().includes('stableford') || line.toLowerCase().includes('medal')) {
+    // like "stableford" / "medal" / "nett" are captured even in formats without dates
+    if (
+      line.toLowerCase().includes('stableford') ||
+      line.toLowerCase().includes('medal') ||
+      line.toLowerCase().includes('nett')
+    ) {
       if (!isDataRow(line)) {
         scoringFormat = detectScoringFormat(line);
 
@@ -248,8 +268,12 @@ export function parseTournamentText(rawText: string): ParsedTournament {
               .replace(/\s*[-–—]+\s*$/, '')
               .trim();
           } else {
-            // No date — strip subtitle like " - Men's Individual"
-            name = line.replace(/\s*[-–—]+\s+\w[\w\s']*$/, '').trim();
+            // No date — strip subtitle like " - Men's Individual" and a
+            // trailing "Nett" / "(Nett)" qualifier (e.g. club championships)
+            name = line
+              .replace(/\s*[-–—]+\s+\w[\w\s']*$/, '')
+              .replace(/\s*\(?nett\)?\s*$/i, '')
+              .trim();
           }
         }
         continue;
@@ -274,11 +298,17 @@ export function parseTournamentText(rawText: string): ParsedTournament {
     }
 
     // Try all format regexes (most specific first).
+    // twoDayNettRowRegex must come first — a 6-column nett row
+    // (pos name to-par R1 R2 total [purse]) would otherwise be mis-matched by
+    // medalPurseRowRegex/simpleRowRegex with the round scores swallowed into the
+    // name and the wrong number read as the score.
     // medalPurseRowRegex must come before purseRowRegex — otherwise a 5-column
     // medal row (pos name to-par total £purse) gets matched by purseRowRegex
     // with the to-par value swallowed into the name.
+    const twoDayNettMatch = line.match(twoDayNettRowRegex);
     const medalPurseMatch = line.match(medalPurseRowRegex);
     const match =
+      twoDayNettMatch ||
       medalPurseMatch ||
       line.match(purseRowRegex) ||
       line.match(toParRowRegex) ||
@@ -287,11 +317,12 @@ export function parseTournamentText(rawText: string): ParsedTournament {
       const position = parseInt(match[1].replace(/^T/i, ''), 10);
       const fullName = match[2].trim();
       // Score selection:
+      //   - 2-day nett format: use to-par (group 3), with "E" → 0
       //   - medal-purse format: use to-par (group 3), with "E" → 0
       //   - to-par format: total points (group 4)
       //   - purse / simple formats: score (group 3)
       let rawScore: number;
-      if (medalPurseMatch) {
+      if (twoDayNettMatch || medalPurseMatch) {
         const toPar = match[3];
         rawScore = toPar === 'E' ? 0 : parseInt(toPar, 10);
       } else if (line.match(toParRowRegex) && match[4] !== undefined) {
