@@ -43,6 +43,16 @@ describe('detectScoringFormat', () => {
     expect(detectScoringFormat('Nett Medal')).toBe('medal');
   });
 
+  it('detects medal from a "(Nett)" club championship title', () => {
+    expect(detectScoringFormat('Ladies Club Championship (Nett)')).toBe('medal');
+    expect(detectScoringFormat('Mens Club Championships Nett')).toBe('medal');
+  });
+
+  it('does not treat "nett" inside another word as medal', () => {
+    expect(detectScoringFormat('Annette Stableford')).toBe('stableford');
+    expect(detectScoringFormat('Annette Trophy')).toBe('stableford');
+  });
+
   it('defaults to stableford when no keywords found', () => {
     expect(detectScoringFormat('Some Other Format')).toBe('stableford');
   });
@@ -705,6 +715,63 @@ T24 Samuel Rhys Thomas 34
       lastName: 'Hargreaves',
       rawScore: 0,
     });
+  });
+
+  it('parses 2-day club-championship (nett) format using to-par-nett as rawScore', () => {
+    // Real layout from the club championship PDFs — rows have 6+ fields:
+    // Pos · Player · To-Par(Nett) · R1 · R2 · Total · optional purse ($ or £).
+    // The To-Par(Nett) value is the medal rawScore; the round/total strokes must
+    // not be read as the score, and the extra columns must not pollute the name.
+    const text = `Ladies Club Championship (Nett)
+Total Total
+Pos. Player To Par R1 R2
+Net Net
+1 Lucie Robson +8 76 76 152
+2 Anne Smith +14 82 76 158
+3 Amanda Holloway +15 78 81 159`;
+
+    const result = parseTournamentText(text);
+
+    expect(result.name).toBe('Ladies Club Championship');
+    expect(result.scoringFormat).toBe('medal');
+    expect(result.golfers).toEqual([
+      { position: 1, firstName: 'Lucie', lastName: 'Robson', rawScore: 8 },
+      { position: 2, firstName: 'Anne', lastName: 'Smith', rawScore: 14 },
+      { position: 3, firstName: 'Amanda', lastName: 'Holloway', rawScore: 15 },
+    ]);
+  });
+
+  it('parses 2-day nett format with a purse column ($ and £) and E for level par', () => {
+    const text = `Mens Club Championships Nett
+Pos. Player To Par R1 R2 Purse
+1 Reahgan Quartermaine E 73 71 144 $372.00
+2 Matthew Pulford +2 76 70 146 $225.00
+3 Jit Aujla +6 76 74 150 £140.00`;
+
+    const result = parseTournamentText(text);
+
+    expect(result.name).toBe('Mens Club Championships');
+    expect(result.scoringFormat).toBe('medal');
+    expect(result.golfers).toEqual([
+      { position: 1, firstName: 'Reahgan', lastName: 'Quartermaine', rawScore: 0 },
+      { position: 2, firstName: 'Matthew', lastName: 'Pulford', rawScore: 2 },
+      { position: 3, firstName: 'Jit', lastName: 'Aujla', rawScore: 6 },
+    ]);
+  });
+
+  it('skips NR / WD / DNF rows in 2-day nett format', () => {
+    const text = `Seniors' Club Championship (Nett)
+Pos. Player To Par R1 R2 Purse
+1 Jit Aujla +6 76 74 150 £140.00
+NR Roy Kates - 75 NR NR £0.00
+WD Chris Owen WD WD £0.00
+26 Bhavesh Amin - 85 DNF £0.00`;
+
+    const result = parseTournamentText(text);
+
+    expect(result.golfers).toEqual([
+      { position: 1, firstName: 'Jit', lastName: 'Aujla', rawScore: 6 },
+    ]);
   });
 });
 

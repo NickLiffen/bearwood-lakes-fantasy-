@@ -59,4 +59,75 @@ describe('parsePdfBuffer integration', () => {
     expect(kevin).toBeDefined();
     expect(kevin!.firstName).toBe('Kevin');
   });
+
+  it('parses the 2-day Ladies Club Championship (nett) PDF end-to-end', async () => {
+    const fixturePath = resolve(import.meta.dirname, '__fixtures__/ladies-club-champs-2day.pdf');
+    const buffer = Buffer.from(readFileSync(fixturePath));
+
+    const result = await parsePdfBuffer(buffer);
+
+    // "(Nett)" title → medal scoring
+    expect(result.scoringFormat).toBe('medal');
+    expect(result.name).toBe('Ladies Club Championship');
+    expect(result.golfers).toHaveLength(10);
+
+    // rawScore is the To-Par(Nett) value, e.g. Lucie Robson +8
+    expect(result.golfers[0]).toEqual({
+      position: 1,
+      firstName: 'Lucie',
+      lastName: 'Robson',
+      rawScore: 8,
+    });
+    expect(result.golfers[9]).toEqual({
+      position: 10,
+      firstName: 'Jo',
+      lastName: 'Angel',
+      rawScore: 31,
+    });
+  });
+
+  it('parses the 2-day Mens Club Championships (nett, $ purse) PDF end-to-end', async () => {
+    const fixturePath = resolve(import.meta.dirname, '__fixtures__/mens-club-champs-2day.pdf');
+    const buffer = Buffer.from(readFileSync(fixturePath));
+
+    const result = await parsePdfBuffer(buffer);
+
+    expect(result.scoringFormat).toBe('medal');
+    expect(result.name).toBe('Mens Club Championships');
+
+    // Winner is level par (E → 0)
+    expect(result.golfers[0]).toEqual({
+      position: 1,
+      firstName: 'Reahgan',
+      lastName: 'Quartermaine',
+      rawScore: 0,
+    });
+    // A known mid-field entry
+    const nick = result.golfers.find((g) => g.lastName === 'Liffen');
+    expect(nick).toBeDefined();
+    expect(nick!.firstName).toBe('Nick');
+  });
+
+  it('parses the 2-day Seniors Club Championship (nett) PDF and excludes NR/WD/DNF', async () => {
+    const fixturePath = resolve(import.meta.dirname, '__fixtures__/seniors-club-champs-2day.pdf');
+    const buffer = Buffer.from(readFileSync(fixturePath));
+
+    const result = await parsePdfBuffer(buffer);
+
+    expect(result.scoringFormat).toBe('medal');
+    expect(result.name).toBe("Seniors' Club Championship");
+
+    // Only the 25 players who returned a valid 2-round score — NR/WD/DNF excluded
+    expect(result.golfers).toHaveLength(25);
+
+    expect(result.golfers[0]).toEqual({
+      position: 1,
+      firstName: 'Jit',
+      lastName: 'Aujla',
+      rawScore: 6,
+    });
+    // No incomplete-round players should appear
+    expect(result.golfers.some((g) => g.lastName === 'Kates')).toBe(false);
+    expect(result.golfers.some((g) => g.lastName === 'Owen')).toBe(false);
+  });
 });
