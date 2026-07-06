@@ -8,9 +8,9 @@ vi.mock('../db', () => ({
 }));
 
 const mockGolfersCol = {
-  findOne: vi.fn(),
-  insertOne: vi.fn(),
-  updateOne: vi.fn(),
+  find: vi.fn(),
+  insertMany: vi.fn(),
+  bulkWrite: vi.fn(),
 };
 
 const mockTournamentsCol = {
@@ -21,7 +21,8 @@ const mockTournamentsCol = {
 };
 
 const mockScoresCol = {
-  updateOne: vi.fn(),
+  bulkWrite: vi.fn(),
+  updateMany: vi.fn(),
   find: vi.fn(),
 };
 
@@ -33,6 +34,11 @@ const toArraySorted = <T>(items: T[]) => ({
   sort: vi.fn().mockReturnValue({ toArray: vi.fn().mockResolvedValue(items) }),
   toArray: vi.fn().mockResolvedValue(items),
   project: vi.fn().mockReturnValue({ toArray: vi.fn().mockResolvedValue(items) }),
+});
+
+// insertMany resolves with an insertedIds map keyed by index (matching the mongodb driver).
+const insertManyResult = (docs: unknown[]) => ({
+  insertedIds: Object.fromEntries(docs.map((_, i) => [i, new ObjectId()])),
 });
 
 beforeEach(() => {
@@ -69,13 +75,15 @@ describe('season-upload.service', () => {
     mockTournamentsCol.findOne.mockResolvedValue(null);
     mockTournamentsCol.insertOne.mockResolvedValue({ insertedId: new ObjectId() });
     mockTournamentsCol.updateOne.mockResolvedValue({ modifiedCount: 1 });
-    // Default: golfer not found (will be created)
-    mockGolfersCol.findOne.mockResolvedValue(null);
-    mockGolfersCol.insertOne.mockImplementation(() => {
-      return Promise.resolve({ insertedId: new ObjectId() });
-    });
-    mockGolfersCol.updateOne.mockResolvedValue({ modifiedCount: 1 });
-    mockScoresCol.updateOne.mockResolvedValue({ modifiedCount: 1 });
+    // Default: no existing golfers (all will be created)
+    mockGolfersCol.find.mockReturnValue(toArraySorted([]));
+    mockGolfersCol.insertMany.mockImplementation((docs: unknown[]) =>
+      Promise.resolve(insertManyResult(docs))
+    );
+    mockGolfersCol.bulkWrite.mockResolvedValue({ modifiedCount: 0 });
+    // Score writes
+    mockScoresCol.bulkWrite.mockResolvedValue({ upsertedCount: 0 });
+    mockScoresCol.updateMany.mockResolvedValue({ modifiedCount: 0 });
     // For stats recalculation
     mockTournamentsCol.find.mockReturnValue(toArraySorted([{ _id: new ObjectId() }]));
     mockScoresCol.find.mockReturnValue(toArraySorted([]));
@@ -109,11 +117,9 @@ describe('season-upload.service', () => {
 
   it('handles existing golfers by matching', async () => {
     const existingGolferId = new ObjectId();
-    mockGolfersCol.findOne.mockResolvedValue({
-      _id: existingGolferId,
-      firstName: 'Tiger',
-      lastName: 'Woods',
-    });
+    mockGolfersCol.find.mockReturnValue(
+      toArraySorted([{ _id: existingGolferId, firstName: 'Tiger', lastName: 'Woods' }])
+    );
 
     const csv = [
       'date,position,player,rawScore,tournamentType,scoringFormat,isMultiDay',
@@ -124,13 +130,14 @@ describe('season-upload.service', () => {
 
     expect(result.golfersCreated).toBe(0);
     expect(result.golfersUpdated).toBe(1);
-    expect(mockGolfersCol.insertOne).not.toHaveBeenCalled();
+    expect(mockGolfersCol.insertMany).not.toHaveBeenCalled();
   });
 
   it('handles existing tournaments', async () => {
     mockTournamentsCol.findOne.mockResolvedValue({
       _id: new ObjectId(),
       name: '15/06/2025 Tournament',
+      status: 'complete',
     });
 
     const csv = [
@@ -200,5 +207,25 @@ describe('season-upload.service', () => {
     const result = await processSeasonUpload(csv);
 
     expect(result.scoresEntered).toBe(1);
+  });
+
+  it('processes a large field with a bounded number of DB round-trips', async () => {
+    const header = 'date,position,player,rawScore,tournamentType,scoringFormat,isMultiDay';
+    const lines = [header];
+    for (let i = 0; i < 400; i++) {
+      lines.push(`15/06/2025,${i + 1},Player${i} Surname${i},36,rollup_stableford,stableford,No`);
+    }
+    const csv = lines.join('\n');
+
+    const result = await processSeasonUpload(csv);
+
+    expect(result.golfersCreated).toBe(400);
+    expect(result.scoresEntered).toBe(400);
+    // Batched: golfers loaded once, inserted once; scores written in a single bulkWrite for the
+    // single date group — NOT one round-trip per golfer.
+    expect(mockGolfersCol.find).toHaveBeenCalledTimes(1);
+    expect(mockGolfersCol.insertMany).toHaveBeenCalledTimes(1);
+    expect(mockScoresCol.bulkWrite).toHaveBeenCalledTimes(1);
+    expect(mockScoresCol.updateMany).toHaveBeenCalledTimes(1);
   });
 });
