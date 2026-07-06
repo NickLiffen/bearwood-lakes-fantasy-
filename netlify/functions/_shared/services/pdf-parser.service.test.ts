@@ -48,6 +48,11 @@ describe('detectScoringFormat', () => {
     expect(detectScoringFormat('Mens Club Championships Nett')).toBe('medal');
   });
 
+  it('does not treat "nett" inside another word as medal', () => {
+    expect(detectScoringFormat('Annette Stableford')).toBe('stableford');
+    expect(detectScoringFormat('Annette Trophy')).toBe('stableford');
+  });
+
   it('defaults to stableford when no keywords found', () => {
     expect(detectScoringFormat('Some Other Format')).toBe('stableford');
   });

@@ -178,8 +178,9 @@ export function parseEcgDate(dateStr: string): string {
  */
 export function detectScoringFormat(text: string): 'stableford' | 'medal' {
   const lower = text.toLowerCase();
-  // "nett" (net-to-par) leaderboards — e.g. club championships — are medal events
-  if (lower.includes('medal') || lower.includes('nett')) return 'medal';
+  // "nett" (net-to-par) leaderboards — e.g. club championships — are medal events.
+  // Match "nett" as a whole word so titles like "Annette Stableford" aren't misread.
+  if (lower.includes('medal') || /\bnett\b/.test(lower)) return 'medal';
   return 'stableford';
 }
 
@@ -225,8 +226,10 @@ export function parseTournamentText(rawText: string): ParsedTournament {
     simpleRowRegex.test(line);
 
   // Rows for players who did not complete (No Return / Withdrawn / Did Not Finish)
-  // carry no valid score and must be excluded from results.
-  const isIncompleteRow = (line: string) => /(?:^|\s)(?:NR|WD|DNF)(?:\s|$)/.test(line);
+  // carry no valid score and must be excluded from results. Use a case-insensitive
+  // word-boundary match so punctuated / mixed-case statuses (e.g. "NR," / "Wd")
+  // are also caught, while avoiding false hits inside names (e.g. "Henry").
+  const isIncompleteRow = (line: string) => /\b(?:NR|WD|DNF)\b/i.test(line);
 
   const datePattern = /^\d{1,2}\s+\w+\s+\d{4}$/;
 
@@ -249,11 +252,13 @@ export function parseTournamentText(rawText: string): ParsedTournament {
     if (isIncompleteRow(line)) continue;
 
     // Detect scoring format early — before name extraction so keywords
-    // like "stableford" / "medal" / "nett" are captured even in formats without dates
+    // like "stableford" / "medal" / "nett" are captured even in formats without dates.
+    // Match "nett" as a whole word so names like "Annette" don't trigger medal scoring.
+    const lowerLine = line.toLowerCase();
     if (
-      line.toLowerCase().includes('stableford') ||
-      line.toLowerCase().includes('medal') ||
-      line.toLowerCase().includes('nett')
+      lowerLine.includes('stableford') ||
+      lowerLine.includes('medal') ||
+      /\bnett\b/.test(lowerLine)
     ) {
       if (!isDataRow(line)) {
         scoringFormat = detectScoringFormat(line);
