@@ -1,25 +1,33 @@
-// Season Upload Service — processes CSV uploads of prior season golf results
+// Season Upload Service — processes CSV uploads of prior season golf results.
+// Routes all writes through the shared batched upload-core so large CSVs complete in a bounded
+// number of DB round-trips (resolve golfers once, batch scores per date group, one recalc per
+// affected season) instead of ~5-6 round-trips per row.
 
 import { ObjectId } from 'mongodb';
 import { connectToDatabase } from '../db';
-import {
-  GolferDocument,
-  GOLFERS_COLLECTION,
-  defaultStats2024,
-  defaultStats2025,
-  defaultStats2026,
-} from '../models/Golfer';
+import { GolferDocument, GOLFERS_COLLECTION } from '../models/Golfer';
 import { TournamentDocument, TOURNAMENTS_COLLECTION } from '../models/Tournament';
 import { ScoreDocument, SCORES_COLLECTION } from '../models/Score';
 import { SeasonDocument, SEASONS_COLLECTION } from '../models/Season';
 import {
-  getBasePointsForPosition,
-  getBonusPoints,
   TOURNAMENT_TYPE_CONFIG,
   type TournamentType,
   type ScoringFormat,
-  type GolferCountTier,
 } from '../../../../shared/types/tournament.types';
+import {
+  findSeasonForDate,
+  getGolferCountTier,
+  getStatsKey,
+  matchOrCreateGolfers,
+  normalizeGolferKey,
+  upsertTournament,
+  bulkUpsertScores,
+  reconcileParticipation,
+  setParticipants,
+  recalcGolferStats,
+  type ScoreEntry,
+  type SeasonRecalcSpec,
+} from './upload-core';
 
 export interface SeasonUploadResult {
   golfersCreated: number;
@@ -101,26 +109,6 @@ function formatTournamentName(dateStr: string): string {
   return `${dateStr} Tournament`;
 }
 
-function getGolferCountTier(count: number): GolferCountTier {
-  if (count <= 10) return '0-10';
-  if (count < 20) return '10-20';
-  return '20+';
-}
-
-function escapeRegex(str: string): string {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function findSeasonForDate(date: Date, seasons: SeasonDocument[]): SeasonDocument | null {
-  return (
-    seasons.find((s) => {
-      const start = new Date(s.startDate);
-      const end = new Date(s.endDate);
-      return date >= start && date <= end;
-    }) || null
-  );
-}
-
 function parsePlayerName(player: string): { firstName: string; lastName: string } {
   const trimmed = player.trim();
   const spaceIndex = trimmed.indexOf(' ');
@@ -133,14 +121,6 @@ function parsePlayerName(player: string): { firstName: string; lastName: string 
   };
 }
 
-// NOTE: This handles 2024, 2025, and 2026 seasons. When a new season field is added
-// to the model (e.g., stats2027), this function must be updated to include it.
-function getStatsKey(season: number): 'stats2024' | 'stats2025' | 'stats2026' {
-  if (season === 2026) return 'stats2026';
-  if (season === 2025) return 'stats2025';
-  return 'stats2024';
-}
-
 export async function processSeasonUpload(csvText: string): Promise<SeasonUploadResult> {
   const { db } = await connectToDatabase();
   const golfersCol = db.collection<GolferDocument>(GOLFERS_COLLECTION);
@@ -148,11 +128,22 @@ export async function processSeasonUpload(csvText: string): Promise<SeasonUpload
   const scoresCol = db.collection<ScoreDocument>(SCORES_COLLECTION);
   const seasonsCol = db.collection<SeasonDocument>(SEASONS_COLLECTION);
 
+  const now = new Date();
   const allSeasons = await seasonsCol.find({}).sort({ startDate: -1 }).toArray();
 
   const rows = parseCsv(csvText);
 
-  // Group rows by date
+  // Fail fast on rows with a blank player name — otherwise a single "blank" golfer would be
+  // created and scores attached to it.
+  const blankPlayerRow = rows.find((row) => row.player.trim() === '');
+  if (blankPlayerRow) {
+    throw new Error(
+      `CSV contains a row with a blank player name (date ${blankPlayerRow.date}). ` +
+        `Please add the player's name and re-upload.`
+    );
+  }
+
+  // Group rows by date (each date becomes one tournament)
   const dateGroups = new Map<string, CsvRow[]>();
   for (const row of rows) {
     const existing = dateGroups.get(row.date) || [];
@@ -160,13 +151,22 @@ export async function processSeasonUpload(csvText: string): Promise<SeasonUpload
     dateGroups.set(row.date, existing);
   }
 
+  // Resolve every golfer referenced in the CSV once (one find + one insertMany), rather than
+  // scanning the golfers collection per row.
+  const { idByKey, createdNames, matchedCount } = await matchOrCreateGolfers(
+    golfersCol,
+    rows.map((row) => {
+      const { firstName, lastName } = parsePlayerName(row.player);
+      return { firstName, lastName };
+    }),
+    now
+  );
+
   let tournamentsCreated = 0;
   let scoresEntered = 0;
-  const createdGolferIds = new Set<string>();
-  const updatedGolferIds = new Set<string>();
-  const affectedGolferIds = new Set<string>();
+  const affectedGolferIds = new Map<string, ObjectId>();
   const unmatchedDates: string[] = [];
-  const seasonsAffected = new Set<string>();
+  const seasonsAffected = new Set<number>();
 
   for (const [dateStr, group] of dateGroups) {
     const date = parseDate(dateStr);
@@ -178,29 +178,23 @@ export async function processSeasonUpload(csvText: string): Promise<SeasonUpload
     }
 
     const seasonNumber = parseInt(matchedSeason.name, 10) || 0;
-    seasonsAffected.add(matchedSeason.name);
+    seasonsAffected.add(seasonNumber);
     const name = formatTournamentName(dateStr);
     const tier = getGolferCountTier(group.length);
 
-    // Get tournament type, scoring format, and multi-day from the first row in the group
+    // Tournament type / scoring format / multi-day come from the first row in the group.
     const csvType = (group[0].tournamentType || 'rollup_stableford') as TournamentType;
     const csvScoringFormat = (group[0].scoringFormat || 'stableford') as ScoringFormat;
-    const csvMultiDay = group[0].isMultiDay;
     const typeConfig = TOURNAMENT_TYPE_CONFIG[csvType];
     const multiplier = typeConfig?.multiplier ?? 1;
-    const isMultiDay = csvMultiDay; // Use CSV value directly (Yes/No from column 7)
-    const scoringFormat = typeConfig?.forcedScoringFormat ?? csvScoringFormat;
+    const isMultiDay = group[0].isMultiDay;
+    const scoringFormat = (typeConfig?.forcedScoringFormat ?? csvScoringFormat) as ScoringFormat;
 
-    // Find or create tournament
-    const tournament = await tournamentsCol.findOne({ name, season: seasonNumber });
-    let tournamentId: ObjectId;
-
-    if (tournament) {
-      tournamentId = tournament._id;
-    } else {
-      const now = new Date();
-      const newTournament: Omit<TournamentDocument, '_id'> = {
+    const { tournamentId, created } = await upsertTournament(
+      tournamentsCol,
+      {
         name,
+        season: seasonNumber,
         startDate: date,
         endDate: date,
         tournamentType: csvType,
@@ -208,133 +202,65 @@ export async function processSeasonUpload(csvText: string): Promise<SeasonUpload
         isMultiDay,
         multiplier,
         golferCountTier: tier,
-        season: seasonNumber,
-        status: 'complete',
-        participatingGolferIds: [],
-        createdAt: now,
-        updatedAt: now,
-      };
-      const result = await tournamentsCol.insertOne(newTournament as TournamentDocument);
-      tournamentId = result.insertedId;
-      tournamentsCreated++;
-    }
+      },
+      now
+    );
+    if (created) tournamentsCreated++;
 
+    // Build one score entry per golfer in the group (dedupe by golfer, later row wins).
+    const entryByGolfer = new Map<string, ScoreEntry>();
     for (const row of group) {
       const { firstName, lastName } = parsePlayerName(row.player);
-
-      // Find or create golfer (case-insensitive match)
-      const golfer = await golfersCol.findOne({
-        firstName: { $regex: new RegExp(`^${escapeRegex(firstName)}$`, 'i') },
-        lastName: { $regex: new RegExp(`^${escapeRegex(lastName)}$`, 'i') },
+      const golferId = idByKey.get(normalizeGolferKey(firstName, lastName));
+      if (!golferId) continue;
+      affectedGolferIds.set(golferId.toString(), golferId);
+      entryByGolfer.set(golferId.toString(), {
+        golferId,
+        position: row.position,
+        rawScore: row.rawScore,
       });
-
-      let golferId: ObjectId;
-
-      if (golfer) {
-        golferId = golfer._id;
-        updatedGolferIds.add(golferId.toString());
-      } else {
-        const now = new Date();
-        const newGolfer: Omit<GolferDocument, '_id'> = {
-          firstName,
-          lastName,
-          picture: '',
-          price: 1,
-          isActive: true,
-          stats2024: { ...defaultStats2024 },
-          stats2025: { ...defaultStats2025 },
-          stats2026: { ...defaultStats2026 },
-          createdAt: now,
-          updatedAt: now,
-        };
-        const result = await golfersCol.insertOne(newGolfer as GolferDocument);
-        golferId = result.insertedId;
-        createdGolferIds.add(golferId.toString());
-      }
-
-      affectedGolferIds.add(golferId.toString());
-
-      // Calculate points using tournament's scoring format and multi-day setting
-      const basePoints = getBasePointsForPosition(row.position, csvType);
-      const rawScore = row.rawScore;
-      const bonusPoints = getBonusPoints(rawScore, scoringFormat, isMultiDay);
-      const multipliedPoints = (basePoints + bonusPoints) * multiplier;
-
-      // Upsert score
-      const now = new Date();
-      await scoresCol.updateOne(
-        { golferId, tournamentId },
-        {
-          $set: {
-            participated: true,
-            position: row.position,
-            rawScore,
-            basePoints,
-            bonusPoints,
-            multipliedPoints,
-            updatedAt: now,
-          },
-          $setOnInsert: {
-            golferId,
-            tournamentId,
-            createdAt: now,
-          },
-        },
-        { upsert: true }
-      );
-      scoresEntered++;
-
-      // Add golfer to tournament's participatingGolferIds
-      await tournamentsCol.updateOne(
-        { _id: tournamentId },
-        { $addToSet: { participatingGolferIds: golferId } }
-      );
     }
+
+    const entries = [...entryByGolfer.values()];
+    const currentGolferIds = entries.map((e) => e.golferId);
+
+    scoresEntered += await bulkUpsertScores(
+      scoresCol,
+      tournamentId,
+      entries,
+      scoringFormat,
+      isMultiDay,
+      multiplier,
+      csvType,
+      now
+    );
+
+    await reconcileParticipation(scoresCol, tournamentId, currentGolferIds, now);
+    await setParticipants(tournamentsCol, tournamentId, currentGolferIds, now);
   }
 
-  // Recalculate stats for all affected golfers, per season
-  for (const seasonDoc of allSeasons) {
-    const seasonNumber = parseInt(seasonDoc.name, 10) || 0;
-    const statsKey = getStatsKey(seasonNumber);
-
-    const seasonTournamentIds = await tournamentsCol
+  // Recalculate stats once per affected season for all affected golfers.
+  const recalcSpecs: SeasonRecalcSpec[] = [];
+  for (const seasonNumber of seasonsAffected) {
+    const seasonTournaments = await tournamentsCol
       .find({ season: seasonNumber })
       .project<{ _id: ObjectId }>({ _id: 1 })
       .toArray();
-    const tournamentIds = seasonTournamentIds.map((t) => t._id);
-
+    const tournamentIds = seasonTournaments.map((t) => t._id);
     if (tournamentIds.length === 0) continue;
-
-    for (const golferIdStr of affectedGolferIds) {
-      const golferId = new ObjectId(golferIdStr);
-
-      const scores = await scoresCol
-        .find({
-          golferId,
-          tournamentId: { $in: tournamentIds },
-          participated: true,
-        })
-        .toArray();
-
-      const stats = {
-        timesPlayed: scores.length,
-        timesScored36Plus: scores.filter((s) => (s.rawScore ?? 0) >= 36).length,
-        timesScored32Plus: scores.filter((s) => (s.rawScore ?? 0) >= 32).length,
-        timesFinished1st: scores.filter((s) => s.position === 1).length,
-        timesFinished2nd: scores.filter((s) => s.position === 2).length,
-        timesFinished3rd: scores.filter((s) => s.position === 3).length,
-      };
-
-      await golfersCol.updateOne(
-        { _id: golferId },
-        { $set: { [statsKey]: stats, updatedAt: new Date() } }
-      );
-    }
+    recalcSpecs.push({ statsKey: getStatsKey(seasonNumber), tournamentIds });
   }
 
-  // Golfers that were found (not created) — exclude any that were created in this same upload
-  const golfersCreated = createdGolferIds.size;
-  const golfersUpdated = [...updatedGolferIds].filter((id) => !createdGolferIds.has(id)).length;
+  await recalcGolferStats(
+    golfersCol,
+    scoresCol,
+    [...affectedGolferIds.values()],
+    recalcSpecs,
+    now
+  );
+
+  const golfersCreated = createdNames.length;
+  const golfersUpdated = matchedCount;
 
   let summary =
     `Processed ${rows.length} rows: ` +

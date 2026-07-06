@@ -34,3 +34,12 @@ Object.defineProperty(globalThis, 'sessionStorage', {
   writable: true,
   configurable: true,
 });
+
+// jsdom does not implement Element.prototype.scrollIntoView. Components that call it from a
+// deferred callback (e.g. a setTimeout after adding a golfer in TeamBuilderPage) would otherwise
+// throw an uncaught exception in the timer after the test body finishes, which Vitest reports as
+// an unhandled error and fails the run non-deterministically. Provide a no-op implementation.
+if (typeof Element !== 'undefined' && !Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = function scrollIntoView() {};
+}
+
