@@ -209,6 +209,16 @@ describe('season-upload.service', () => {
     expect(result.scoresEntered).toBe(1);
   });
 
+  it('fails fast when a CSV row has a blank player name', async () => {
+    const csv = [
+      'date,position,player,rawScore,tournamentType,scoringFormat,isMultiDay',
+      '15/06/2025,1,,38,rollup_stableford,stableford,No',
+    ].join('\n');
+
+    await expect(processSeasonUpload(csv)).rejects.toThrow(/blank player name/);
+    expect(mockGolfersCol.insertMany).not.toHaveBeenCalled();
+  });
+
   it('processes a large field with a bounded number of DB round-trips', async () => {
     const header = 'date,position,player,rawScore,tournamentType,scoringFormat,isMultiDay';
     const lines = [header];

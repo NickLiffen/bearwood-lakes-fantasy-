@@ -113,6 +113,25 @@ describe('matchOrCreateGolfers', () => {
     expect(insertedDocs).toHaveLength(1);
   });
 
+  it('trims whitespace from new golfer names before inserting', async () => {
+    const golfersCol = {
+      find: vi.fn().mockReturnValue(cursor([])),
+      insertMany: vi.fn().mockImplementation((docs: unknown[]) =>
+        Promise.resolve(insertManyResult(docs))
+      ),
+    } as unknown as Collection<GolferDocument>;
+
+    const res = await matchOrCreateGolfers(golfersCol, [
+      { firstName: '  Tiger', lastName: 'Woods  ' },
+    ]);
+
+    expect(res.createdNames).toEqual(['Tiger Woods']);
+    const insertedDocs = (golfersCol.insertMany as unknown as ReturnType<typeof vi.fn>).mock
+      .calls[0][0] as Array<{ firstName: string; lastName: string }>;
+    expect(insertedDocs[0].firstName).toBe('Tiger');
+    expect(insertedDocs[0].lastName).toBe('Woods');
+  });
+
   it('throws on ambiguous existing golfers (multiple records for one name)', async () => {
     const golfersCol = {
       find: vi.fn().mockReturnValue(

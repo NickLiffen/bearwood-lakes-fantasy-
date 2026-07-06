@@ -104,7 +104,10 @@ export async function matchOrCreateGolfers(
   }
 
   // Load all golfers once and group ids by normalized key to detect ambiguous matches.
-  const allGolfers = await golfersCol.find({}).toArray();
+  // Only the name fields are needed for matching, so avoid pulling large stats fields.
+  const allGolfers = await golfersCol
+    .find({}, { projection: { firstName: 1, lastName: 1 } })
+    .toArray();
   const existingByKey = new Map<string, ObjectId[]>();
   for (const g of allGolfers) {
     const key = normalizeGolferKey(g.firstName, g.lastName);
@@ -130,12 +133,13 @@ export async function matchOrCreateGolfers(
       matchedCount++;
       continue;
     }
-    // Queue a new golfer (deduped — one per key).
+    // Queue a new golfer (deduped — one per key). Names are trimmed so stored data matches the
+    // normalized matching key and won't cause whitespace-only ambiguous collisions later.
     toCreate.push({
       key,
       doc: {
-        firstName: input.firstName,
-        lastName: input.lastName,
+        firstName: input.firstName.trim(),
+        lastName: input.lastName.trim(),
         picture: '',
         price: input.price ?? 1,
         isActive: true,
@@ -225,7 +229,7 @@ export async function upsertTournament(
   }
 
   const newTournament: Omit<TournamentDocument, '_id'> = {
-    name: meta.name,
+    name: meta.name.trim(),
     startDate: meta.startDate,
     endDate: meta.endDate,
     tournamentType: meta.tournamentType,

@@ -133,6 +133,16 @@ export async function processSeasonUpload(csvText: string): Promise<SeasonUpload
 
   const rows = parseCsv(csvText);
 
+  // Fail fast on rows with a blank player name — otherwise a single "blank" golfer would be
+  // created and scores attached to it.
+  const blankPlayerRow = rows.find((row) => row.player.trim() === '');
+  if (blankPlayerRow) {
+    throw new Error(
+      `CSV contains a row with a blank player name (date ${blankPlayerRow.date}). ` +
+        `Please add the player's name and re-upload.`
+    );
+  }
+
   // Group rows by date (each date becomes one tournament)
   const dateGroups = new Map<string, CsvRow[]>();
   for (const row of rows) {
