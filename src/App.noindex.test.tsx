@@ -138,12 +138,15 @@ describe('App marks private routes noindex', () => {
     expect(robotsMeta()).toBeNull();
   });
 
-  it('marks a private route noindex even while it redirects an anonymous visitor', () => {
+  it('redirects an anonymous visitor away from a private route without leaking a noindex tag', () => {
     renderAt('/dashboard');
 
+    // The guard calls useNoIndex() before returning <Navigate>, so the tag is applied while
+    // /dashboard is mounted — but the redirect immediately unmounts the guard and takes the
+    // tag with it. That cleanup is the point: /login is public and must stay indexable, so a
+    // stale noindex must not survive the redirect. For auth-walled URLs the durable signal is
+    // the X-Robots-Tag header in netlify.toml, not this tag.
     expect(screen.getByText('LoginPage')).toBeInTheDocument();
-    // The guard calls useNoIndex() before returning <Navigate>, so the tag is applied to the
-    // crawled /dashboard URL rather than being skipped entirely.
-    expect(document.head.querySelectorAll('meta[name="robots"]').length).toBeLessThanOrEqual(1);
+    expect(robotsMeta()).toBeNull();
   });
 });

@@ -30,4 +30,25 @@ describe('useNoIndex', () => {
 
     expect(getRobotsMeta()).toHaveLength(1);
   });
+
+  it('keeps the tag while a second caller is still mounted', () => {
+    const first = renderHook(() => useNoIndex());
+    const second = renderHook(() => useNoIndex());
+
+    first.unmount();
+    expect(getRobotsMeta()).toHaveLength(1);
+
+    second.unmount();
+    expect(getRobotsMeta()).toHaveLength(0);
+  });
+
+  it('re-adds the tag after every caller has unmounted', () => {
+    const { unmount } = renderHook(() => useNoIndex());
+    unmount();
+    expect(getRobotsMeta()).toHaveLength(0);
+
+    renderHook(() => useNoIndex());
+    expect(getRobotsMeta()).toHaveLength(1);
+    expect(getRobotsMeta()[0].getAttribute('content')).toBe('noindex,nofollow');
+  });
 });
