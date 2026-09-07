@@ -13,6 +13,29 @@
 [[plugins]]
   package = "./netlify-plugins/preview-isolation"
   
+# Consolidate the old Netlify subdomain onto the custom domain so Google indexes a single
+# origin. Both hosts previously served 200, which made bearwoodfantasy.com look like a
+# duplicate of bearwoodlakes.netlify.app.
+#
+# These must stay ABOVE the SPA rules below — Netlify evaluates redirects top-down.
+# `force = true` is required because index.html already exists at these paths.
+# The host match is exact, so deploy previews (deploy-preview-N--bearwoodlakes.netlify.app)
+# and branch deploys are unaffected.
+
+# Keep function calls on the old subdomain working, so an in-flight POST from a stale tab
+# isn't turned into a cross-host 301 that drops its body.
+[[redirects]]
+  from = "https://bearwoodlakes.netlify.app/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "https://bearwoodlakes.netlify.app/*"
+  to = "https://bearwoodfantasy.com/:splat"
+  status = 301
+  force = true
+
 # Redirects for SPA routing
 [[redirects]]
   from = "/api/*"
@@ -42,6 +65,100 @@
     Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://*.netlify.app https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com; frame-ancestors 'none';"
     # Strict Transport Security (HTTPS only)
     Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+
+# Keep authenticated app routes out of Google's index.
+#
+# These routes render nothing useful to an anonymous crawler — the route guards in
+# src/App.tsx redirect to /login — which Google reports as "Page with redirect" or
+# "Crawled - currently not indexed". They are deliberately still crawlable in robots.txt so
+# Google can actually see this noindex signal.
+#
+# This header may not survive the SPA rewrite to /index.html, so useNoIndex() in
+# src/App.tsx injects a <meta name="robots"> tag as the primary, render-time signal.
+[[headers]]
+  for = "/dashboard"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+
+[[headers]]
+  for = "/profile"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+
+[[headers]]
+  for = "/my-team"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+
+[[headers]]
+  for = "/team-builder"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+
+[[headers]]
+  for = "/scoring"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+
+[[headers]]
+  for = "/verify-phone"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+
+[[headers]]
+  for = "/golfers"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+
+[[headers]]
+  for = "/golfers/*"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+
+[[headers]]
+  for = "/leaderboard"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+
+[[headers]]
+  for = "/users"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+
+[[headers]]
+  for = "/users/*"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+
+[[headers]]
+  for = "/tournaments"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+
+[[headers]]
+  for = "/tournaments/*"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+
+[[headers]]
+  for = "/leagues"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+
+[[headers]]
+  for = "/leagues/*"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+
+[[headers]]
+  for = "/admin"
+  [headers.values]
+    X-Robots-Tag = "noindex"
+
+[[headers]]
+  for = "/admin/*"
+  [headers.values]
+    X-Robots-Tag = "noindex"
 
 [functions."scheduled-recalculate"]
   schedule = "@daily"
