@@ -1,5 +1,5 @@
 # Bearwood Lakes Fantasy Golf League
-# https://bearwoodlakes.netlify.app
+# https://bearwoodfantasy.com
 
 User-agent: *
 Allow: /
@@ -8,4 +8,8 @@ Allow: /
 Disallow: /.netlify/
 Disallow: /api/
 
-Sitemap: https://bearwoodlakes.netlify.app/sitemap.xml
+# Note: authenticated app routes (/dashboard, /admin/*, /leaderboard, ...) are deliberately
+# NOT disallowed here. They are marked noindex instead, and blocking them would stop Google
+# from ever seeing that signal — leaving the URLs stuck in the index.
+
+Sitemap: https://bearwoodfantasy.com/sitemap.xml

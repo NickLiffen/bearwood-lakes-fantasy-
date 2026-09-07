@@ -3,6 +3,7 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
+import { useNoIndex } from './hooks/useNoIndex';
 import { usePageTracking } from './hooks/usePageTracking';
 import LoadingSpinner from './components/ui/LoadingSpinner';
 import HomePage from './pages/Home/HomePage';
@@ -41,6 +42,7 @@ import SeasonsAdminPage from './pages/Admin/Seasons';
 // Protected route wrapper for admin pages (full admin only)
 const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isAdmin, user, loading } = useAuth();
+  useNoIndex();
 
   if (loading) {
     return <LoadingSpinner text="Loading..." />;
@@ -64,6 +66,7 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 // Protected route wrapper for admin portal pages accessible by admin + tournament_uploader
 const AdminPortalRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, canAccessAdmin, user, loading } = useAuth();
+  useNoIndex();
 
   if (loading) {
     return <LoadingSpinner text="Loading..." />;
@@ -87,6 +90,7 @@ const AdminPortalRoute: React.FC<{ children: React.ReactNode }> = ({ children })
 // Protected route wrapper for authenticated pages
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
+  useNoIndex();
 
   if (loading) {
     return <LoadingSpinner text="Loading..." />;
@@ -102,6 +106,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 // Protected + verified route wrapper — requires phone verification
 const VerifiedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, user, loading } = useAuth();
+  useNoIndex();
 
   if (loading) {
     return <LoadingSpinner text="Loading..." />;
