@@ -205,6 +205,11 @@ export function parseTournamentText(rawText: string): ParsedTournament {
   // Captures: position, name, to-par (signed int or "E"), total-net, purse.
   // Must be tried BEFORE purseRowRegex (which would absorb the to-par into the name).
   const medalPurseRowRegex = /^(T?\d+)\s+(.+?)\s+([+-]?\d+|E)\s+(\d+)\s+[£$][\d,.]+$/;
+  // Format A3: medal without purse — e.g. "1 David Smillie -5 67" or "5 Malcolm Cooper E 72"
+  // Columns: Pos · Player · To-Par (Net) · Total (Net). To-par must be signed or "E" so
+  // plain stableford rows are never matched. Must be tried BEFORE simpleRowRegex, which
+  // would otherwise absorb the to-par into the name and read the total as the score.
+  const medalToParTotalRowRegex = /^(T?\d+)\s+(.+?)\s+([+-]\d+|E)\s+(\d+)$/;
   // Format B: to-par + total + thru — e.g. "1  Tony Grover   -4 40  F"
   const toParRowRegex = /^(T?\d+)\s+(.+?)\s+([+-]?\d+|E)\s+(\d+)\s+F$/;
   // Format C: simple stableford — e.g. "1 John Pulley 41" or "T24 Trevor Mason 34"
@@ -221,6 +226,7 @@ export function parseTournamentText(rawText: string): ParsedTournament {
   const isDataRow = (line: string) =>
     twoDayNettRowRegex.test(line) ||
     medalPurseRowRegex.test(line) ||
+    medalToParTotalRowRegex.test(line) ||
     purseRowRegex.test(line) ||
     toParRowRegex.test(line) ||
     simpleRowRegex.test(line);
@@ -312,9 +318,11 @@ export function parseTournamentText(rawText: string): ParsedTournament {
     // with the to-par value swallowed into the name.
     const twoDayNettMatch = line.match(twoDayNettRowRegex);
     const medalPurseMatch = line.match(medalPurseRowRegex);
+    const medalToParTotalMatch = line.match(medalToParTotalRowRegex);
     const match =
       twoDayNettMatch ||
       medalPurseMatch ||
+      medalToParTotalMatch ||
       line.match(purseRowRegex) ||
       line.match(toParRowRegex) ||
       line.match(simpleRowRegex);
@@ -323,11 +331,11 @@ export function parseTournamentText(rawText: string): ParsedTournament {
       const fullName = match[2].trim();
       // Score selection:
       //   - 2-day nett format: use to-par (group 3), with "E" → 0
-      //   - medal-purse format: use to-par (group 3), with "E" → 0
+      //   - medal-purse / medal to-par+total formats: use to-par (group 3), with "E" → 0
       //   - to-par format: total points (group 4)
       //   - purse / simple formats: score (group 3)
       let rawScore: number;
-      if (twoDayNettMatch || medalPurseMatch) {
+      if (twoDayNettMatch || medalPurseMatch || medalToParTotalMatch) {
         const toPar = match[3];
         rawScore = toPar === 'E' ? 0 : parseInt(toPar, 10);
       } else if (line.match(toParRowRegex) && match[4] !== undefined) {
