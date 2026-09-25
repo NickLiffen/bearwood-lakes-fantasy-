@@ -773,6 +773,39 @@ WD Chris Owen WD WD £0.00
       { position: 1, firstName: 'Jit', lastName: 'Aujla', rawScore: 6 },
     ]);
   });
+
+  it('parses medal format with to-par and total net columns (no purse)', () => {
+    const text = `Weekend Medal - M Division
+To Par Total
+Pos. Player
+Net Net
+1 David Smillie -5 67
+5 Malcolm Cooper E 72
+T9 Paul Frame +1 73
+WD Tom Black - WD
+NS Lee Yates - NS`;
+
+    const result = parseTournamentText(text);
+
+    expect(result.name).toBe('Weekend Medal');
+    expect(result.scoringFormat).toBe('medal');
+    expect(result.golfers).toEqual([
+      { position: 1, firstName: 'David', lastName: 'Smillie', rawScore: -5 },
+      { position: 5, firstName: 'Malcolm', lastName: 'Cooper', rawScore: 0 },
+      { position: 9, firstName: 'Paul', lastName: 'Frame', rawScore: 1 },
+    ]);
+  });
+
+  it('does not treat unsigned two-number stableford rows as medal to-par rows', () => {
+    const text = `Test Stableford 01/01/26
+1 John Pulley 41`;
+
+    const result = parseTournamentText(text);
+
+    expect(result.golfers).toEqual([
+      { position: 1, firstName: 'John', lastName: 'Pulley', rawScore: 41 },
+    ]);
+  });
 });
 
 describe('joinRowByGaps', () => {

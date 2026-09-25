@@ -130,4 +130,45 @@ describe('parsePdfBuffer integration', () => {
     expect(result.golfers.some((g) => g.lastName === 'Kates')).toBe(false);
     expect(result.golfers.some((g) => g.lastName === 'Owen')).toBe(false);
   });
+
+  it('parses the Weekend Medal (to-par + total net, no purse) PDF end-to-end', async () => {
+    const fixturePath = resolve(import.meta.dirname, '__fixtures__/weekend-medal-male.pdf');
+    const buffer = Buffer.from(readFileSync(fixturePath));
+
+    const result = await parsePdfBuffer(buffer);
+
+    expect(result.scoringFormat).toBe('medal');
+    expect(result.name).toBe('Weekend Medal');
+    expect(result.golfers.length).toBe(60);
+
+    // Every row must split into a first and last name, never leaking the to-par/total columns
+    for (const golfer of result.golfers) {
+      expect(golfer.firstName).toMatch(/^[A-Za-z'-]+$/);
+      expect(golfer.lastName).toMatch(/^[A-Za-z'-]+$/);
+    }
+
+    // Score is the to-par net value (not the total net)
+    expect(result.golfers[0]).toMatchObject({
+      position: 1,
+      firstName: 'David',
+      lastName: 'Smillie',
+      rawScore: -5,
+    });
+
+    // 'E' (even par) parses as 0
+    const malcolm = result.golfers.find((g) => g.lastName === 'Cooper');
+    expect(malcolm).toMatchObject({ firstName: 'Malcolm', rawScore: 0 });
+
+    // '+1' parses as 1
+    const nick = result.golfers.find((g) => g.lastName === 'Liffen');
+    expect(nick).toMatchObject({ firstName: 'Nick', position: 12, rawScore: 1 });
+
+    const last = result.golfers[result.golfers.length - 1];
+    expect(last).toMatchObject({
+      position: 60,
+      firstName: 'Rohan',
+      lastName: 'Bansal',
+      rawScore: 20,
+    });
+  });
 });
